@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
+Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -12,9 +12,12 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
+project-state/CHANGELOG.md
 docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
+docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -39,7 +42,9 @@ docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
 docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
+docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
+docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
 ```
 
 Hinweis: `docs/current/RDAP7H_CHAT_HANDOFF_AND_NEXT_PROMPT.md` und `docs/current/NEXT_CHAT_PROMPT_RDAP7I.txt` waren beim RDAP7I-Start nicht im GitHub/dev-Stand vorhanden.
@@ -177,9 +182,10 @@ writeEnabled: false
 authEnabled: false
 loginEnabled: false
 sessionCreationEnabled: false
+sessionCookieWriteEnabled: false
 oauthStartRouteEnabled: false
 oauthCallbackRouteEnabled: false
-statusApiVersion erwartet nach RDAP7I Deploy: rdap7i.v1
+statusApiVersion live: rdap7i.v1
 ```
 
 ## Webserver-Backups
@@ -187,9 +193,11 @@ statusApiVersion erwartet nach RDAP7I Deploy: rdap7i.v1
 ```text
 /var/backups/stream-control-center/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED_remote-modboard-backend_20260623_213057.tar.gz
 /var/backups/stream-control-center/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_remote-modboard-backend_20260623_213951.tar.gz
+/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_222938.tar.gz
+/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz
 ```
 
-Vor RDAP7I Deploy neues Backup unter `/var/backups/stream-control-center/` erstellen.
+Hinweis: `20260623_223314` ist das bestaetigte RDAP7I-Live-Deploy-Backup.
 
 ## Lokale produktive SQLite
 

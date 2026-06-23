@@ -1,5 +1,57 @@
 # CHANGELOG
 
+## 2026-06-23 - RDAP7I / Session Store Read-only Validation Layer live bestaetigt
+
+Status: live deployed und dokumentiert
+
+Geaendert:
+
+- `remote-modboard/backend/package.json`
+- `remote-modboard/backend/README.md`
+- `remote-modboard/backend/src/routes/auth-status.routes.js`
+- `remote-modboard/backend/src/routes/status.routes.js`
+- `remote-modboard/backend/src/routes/routes.routes.js`
+- `remote-modboard/backend/src/services/auth-session-read.service.js`
+- `remote-modboard/backend/src/services/auth-status.service.js`
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`
+- `docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md`
+- `docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md`
+- `docs/current/NEXT_CHAT_PROMPT_RDAP8.txt`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+
+Dokumentiert:
+
+- RDAP7I ist nach GitHub/dev gepusht.
+- RDAP7I ist auf `web.cgn.community` live deployed.
+- `scc-remote-modboard.service` laeuft auf `127.0.0.1:3010`.
+- `GET /api/remote/status` meldet `statusApiVersion=rdap7i.v1`.
+- `dashboard_sessions` wird nur read-only per SELECT diagnostisch/validierend gelesen.
+- `/api/remote/auth/session-status` meldet ohne Cookie `reason=no_session_cookie`.
+- `/api/remote/auth/me` meldet ohne Cookie `loggedIn=false`.
+- Twitch OAuth Start/Callback bleiben HTTP 403 disabled.
+- Kein Redirect, kein Token-Tausch, kein Set-Cookie, keine Session-Erstellung, keine DB-Writes, keine Agent-Actions.
+- Backup: `/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz`.
+
+Nicht geaendert:
+
+- kein Login aktiviert
+- keine Twitch-OAuth-Secrets ins Repo
+- kein Cookie gesetzt
+- keine Session erstellt/verlaengert
+- keine DB-Writes
+- keine User-/Rollen-/Gruppen-Schreibroute
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- kein `moduleBuild`-Kosmetik-Fix in `remote-modboard/backend/server.js`
+
+Naechster Schritt:
+
+- `RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN`
+
 ## 2026-06-23 - DASHUI6C / Übergabe für neuen Chat vorbereitet
 
 Status: dokumentiert

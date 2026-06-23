@@ -1,13 +1,13 @@
 # CURRENT STATUS
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
+Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP7H ist abgeschlossen, lokal sauber, nach GitHub/dev gepusht und live auf dem Webserver deployed/getestet.
+RDAP7I ist abgeschlossen, lokal sauber, nach GitHub/dev gepusht und live auf dem Webserver deployed/getestet.
 
-RDAP7I bereitet den Session-Store-/Validation-Layer read-only vor. `dashboard_sessions` wird nur per SELECT diagnostisch/validierend gelesen. Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Session-Erstellung, keine Session-Verlaengerung, keine DB-Writes und keine Agent-Actions.
+RDAP7I bereitet den Session-Store-/Validation-Layer read-only vor. `dashboard_sessions` wird nur per SELECT diagnostisch/validierend gelesen. Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Session-Erstellung, keine Session-Verlaengerung, kein `last_seen_at` Update, keine DB-Writes und keine Agent-Actions.
 
 ## Fertig und bestaetigt
 
@@ -35,7 +35,7 @@ RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
-RDAP7I Session Store Read-only Validation Layer vorbereitet
+RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 ```
 
 ## Remote-Modboard read-only live
@@ -46,7 +46,7 @@ Subdomain/API: https://mods.forrestcgn.de/api/remote/
 Service: scc-remote-modboard.service
 Listen intern: 127.0.0.1:3010
 moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
-statusApiVersion erwartet nach RDAP7I Deploy: rdap7i.v1
+statusApiVersion live: rdap7i.v1
 ```
 
 Hinweis: `moduleBuild` ist noch der alte server.js-Buildname. Das ist kosmetisch und soll nur mit eigenem Mini-Scope angepasst werden.
@@ -73,6 +73,7 @@ writeEnabled: false
 migrationEnabled: false
 authPrepared: true
 authEnabled: false
+loginEnabled: false
 oauthPrepared: true
 oauthEnabled: false
 twitchOAuthPrepared: true
@@ -88,13 +89,33 @@ secretsInFrontend: false
 secretsLogged: false
 ```
 
-## RDAP7I erwartetes Test-Ergebnis
+## RDAP7I Live-Test Ergebnis
+
+Deploy:
+
+```text
+Deploy-Clone: /opt/stream-control-center/_deploy_tmp/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_20260623_223314
+Live-Ziel: /opt/stream-control-center/remote-modboard/backend
+Service: scc-remote-modboard.service
+Backup: /var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz
+```
+
+Syntax/Service:
+
+```text
+npm install --omit=dev erfolgreich
+npm run check erfolgreich
+scc-remote-modboard.service active (running)
+Listen intern: 127.0.0.1:3010
+```
 
 Status:
 
 ```text
-status.ok: True
+status.ok: true
 statusApiVersion: rdap7i.v1
+readOnly: true
+writeEnabled: false
 auth.prepared: true
 auth.enabled: false
 auth.loginEnabled: false
@@ -118,22 +139,23 @@ session.cookiePresent: false
 session.lookupPerformed: false
 session.valid: false
 session.reason: no_session_cookie
-kein Set-Cookie
-keine DB-Writes
+session.safety.createSession: false
+session.safety.setCookie: false
+session.safety.updateLastSeen: false
+session.safety.databaseWriteEnabled: false
 ```
 
-Session-Status mit Fake-Cookie:
+`/auth/me` ohne Cookie:
 
 ```text
 ok: true
 statusApiVersion: rdap7i.v1
-session.cookiePresent: true
-session.cookieValueFingerprint vorhanden
-session.valid: false
-session.reason: session_not_found oder DB/readiness-bezogener Fehler
-kein voller Cookie-Wert in Ausgabe
-kein Set-Cookie
-keine DB-Writes
+loggedIn: false
+session.sessionValid: false
+session.reason: no_session_cookie
+session.createsSession: false
+session.setsCookie: false
+session.updatesLastSeen: false
 ```
 
 Start-/Callback-Test bleibt:
@@ -150,19 +172,14 @@ keine Agent-Actions
 
 ## Webserver-Backups
 
-RDAP7G Backup:
-
 ```text
 /var/backups/stream-control-center/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED_remote-modboard-backend_20260623_213057.tar.gz
-```
-
-RDAP7H Backup:
-
-```text
 /var/backups/stream-control-center/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_remote-modboard-backend_20260623_213951.tar.gz
+/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_222938.tar.gz
+/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz
 ```
 
-Vor RDAP7I Webserver-Deploy neues Backup unter `/var/backups/stream-control-center/` erstellen.
+Hinweis: Das erste RDAP7I-Backup `20260623_222938` entstand beim ersten Deploy-Versuch, der wegen unvollstaendigem GitHub/dev-Stand nicht RDAP7I ausliefern konnte. Der bestaetigte RDAP7I-Live-Deploy nutzt Backup `20260623_223314`.
 
 ## Webserver-DB
 

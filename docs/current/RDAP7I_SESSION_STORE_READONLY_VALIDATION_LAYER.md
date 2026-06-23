@@ -1,6 +1,6 @@
 # RDAP7I Session Store Read-only Validation Layer
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
+Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
 Datum: 2026-06-23
 
 ## Zweck
@@ -31,10 +31,13 @@ remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/README.md
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
+docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
+project-state/CHANGELOG.md
 ```
 
 ## Neue Service-Datei
@@ -174,13 +177,13 @@ keine OBS-/Sound-/Overlay-/Command-Steuerung
 keine Secrets im Repo oder Frontend
 ```
 
-## Erwarteter Status
+## Bestaetigter Live-Status
 
 ```text
 GET /api/remote/status
 ```
 
-Erwartet nach Deploy/Test:
+Bestaetigt nach Deploy/Test:
 
 ```text
 statusApiVersion: rdap7i.v1
@@ -204,7 +207,7 @@ GET /api/remote/auth/twitch/start
 GET /api/remote/auth/twitch/callback
 ```
 
-Erwartet weiterhin:
+Bestaetigt weiterhin:
 
 ```text
 HTTP 403
@@ -223,7 +226,7 @@ Im Repo:
 
 ```powershell
 cd D:\Git\stream-control-center\remote-modboard\backend
-npm run check
+npm.cmd run check
 ```
 
 ## Testplan Webserver nach Deploy
@@ -254,9 +257,21 @@ kein Set-Cookie
 keine DB-Writes
 ```
 
-## Rollback
+## Live-Deploy-Ergebnis
 
-Vor Webserver-Deploy muss `/opt/stream-control-center/remote-modboard/backend` nach `/var/backups/stream-control-center/` gesichert werden.
+Separat dokumentiert in:
+
+```text
+docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
+```
+
+Bestaetigtes Webserver-Backup:
+
+```text
+/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz
+```
+
+## Rollback
 
 Rollback:
 

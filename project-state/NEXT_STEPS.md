@@ -1,11 +1,11 @@
 # NEXT STEPS
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
+Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
 Datum: 2026-06-23
 
 ## Aktueller Stand
 
-Fertig und dokumentiert:
+Fertig, nach GitHub/dev gepusht, live deployed und getestet:
 
 ```text
 RDAP7B Auth Read-only Status Endpoints gebaut
@@ -16,7 +16,7 @@ RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
-RDAP7I Session Store Read-only Validation Layer vorbereitet
+RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 ```
 
 Remote-Modboard bleibt read-only:
@@ -74,12 +74,14 @@ Ziel:
 Permission-Check-Middleware fuer spaetere Remote-Modboard-Bereiche planen/vorbereiten.
 ```
 
-RDAP8 darf klaeren/umsetzen, aber erst nach eigenem Scope und go:
+RDAP8 darf klaeren/umsetzen, aber erst nach eigenem Scope und ausdruecklichem go:
 
 ```text
 echte Remote-Modboard-Dateien vor Planung pruefen
 bestehendes Rollen-/Gruppen-/Permission-Modell weiterverwenden
+Auth-/Session-Read-only-Status aus RDAP7I als Grundlage beruecksichtigen
 Backend entscheidet Rechte, Frontend nur Anzeige
+Permission-Checks fuer spaetere Bereiche entwerfen
 keine Schreibrouten ohne Lock/Audit/Permission
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung

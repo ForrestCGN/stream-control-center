@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
+Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
 Datum: 2026-06-23
 
 ## Erledigt
@@ -40,6 +40,8 @@ Datum: 2026-06-23
 - [x] RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 - [x] RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
 - [x] RDAP7I Session Store Read-only Validation Layer vorbereitet
+- [x] RDAP7I Session Store Read-only Validation Layer live deployed/getestet
+- [x] RDAP7I Live-Deploy-Ergebnis dokumentiert
 
 ## Noch offen / als naechstes
 
@@ -47,11 +49,13 @@ Datum: 2026-06-23
 
 - [ ] echte Remote-Modboard-Dateien vor Planung pruefen
 - [ ] vorhandenes Rollen-/Gruppen-/Permission-Modell verwenden
+- [ ] RDAP7I Auth-/Session-Read-only-Status als Grundlage beruecksichtigen
 - [ ] Backend-seitige Permission-Checks planen
 - [ ] Frontend nur als Anzeige behandeln, nicht als Sicherheitsentscheidung
 - [ ] keine produktiven Schreibrouten ohne Lock/Audit/Permission
 - [ ] keine Agent-Actions
 - [ ] keine OBS-/Sound-/Overlay-/Command-Steuerung
+- [ ] keine Login-/Cookie-/Session-Erstellung aktivieren
 
 ### Spaeter
 
