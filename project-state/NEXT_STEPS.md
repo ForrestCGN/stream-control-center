@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK  
+Stand: RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -14,40 +14,46 @@ RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
 RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
-RDAP6G Auth Backend Read-only DB Layer vorbereitet
-RDAP6H Remote read-only Auth-Model Deploy/Test live bestanden
+RDAP6G Auth Backend Read-only DB Layer vorbereitet und deployed
+RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
 RDAP6I Auth DB Production Migration Runbook dokumentiert
+RDAP6J Productive Migration Precheck bestanden und Backup erstellt
+RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich ausgefuehrt
+RDAP6L Ergebnis-Doku erstellt
 ```
 
-## RDAP6H Ergebnis
-
-Live bestaetigt:
+## RDAP6K Ergebnis
 
 ```text
-Service active
-moduleBuild RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST
-GET /api/remote/routes OK
-GET /api/remote/auth/model OK
-database.reachable true
-readOnly true
-writeEnabled false
-migrationEnabled false
-authEnabled false
-sessionCreationEnabled false
-schema.ready false
+Ziel-DB: c3stream_control
+DB-User: c1stream_control
+Backup vor Migration: /root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
+Schema-Migration: OK
+Seed-Migration: OK
+Validation: OK
+schema.ready: true
+missingTables: []
 ```
 
-`schema.ready=false` ist korrekt, bis die RDAP6C-Tabellen in `c3stream_control` produktiv angelegt werden.
+Bestaetigte Zaehlwerte:
 
-## RDAP6I Ergebnis
-
-RDAP6I dokumentiert nur das sichere Runbook fuer eine spaetere Produktiv-Migration.
+```text
+dashboard_roles: 6
+dashboard_groups: 1
+dashboard_permissions: 22
+dashboard_role_permissions: 18
+dashboard_module_permissions: 0
+dashboard_sessions: 0
+dashboard_locks: 0
+dashboard_audit_log: 0
+sound_profi_role_count: 0
+sound_profi_group_marker_count: 1
+sound_profi_role_permission_count: 0
+```
 
 Wichtig:
 
 ```text
-Keine SQL-Ausfuehrung.
-Keine produktive Migration.
 Keine Auth-Aktivierung.
 Keine Session-Erstellung.
 Keine Remote-Writes.
@@ -57,33 +63,41 @@ Keine Agent-Actions.
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP6J_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION_PRECHECK
+RDAP7_LOGIN_SESSION_CONCEPT
 ```
 
 Ziel:
 
 ```text
-Vor einer echten Migration auf dem Webserver pruefen:
-- Ziel-DB ist c3stream_control
-- DB-User ist c1stream_control
-- SQL-Dateien aus GitHub/dev sind vorhanden
-- Backup-Ziel ist klar
-- Backup kann erstellt werden
-- Restore-/Rollback-Weg ist klar
-- Validation-Datei ist vorhanden
-- /api/remote/auth/model ist weiterhin read-only erreichbar
+Login- und Session-Konzept fuer Remote-Modboard planen:
+- Login-Quelle / Twitch-OAuth-Konzept klaeren
+- Session-Tabelle sauber nutzen, aber noch nicht blind aktivieren
+- Cookie-/CSRF-/Security-Modell planen
+- Rollen/Gruppen/Permissions serverseitig pruefen
+- Lock-/Audit-Konzept fuer spaetere Writes vorbereiten
 ```
 
-RDAP6J darf noch keine SQL-Dateien ausfuehren, ausser Forrest gibt ausdruecklich ein separates Go fuer echte Produktivmigration.
-
-## Spaeter, nicht jetzt
+## Nicht jetzt
 
 ```text
-RDAP6K_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION
-RDAP7_LOGIN_SESSION_CONCEPT
+keine Login-Aktivierung ohne Konzept und separates Go
+keine Session-Erstellung ohne Konzept und separates Go
+keine Schreibrouten
+keine Agent-Actions
+keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine lokale SQLite-Aenderung
 ```
 
-Produktive Migration erst mit Backup, Restore-Weg, Validation und separatem Go.
+## Spaeter moegliche Schritte
+
+```text
+RDAP7_LOGIN_SESSION_CONCEPT
+RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN
+RDAP7B_LOGIN_ROUTE_DRY_RUN_PLAN
+RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN
+```
+
+Produktive Login-/Session-Aktivierung erst mit Security-Konzept, Tests, Audit-/Rollback-Plan und separatem Go.
 
 ## Arbeitsregel
 

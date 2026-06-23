@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK  
+Stand: RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -40,9 +40,15 @@ Datum: 2026-06-23
 - [x] RDAP6F_PREP_DOC_STATUS_SYNC vorbereitet: zentrale Projektstatus-Dokus auf echten Stand gebracht
 - [x] RDAP6F Auth DB Integration Plan dokumentiert
 - [x] RDAP6G Auth Backend Read-only DB Layer vorbereitet
-- [x] RDAP6H Remote read-only Auth-Model Deploy/Test live bestanden
-- [x] RDAP6H moduleBuild live auf `RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST` aktualisiert
+- [x] RDAP6G Remote-Modboard read-only DB-Layer deployed
+- [x] RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
+- [x] RDAP6H Build-Label live auf `RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST` aktualisiert
 - [x] RDAP6I Auth DB Production Migration Runbook dokumentiert
+- [x] RDAP6J Productive Migration Precheck bestanden
+- [x] RDAP6J Backup erstellt: `/root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql`
+- [x] RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf `c3stream_control` ausgefuehrt
+- [x] RDAP6K Validation erfolgreich
+- [x] RDAP6L Migrationsergebnis dokumentiert
 
 ## Wichtige Korrektur
 
@@ -53,25 +59,24 @@ Datum: 2026-06-23
 
 ## Noch offen / als naechstes
 
-### RDAP6J Auth DB Production Migration Execution Precheck
+### RDAP7 Login-/Session-Konzept
 
-- [ ] echten GitHub/dev-Stand pruefen
-- [ ] Ziel-DB `c3stream_control` bestaetigen
-- [ ] DB-User `c1stream_control` bestaetigen
-- [ ] Backup-Ziel auf Server festlegen
-- [ ] pruefen, ob Backup erstellt werden kann
-- [ ] Restore-/Rollback-Weg nochmal bestaetigen
-- [ ] SQL-Dateien aus `db/rdap6c` pruefen
-- [ ] Validation-Datei pruefen
-- [ ] `/api/remote/auth/model` vor Migration read-only testen
-- [ ] keine SQL-Ausfuehrung ohne separates Go
+- [ ] Login-Quelle klaeren
+- [ ] Twitch-OAuth-/Callback-Konzept planen
+- [ ] Session-Cookie-Security planen
+- [ ] CSRF-/SameSite-/Secure-/HttpOnly-Regeln planen
+- [ ] User-Aufloesung aus `dashboard_users` / `dashboard_identities` planen
+- [ ] Rollen-/Gruppen-/Permission-Auswertung serverseitig planen
+- [ ] Keine Login-Aktivierung ohne separaten Plan und Go
+- [ ] Keine Session-Erstellung ohne separaten Plan und Go
+- [ ] Keine Schreibroute ohne Permission/Lock/Audit-Konzept
 
 ### Spaeter
 
-- [ ] RDAP6K Produktiv-Migration nur mit Backup/Restore/Validation/separatem Go
-- [ ] RDAP7 Login-/Session-Konzept separat planen
-- [ ] Permission-Middleware serverseitig planen
-- [ ] Lock-/Audit-Pflicht fuer spaetere Schreibfunktionen planen
+- [ ] RDAP7A Auth Read-only User Resolution Plan
+- [ ] RDAP7B Login Route Dry-Run Plan
+- [ ] RDAP8 Permission Check Middleware Plan
+- [ ] Lock-/Audit-Implementierung fuer spaetere Writes planen
 
 ## Dauerhaft beachten
 
@@ -91,3 +96,8 @@ Datum: 2026-06-23
 - [ ] Rollen und Gruppen getrennt halten
 - [ ] Secrets niemals ins Repo oder Frontend
 - [ ] bei fehlenden Dateien exakt nachfragen
+
+## Naechster RDAP-Schritt
+
+- [ ] RDAP7_LOGIN_SESSION_CONCEPT vorbereiten
+- [ ] Keine Auth-Aktivierung ohne separates Go

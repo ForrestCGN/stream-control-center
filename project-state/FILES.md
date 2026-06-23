@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK  
+Stand: RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -36,6 +36,7 @@ docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
 docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
 docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
 docs/current/RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK.md
+docs/current/RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS.md
 ```
 
 ## Nicht vorhandene Zwischenstand-Dateien aus alten Prompts
@@ -157,6 +158,43 @@ Backup: woechentlich
 
 Passwort nicht dokumentieren.
 
+## Produktive RDAP6K-Migration
+
+Vorheriges Backup:
+
+```text
+/root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
+```
+
+Produktiv angelegte Tabellen in `c3stream_control`:
+
+```text
+schema_migrations
+dashboard_users
+dashboard_identities
+dashboard_roles
+dashboard_user_roles
+dashboard_groups
+dashboard_user_groups
+dashboard_permissions
+dashboard_role_permissions
+dashboard_module_permissions
+dashboard_sessions
+dashboard_locks
+dashboard_audit_log
+```
+
+Bestaetigte API-Route:
+
+```text
+GET https://mods.forrestcgn.de/api/remote/auth/model
+schema.ready: true
+readOnly: true
+writeEnabled: false
+authEnabled: false
+sessionCreationEnabled: false
+```
+
 ## Lokale produktive SQLite
 
 ```text
@@ -198,30 +236,10 @@ sound_profi vergibt selbst keine globalen Rechte.
 Remote-Agent bleibt read-only.
 ```
 
-## Remote-Modboard Live-Stand
+## Naechste Planungsdatei
 
 ```text
-moduleBuild: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST
-Route: GET /api/remote/auth/model
-Status: read-only live getestet
+RDAP7_LOGIN_SESSION_CONCEPT
 ```
 
-## RDAP6F / RDAP6G / RDAP6H / RDAP6I
-
-```text
-docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
-docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
-docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
-docs/current/RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK.md
-```
-
-Legt fest:
-
-```text
-scc_rdap6_test bleibt reine Testdatenbank.
-c3stream_control ist die geplante echte Remote-Modboard-/Auth-Ziel-DB.
-RDAP6G liefert nur eine read-only DB-Schicht und Modellroute.
-RDAP6H bestaetigt Live-Deploy/Test der read-only Modellroute.
-RDAP6I dokumentiert nur das Migrations-Runbook, ohne SQL-Ausfuehrung.
-Keine Auth-Aktivierung und keine Migration durch RDAP6I.
-```
+Noch nicht vorhanden; als naechster Schritt zu erstellen.
