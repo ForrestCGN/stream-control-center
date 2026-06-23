@@ -1,7 +1,7 @@
 # CURRENT STATUS
 
-Stand: RDAP2.DOC1 / Remote-Dashboard-Agent Architekturentscheidungen dokumentiert  
-Datum: 2026-06-22
+Stand: RDAP2.WEB1 / Webserver-Grundlage für Remote-Modboard geprüft  
+Datum: 2026-06-23
 
 ## Aktueller Runtime-Stand
 
@@ -16,23 +16,59 @@ Central Event Overlay:
 - Overlay ist am Communication Bus verbunden.
 - Kein separates HypeTrain-Overlay-System wird gebaut.
 
-## RDAP2 / Remote Dashboard Agent Entscheidungen
+## RDAP2.WEB1 / Webserver-Grundlage
 
 Neu dokumentiert:
 
+- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
+
+Geändert / bestätigt:
+
+- Remote-Modboard-Subdomain ist jetzt `mods.forrestcgn.de`.
+- Die frühere Planungs-Subdomain `modboard.forrestcgn.de` ist nicht mehr führend.
+- Webserver ist eine Hetzner/KVM-VM mit Debian 13 `trixie`.
+- Öffentliche IPv4: `138.201.122.159`.
+- Öffentliche IPv6: `2a01:4f8:172:25d5::10`.
+- Cloudflare DNS für `mods.forrestcgn.de` zeigt per DNS-only auf die Server-IP.
+- `mods.forrestcgn.de` ist per HTTP und HTTPS erreichbar.
+- IPv4 und IPv6 liefern per HTTPS `HTTP/2 200`.
+- Let's Encrypt-Zertifikat enthält `mods.forrestcgn.de`.
+- nginx-Konfiguration ist gültig.
+- `apt update` läuft wieder sauber.
+- Rspamd-Repository-Key wurde aktualisiert.
+- Node.js/npm wurden aus Debian-13-Paketquellen installiert:
+  - `node v20.19.2`
+  - `npm 9.2.0`
+  - `npx 9.2.0`
+
+Nicht geändert durch RDAP2.WEB1:
+
+- kein Backend-Code
+- kein produktives Dashboard
+- kein Frontend-Code
+- kein Agent-Code
+- keine DB-Änderung
+- keine Projekt-Config-Änderung
+- keine OBS-Änderung
+- keine Runtime-Datei
+- kein Repo-Deploy auf den Webserver
+- kein Reverse Proxy auf `127.0.0.1:3000`
+- kein systemd-Service für eine Remote-Node-App
+- kein lokaler `stream-control-center`-Node-Neustart nötig
+
+## RDAP2 / Remote Dashboard Agent Entscheidungen
+
+Dokumentiert:
+
 - `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
-
-Aktualisiert:
-
 - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 
 Festgelegt:
 
-- Remote-Modboard-Subdomain: `modboard.forrestcgn.de`.
 - Öffentliche Zentrale läuft später auf Hetzner.
-- Hetzner nutzt ISPConfig mit nginx.
-- Let's Encrypt läuft über ISPConfig.
-- Node-App läuft intern auf dem Hetzner-Server, bevorzugt `127.0.0.1:3000`.
+- Hetzner nutzt ISPConfig mit nginx und Let's Encrypt.
+- Remote-Modboard-Ziel ist jetzt `https://mods.forrestcgn.de`.
+- Node-App läuft später intern auf dem Hetzner-Server, bevorzugt `127.0.0.1:3000`.
 - Öffentlich nur HTTPS/WSS, kein öffentlicher Node-Port.
 - Stream-PC-Agent verbindet sich aktiv per WSS zum Webserver.
 - Keine Portfreigabe am Stream-PC.
@@ -102,27 +138,14 @@ Wichtigster bestätigter Design-Teststand aus dem Chat:
 
 - `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
 
-## Nicht geändert durch RDAP2.DOC1
-
-- kein Backend-Code
-- kein produktives Dashboard
-- keine DB-Änderung
-- keine Config-Änderung
-- keine OBS-Änderung
-- kein Agent-Code
-- kein Auth-/Permission-Code
-- keine Runtime-Datei
-- keine React-/Vite-Projektdateien
-- kein Node-Neustart nötig
-
 ## Dokumentation
 
 Neu/aktualisiert:
 
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`
