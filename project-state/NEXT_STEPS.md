@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP7_LOGIN_SESSION_CONCEPT  
+Stand: RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -11,6 +11,7 @@ Fertig und dokumentiert:
 RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich
 RDAP6L Migrationsergebnis dokumentiert
 RDAP7 Login-/Session-Konzept dokumentiert
+RDAP7A Auth Read-only User Resolution Plan dokumentiert
 ```
 
 Remote-Modboard bleibt read-only:
@@ -26,18 +27,20 @@ sessionCreationEnabled: false
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN
+RDAP7B_AUTH_STATUS_READONLY_ENDPOINTS
 ```
 
 Ziel:
 
 ```text
-Read-only User-/Identity-/Session-Status-Endpunkte planen, ohne Login zu aktivieren.
+Remote-Modboard Backend um read-only Auth-Status-/Me-Endpunkte erweitern.
+Kein Login, keine Sessions, keine Cookies, keine Writes.
 ```
 
-Moeglicher erster Endpunkt spaeter:
+Geplante Endpunkte:
 
 ```text
+GET /api/remote/auth/status
 GET /api/remote/auth/me
 ```
 
@@ -48,6 +51,8 @@ ok: true
 loggedIn: false
 authEnabled: false
 sessionCreationEnabled: false
+loginRoutesEnabled: false
+cookieWriteEnabled: false
 ```
 
 ## Noch nicht erlaubt
@@ -57,17 +62,18 @@ kein Login aktivieren
 keine Twitch-OAuth-Secrets ins Repo
 keine Session-Cookies setzen
 keine Session-Erstellung
-keine User-/Rollen-/Gruppen-Schreibroute
+keine User-/Identity-Schreibroute
+keine Rollen-/Gruppen-/Permission-Schreibroute
 keine Remote-Writes
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
-## Spaeter, nicht jetzt
+## Danach, nicht jetzt
 
 ```text
-RDAP7B Twitch OAuth Login Dry-Run Plan
-RDAP7C Session Store Read-only/Validation Layer
+RDAP7C Twitch OAuth Login Dry-Run Plan
+RDAP7D Session Store Validation Layer
 RDAP8 Permission Check Middleware Plan
 RDAP9 Lock-/Audit-Konzept fuer spaetere Writes
 ```

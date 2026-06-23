@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7_LOGIN_SESSION_CONCEPT  
+Stand: RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -26,6 +26,7 @@ docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
 docs/current/RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK.md
 docs/current/RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS.md
 docs/current/RDAP7_LOGIN_SESSION_CONCEPT.md
+docs/current/RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN.md
 ```
 
 ## Remote-Modboard Paket im Repo
@@ -45,6 +46,17 @@ remote-modboard/backend/src/services/db-health.service.js
 remote-modboard/backend/src/services/db.service.js
 remote-modboard/backend/src/services/auth-db-read.service.js
 remote-modboard/backend/src/security/safety.js
+```
+
+## Fuer RDAP7B voraussichtlich neu/geaendert
+
+```text
+remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/services/auth-config.service.js
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/package.json
+remote-modboard/backend/server.js
 ```
 
 ## RDAP6 SQL-/Runbook-Dateien im Repo
@@ -149,5 +161,5 @@ moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ## Naechste geplante Datei
 
 ```text
-docs/current/RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN.md
+docs/current/RDAP7B_AUTH_STATUS_READONLY_ENDPOINTS.md
 ```

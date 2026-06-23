@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP7_LOGIN_SESSION_CONCEPT  
+Stand: RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -29,26 +29,29 @@ Datum: 2026-06-23
 - [x] RDAP6K Validation erfolgreich
 - [x] RDAP6L Migrationsergebnis dokumentiert
 - [x] RDAP7 Login-/Session-Konzept dokumentiert
+- [x] RDAP7A Auth Read-only User Resolution Plan dokumentiert
 
 ## Noch offen / als naechstes
 
-### RDAP7A Auth Read-only User Resolution Plan
+### RDAP7B Auth Status Read-only Endpoints
 
 - [ ] echte Remote-Modboard-Dateien vor Umsetzung vollstaendig pruefen
-- [ ] `/api/remote/auth/me` read-only planen
-- [ ] Zustand `loggedIn=false` ohne Session planen
-- [ ] Session-Lesepruefung ohne Session-Erstellung planen
-- [ ] User-/Identity-Read-Layer planen
+- [ ] `/api/remote/auth/status` read-only umsetzen
+- [ ] `/api/remote/auth/me` read-only umsetzen
+- [ ] Zustand `loggedIn=false` ohne Session umsetzen
 - [ ] keine Login-Aktivierung
 - [ ] keine Session-Erstellung
 - [ ] keine Cookies setzen
 - [ ] keine Schreibaktionen
 - [ ] keine Agent-Actions
+- [ ] `npm run check` auf Webserver ausfuehren
+- [ ] API-Routen live pruefen
+- [ ] Doku danach aktualisieren
 
 ### Spaeter
 
-- [ ] RDAP7B Twitch OAuth Login Dry-Run Plan
-- [ ] RDAP7C Session Store Read-only/Validation Layer
+- [ ] RDAP7C Twitch OAuth Login Dry-Run Plan
+- [ ] RDAP7D Session Store Validation Layer
 - [ ] RDAP8 Permission Check Middleware Plan
 - [ ] Lock-/Audit-Implementierung fuer spaetere Writes planen
 

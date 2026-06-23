@@ -1,15 +1,15 @@
 # CURRENT STATUS
 
-Stand: RDAP7_LOGIN_SESSION_CONCEPT  
+Stand: RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP6K wurde erfolgreich auf der echten Remote-Modboard-/Auth-Ziel-DB `c3stream_control` ausgefuehrt. RDAP6L dokumentiert dieses Ergebnis. RDAP7 dokumentiert das Login-/Session-Konzept fuer die naechsten Schritte.
+RDAP6K wurde erfolgreich auf der echten Remote-Modboard-/Auth-Ziel-DB `c3stream_control` ausgefuehrt. RDAP6L dokumentiert dieses Ergebnis. RDAP7 dokumentiert das Login-/Session-Konzept. RDAP7A dokumentiert den naechsten read-only User-Resolution-Plan.
 
 Der Remote-Modboard-Service bleibt weiterhin read-only. Es wurde keine Authentifizierung aktiviert, keine Session-Erstellung aktiviert und keine Schreibroute freigeschaltet.
 
-Fertig und getestet:
+Fertig und getestet/dokumentiert:
 
 ```text
 RDAP5I Remote-Modboard Node-Basisdienst read-only live
@@ -25,6 +25,7 @@ RDAP6J Productive Migration Precheck bestanden und Backup erstellt
 RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich ausgefuehrt
 RDAP6L Auth DB Productive Migration Result Docs erstellt
 RDAP7 Login-/Session-Konzept dokumentiert
+RDAP7A Auth Read-only User Resolution Plan dokumentiert
 ```
 
 ## Remote-Modboard read-only live
@@ -106,21 +107,25 @@ lock_rows = 0
 audit_rows = 0
 ```
 
-## RDAP7 Konzeptentscheidung
+## RDAP7/RDAP7A Entscheidung
 
-RDAP7 legt nur das Konzept fuer Login und Sessions fest.
+RDAP7 legt das Konzept fuer Login und Sessions fest. RDAP7A plant die ersten read-only Auth-/User-Resolution-Endpunkte.
 
-Geplant:
+Geplant fuer den naechsten technischen Schritt:
 
 ```text
-Twitch-OAuth als spaetere Login-Quelle
-Sessions in dashboard_sessions
-Session-ID nicht roh speichern
-Cookie HttpOnly/Secure/SameSite
-Rollen/Gruppen/Permissions serverseitig auswerten
-Frontend ist keine Sicherheitsentscheidung
-sound_profi bleibt Gruppe/Marker
-VIP hat keinen Dashboard-Basiszugang
+GET /api/remote/auth/status
+GET /api/remote/auth/me
+```
+
+Der erste Zustand bleibt:
+
+```text
+loggedIn: false
+authEnabled: false
+sessionCreationEnabled: false
+loginRoutesEnabled: false
+cookieWriteEnabled: false
 ```
 
 Nicht aktiv:
@@ -141,11 +146,12 @@ keine Secrets im Repo oder Frontend
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN
+RDAP7B_AUTH_STATUS_READONLY_ENDPOINTS
 ```
 
 Ziel:
 
 ```text
-Read-only User-/Identity-/Session-Status-Endpunkte planen, ohne Login zu aktivieren.
+Remote-Modboard Backend um read-only Auth-Status-/Me-Endpunkte erweitern.
+Kein Login, keine Sessions, keine Cookies, keine Writes.
 ```
