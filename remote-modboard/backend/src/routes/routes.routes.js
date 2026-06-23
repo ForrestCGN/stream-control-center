@@ -7,7 +7,7 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap5f.v1',
+      statusApiVersion: 'rdap6g.v1',
       readOnly: true,
       writeEnabled: false,
       routes: [
@@ -20,6 +20,11 @@ function registerRoutesRoutes(app, context) {
           method: 'GET',
           path: '/api/remote/status',
           description: 'Read-only service status, safety flags, DB config state and planned agent state.'
+        },
+        {
+          method: 'GET',
+          path: '/api/remote/auth/model',
+          description: 'Read-only Auth-/Rollen-/Gruppen-/Permission-Modell aus MariaDB. Keine Auth-Aktivierung, keine Sessions, keine Writes.'
         },
         {
           method: 'GET',

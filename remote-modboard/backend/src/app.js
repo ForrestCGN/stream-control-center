@@ -4,6 +4,7 @@ const express = require('express');
 const { buildSafetyBlock } = require('./security/safety');
 const { registerHealthRoutes } = require('./routes/health.routes');
 const { registerStatusRoutes } = require('./routes/status.routes');
+const { registerAuthModelRoutes } = require('./routes/auth-model.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 
 function createApp({ config, moduleBuild }) {
@@ -26,6 +27,7 @@ function createApp({ config, moduleBuild }) {
 
   registerHealthRoutes(app, context);
   registerStatusRoutes(app, context);
+  registerAuthModelRoutes(app, context);
   registerRoutesRoutes(app, context);
 
   app.use((req, res) => {
