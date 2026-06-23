@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION_DOCUMENTED  
+Stand: RDAP5C4_KNOWN_REMOTE_SERVER_FACTS_AND_NEXT_CHAT_HANDOFF  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -26,14 +26,28 @@ docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP5C_AUTH_DB_MIGRATION_DESIGN.md
 docs/current/REMOTE_DASHBOARD_RDAP5C2_SIMPLE_ROLE_AND_MODULE_PERMISSION_MODEL.md
 docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5D_AFTER_RDAP5C3.md
+docs/current/REMOTE_DASHBOARD_RDAP5C4_KNOWN_REMOTE_SERVER_FACTS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5E_REMOTE_NODE_SERVICE_PLAN.md
+```
+
+## Webserver-Fakten
+
+```text
+Webserver: web.cgn.community
+Subdomain: mods.forrestcgn.de
+OS: Debian 13
+nginx vorhanden
+HTTPS / HTTP2 läuft
+mods.forrestcgn.de liefert 200 OK
+Node v20.19.2 vorhanden
+npm 9.2.0 vorhanden
+git vorhanden
+MariaDB-Client vorhanden
 ```
 
 ## Webserver-DB
 
 ```text
-Server: web.cgn.community
-Site: forrestcgn.de
 DB-Typ: MySQL/MariaDB
 DB-Name: c1stream_control
 DB-User: c3stream_control
@@ -43,6 +57,14 @@ Backup: woechentlich
 ```
 
 Passwort nicht dokumentieren.
+
+## Lokale produktive SQLite
+
+```text
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
+```
+
+Nicht ersetzen, nicht löschen, nicht migrieren ohne separates Go.
 
 ## Revidierte Tabellen ab RDAP5C3
 
@@ -63,48 +85,12 @@ dashboard_audit_log
 agent_registry
 ```
 
-## Rollen-/Gruppenmodell
-
-Twitch-Status:
-
-```text
-streamer / broadcaster
-mod
-vip
-```
-
-Manuell vergebene Dashboard-Rollen:
-
-```text
-leadmod
-admin
-owner
-spaeter eigene Rollen optional
-```
-
-Dashboard-Gruppen / Markierungen:
-
-```text
-sound_profi
-spaeter event_helfer
-spaeter medien_helfer
-spaeter eigene Gruppen optional
-```
-
-Wichtig:
-
-```text
-sound_profi ist keine feste Rolle.
-sound_profi ist kein festes globales Rechtepaket.
-konkrete Rechte entstehen pro Modul.
-```
-
 ## In diesem Doku-Update aktualisiert
 
 ```text
-docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
+docs/current/REMOTE_DASHBOARD_RDAP5C4_KNOWN_REMOTE_SERVER_FACTS.md
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5D_AFTER_RDAP5C3.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5E_REMOTE_NODE_SERVICE_PLAN.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -113,6 +99,12 @@ project-state/FILES.md
 
 ## Hinweis für nächsten Chat
 
-Nächster sinnvoller Schritt: RDAP5D_REMOTE_SERVER_NODE_ENV_CHECK.
+Nächster sinnvoller Schritt:
 
-Keine DB-Migration, kein npm install, keine Secrets ohne separates Go.
+```text
+RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN
+```
+
+Nicht nochmal als Hauptstep Node/npm/git/MariaDB-Client prüfen; diese Infos sind bekannt. Frischer Gegencheck direkt vor Installation ist okay.
+
+Keine DB-Migration, kein npm install, keine Secrets, keine nginx-/Service-Aenderung ohne separates Go.

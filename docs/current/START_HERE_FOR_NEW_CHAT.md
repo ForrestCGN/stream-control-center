@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION_DOCUMENTED
+Aktueller Stand: RDAP5C4_KNOWN_REMOTE_SERVER_FACTS_AND_NEXT_CHAT_HANDOFF
 
 ## Diese Datei zuerst lesen
 
@@ -30,7 +30,8 @@ docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP5C_AUTH_DB_MIGRATION_DESIGN.md
 docs/current/REMOTE_DASHBOARD_RDAP5C2_SIMPLE_ROLE_AND_MODULE_PERMISSION_MODEL.md
 docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5D_AFTER_RDAP5C3.md
+docs/current/REMOTE_DASHBOARD_RDAP5C4_KNOWN_REMOTE_SERVER_FACTS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5E_REMOTE_NODE_SERVICE_PLAN.md
 ```
 
 ## Repository und Pfade
@@ -39,32 +40,50 @@ docs/current/NEXT_CHAT_PROMPT_RDAP5D_AFTER_RDAP5C3.md
 GitHub: https://github.com/ForrestCGN/stream-control-center
 Branch: dev
 Lokales Repo: D:\Git\stream-control-center
-Live-Ziel: D:\Streaming\stramAssets
-Lokaler Server: http://127.0.0.1:8080
+Live-Ziel Stream-PC: D:\Streaming\stramAssets
+Lokaler Stream-PC-Server: http://127.0.0.1:8080
 Altes Dashboard: http://127.0.0.1:8080/dashboard/
-Neues Dashboard-v2: http://127.0.0.1:8080/dashboard-v2/
-Produktive SQLite: D:\Streaming\stramAssets\data\sqlite\app.sqlite
+Neues Dashboard-v2 lokal: http://127.0.0.1:8080/dashboard-v2/
+Produktive lokale SQLite: D:\Streaming\stramAssets\data\sqlite\app.sqlite
 Remote-Modboard: https://mods.forrestcgn.de
+Remote-Webserver: web.cgn.community
 Übergabe-ZIPs bevorzugt: D:\Git\stream-control-center\_handoff\
 Downloads: %USERPROFILE%\Downloads
 ```
 
 ## Aktueller bestätigter Stand
 
-RDAP5C3 korrigiert das DB-Tabellenkonzept:
+RDAP5C4 korrigiert den Übergabestand:
 
 ```text
-Rollen und Gruppen sind getrennt.
-sound_profi ist keine Rolle.
-sound_profi ist keine feste Rechte-Sammlung.
-sound_profi ist eine Gruppe / Markierung.
-Modulrechte werden pro Modul konfiguriert.
+Node/npm/git/MariaDB-Client sind auf dem Webserver bereits bekannt vorhanden.
+RDAP5D als reiner Node-Check ist nicht mehr der nächste Hauptstep.
+Nächster sinnvoller Hauptstep ist RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN.
 ```
+
+## Bekannter Webserver-Stand
+
+```text
+Webserver: web.cgn.community
+Subdomain: mods.forrestcgn.de
+OS: Debian 13
+nginx vorhanden
+HTTPS / HTTP2 läuft
+mods.forrestcgn.de liefert 200 OK
+Node v20.19.2 vorhanden
+npm 9.2.0 vorhanden
+git vorhanden
+MariaDB-Client vorhanden
+noch kein produktiver Node-Service
+noch kein Reverse Proxy fuer Remote-API
+noch kein Remote-Agent
+```
+
+Ein kurzer Gegencheck direkt vor Installation/Deployment ist erlaubt, aber nicht wieder alles doppelt planen.
 
 ## Webserver-DB
 
 ```text
-Server: web.cgn.community
 DB-Typ: MySQL/MariaDB
 DB-Name: c1stream_control
 DB-User: c3stream_control
@@ -75,15 +94,17 @@ Backup: woechentlich
 
 Passwort wird nicht dokumentiert und darf nicht ins Repo oder Frontend.
 
-Lokale SQLite bleibt unveraendert:
+## Lokale SQLite bleibt unverändert
 
 ```text
 D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
+Keine Migration, kein Ersetzen, kein Löschen, kein Kopieren ohne separaten Plan und ausdrückliches Go.
+
 ## Rollen-/Gruppenmodell ab RDAP5C3
 
-### Twitch-Status
+Twitch-Status:
 
 ```text
 streamer / broadcaster
@@ -99,7 +120,7 @@ mod      -> Dashboard-Basiszugang
 vip      -> kein Dashboard-Basiszugang, nur Community/Website
 ```
 
-### Manuell vergebene Dashboard-Rollen
+Manuell vergebene Dashboard-Rollen:
 
 ```text
 leadmod
@@ -108,7 +129,7 @@ owner
 spaeter eigene Rollen optional
 ```
 
-### Dashboard-Gruppen / Markierungen
+Dashboard-Gruppen / Markierungen:
 
 ```text
 sound_profi
@@ -117,7 +138,18 @@ spaeter medien_helfer
 spaeter eigene Gruppen optional
 ```
 
-## Revidierte Tabellen
+Wichtig:
+
+```text
+sound_profi ist keine Rolle.
+sound_profi ist keine feste Rechte-Sammlung.
+sound_profi ist eine Gruppe / Markierung.
+Modulrechte werden pro Modul konfiguriert.
+```
+
+## Revidiertes DB-Konzept
+
+Geplante Tabellen:
 
 ```text
 schema_migrations
@@ -139,14 +171,16 @@ agent_registry
 Wichtig:
 
 ```text
-dashboard_role_permissions ist nicht mehr Hauptmodell.
+dashboard_role_permissions ist nicht mehr starres Hauptmodell.
 Modulmatrix nutzt target_type + target_key.
 Keine festen Spalten wie default_for_sound_profi.
+Neue Rollen/Gruppen spaeter ohne DB-Schema-Aenderung moeglich.
 ```
 
 ## Weiterhin bewusst nicht aktiv
 
 ```text
+kein produktiver Remote-Modboard-Node-Service
 kein produktiver WSS-Agent
 keine Agent-Actions
 keine Schreibroute
@@ -159,14 +193,22 @@ keine Datei-/Shell-/Prozesssteuerung
 kein Login/Auth-Code
 keine Secrets im Repo oder Frontend
 kein npm install
+keine nginx-/Service-Aenderung
 ```
 
 ## Verbindliche Arbeitsweise
 
-- Zuerst echte Dateien/Repo-/Live-Stand prüfen, nicht raten.
-- Vor Code-/ZIP-Änderungen Scope, betroffene Dateien, Nicht-Änderungen und Tests nennen.
+- Zuerst echte Dateien/Repo-/Live-Stand prüfen.
+- Nicht raten.
+- Nicht bekannte Infos doppelt und dreifach abfragen.
+- Wenn Dateien fehlen, exakt diese Dateien anfordern.
+- Vor Code-/ZIP-Änderungen Scope nennen:
+  - Ziel
+  - betroffene Dateien
+  - Nicht-Änderungen
+  - Tests
+  - Rollback
 - Umsetzung erst nach Forrests ausdrücklichem `go`.
-- Bei fehlenden Dateien exakt diese Dateien anfordern.
 - Keine Funktionalität entfernen.
 - Keine produktive SQLite ersetzen, löschen oder neu bauen.
 - Keine DB-Migration ohne separaten Plan und separates Go.
@@ -176,12 +218,18 @@ kein npm install
 - Downloads liegen im normalen Downloads-Ordner.
 - `installstep.cmd` spielt ZIPs ein und startet `testdeploy.cmd`.
 - `stepdone.cmd` erst nach erfolgreichem Live-Test.
-- `stepundo.cmd` nutzen, wenn ein Teststand kaputt ist.
+- Bei Fehlern `stepundo.cmd` nutzen.
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5D_REMOTE_SERVER_NODE_ENV_CHECK
+RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN
 ```
 
-Jetzt Webserver-/Node-/ENV-Frage klären. Keine Installation, keine Migration.
+Ziel:
+
+```text
+Planen, wie der Remote-Modboard-Node-Service auf web.cgn.community fuer mods.forrestcgn.de aufgebaut wird.
+```
+
+Noch keine Installation, keine Migration, kein npm install, keine nginx-/Service-Aenderung.

@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION_DOCUMENTED  
+Stand: RDAP5C4_KNOWN_REMOTE_SERVER_FACTS_AND_NEXT_CHAT_HANDOFF  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -10,35 +10,38 @@ Datum: 2026-06-23
 - [x] RDAP5B DB-/Schema-Konzept dokumentiert
 - [x] RDAP5C Migration-/Helper-/Secret-Design dokumentiert
 - [x] RDAP5C2 Rollen-/Gruppenmodell vereinfacht
-- [x] `sound_profi` als Gruppe/Markierung statt Rolle festgelegt
 - [x] RDAP5C3 DB-Plan auf Rollen + Gruppen + Modulmatrix korrigiert
-- [x] `dashboard_groups` eingeplant
-- [x] `dashboard_user_groups` eingeplant
-- [x] generische Modulmatrix mit `target_type` + `target_key` eingeplant
-- [x] feste `default_for_sound_profi`-Spalten verworfen
 - [x] Webserver-DB in ISPConfig angelegt
+- [x] Webserver-DB-Daten dokumentiert ohne Passwort
 - [x] lokale SQLite bleibt unangetastet
+- [x] bekannte Webserver-Fakten konsolidiert
+- [x] Node/npm/git/MariaDB-Client als bereits bekannt dokumentiert
+- [x] RDAP5D als separater großer Node-Check übersprungen/korrigiert
+- [x] Next-Chat-Prompt für RDAP5E erstellt
 - [x] keine Migration ausgefuehrt
 - [x] kein npm install ausgefuehrt
+- [x] keine nginx-/Service-Aenderung ausgefuehrt
 
 ## Als nächstes
 
-### RDAP5D / Remote Server Node ENV Check
+### RDAP5E / Remote Modboard Node Service Plan
 
-- [ ] klaeren, ob Node auf web.cgn.community installiert ist
-- [ ] Node-Version pruefen
-- [ ] npm-Version pruefen
-- [ ] SSH/Shell-Zugriff klaeren
-- [ ] Webroot/Subdomain-Pfad fuer `mods.forrestcgn.de` klaeren
-- [ ] ENV-/Secret-Ablage klaeren
-- [ ] DB-Zugriff per localhost klaeren
-- [ ] dauerhaften Node-Prozess planen
-- [ ] Reverse Proxy/API-Zugriff planen
+- [ ] Service-Pfad auf web.cgn.community planen
+- [ ] Node-Service-Startkonzept planen
+- [ ] nginx-/Reverse-Proxy-Konzept planen
+- [ ] ENV-/Secret-Ablage planen
+- [ ] MariaDB-Verbindung read-only/health planen
+- [ ] erste read-only Health/API planen
+- [ ] Logging/Audit-Vorbereitung planen
+- [ ] Agent-Anbindung grob planen
 - [ ] keine Installation ohne separates Go
+- [ ] kein npm install ohne separates Go
 - [ ] keine DB-Migration ohne separates Go
+- [ ] keine nginx-/Service-Aenderung ohne separates Go
 
 ## Dauerhaft beachten
 
+- [ ] bekannte Infos nicht unnötig doppelt und dreifach abfragen
 - [ ] keine produktive SQLite löschen/ersetzen
 - [ ] keine MariaDB ohne Backup-/Migrationsplan beschreiben
 - [ ] keine alten Dashboard-Dateien blind umbauen

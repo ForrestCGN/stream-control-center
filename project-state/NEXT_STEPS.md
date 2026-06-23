@@ -1,90 +1,85 @@
 # NEXT STEPS
 
-Stand: RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION_DOCUMENTED  
+Stand: RDAP5C4_KNOWN_REMOTE_SERVER_FACTS_AND_NEXT_CHAT_HANDOFF  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5D_REMOTE_SERVER_NODE_ENV_CHECK
+RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN
 ```
 
-## Ziel von RDAP5D
+## Ziel von RDAP5E
 
-RDAP5D soll klaeren, ob und wie Node fuer das Remote-Modboard auf `web.cgn.community` / `mods.forrestcgn.de` laufen kann.
+RDAP5E soll planen, wie der Remote-Modboard-Node-Service auf `web.cgn.community` für `mods.forrestcgn.de` aufgebaut wird.
 
-Noch keine Umsetzung.
+Keine Umsetzung.
 
-Zu klaeren:
+Planungspunkte:
 
-- Ist Node auf dem Webserver installiert?
-- Welche Node-Version?
-- Gibt es NPM?
-- Gibt es SSH/Shell-Zugriff?
-- Wo liegt der Webroot fuer `mods.forrestcgn.de`?
-- Wie kann ein Node-Prozess dauerhaft laufen?
-  - systemd?
-  - PM2?
-  - ISPConfig App/Proxy?
-  - anderer Hosting-Mechanismus?
-- Wie werden ENV/Secrets sicher gespeichert?
-- Kann Node die DB `c1stream_control` per localhost erreichen?
-- Gibt es Reverse Proxy fuer `/api` oder eigene Portweiterleitung?
-- Welche Grenzen setzt ISPConfig/Hosting?
+- Service-Pfad auf dem Webserver
+- Start-/Service-Konzept
+- nginx-/Reverse-Proxy-Konzept für Remote-API
+- ENV-/Secret-Ablage
+- MariaDB-Verbindungsstrategie
+- erste read-only Health/API
+- Logging/Audit-Vorbereitung
+- spätere Agent-Anbindung
+- keine freien Shell-/Datei-/Prozessbefehle
+- Rollback-/Undo-Konzept
 
-## Vor RDAP5D prüfen
+## Bereits bekannte Server-Fakten
 
-Zuerst echte aktuelle Dateien aus Repo/Live prüfen, insbesondere:
+Nicht nochmal als großen Check planen:
 
 ```text
-docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
-project-state/CURRENT_STATUS.md
-project-state/TODO.md
-project-state/FILES.md
-package.json
+OS: Debian 13
+nginx vorhanden
+HTTPS / HTTP2 läuft
+mods.forrestcgn.de liefert 200 OK
+Node v20.19.2 vorhanden
+npm 9.2.0 vorhanden
+git vorhanden
+MariaDB-Client vorhanden
 ```
 
-Am Server spaeter nur lesende Checks:
+Ein kurzer Gegencheck direkt vor echter Installation ist okay.
 
-```bash
-node -v
-npm -v
-which node
-which npm
-whoami
-pwd
-```
+## RDAP5E darf
 
-Keine Installation ohne separates Go.
+- Plan erstellen
+- Ziel-Dateistruktur vorschlagen
+- Service-/nginx-/ENV-Konzept vorschlagen
+- Healthcheck-Konzept planen
+- erste read-only API planen
+- Tests planen
+- Rollback/Undo planen
 
-## RDAP5D darf
-
-- Server-/Node-/ENV-Moeglichkeiten klaeren
-- Befehle fuer reine Checks vorbereiten
-- ISPConfig-/Webserver-Optionen dokumentieren
-- naechsten Umsetzungsweg empfehlen
-
-## RDAP5D darf nicht
+## RDAP5E darf nicht
 
 - kein npm install
-- keine DB-Migration ausfuehren
-- keine MariaDB schreiben
-- keine lokale SQLite anfassen
-- keinen Node-Service produktiv starten
+- keine DB-Migration
+- keine MariaDB-Schreibaktion
+- keine lokale SQLite-Aenderung
+- keinen produktiven Node-Service starten
+- keine nginx-/Firewall-/Proxy-Aenderung
 - keine Secrets ins Repo oder Frontend schreiben
-- keine Firewall-/Proxy-Aenderungen ohne separates Go
+- keine Agent-Actions aktivieren
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine freie Shell-/Datei-/Prozesssteuerung
 
-## Spätere mögliche Schritte
+## Danach mögliche Schritte
 
 ```text
-RDAP5E_REMOTE_NODE_BASE_SKELETON_PLAN
+RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE
 ```
+
+Erst nach RDAP5E-Plan und separatem Go.
 
 Oder:
 
 ```text
-RDAP6_MINIMAL_REMOTE_AUTH_IMPLEMENTATION
+RDAP6_AUTH_DB_MIGRATION_PREP
 ```
 
-erst nach Server-/Node-/ENV-Klärung und separatem Go.
+Erst nach Service-/ENV-/Secret-Klärung.
