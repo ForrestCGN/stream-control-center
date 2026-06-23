@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## 2026-06-23 - DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen
+
+Status: gebaut
+
+Geändert:
+
+- Dashboard-v2 React-Prototyp optisch/strukturell an Design-Test v13 angeglichen
+- Topbar mit Modulname und aktivem Tab inline umgesetzt
+- Suchfeld, Status-Chips, Sprache/Bell/User-Bereich vorbereitet
+- Sidebar als kompaktes Accordion umgesetzt
+- Galaxy-/Glassmorphism-Hintergrund und kompaktere Content-Flächen umgesetzt
+- Design-Referenz unter `docs/reference/dashboard-v2-design-test-v13/` archiviert
+- Doku/Projektstatus aktualisiert
+
+Wichtig:
+
+- `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip` ist verbindliche Designbasis.
+- Beim vorherigen `stepdone` blieb `frontend/` untracked.
+- WF1 soll den Git-/Upload-Workflow für `frontend/dashboard-v2/` prüfen und anpassen.
+
+Nicht geändert:
+
+- kein Backend
+- kein altes Dashboard
+- keine produktive SQLite
+- keine OBS-Änderung
+- kein Node-Neustart nötig
+
 ## 2026-06-23 - DASHUI4B / Safe File Names für Deploy-Guard
 
 Status: Fix gebaut

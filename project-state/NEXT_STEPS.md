@@ -1,29 +1,53 @@
 # NEXT STEPS
 
-Stand: DASHUI4 / Minimaler React-Vite-Prototyp gebaut  
+Stand: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-DASHUI5 / Build- und lokaler Auslieferungsweg prüfen
+WF1 / Git-Workflow für frontend/dashboard-v2 prüfen und anpassen
+```
+
+Grund:
+
+Beim vorherigen `stepdone` blieb der React-Quellcode untracked:
+
+```text
+?? frontend/dashboard-v2/...
+```
+
+Das bedeutet, GitHub/dev enthielt zwar Doku/Projektstatus, aber nicht den eigentlichen React-Prototyp.
+
+Ziel WF1:
+
+- prüfen, welche Workflow-Skripte `git add` ausführen
+- `frontend/` bzw. gezielt `frontend/dashboard-v2/` in den erlaubten Commit-/Upload-Pfad aufnehmen
+- weiterhin blockierte Pfade wie `token`, `secret`, `.env`, `.sqlite`, `.db`, `.zip`, `.7z` schützen
+- keine Secrets erlauben
+- keine produktive Runtime ändern
+- nach StepDone darf kein `?? frontend/` übrig bleiben
+
+## Danach sinnvoll
+
+```text
+DASHUI6 / Build- und lokaler Auslieferungsweg prüfen
 ```
 
 Ziel:
 
-- `frontend/dashboard-v2/` installieren
-- `npm install` ausführen
-- `npm run build` ausführen
+- `npm.cmd install`
+- `npm.cmd run build`
 - prüfen, ob `htdocs/dashboard-v2/` korrekt entsteht
-- prüfen, ob der lokale Server die Seite später unter `/dashboard-v2/` ausliefern kann
+- lokalen Aufruf über `/dashboard-v2/` prüfen
+- altes Dashboard unter `/dashboard` gegenprüfen
 - keine produktiven Aktionen
-- kein altes Dashboard ändern
 - kein Backend ändern
 
 ## Danach sinnvoll
 
 ```text
-DASHUI6 / erste read-only Statusseite mit echter API-Anbindung
+DASHUI7 / erste read-only Statusseite mit echter API-Anbindung
 ```
 
 Mögliche Kandidaten:
@@ -39,39 +63,6 @@ Regel:
 - keine Speichern-/Start-/Stop-/Löschen-Aktion
 - keine produktive Modulmigration
 
-## Danach sinnvoll
-
-```text
-DASHUI7 / Auth-/Permission-Platzhalter sauber an Webserver-Plan angleichen
-```
-
-Nicht zu früh:
-
-- kein hartes Login im lokalen Prototyp, bevor Webserver-Auth geplant ist
-- keine echten Sicherheitsentscheidungen im Frontend
-- keine Secrets ins Frontend
-
-## Modulmigration später
-
-Module werden einzeln migriert.
-
-Empfohlene Reihenfolge:
-
-1. System / Diagnose
-2. Remote Agent / Agent Status
-3. Twitch-Events Status
-4. Sound-System Status
-5. Shot-Alarm
-6. HypeTrain / Twitch-Events Zusatzseiten
-7. Event-System
-8. Loyalty Core
-9. Loyalty Giveaways / Glücksrad
-10. Media
-11. Overlays
-12. OBS
-13. Commands / Kanalpunkte
-14. Admin / Benutzer / Rollen / Permissions / Audit
-
 ## Nicht als nächstes nebenbei machen
 
 - kein produktives altes Dashboard ersetzen
@@ -79,6 +70,6 @@ Empfohlene Reihenfolge:
 - keine Schreibfunktionen ohne Permission/Lock/Audit
 - kein Login-System improvisieren
 - kein Remote-Modboard-Deploy ohne Webserver-/Auth-Step
-- keine OBS-/Sound-/Media-/Command-Aktionen im ersten Prototyp
+- keine OBS-/Sound-/Media-/Command-Aktionen im Prototyp
 - keine produktive DB-Migration
 - keine Creative-Tim-/Vision-UI-Codebasis übernehmen

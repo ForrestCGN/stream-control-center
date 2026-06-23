@@ -1,15 +1,24 @@
 # TODO
 
-Stand: DASHUI4 / Minimaler React-Vite-Prototyp gebaut  
+Stand: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen  
 Datum: 2026-06-23
 
 ## Offen / als nächstes
 
-### DASHUI5 / Build- und lokaler Auslieferungsweg prüfen
+### WF1 / Git-Workflow für frontend/dashboard-v2 prüfen und anpassen
+
+- [ ] Workflow-Skripte prüfen, die `git add` ausführen
+- [ ] klären, warum `frontend/` nach `stepdone` untracked blieb
+- [ ] `frontend/dashboard-v2/` in erlaubte Commit-/Upload-Pfade aufnehmen
+- [ ] Sicherheitsblocker für `token`, `secret`, `.env`, `.sqlite`, `.db`, `.zip`, `.7z` beibehalten
+- [ ] keine Secrets erlauben
+- [ ] nach StepDone prüfen, dass kein `?? frontend/` übrig bleibt
+
+### DASHUI6 / Build- und lokaler Auslieferungsweg prüfen
 
 - [ ] `cd frontend/dashboard-v2`
-- [ ] `npm install`
-- [ ] `npm run build`
+- [ ] `npm.cmd install`
+- [ ] `npm.cmd run build`
 - [ ] prüfen, ob `htdocs/dashboard-v2/` erzeugt wird
 - [ ] prüfen, ob Assets korrekt referenziert werden
 - [ ] lokalen Aufruf über `/dashboard-v2/` prüfen
@@ -17,24 +26,19 @@ Datum: 2026-06-23
 - [ ] kein Backend ändern
 - [ ] keine produktiven Aktionen ausführen
 
-## DASHUI4 erledigt
+## DASHUI5 erledigt
 
-- [x] `frontend/dashboard-v2/` angelegt
-- [x] React + Vite Grundgerüst gebaut
-- [x] AppShell gebaut
-- [x] Sidebar-Regel Hauptkategorie -> Modul vorbereitet
-- [x] Topbar mit `Hauptbereich` und `Modul • aktiver Tab` gebaut
-- [x] PageHeader gebaut
-- [x] ModuleTabs gebaut
-- [x] CGN-Theme/Theme angelegt
-- [x] Modul-Registry vorbereitet
-- [x] Navigation-Registry vorbereitet
-- [x] Beispielseite `Übersicht`
-- [x] Beispielseite `Remote Agent`
-- [x] keine produktive Modulmigration
-- [x] keine Schreibfunktion
-- [x] kein Login-Zwang
-- [x] altes Dashboard nicht geändert
+- [x] V13-Design-ZIP als verbindliche Referenz übernommen
+- [x] Referenz unter `docs/reference/dashboard-v2-design-test-v13/` archiviert
+- [x] Topbar an v13 angenähert
+- [x] Modulname und aktiver Tab inline in der Topbar
+- [x] Suchfeld in der Topbar vorbereitet
+- [x] Status-Chips in der Topbar vorbereitet
+- [x] User-/Sprache-/Bell-Bereich vorbereitet
+- [x] Sidebar als kompaktes Accordion
+- [x] immer nur ein Sidebar-Bereich offen
+- [x] Content-Flächen näher an v13
+- [x] keine Backend-/DB-/OBS-Änderung
 
 ## Dashboard-v2 Migration
 
@@ -50,25 +54,6 @@ Datum: 2026-06-23
   - `v2_preferred`
   - `legacy_retained`
   - `legacy_deprecated`
-
-## Login / Remote-Modboard
-
-- [ ] lokales Dashboard-v2 zunächst mit vorbereiteter Auth-Struktur
-- [ ] lokalen Dev-/Owner-Kontext später sauber kapseln
-- [ ] Webserver-Login separat planen
-- [ ] Permission-Auswertung serverseitig planen
-- [ ] keine Secrets ins Frontend
-- [ ] produktive Agent-Aktionen nur mit Permission + Lock + Audit
-
-## Alte offene Punkte
-
-### HypeTrain / Central Event Overlay
-
-- [ ] echte HypeTrain-Live-Payloads während echtem HypeTrain prüfen
-- [ ] prüfen, ob `central_event_overlay.html` alle relevanten Felder korrekt anzeigt
-- [ ] finale Template-/Mode-Struktur für Central Event Overlay planen
-- [ ] Level-Up-Sound auswählen und aktivieren, wenn passendes Medium vorhanden ist
-- [ ] Ende-Sound auswählen und aktivieren, wenn passendes Medium vorhanden ist
 
 ## Nicht vergessen
 

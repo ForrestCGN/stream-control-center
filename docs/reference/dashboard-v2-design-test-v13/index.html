@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dashboard v2 – Design-Test v13</title>
+  <link rel="stylesheet" href="./assets/dashboard-v2-design-test-v13.css">
+</head>
+<body>
+  <div class="cgn-galaxy" aria-hidden="true">
+    <div class="bg-wash bg-wash-a"></div>
+    <div class="bg-wash bg-wash-b"></div>
+    <div class="bg-core"></div>
+    <div class="stars"></div>
+    <div class="dot-grid"></div>
+  </div>
+
+  <header class="cgn-topbar" id="topbar">
+    <div class="top-left">
+      <button class="cgn-icon-button" id="navToggle" title="Navigation ein-/ausklappen" aria-label="Navigation ein-/ausklappen">
+        <span class="hamburger"><i></i><i></i><i></i></span>
+      </button>
+      <div class="cgn-breadcrumb">
+        <span id="sectionLabel">Live</span>
+        <strong id="pageTitle">Übersicht</strong>
+      </div>
+    </div>
+
+    <div class="top-search">
+      <span>⌕</span>
+      <input type="search" placeholder="Suchen: Module, Media, Texte, Logs …">
+    </div>
+
+    <div class="top-center">
+      <span class="cgn-chip cgn-chip--ok">Agent</span>
+      <span class="cgn-chip cgn-chip--ok">OBS</span>
+      <span class="cgn-chip cgn-chip--info">Sound</span>
+      <span class="cgn-chip cgn-chip--warn">0 Locks</span>
+    </div>
+
+    <div class="top-right">
+      <button class="cgn-icon-button cgn-lang">DE</button>
+      <button class="cgn-icon-button cgn-bell">🔔<em>3</em></button>
+      <button class="cgn-avatar-button">
+        <span class="cgn-avatar">F</span>
+        <span class="cgn-avatar-copy">
+          <strong>ForrestCGN</strong>
+          <small>Owner</small>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <div class="cgn-layout">
+    <aside class="cgn-sidebar">
+      <div class="sidebar-head">
+        <strong>Navigation</strong>
+        <span>immer nur ein Bereich offen</span>
+      </div>
+
+      <nav class="cgn-nav">
+        <button class="nav-group is-open" data-target="nav-live"><span>◆</span><b>Live</b><i>⌄</i></button>
+        <div class="nav-sub is-open" id="nav-live">
+          <button class="nav-link is-active" data-section="Live" data-title="Übersicht" data-view="overview">Übersicht</button>
+          <button class="nav-link" data-section="Live" data-title="Statistiken" data-view="analytics">Statistiken</button>
+          <button class="nav-link" data-section="Live" data-title="Remote Agent" data-view="agent">Remote Agent</button>
+        </div>
+
+        <button class="nav-group" data-target="nav-actions"><span>✦</span><b>Aktionen</b><i>⌄</i></button>
+        <div class="nav-sub" id="nav-actions">
+          <button class="nav-link" data-section="Aktionen" data-title="Shot-Alarm" data-view="shot">Shot-Alarm</button>
+          <button class="nav-link" data-section="Aktionen" data-title="Stream-Events" data-view="events">Stream-Events</button>
+          <button class="nav-link" data-section="Aktionen" data-title="Hug-System" data-view="hug">Hug-System</button>
+          <button class="nav-link" data-section="Aktionen" data-title="Giveaways" data-view="giveaway">Giveaways</button>
+        </div>
+
+        <button class="nav-group" data-target="nav-loyalty"><span>◇</span><b>Loyalty</b><i>⌄</i></button>
+        <div class="nav-sub" id="nav-loyalty">
+          <button class="nav-link" data-section="Loyalty" data-title="Core" data-view="loyalty">Core</button>
+          <button class="nav-link" data-section="Loyalty" data-title="Glücksrad" data-view="wheel">Glücksrad</button>
+          <button class="nav-link" data-section="Loyalty" data-title="Transaktionen" data-view="transactions">Transaktionen</button>
+        </div>
+
+        <button class="nav-group" data-target="nav-media"><span>◈</span><b>Media</b><i>⌄</i></button>
+        <div class="nav-sub" id="nav-media">
+          <button class="nav-link" data-section="Media" data-title="Medienbibliothek" data-view="media">Medienbibliothek</button>
+          <button class="nav-link" data-section="Media" data-title="Sounds" data-view="sounds">Sounds</button>
+          <button class="nav-link" data-section="Media" data-title="Uploads" data-view="uploads">Uploads</button>
+        </div>
+
+        <button class="nav-group" data-target="nav-overlays"><span>▣</span><b>Overlays</b><i>⌄</i></button>
+        <div class="nav-sub" id="nav-overlays">
+          <button class="nav-link" data-section="Overlays" data-title="Übersicht" data-view="overlays">Übersicht</button>
+          <button class="nav-link" data-section="Overlays" data-title="Vorschau" data-view="overlayPreview">Vorschau</button>
+          <button class="nav-link" data-section="Overlays" data-title="Layouts" data-view="layouts">Layouts</button>
+        </div>
+
+        <button class="nav-group" data-target="nav-admin"><span>⚙</span><b>Admin</b><i>⌄</i></button>
+        <div class="nav-sub" id="nav-admin">
+          <button class="nav-link" data-section="Admin" data-title="Benutzer & Rechte" data-view="users">Benutzer & Rechte</button>
+          <button class="nav-link" data-section="Admin" data-title="Texte" data-view="texts">Texte</button>
+          <button class="nav-link" data-section="Admin" data-title="Einstellungen" data-view="settings">Einstellungen</button>
+          <button class="nav-link" data-section="Admin" data-title="Audit-Log" data-view="audit">Audit-Log</button>
+        </div>
+      </nav>
+
+      <div class="sidebar-foot">
+        <span>Design-Test v13</span>
+        <strong>Topbar Tab Inline</strong>
+      </div>
+    </aside>
+
+    <div class="cgn-scrim" id="scrim"></div>
+
+    <main class="cgn-content">
+      <section class="page-header cgn-card">
+        <div>
+          <p class="cgn-eyebrow">Dashboard v2 / finale Designrichtung</p>
+          <h1 id="heroTitle">Übersicht mit Chart-Karten, KPI-Blöcken und Modulstatus.</h1>
+          <p id="heroText">Ruhiger Galaxy-Hintergrund, feste Layout-Zonen, kompakte Karten und schwebende Topbar beim Scrollen.</p>
+        </div>
+      </section>
+
+      <section id="viewRoot"></section>
+    </main>
+  </div>
+
+  <script src="./assets/dashboard-v2-design-test-v13.js"></script>
+</body>
+</html>

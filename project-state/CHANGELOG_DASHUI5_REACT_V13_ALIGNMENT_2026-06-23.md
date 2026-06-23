@@ -1,11 +1,15 @@
-# FILES
+# CHANGELOG DASHUI5 React V13 Alignment
 
-Stand: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen  
-Datum: 2026-06-23
+Datum: 2026-06-23  
+Status: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen
 
-## Neue/aktualisierte Dateien in diesem Step
+## Zweck
 
-### Dashboard-v2 Quellcode
+DASHUI5 korrigiert den React-Prototyp optisch/strukturell auf die verbindliche Design-Test-v13-Basis.
+
+## Geändert
+
+### Frontend
 
 - `frontend/dashboard-v2/src/App.jsx`
 - `frontend/dashboard-v2/src/app/navigation.js`
@@ -25,6 +29,8 @@ Datum: 2026-06-23
 
 ### Design-Referenz
 
+Neu archiviert:
+
 - `docs/reference/dashboard-v2-design-test-v13/README.md`
 - `docs/reference/dashboard-v2-design-test-v13/index.html`
 - `docs/reference/dashboard-v2-design-test-v13/login.html`
@@ -40,21 +46,30 @@ Datum: 2026-06-23
 - `project-state/TODO.md`
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
-- `project-state/CHANGELOG_DASHUI5_REACT_V13_ALIGNMENT_2026-06-23.md`
 
-## Wichtig zum Workflow
+## Design-Entscheidung
 
-`frontend/dashboard-v2/` muss künftig in GitHub/dev landen.
+`DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip` ist ab jetzt verbindliche Designbasis für Dashboard-v2.
 
-Beim vorherigen `stepdone` blieb `frontend/` untracked. Das muss in WF1 geprüft/korrigiert werden.
+## Nicht geändert
 
-## Bewusst nicht geändert
+- kein Backend-Code
+- kein bestehendes lokales Dashboard unter `htdocs/dashboard/`
+- kein Build-Output unter `htdocs/dashboard-v2/`
+- kein Agent-Code
+- keine produktive SQLite
+- keine Projekt-Config
+- keine OBS-Quelle
+- kein Webserver-Deploy
+- kein Reverse Proxy
+- kein systemd-Service
 
-- `htdocs/dashboard/`
-- `htdocs/dashboard-v2/`
-- `backend/`
-- `config/`
-- `htdocs/overlays/`
-- produktive SQLite
-- OBS
-- Webserver/systemd/nginx
+## Bekannter Workflow-Punkt
+
+Beim vorherigen `stepdone` blieb `frontend/dashboard-v2/` untracked. WF1 soll den Git-/Upload-Workflow prüfen und korrigieren.
+
+## Node-Neustart
+
+Nicht nötig.
+
+Grund: nur Frontend-Quellcode und Markdown-Doku. Kein laufender Backend-Code wurde geändert.

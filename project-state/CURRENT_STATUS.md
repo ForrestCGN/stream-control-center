@@ -1,54 +1,38 @@
 # CURRENT STATUS
 
-Stand: DASHUI4 / Minimaler React-Vite-Prototyp gebaut  
+Stand: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen  
 Datum: 2026-06-23
-
-## Aktueller Runtime-Stand
-
-Der bestätigte Runtime-Stand bleibt unverändert.
-
-Central Event Overlay:
-
-- `htdocs/overlays/central_event_overlay.html`
-- Version `0.1.3`
-- Step `HT4.3`
-- HypeTrain Start, Level-Up, Ende und Rekord wurden sichtbar getestet.
-- Overlay ist am Communication Bus verbunden.
-- Kein separates HypeTrain-Overlay-System wird gebaut.
 
 ## Aktueller Dashboard-v2-Stand
 
-Aktueller dokumentierter und gebauter Planungs-/Prototypstand:
+Aktueller Prototypstand:
 
 ```text
-DASHUI4 / Minimaler React-Vite-Prototyp gebaut
+DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen
 ```
 
-Dieser Step erstellt erstmals Quellcode unter:
+Wichtig:
 
-```text
-frontend/dashboard-v2/
-```
+- Die Design-ZIP `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip` ist ab jetzt verbindliche Designreferenz.
+- Die Referenz wurde unter `docs/reference/dashboard-v2-design-test-v13/` archiviert.
+- React/Vite bleibt die technische Frontend-Basis.
+- Die Optik wurde vom generischen Prototyp zurück auf die v13-Designlinie gezogen.
 
-Enthalten:
+## Geändert durch DASHUI5
 
-- React + Vite Grundgerüst
-- AppShell
-- Sidebar
-- Topbar
-- PageHeader
-- ModuleTabs
-- CGN-Dark-/Neon-/Galaxy-Basisdesign
-- Navigation-Registry
-- Modul-Registry
-- Beispielseite `Übersicht`
-- Beispielseite `Remote Agent`
-- Platzhalterseiten für geplante Module
-- vorbereitete Service-Dateien ohne produktive Aktionen
+- Topbar an v13 angenähert
+- Modulname und aktiver Tab inline in der Topbar
+- Suchfeld in der Topbar vorbereitet
+- Status-Chips in der Topbar vorbereitet
+- User-/Sprache-/Bell-Bereich vorbereitet
+- Sidebar als kompakter Accordion-Aufbau
+- Hauptkategorie -> Modul bleibt Regel
+- keine dritte Sidebar-Ebene
+- Galaxy-/Glassmorphism-Hintergrund näher an v13
+- Content-Flächen kompakter und ruhiger
+- Designreferenz unter `docs/reference/dashboard-v2-design-test-v13/` archiviert
 
 ## Nicht geändert
-
-Durch DASHUI4 wurde nichts an der Runtime geändert:
 
 - kein Backend-Code
 - kein bestehendes lokales Dashboard unter `htdocs/dashboard/`
@@ -60,30 +44,27 @@ Durch DASHUI4 wurde nichts an der Runtime geändert:
 - kein Webserver-Deploy
 - kein Reverse Proxy
 - kein systemd-Service
-- kein lokaler Node-Neustart
 
-## Aktuelle Architekturentscheidungen
+## Bekannter Workflow-Punkt
 
-- Altes Dashboard bleibt produktiv unter `http://127.0.0.1:8080/dashboard`.
-- Dashboard-v2 entsteht parallel.
-- Dashboard-v2-Quellcode liegt unter `frontend/dashboard-v2/`.
-- Späterer Build-Output ist `htdocs/dashboard-v2/`.
-- Module werden einzeln migriert.
-- Jedes Modul startet zuerst read-only.
-- Schreibfunktionen erst mit Permission, Lock, resourceVersion, Confirm und Audit.
-- Remote-Modboard-Ziel bleibt `https://mods.forrestcgn.de`.
+Beim vorherigen `stepdone` wurde sichtbar:
+
+```text
+?? frontend/dashboard-v2/...
+```
+
+Das bedeutet: `frontend/` wurde nicht automatisch committed.
+
+Für die nächsten Steps muss der Git-/Upload-Workflow angepasst oder bewusst geprüft werden, damit `frontend/dashboard-v2/` auf GitHub/dev landet.
 
 ## Nächster sinnvoller Schritt
 
 ```text
-DASHUI5 / Build- und lokaler Auslieferungsweg prüfen
+WF1 / Git-Workflow für frontend/dashboard-v2 prüfen und anpassen
 ```
 
-Ziel:
+Danach:
 
-- Abhängigkeiten installieren
-- Vite-Build testen
-- Build nach `htdocs/dashboard-v2/` prüfen
-- lokalen Aufruf prüfen
-- kein altes Dashboard ändern
-- keine produktiven Aktionen
+```text
+DASHUI6 / Build- und lokaler Auslieferungsweg prüfen
+```
