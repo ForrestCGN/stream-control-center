@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS  
+Stand: RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -8,9 +8,10 @@ Datum: 2026-06-23
 Fertig und dokumentiert:
 
 ```text
-RDAP7B Auth Read-only Status Endpoints gebaut und gepusht
+RDAP7B Auth Read-only Status Endpoints gebaut
 RDAP7C Remote Auth Status Deploy/Test bestanden
-RDAP7D Ergebnis dokumentiert
+RDAP7C1 Server Workdir Cleanup bestanden
+RDAP7E Cleanup-/Status-Doku erstellt
 ```
 
 Remote-Modboard bleibt read-only:
@@ -27,68 +28,68 @@ loggedIn: false
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP7E_TWITCH_OAUTH_DRY_RUN_PLAN
+RDAP8_TWITCH_OAUTH_DRY_RUN_PLAN
 ```
 
 Ziel:
 
 ```text
-Twitch-OAuth-Dry-Run sauber planen, ohne Login zu aktivieren.
+Twitch-OAuth-Login als Dry-Run planen, ohne produktiven Login, Callback, Cookies oder Session-Erstellung zu aktivieren.
 ```
 
-Dabei klaeren:
+Dabei zu klaeren:
 
 ```text
-Twitch Developer App / Redirect URI
-benoetigte ENV-Keys ohne Secrets im Repo
-OAuth State/CSRF Konzept
-Callback-Route spaeter nur nach separatem Go
-Session-Erstellung spaeter nur mit Server-Checks
-Audit/Rate-Limit/Fehlertexte
+Twitch OAuth Redirect-URI fuer mods.forrestcgn.de
+no-secret-in-repo Regel
+ENV-Namen fuer Client-ID/Secret/Callback
+serverseitige Callback-Sicherheitsregeln
+State/Nonce-Konzept
+Cookie-Regeln
+Session-Hash-Regeln
+User-/Identity-Anlage erst in separatem Write-Step
+Rollback/Disable-Schalter
 ```
 
-## Vorher optional / offen
+## Server-Arbeitsorte ab sofort
 
 ```text
-RDAP7C1_SERVER_WORKDIR_CLEANUP
+Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
+Run-/Temp-Dateien:   /opt/stream-control-center/_runtime_tmp/
+Backups:             /var/backups/stream-control-center/
 ```
 
-Status:
+Nicht mehr verwenden:
 
 ```text
-vorbereitet, aber ohne bestaetigte Server-Ausgabe nicht als erledigt dokumentiert
-```
-
-Ziel:
-
-```text
-alte RDAP-Backups aus /root nach /var/backups/stream-control-center verschieben
-alte RDAP-Temp-/Deploy-Clones aus /root entfernen
-/opt/stream-control-center/_deploy_tmp und _runtime_tmp nutzen
+/root/rdap*-deploy
+/root/rdap*-migration
+/root/rdap*-precheck
+/root/rdap*_backup_*
 ```
 
 ## Noch nicht erlaubt
 
 ```text
-kein Login aktivieren
+kein produktiver Login
 keine Twitch-OAuth-Secrets ins Repo
+keine OAuth-Callback-Aktivierung ohne separaten Go
 keine Session-Cookies setzen
 keine Session-Erstellung
 keine User-/Rollen-/Gruppen-Schreibroute
 keine Remote-Writes
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
-keine neuen /root RDAP-Arbeitsordner
 ```
 
 ## Spaeter, nicht jetzt
 
 ```text
-RDAP7F Twitch OAuth Config/ENV Precheck
-RDAP7G OAuth Callback Dry-Run ohne Session-Erstellung
-RDAP7H Session Store Read-only/Validation Layer
-RDAP8 Permission Check Middleware Plan
-RDAP9 Lock-/Audit-Konzept fuer spaetere Writes
+RDAP8B Twitch OAuth ENV/Callback Readiness Check
+RDAP8C OAuth Callback Dry-Run Code ohne Session-Erstellung
+RDAP8D Session Store Read-only/Validation Layer
+RDAP9 Permission Check Middleware Plan
+RDAP10 Lock-/Audit-Konzept fuer spaetere Writes
 ```
 
 ## Arbeitsregel

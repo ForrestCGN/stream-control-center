@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS  
+Stand: RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -30,44 +30,40 @@ Datum: 2026-06-23
 - [x] RDAP6L Migrationsergebnis dokumentiert
 - [x] RDAP7 Login-/Session-Konzept dokumentiert
 - [x] RDAP7A Auth Read-only User Resolution Plan dokumentiert
-- [x] RDAP7B Auth Read-only Status Endpoints gebaut und gepusht
+- [x] RDAP7B Auth Read-only Status Endpoints gebaut
 - [x] RDAP7C Remote Auth Status Deploy/Test bestanden
-- [x] RDAP7D Auth Status Deploy Result Docs erstellt
+- [x] RDAP7C1 Server Workdir Cleanup bestanden
+- [x] RDAP7E Server Workdir Cleanup Docs erstellt
 
-## Offen / als naechstes
+## Noch offen / als naechstes
 
-### RDAP7E Twitch OAuth Dry-Run Plan
+### RDAP8 Twitch OAuth Dry-Run Plan
 
-- [ ] echte Remote-Modboard-Dateien vor Umsetzung vollstaendig pruefen
-- [ ] Twitch-OAuth-Dry-Run planen
-- [ ] Redirect URI festlegen
-- [ ] ENV-Keys ohne Secret-Werte dokumentieren
-- [ ] State/CSRF Konzept planen
-- [ ] Fehler-/Abbruchfaelle planen
-- [ ] keine Callback-Aktivierung ohne separaten Go-Step
+- [ ] Twitch-OAuth Redirect-URI fuer `mods.forrestcgn.de` planen
+- [ ] ENV-Namen fuer Client-ID/Secret/Callback definieren
 - [ ] keine Secrets ins Repo oder Frontend
-- [ ] keine Session-Erstellung
-- [ ] keine Cookies setzen
-- [ ] keine DB-Writes
+- [ ] State/Nonce-Konzept planen
+- [ ] Cookie-Regeln planen
+- [ ] Session-Hash-Regeln planen
+- [ ] User-/Identity-Anlage nur als spaeterer separater Write-Step planen
+- [ ] Rollback-/Disable-Schalter planen
+- [ ] kein produktiver Login in diesem Plan-Step
+- [ ] keine Session-Erstellung in diesem Plan-Step
 
-### RDAP7C1 optional/offen
+### Spaeter
 
-- [ ] Server-Workdir-Cleanup bestaetigt ausfuehren oder Ergebnis nachreichen
-- [ ] RDAP-Backups aus `/root` nach `/var/backups/stream-control-center` verschieben
-- [ ] RDAP-Temp-/Deploy-Clones aus `/root` entfernen
-- [ ] kuenftig `/opt/stream-control-center/_deploy_tmp` verwenden
-- [ ] kuenftig `/opt/stream-control-center/_runtime_tmp` verwenden
-
-## Spaeter
-
-- [ ] RDAP7F Twitch OAuth Config/ENV Precheck
-- [ ] RDAP7G OAuth Callback Dry-Run ohne Session-Erstellung
-- [ ] RDAP7H Session Store Read-only/Validation Layer
-- [ ] RDAP8 Permission Check Middleware Plan
+- [ ] Twitch OAuth ENV/Callback Readiness Check
+- [ ] OAuth Callback Dry-Run Code ohne produktive Session-Erstellung
+- [ ] Session Store Read-only/Validation Layer
+- [ ] Permission Check Middleware Plan
 - [ ] Lock-/Audit-Implementierung fuer spaetere Writes planen
 
 ## Dauerhaft beachten
 
+- [ ] keine Arbeits-/Backup-/Deploy-RDAP-Ordner direkt unter `/root`
+- [ ] Server-Deploy-Clones nach `/opt/stream-control-center/_deploy_tmp/`
+- [ ] Server-Temp-/Runtime-Dateien nach `/opt/stream-control-center/_runtime_tmp/`
+- [ ] Server-Backups nach `/var/backups/stream-control-center/`
 - [ ] bekannte Infos nicht unnoetig doppelt und dreifach abfragen
 - [ ] nur EIN Arbeitsort pro Schritt
 - [ ] vor Befehlen sagen: Wo ausfuehren, was macht der Befehl, wann stoppen, welche Ausgabe schicken
@@ -83,5 +79,4 @@ Datum: 2026-06-23
 - [ ] `sound_profi` hat keine festen globalen Rechte
 - [ ] Rollen und Gruppen getrennt halten
 - [ ] Secrets niemals ins Repo oder Frontend
-- [ ] keine neuen RDAP-Arbeitsordner lose unter `/root`
-- [ ] bei fehlenden Dateien oder fehlender Server-Ausgabe exakt nachfragen bzw. nicht als erledigt dokumentieren
+- [ ] bei fehlenden Dateien exakt nachfragen

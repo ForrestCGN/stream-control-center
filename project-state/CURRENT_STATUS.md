@@ -1,15 +1,15 @@
 # CURRENT STATUS
 
-Stand: RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS  
+Stand: RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP7B Auth Read-only Status Endpoints wurden gebaut, committed, gepusht, auf dem Webserver deployed und in RDAP7C live getestet.
+RDAP7B wurde als read-only Backend-Code-Step gebaut und deployed. RDAP7C Live-Test war erfolgreich. RDAP7C1 Server Workdir Cleanup wurde ausgefuehrt und bestaetigt. RDAP7E dokumentiert diesen Stand.
 
-RDAP7D dokumentiert diesen bestaetigten Live-Test.
+Der Remote-Modboard-Service bleibt weiterhin read-only. Es wurde keine Authentifizierung aktiviert, keine Session-Erstellung aktiviert, kein Cookie gesetzt und keine Schreibroute freigeschaltet.
 
-## Fertig und getestet
+Fertig und getestet:
 
 ```text
 RDAP5I Remote-Modboard Node-Basisdienst read-only live
@@ -26,12 +26,13 @@ RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreic
 RDAP6L Auth DB Productive Migration Result Docs erstellt
 RDAP7 Login-/Session-Konzept dokumentiert
 RDAP7A Auth Read-only User Resolution Plan dokumentiert
-RDAP7B Auth Read-only Status Endpoints gebaut und gepusht
+RDAP7B Auth Read-only Status Endpoints gebaut
 RDAP7C Remote Auth Status Deploy/Test bestanden
-RDAP7D Auth Status Deploy Result Docs erstellt
+RDAP7C1 Server Workdir Cleanup bestanden
+RDAP7E Server Workdir Cleanup Docs erstellt
 ```
 
-## Remote-Modboard live
+## Remote-Modboard read-only live
 
 ```text
 Webserver: web.cgn.community
@@ -83,9 +84,14 @@ Vorheriges Backup:
 /root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
 ```
 
+Hinweis: Vor RDAP7E wurde auf dem Webserver die neue Backup-Regel eingefuehrt. Kuenftige Backups gehoeren nach `/var/backups/stream-control-center/`, nicht nach `/root`.
+
 Migrationsergebnis:
 
 ```text
+Schema-Migration: OK
+Seed-Migration: OK
+Validation: OK
 schema.ready: true
 missingTables: []
 dashboard_roles: 6
@@ -96,14 +102,9 @@ dashboard_module_permissions: 0
 dashboard_sessions: 0
 dashboard_locks: 0
 dashboard_audit_log: 0
-sound_profi_role_count = 0
-sound_profi_group_marker_count = 1
-sound_profi_role_permission_count = 0
 ```
 
 ## RDAP7C Live-Test
-
-Bestaetigt:
 
 ```text
 Service: active
@@ -114,34 +115,28 @@ moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
 /api/remote/auth/model: weiterhin read-only, schema.ready true
 ```
 
-Deploy-Backup:
+## RDAP7C1 Server Workdir Cleanup
+
+Bestaetigt:
 
 ```text
-/root/rdap7c_backup_remote_modboard_20260623_172801
+/opt/stream-control-center/_deploy_tmp angelegt
+/opt/stream-control-center/_runtime_tmp angelegt
+/var/backups/stream-control-center angelegt
+/root enthaelt keine RDAP-Ordner mehr
+scc-remote-modboard.service blieb active
 ```
 
-Hinweis: Dieser Backup-Pfad ist noch Altbestand unter `/root`. Ab jetzt gilt die neue Server-Ordnerregel.
-
-## Server-Ordnerregel ab jetzt
+Neue Regel:
 
 ```text
-Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
-Run-/Log-/Temp-Kram: /opt/stream-control-center/_runtime_tmp/
-Backups: /var/backups/stream-control-center/
+Keine RDAP-Arbeitsordner direkt unter /root.
+Keine Deploy-Clones direkt unter /root.
+Keine RDAP-Backups direkt unter /root.
 ```
-
-Keine neuen RDAP-Arbeitsordner/Backups lose unter `/root`.
-
-RDAP7C1 Cleanup ist vorbereitet, aber ohne bestaetigte Server-Ausgabe nicht als erledigt dokumentiert.
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7E_TWITCH_OAUTH_DRY_RUN_PLAN
-```
-
-Ziel:
-
-```text
-Twitch-OAuth-Dry-Run planen, ohne Login zu aktivieren und ohne Secrets ins Repo zu schreiben.
+RDAP8_TWITCH_OAUTH_DRY_RUN_PLAN
 ```

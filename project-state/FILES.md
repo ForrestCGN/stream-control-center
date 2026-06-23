@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS  
+Stand: RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -29,6 +29,7 @@ docs/current/RDAP7_LOGIN_SESSION_CONCEPT.md
 docs/current/RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN.md
 docs/current/RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS.md
 docs/current/RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS.md
+docs/current/RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS.md
 ```
 
 ## Remote-Modboard Paket im Repo
@@ -74,15 +75,24 @@ db/rdap6d/templates/RDAP6D_TEST_RESULT_TEMPLATE.md
 /etc/systemd/system/scc-remote-modboard.service
 ```
 
-## Neue Webserver-Arbeitsordnerregel
+## Neue Webserver-Arbeitsordner
+
+Ab RDAP7E:
 
 ```text
-Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
-Run-/Log-/Temp-Kram: /opt/stream-control-center/_runtime_tmp/
-Backups: /var/backups/stream-control-center/
+/opt/stream-control-center/_deploy_tmp
+/opt/stream-control-center/_runtime_tmp
+/var/backups/stream-control-center
 ```
 
-Keine neuen RDAP-Arbeitsordner/Backups lose unter `/root`.
+Nicht mehr fuer RDAP-Arbeit verwenden:
+
+```text
+/root/rdap*-deploy
+/root/rdap*-migration
+/root/rdap*-precheck
+/root/rdap*_backup_*
+```
 
 ## Webserver-DB
 
@@ -105,6 +115,12 @@ Vorheriges Backup:
 /root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
 ```
 
+Kuenftige Backups gehoeren nach:
+
+```text
+/var/backups/stream-control-center
+```
+
 Produktiv angelegte Tabellen in `c3stream_control`:
 
 ```text
@@ -123,45 +139,24 @@ dashboard_locks
 dashboard_audit_log
 ```
 
-Bestaetigte API-Route:
+## Bestaetigte API-Routen
 
 ```text
 GET https://mods.forrestcgn.de/api/remote/auth/model
-schema.ready: true
-readOnly: true
-writeEnabled: false
-authEnabled: false
-sessionCreationEnabled: false
-```
-
-## RDAP7B/RDAP7C Auth-Status-Routen
-
-Bestaetigte API-Routen:
-
-```text
 GET https://mods.forrestcgn.de/api/remote/auth/me
 GET https://mods.forrestcgn.de/api/remote/auth/session-status
 ```
 
-Live-Build:
+Bestaetigt:
 
 ```text
-moduleBuild: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
-statusApiVersion: rdap7b.v1
+schema.ready: true
 readOnly: true
 writeEnabled: false
 authEnabled: false
 sessionCreationEnabled: false
 loggedIn: false
 ```
-
-Deploy-Backup aus RDAP7C:
-
-```text
-/root/rdap7c_backup_remote_modboard_20260623_172801
-```
-
-Hinweis: Altbestand unter `/root`; kuenftig nach neuer Webserver-Arbeitsordnerregel arbeiten.
 
 ## Lokale produktive SQLite
 
@@ -193,5 +188,5 @@ moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ## Naechste geplante Datei
 
 ```text
-docs/current/RDAP7E_TWITCH_OAUTH_DRY_RUN_PLAN.md
+docs/current/RDAP8_TWITCH_OAUTH_DRY_RUN_PLAN.md
 ```
