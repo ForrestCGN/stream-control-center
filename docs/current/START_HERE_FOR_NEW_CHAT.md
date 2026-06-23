@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Stand: 2026-06-22
+Stand: 2026-06-23
 Projekt: ForrestCGN / stream-control-center
 
 Diese Datei ist der Einstiegspunkt für neue Chats im Projekt.
@@ -88,9 +88,70 @@ ZIP entpacken -> `stepdone.cmd` -> danach testen.
 - Produktive DB: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
 - Server: `http://127.0.0.1:8080`
 - Dashboard: `http://127.0.0.1:8080/dashboard`
+- Remote-Modboard geplant: `https://mods.forrestcgn.de`
 - Live-State: `twitch_events` / `GET /api/twitch/events/stream-state`
 - Modul-Kommunikation: `communication_bus`
 - Playback/Queue/Finish: `sound_system`
+
+## RDAP2.WEB1 / aktueller Remote-Webserver-Stand
+
+Aktueller dokumentierter Webserver-Basisstand:
+
+- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
+
+Bestätigt:
+
+- Remote-Modboard-Subdomain ist `mods.forrestcgn.de`.
+- Alte Planungs-Subdomain `modboard.forrestcgn.de` ist nicht mehr führend.
+- `https://mods.forrestcgn.de` ist per HTTPS erreichbar.
+- IPv4 und IPv6 liefern `HTTP/2 200`.
+- Let's Encrypt-Zertifikat enthält `mods.forrestcgn.de`.
+- nginx-Konfiguration ist gültig.
+- `apt update` läuft wieder sauber.
+- Node.js/npm/npx sind auf dem Webserver vorhanden:
+  - `node v20.19.2`
+  - `npm 9.2.0`
+  - `npx 9.2.0`
+
+Nicht umgesetzt:
+
+- kein Backend-Code
+- kein Dashboard-Code
+- kein Frontend-Code
+- kein Agent-Code
+- keine produktive DB-Änderung
+- kein Reverse Proxy auf `127.0.0.1:3000`
+- kein systemd-Service für Remote-Node-App
+- kein lokaler `stream-control-center`-Node-Neustart nötig
+
+## Nächster sinnvoller Schritt
+
+`RDAP3 / Minimal-Agent-Konzept planen`
+
+RDAP3 soll zunächst nur planen:
+
+- separater Node-Agent-Prozess
+- Agent-Config
+- WSS-Verbindung
+- Auth mit `agentId` + Secret
+- Heartbeat
+- Basisstatus
+- `agent.ping`
+- `agent.status.request`
+- Request/Result/Audit-Struktur
+- Reconnect-/Offline-Verhalten
+- keine produktiven Aktionen
+
+Nicht in RDAP3:
+
+- keine Sound-Steuerung
+- keine OBS-Steuerung
+- keine Overlay-Steuerung
+- keine Media-Schreiboperation
+- keine Text-/Config-Änderung
+- keine Commands/Kanalpunkte
+- keine DB-Aktionen
+- keine Datei-/Shell-/Prozessaktionen
 
 ## Owner-Regeln
 
@@ -117,7 +178,6 @@ Letzter bestätigter Code-Stand:
 - Level-Up- und Ende-Sound bleiben offen, bis passende Medien vorhanden sind.
 
 Doku/TODO:
-- Central Event Overlay und HypeTrain-Status müssen nach HT4.3/HT4.DOC2 in Doku und Projektstatus stehen.
 - Aufgeschobener Punkt: echte HypeTrain-Live-Payloads später bei echtem HypeTrain prüfen und danach finale Template-/Mode-Struktur planen.
 
 ## Wenn ein Chat zu lang wird
