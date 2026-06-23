@@ -1,26 +1,27 @@
 # CHANGELOG
 
-## 2026-06-23 - WF1 / Frontend Git Workflow korrigiert
+## 2026-06-23 - DASHUI6C / dashboard-v2 Static Route
 
 Status: gebaut
 
 Geändert:
 
-- `stepdone.cmd` nimmt jetzt `frontend/` auf.
-- JS-Syntaxcheck in `stepdone.cmd` prüft jetzt auch `frontend/**/*.js` und `frontend/**/*.jsx`.
-- `tools/upload_streamassets_changes.ps1` kennt jetzt `frontend/dashboard-v2/`.
-- Commit-Hinweise und Commit-Ausführung nehmen `frontend` auf.
-- Doku/Projektstatus aktualisiert.
+- `backend/core/paths.js`: `DASHBOARD_V2_DIR` ergänzt
+- `backend/server.js`: statische Route `/dashboard-v2` ergänzt
+- `backend/server.js`: Index-Fallback für `/dashboard-v2` und `/dashboard-v2/` ergänzt
+- Doku/Projektstatus aktualisiert
 
 Grund:
 
-- Nach DASHUI4B und DASHUI5 blieb `frontend/dashboard-v2/` untracked.
-- GitHub/dev enthielt dadurch Doku und Designreferenz, aber nicht den React-Code.
+- `http://127.0.0.1:8080/dashboard-v2/` lieferte `Cannot GET /dashboard-v2/`, obwohl Build-Dateien vorhanden waren.
 
 Nicht geändert:
 
-- kein Backend
-- kein altes Dashboard
-- keine produktive DB
+- `/dashboard` bleibt unverändert
+- altes Dashboard bleibt produktiv
+- keine DB
 - keine OBS-Änderung
-- kein Node-Neustart nötig
+
+Node-Neustart:
+
+- nötig, weil Backend-Code geändert wurde

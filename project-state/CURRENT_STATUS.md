@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-Stand: WF1 / Frontend Git Workflow korrigiert  
+Stand: DASHUI6C / dashboard-v2 Static Route  
 Datum: 2026-06-23
 
 ## Aktueller Dashboard-v2-Stand
@@ -14,49 +14,33 @@ frontend/dashboard-v2/
 React + Vite
 ```
 
-Verbindliche Designbasis:
+Build-Ziel:
 
 ```text
-DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip
+htdocs/dashboard-v2/
 ```
 
-Archiviert unter:
+Lokaler Zielaufruf:
 
 ```text
-docs/reference/dashboard-v2-design-test-v13/
+http://127.0.0.1:8080/dashboard-v2/
 ```
 
-Dokumentiert unter:
+## Aktueller Backend-Stand
 
-```text
-docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
-```
+DASHUI6C ergänzt die statische Backend-Auslieferung für Dashboard-v2.
 
-## Aktueller Workflow-Stand
+Neu:
 
-WF1 korrigiert den Git-/Upload-Workflow.
-
-Problem vorher:
-
-```text
-?? frontend/dashboard-v2/...
-```
-
-Der React-Code blieb nach `stepdone` untracked und wurde nicht nach GitHub/dev gepusht.
-
-Korrektur:
-
-- `stepdone.cmd` nimmt jetzt `frontend/` auf.
-- `tools/upload_streamassets_changes.ps1` kennt jetzt `frontend/dashboard-v2/`.
-- Sicherheitsblocker bleiben aktiv.
-- `node_modules`, `dist`, `.vite`, Secrets, DBs und Archive bleiben ausgeschlossen.
+- `paths.DASHBOARD_V2_DIR`
+- `app.use("/dashboard-v2", express.static(...))`
+- Index-Route für `/dashboard-v2` und `/dashboard-v2/`
 
 ## Nicht geändert
 
-- kein Backend-Code
-- kein bestehendes lokales Dashboard unter `htdocs/dashboard/`
-- kein Build-Output unter `htdocs/dashboard-v2/`
-- kein Agent-Code
+- `/dashboard` bleibt unverändert
+- altes Dashboard bleibt produktiv
+- kein React-Code geändert
 - keine produktive SQLite
 - keine Projekt-Config
 - keine OBS-Quelle
@@ -64,16 +48,29 @@ Korrektur:
 - kein Reverse Proxy
 - kein systemd-Service
 
-## Nächster sinnvoller Schritt
+## Node-Neustart
 
-Nach Installation von WF1:
+Nötig.
+
+Grund:
 
 ```text
-stepdone ausführen und prüfen, dass frontend/dashboard-v2 nach GitHub/dev kommt
+backend/server.js
+backend/core/paths.js
+```
+
+wurden geändert.
+
+## Nächster sinnvoller Schritt
+
+Nach Installation, Live-Deploy und Node-Neustart:
+
+```text
+http://127.0.0.1:8080/dashboard-v2/ testen
 ```
 
 Danach:
 
 ```text
-DASHUI6 / Build- und lokaler Auslieferungsweg prüfen
+DASHUI7 / Erste read-only Statusseite mit echter API-Anbindung planen
 ```

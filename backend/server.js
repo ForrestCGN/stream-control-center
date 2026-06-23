@@ -223,12 +223,19 @@ app.use("/overlays", express.static(paths.OVERLAYS_DIR, PUBLIC_STATIC_OPTIONS));
 app.use("/assets", express.static(paths.ASSETS_DIR, PUBLIC_STATIC_OPTIONS));
 app.use("/alerts", express.static(paths.ALERTS_DIR, PUBLIC_STATIC_OPTIONS));
 app.use("/dashboard", express.static(paths.DASHBOARD_DIR, PUBLIC_STATIC_OPTIONS));
+app.use("/dashboard-v2", express.static(paths.DASHBOARD_V2_DIR, PUBLIC_STATIC_OPTIONS));
 app.use("/public", express.static(paths.PUBLIC_DIR, PUBLIC_STATIC_OPTIONS));
 
 app.get(["/dashboard", "/dashboard/"], (req, res) => {
   const dashboardIndex = path.join(paths.DASHBOARD_DIR, "index.html");
   if (fs.existsSync(dashboardIndex)) return res.sendFile(dashboardIndex);
   res.status(404).json({ ok: false, error: "dashboard_index_not_found" });
+});
+
+app.get(["/dashboard-v2", "/dashboard-v2/"], (req, res) => {
+  const dashboardV2Index = path.join(paths.DASHBOARD_V2_DIR, "index.html");
+  if (fs.existsSync(dashboardV2Index)) return res.sendFile(dashboardV2Index);
+  res.status(404).json({ ok: false, error: "dashboard_v2_index_not_found" });
 });
 
 // Legacy compatibility: several existing overlays may still fetch JSON from /data.

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ForrestCGN Path Helper - Phase 1B
  *
  * Zweck:
@@ -33,6 +33,7 @@ const paths = {
   ASSETS_DIR: path.join(ROOT_DIR, "htdocs", "assets"),
   ALERTS_DIR: path.join(ROOT_DIR, "htdocs", "alerts"),
   DASHBOARD_DIR: path.join(ROOT_DIR, "htdocs", "dashboard"),
+  DASHBOARD_V2_DIR: path.join(ROOT_DIR, "htdocs", "dashboard-v2"),
   PUBLIC_DIR: path.join(ROOT_DIR, "htdocs", "public"),
 
   // Legacy public data folder - keep temporarily for old overlays
