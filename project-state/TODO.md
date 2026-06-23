@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER  
+Stand: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -40,6 +40,8 @@ Datum: 2026-06-23
 - [x] RDAP6F_PREP_DOC_STATUS_SYNC vorbereitet: zentrale Projektstatus-Dokus auf echten Stand gebracht
 - [x] RDAP6F Auth DB Integration Plan dokumentiert
 - [x] RDAP6G Auth Backend Read-only DB Layer vorbereitet
+- [x] RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
+- [x] RDAP6H Build-Label-Cleanup vorbereitet
 
 ## Wichtige Korrektur
 
@@ -50,22 +52,20 @@ Datum: 2026-06-23
 
 ## Noch offen / als naechstes
 
-### RDAP6G Auth Backend Read-only DB Layer
+### RDAP6I Auth DB Production Migration Runbook
 
-- [ ] echte Remote-Modboard-Dateien vor Umsetzung vollstaendig pruefen
-- [ ] zentrale read-only DB-Schicht planen/umsetzen
-- [ ] Auth-Modell-Leserouten planen/umsetzen
-- [ ] Rollen/Gruppen/Permissions/Modulmatrix nur lesen
-- [ ] keine Login-Aktivierung
-- [ ] keine Session-Erstellung
-- [ ] keine Schreibaktionen
-- [ ] keine Agent-Actions
-- [ ] keine produktive Migration ohne separaten Plan und Go
+- [ ] Ziel-DB `c3stream_control` als echte Produktiv-Ziel-DB bestaetigen
+- [ ] Backup-Befehl fuer `c3stream_control` dokumentieren
+- [ ] Restore-Weg dokumentieren
+- [ ] SQL-Reihenfolge fuer RDAP6C dokumentieren
+- [ ] Validierungsqueries und erwartete Werte dokumentieren
+- [ ] Stop-Punkte definieren
+- [ ] Rollback-Weg definieren
+- [ ] Produktivmigration weiterhin sperren bis separates Go
 
 ### Spaeter
 
-- [ ] RDAP6H Produktiv-Migrations-Runbook vorbereiten
-- [ ] RDAP6I Produktiv-Migration nur mit Backup/Restore/Validation/separatem Go
+- [ ] RDAP6J Produktiv-Migration nur mit Backup/Restore/Validation/separatem Go
 - [ ] RDAP7 Login-/Session-Konzept separat planen
 
 ## Dauerhaft beachten
@@ -86,9 +86,3 @@ Datum: 2026-06-23
 - [ ] Rollen und Gruppen getrennt halten
 - [ ] Secrets niemals ins Repo oder Frontend
 - [ ] bei fehlenden Dateien exakt nachfragen
-
-## Naechster RDAP-Schritt
-
-- [ ] RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK vorbereiten
-- [ ] Backup-/Restore-Ablauf fuer c3stream_control dokumentieren
-- [ ] Produktivmigration weiterhin sperren bis separates Go

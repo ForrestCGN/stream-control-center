@@ -1,13 +1,11 @@
 # CURRENT STATUS
 
-Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER  
+Stand: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP6G wurde als read-only Backend-Erweiterung vorbereitet. Das Remote-Modboard bekommt eine interne read-only DB-Schicht und die Diagnose-Route `/api/remote/auth/model`, um das Auth-/Rollen-/Gruppen-/Permission-Modell aus MariaDB zu lesen.
-
-Dieser Stand aktiviert weiterhin keine Authentifizierung, keine Sessions, keine Writes und keine Agent-Actions.
+RDAP6H wurde live auf `web.cgn.community` getestet. Die RDAP6G-Route `/api/remote/auth/model` ist ueber `https://mods.forrestcgn.de/api/remote/auth/model` erreichbar und bleibt strikt read-only.
 
 Fertig und getestet:
 
@@ -19,42 +17,55 @@ RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
 RDAP6G Auth Backend Read-only DB Layer vorbereitet
+RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
 ```
 
-## Remote-Modboard read-only live
+## RDAP6H Live-Test
 
-Der Remote-Modboard-Node-Basisdienst laeuft read-only auf dem Webserver:
+Gepruefte Routen:
+
+```text
+GET https://mods.forrestcgn.de/api/remote/routes
+GET https://mods.forrestcgn.de/api/remote/auth/model
+```
+
+Ergebnis:
+
+```text
+Service aktiv: ja
+npm run check: bestanden
+/api/remote/routes: erreichbar
+/api/remote/auth/model: erreichbar
+database.reachable: true
+readOnly: true
+writeEnabled: false
+migrationEnabled: false
+authEnabled: false
+sessionCreationEnabled: false
+schema.ready: false
+```
+
+`schema.ready=false` ist erwartbar, weil die RDAP6C-Tabellen noch nicht in `c3stream_control` produktiv angelegt wurden.
+
+## Remote-Modboard read-only live
 
 ```text
 Webserver: web.cgn.community
 Subdomain/API: https://mods.forrestcgn.de/api/remote/
 Service: scc-remote-modboard.service
 Listen intern: 127.0.0.1:3010
+Deploy-Ziel: /opt/stream-control-center/remote-modboard/backend
+Backup aus RDAP6H: /root/rdap6h_backup_remote_modboard_20260623_151316
 ```
 
-Live verfuegbare Routen:
+Live verfuegbare Read-only-Routen:
 
 ```text
 GET https://mods.forrestcgn.de/api/remote/health
 GET https://mods.forrestcgn.de/api/remote/status
 GET https://mods.forrestcgn.de/api/remote/routes
 GET https://mods.forrestcgn.de/api/remote/health?db=1
-```
-
-Bestaetigte Health-Werte:
-
-```text
-ok: true
-readOnly: true
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
-driverAvailable: true
-configured: true
-connectionTested: true
-reachable: true
-migrationEnabled: false
-error: null
+GET https://mods.forrestcgn.de/api/remote/auth/model
 ```
 
 ## Service-/Runtime-Stand
@@ -68,27 +79,13 @@ express: 5.2.1
 dotenv: 17.4.2
 ```
 
-## Installierte Pfade auf Webserver
-
-```text
-/opt/stream-control-center/remote-modboard/backend
-/etc/stream-control-center/remote-modboard.env
-/etc/systemd/system/scc-remote-modboard.service
-```
-
-Service-User:
+Node-Service laeuft als Service-User:
 
 ```text
 sccremote
 ```
 
-Node-Service laeuft nicht als root.
-
 ## Webserver-DB final korrigiert
-
-Fruehere Doku hatte DB_USER und DB_NAME vertauscht.
-
-Final bestaetigt:
 
 ```text
 DB_USER=c1stream_control
@@ -137,14 +134,6 @@ Ergebnisdatei auf Server:
 _tmp/rdap6d_webserver_test_output/RDAP6D_TEST_RESULT_FILLED.md
 ```
 
-Ausgeführt wurden:
-
-```text
-db/rdap6c/sql/001_rdap6c_schema_migration.sql
-db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
-db/rdap6c/checks/rdap6c_validation_queries.sql
-```
-
 Ergebnis:
 
 ```text
@@ -163,6 +152,16 @@ session_rows = 0
 lock_rows = 0
 audit_rows = 0
 ```
+
+## RDAP6F Entscheidung
+
+```text
+scc_rdap6_test bleibt reine Testdatenbank.
+Die echte Remote-Modboard-/Auth-Ziel-DB ist c3stream_control.
+DB-User bleibt c1stream_control.
+```
+
+RDAP6F gibt keine Migration und keine Auth-Aktivierung frei.
 
 ## Nicht umgesetzt
 
@@ -193,65 +192,27 @@ docs/current/RDAP6_AUTH_DB_MIGRATION_PREP_PLAN.md
 docs/current/RDAP6B_TEST_DB_DRY_RUN_RUNBOOK.md
 ```
 
-Belastbar vorhanden und fuer RDAP6F relevant:
+Belastbar vorhandene RDAP6-Dateien:
 
 ```text
-docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
 docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
 docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
+docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
+docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
+docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
+docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
 ```
-
-## RDAP6F Entscheidung
-
-```text
-scc_rdap6_test bleibt reine Testdatenbank.
-Die echte Remote-Modboard-/Auth-Ziel-DB ist c3stream_control.
-DB-User bleibt c1stream_control.
-```
-
-RDAP6F gibt keine Migration und keine Auth-Aktivierung frei.
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER
+RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
 ```
 
 Ziel:
 
 ```text
-Remote-Modboard bekommt eine sichere interne read-only DB-Schicht fuer Auth-Modell-Daten.
+Sicheres Produktiv-Migrations-Runbook fuer c3stream_control vorbereiten.
 ```
 
 Weiterhin keine Auth-Aktivierung, keine Sessions, keine Writes und keine Agent-Actions.
-
-
-## RDAP6G neue read-only Route
-
-```text
-GET /api/remote/auth/model
-```
-
-Zweck:
-
-```text
-Auth-/Rollen-/Gruppen-/Permission-/Schema-Modell aus MariaDB read-only lesen.
-Fehlende Tabellen sauber melden.
-Keine Auth aktivieren.
-Keine Sessions erstellen.
-Keine Writes.
-```
-
-Neue Dateien:
-
-```text
-remote-modboard/backend/src/services/db.service.js
-remote-modboard/backend/src/services/auth-db-read.service.js
-remote-modboard/backend/src/routes/auth-model.routes.js
-```
-
-## Naechster sinnvoller Schritt
-
-```text
-RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
-```

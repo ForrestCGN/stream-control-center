@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER
+Aktueller Stand: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST
 
 ## Diese Datei zuerst lesen
 
@@ -23,6 +23,7 @@ project-state/FILES.md
 docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
 docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
 docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
+docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
 docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
 docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 ```
@@ -43,6 +44,7 @@ Produktive lokale SQLite: D:\Streaming\stramAssets\data\sqlite\app.sqlite
 Remote-Modboard: https://mods.forrestcgn.de
 Remote-Webserver: web.cgn.community
 Server-Testpfad zuletzt: /root/rdap6-test/stream-control-center
+RDAP6H Server-Backup: /root/rdap6h_backup_remote_modboard_20260623_151316
 Übergabe-ZIPs bevorzugt: D:\Git\stream-control-center\_handoff\
 Downloads: %USERPROFILE%\Downloads
 ```
@@ -59,6 +61,7 @@ RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
 RDAP6G Auth Backend Read-only DB Layer vorbereitet
+RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
 ```
 
 Wichtig: Einige ältere Prompt-/Status-Dateinamen aus Zwischenständen existieren nicht in GitHub/dev. Der belastbare aktuelle Doku-Stand basiert auf den vorhandenen Dateien in `docs/current` und `project-state`, besonders `RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md`.
@@ -82,7 +85,26 @@ GET https://mods.forrestcgn.de/api/remote/health
 GET https://mods.forrestcgn.de/api/remote/status
 GET https://mods.forrestcgn.de/api/remote/routes
 GET https://mods.forrestcgn.de/api/remote/health?db=1
+GET https://mods.forrestcgn.de/api/remote/auth/model
 ```
+
+RDAP6H Live-Test-Ergebnis:
+
+```text
+Service aktiv: ja
+npm run check: bestanden
+/api/remote/routes: erreichbar
+/api/remote/auth/model: erreichbar
+database.reachable: true
+readOnly: true
+writeEnabled: false
+migrationEnabled: false
+authEnabled: false
+sessionCreationEnabled: false
+schema.ready: false
+```
+
+`schema.ready=false` ist aktuell erwartbar, weil die RDAP6C-Tabellen in `c3stream_control` noch nicht produktiv angelegt wurden.
 
 Bewusst weiterhin nicht aktiv:
 
@@ -93,6 +115,9 @@ kein produktiver WSS-Agent
 keine OBS-/Sound-/Overlay-/Command-Steuerung
 keine Datei-/Shell-/Prozesssteuerung
 keine Secrets im Repo oder Frontend
+kein Login/Auth-Code
+keine Sessions
+keine DB-Migration
 ```
 
 ## Webserver-DB
@@ -217,13 +242,13 @@ RDAP6F ist nur Planung. Keine Migration, keine Auth-Aktivierung, keine Sessions.
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER
+RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
 ```
 
-Ziel von RDAP6G:
+Ziel von RDAP6I:
 
 ```text
-Remote-Modboard bekommt eine sichere interne read-only DB-Schicht fuer Auth-Modell-Daten.
+Sicheres Produktiv-Migrations-Runbook fuer c3stream_control vorbereiten.
 ```
 
 Nicht ändern:
@@ -235,6 +260,7 @@ keine OBS-/Sound-/Overlay-Steuerung
 keine Secrets
 keine Rollenzusammenführung
 keine sound_profi-Rolle
+keine SQL-Ausführung ohne separates Go
 ```
 
 ## Verbindliche Arbeitsweise
@@ -262,9 +288,3 @@ keine sound_profi-Rolle
 - Downloads liegen im normalen Downloads-Ordner.
 - `installstep.cmd` spielt ZIPs ein und startet `testdeploy.cmd`.
 - `stepdone.cmd` erst nach erfolgreichem Live-Test.
-
-## Naechster sinnvoller Schritt
-
-```text
-RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
-```

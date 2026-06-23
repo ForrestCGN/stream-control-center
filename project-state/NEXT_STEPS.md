@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER  
+Stand: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -15,41 +15,46 @@ RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
 RDAP6G Auth Backend Read-only DB Layer vorbereitet
+RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
 ```
 
-## RDAP6F Entscheidung
+## RDAP6H Ergebnis
 
 ```text
-scc_rdap6_test bleibt reine Testdatenbank.
-Die echte Remote-Modboard-/Auth-Ziel-DB ist c3stream_control.
-DB-User bleibt c1stream_control.
+GET https://mods.forrestcgn.de/api/remote/auth/model
 ```
 
-Wichtig:
+Antwortet stabil und read-only.
 
 ```text
-RDAP6F ist nur Planung.
-Keine SQL-Ausfuehrung.
-Keine Auth-Aktivierung.
-Keine Session-Erstellung.
-Keine Remote-Writes.
-Keine Agent-Actions.
+Service aktiv: ja
+database.reachable: true
+readOnly: true
+writeEnabled: false
+migrationEnabled: false
+authEnabled: false
+sessionCreationEnabled: false
+schema.ready: false
 ```
+
+`schema.ready=false` ist korrekt, solange die RDAP6C-Tabellen in `c3stream_control` noch nicht produktiv angelegt wurden.
 
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
+RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
 ```
 
 Ziel:
 
 ```text
 Sicheren Produktiv-Migrationsablauf fuer c3stream_control vorbereiten:
-Backup, Restore-Test, SQL-Ausfuehrung, Validation, Rollback und klare Stop-Punkte.
+Backup, Restore-Weg, SQL-Reihenfolge, Validation, Rollback und klare Stop-Punkte.
 ```
 
-Weiterhin nicht erlaubt:
+RDAP6I ist zunaechst nur Planung/Runbook. Keine Migration ausfuehren.
+
+## Weiterhin nicht erlaubt
 
 ```text
 keine Produktivmigration ohne separates Go
@@ -58,13 +63,13 @@ keine Sessions
 keine Remote-Writes
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine Secrets ins Repo oder Frontend
 ```
 
-## Spaeter, nicht jetzt
+## Danach moeglich, nicht jetzt
 
 ```text
-RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
-RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION
+RDAP6J_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION
 RDAP7_LOGIN_SESSION_CONCEPT
 ```
 
@@ -73,13 +78,3 @@ Produktive Migration erst mit Backup, Restore-Weg, Validation und separatem Go.
 ## Arbeitsregel
 
 Nur EIN Arbeitsort pro Schritt. Keine Server-/PowerShell-/DB-Schritte mischen.
-
-## RDAP6G Ergebnis
-
-```text
-Neue read-only Route: GET /api/remote/auth/model
-Neue DB-Lese-Schicht: db.service.js + auth-db-read.service.js
-Keine Auth-Aktivierung
-Keine Migration
-Keine Writes
-```

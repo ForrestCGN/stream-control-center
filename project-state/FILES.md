@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER  
+Stand: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -34,6 +34,7 @@ docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
 docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
 docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
+docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
 ```
 
 ## Nicht vorhandene Zwischenstand-Dateien aus alten Prompts
@@ -61,9 +62,29 @@ remote-modboard/backend/src/app.js
 remote-modboard/backend/src/routes/health.routes.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/routes/auth-model.routes.js
 remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/db-health.service.js
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/services/auth-db-read.service.js
 remote-modboard/backend/src/security/safety.js
+```
+
+## RDAP6G/RDAP6H Remote-Modboard-Erweiterung
+
+Neue bzw. relevante Dateien:
+
+```text
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/routes/auth-model.routes.js
+remote-modboard/backend/server.js
+```
+
+`server.js` enthaelt das Remote-Modboard-Build-Label. RDAP6H setzt es auf:
+
+```text
+RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST
 ```
 
 ## Deploy-/Handoff-Dateien im Repo
@@ -96,6 +117,12 @@ db/rdap6d/templates/RDAP6D_TEST_RESULT_TEMPLATE.md
 /opt/stream-control-center/remote-modboard/backend
 /etc/stream-control-center/remote-modboard.env
 /etc/systemd/system/scc-remote-modboard.service
+```
+
+RDAP6H Backup auf Server:
+
+```text
+/root/rdap6h_backup_remote_modboard_20260623_151316
 ```
 
 ## ISPConfig / nginx
@@ -191,37 +218,4 @@ sound_profi ist keine Rolle.
 sound_profi ist Gruppe/Marker.
 sound_profi vergibt selbst keine globalen Rechte.
 Remote-Agent bleibt read-only.
-```
-
-
-## RDAP6F Planungsdatei
-
-```text
-docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
-docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
-```
-
-Legt fest:
-
-```text
-scc_rdap6_test bleibt reine Testdatenbank.
-c3stream_control ist die geplante echte Remote-Modboard-/Auth-Ziel-DB.
-RDAP6G soll nur eine read-only DB-Schicht und Modellrouten vorbereiten.
-Keine Auth-Aktivierung und keine Migration durch RDAP6F.
-```
-
-## RDAP6G neue Remote-Modboard-Dateien
-
-```text
-remote-modboard/backend/src/services/db.service.js
-remote-modboard/backend/src/services/auth-db-read.service.js
-remote-modboard/backend/src/routes/auth-model.routes.js
-```
-
-## RDAP6G geaenderte Remote-Modboard-Dateien
-
-```text
-remote-modboard/backend/package.json
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
 ```
