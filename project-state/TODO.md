@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP3.DOC1 / Minimal-Agent-Konzept dokumentiert  
+Stand: RDAP4.DOC1 / Permission- und Lock-Modell dokumentiert  
 Datum: 2026-06-23
 
 ## Remote Dashboard / Webserver-Agent
@@ -37,16 +37,7 @@ Erledigt / geplant:
 - Minimal-Agent-Konzept dokumentiert in:
   - `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
 - separater Node-Agent-Prozess geplant
-- Agent-Config geplant:
-  - `agentId`
-  - `agentName`
-  - `serverUrl`
-  - `agentSecret`
-  - `localBackendUrl`
-  - `heartbeatIntervalMs`
-  - `requestTimeoutMs`
-  - `reconnect`
-  - `allowlist`
+- Agent-Config geplant
 - WSS-Verbindung geplant
 - Auth/Handshake mit `agentId` + Secret geplant
 - Heartbeat geplant
@@ -68,48 +59,58 @@ Noch offen für späteren Agent-Umsetzungsstep:
 - erste minimale Testumgebung planen
 - noch keinen produktiven Agent-Code erstellen, bis ein separater Umsetzungsstep freigegeben ist
 
-## Webserver-Sicherheit später prüfen
+## RDAP4 / Rollen, Permissions, Edit-Sessions und Locks
 
-Später separat und nicht blind ändern:
+Erledigt / geplant:
 
-- SSH-Zugriff auf IP/VPN begrenzen prüfen.
-- FTP-Port `21/tcp` prüfen: wird er wirklich gebraucht?
-- DNS-Port `53/udp` prüfen: wird der Server wirklich als öffentlicher DNS genutzt?
-- MariaDB lauschte beim Check auf `0.0.0.0:3306` und `[::]:3306`, war aber nicht per UFW freigegeben. Nicht blind ändern, weil ISPConfig/Mail/Hosting davon abhängen kann.
-- nginx-HTTP/2-Warnung aus ISPConfig-vHosts später bereinigen, kein aktueller Blocker.
-- Das laut `apt update` verfügbare Paket-Update später bewusst prüfen, kein blindes Full-Upgrade.
+- Permission- und Lock-Modell dokumentiert in:
+  - `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
+- Rollenmodell geplant:
+  - `owner`
+  - `admin`
+  - `lead_mod`
+  - `mod`
+  - `sound_profi`
+  - optional `media_manager`
+  - `readonly`
+- Permission-Namensschema geplant: `bereich.modul.aktion`
+- Schutzstufen geplant:
+  - `public_read`
+  - `mod_action`
+  - `content_edit`
+  - `media_edit`
+  - `admin_config`
+  - `security`
+  - `dangerous`
+- `resourceKey`-Schema geplant
+- `resourceType` geplant
+- `resourceVersion` geplant
+- Edit-Session-Modell geplant
+- Lock-Modell geplant
+- Lock-Heartbeat geplant
+- Lock-Timeout geplant
+- Lock-Übernahme geplant
+- Audit-Events für Edit-Sessions und Locks geplant
+- Version-Konflikt mit `resource_version_conflict` geplant
+- Agent-Verlust während Bearbeitung geplant
+- gemeinsamer Lock-/Edit-Session-Mechanismus für lokales Dashboard und Remote-Modboard geplant
 
-## Rollen / Permissions / Multi-User
+Noch offen für späteren Umsetzungsstep:
 
-Noch zu planen für RDAP4:
-
-- Rollenmatrix aus `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md` prüfen und finalisieren.
-- Lokale Dashboard-Rollen gegen Twitch-Rollen-Mapping prüfen.
-- Spezialrolle `Sound-Profi` fachlich final bestätigen.
-- Entscheiden, ob `Media-Manager` als eigene Rolle gebraucht wird.
-- Permission-Gruppen finalisieren.
-- Modulfreigaben finalisieren.
-- Schutzstufen finalisieren.
-- Edit-Session-/Lock-System technisch planen:
-  - `resourceKey`
-  - `resourceType`
-  - `resourceVersion`
-  - `editSessionId`
-  - `lockId`
-  - `clientId`
-  - `source`
-  - `agentRequired`
-  - Heartbeat
-  - Timeout
-  - Übernahme
-  - Audit
-- Klären, welche Rollen Locks übernehmen dürfen.
-- Klären, welche Bereiche zwingend Locks brauchen.
-- Konfliktverhalten bei veralteter `resourceVersion` planen.
-- Verhalten bei Agent-Verlust während Bearbeitung planen.
-- Lokales Dashboard und Remote-Modboard auf denselben Lock-/Edit-Session-Mechanismus planen.
+- konkrete DB-Tabellen planen
+- Migration separat planen
+- API-Routen separat planen
+- WebSocket-Events separat planen
+- UI für Locks separat planen
+- Audit-Ansicht separat planen
+- echte Permission-Liste finalisieren
+- Modulfreigaben je Modul finalisieren
+- `media_manager` als eigene Rolle bestätigen oder streichen
+- keine produktive Rechte-/Lock-Implementierung ohne separaten `go`
 
 ## Dashboard-v2 Design / Frontend
+
+Nächster sinnvoller Planungsstep: DASHUI2
 
 - `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md` als aktuelle Designbasis verwenden.
 - `React + Vite` als bevorzugte Frontend-Richtung technisch prüfen/finalisieren.
@@ -121,8 +122,21 @@ Noch zu planen für RDAP4:
 - Navigation-Registry planen.
 - Sidebar-Regel festhalten: Hauptkategorie → Modul, keine dritte Sidebar-Ebene.
 - Modul-Navi/Tabs innerhalb der Modulseite planen.
+- API-/WebSocket-/Lock-Clients sauber trennen.
 - Admin-Bereich für technische Dinge planen: Rollen/Rechte, Edit-Sessions/Locks, Audit, Diagnose, Texte, Configs.
 - Keine Creative-Tim-/Vision-UI-Codebasis übernehmen.
+- Noch keinen produktiven Dashboard-v2-Code ohne separaten `go`.
+
+## Webserver-Sicherheit später prüfen
+
+Später separat und nicht blind ändern:
+
+- SSH-Zugriff auf IP/VPN begrenzen prüfen.
+- FTP-Port `21/tcp` prüfen: wird er wirklich gebraucht?
+- DNS-Port `53/udp` prüfen: wird der Server wirklich als öffentlicher DNS genutzt?
+- MariaDB lauschte beim Check auf `0.0.0.0:3306` und `[::]:3306`, war aber nicht per UFW freigegeben. Nicht blind ändern, weil ISPConfig/Mail/Hosting davon abhängen kann.
+- nginx-HTTP/2-Warnung aus ISPConfig-vHosts später bereinigen, kein aktueller Blocker.
+- Das laut `apt update` verfügbare Paket-Update später bewusst prüfen, kein blindes Full-Upgrade.
 
 ## NAS / MariaDB
 
@@ -159,3 +173,5 @@ Später separat planen:
 - Jede produktive Remote-Aktion braucht Rechteprüfung und Audit.
 - Keine Offline-Queue für produktive Aktionen.
 - Keine automatische spätere Ausführung nach Agent-Reconnect.
+- Frontend enthält keine Secrets.
+- Frontend trifft keine echten Sicherheitsentscheidungen.

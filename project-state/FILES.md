@@ -1,160 +1,72 @@
 # FILES
 
-Stand: RDAP3.DOC1 / Minimal-Agent-Konzept dokumentiert  
+Stand: RDAP4.DOC1 / Permission- und Lock-Modell dokumentiert  
 Datum: 2026-06-23
 
-## Art des aktuellen Doku-Stands
+## Projektgrundlagen
 
-Infrastruktur-/Doku-/Planungsstand.
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`  
+  Einstiegspunkt für neue Chats, Pflicht-Reihenfolge, harte Arbeitsregeln, ZIP-/Step-Workflow.
 
-Es wurden keine `stream-control-center`-Runtime-Dateien geändert.
+- `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`  
+  Master-Prompt für das Projekt. Bei größeren Steps zuerst beachten.
 
-## Neu / aktualisiert
+## Aktueller Remote-Dashboard-/Agent-Planungsstand
 
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/FILES.md`
-- `project-state/CHANGELOG.md`
-- `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`
+- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`  
+  Webserver-Grundlage für `mods.forrestcgn.de`, HTTPS, nginx, Node/npm und RDAP2.WEB1-Status.
 
-## Neue RDAP3-Plan-Datei
+- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`  
+  Gesamtplan Webserver↔Stream-PC-Agent, Zielarchitektur, Sicherheitsgrenzen, Agent-Grundregeln.
 
-### `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`  
+  RDAP2-Entscheidungen: Webserver als Zentrale, Agent als separater Node-Prozess, kein öffentlicher Node-Port, keine Offline-Queue.
 
-Enthält:
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`  
+  RDAP3-Minimal-Agent-Konzept: WSS, Auth, Heartbeat, Basisstatus, `agent.ping`, `agent.status.request`, Request/Result/Audit.
 
-- Minimal-Agent-Zielbild
-- separater Node-Agent-Prozess
-- Agent-Config-Plan
-- WSS-Verbindung
-- Auth/Handshake mit `agentId` + Secret
-- Heartbeat
-- Basisstatus
-- `agent.ping`
-- `agent.status.request`
-- Request-Struktur
-- Result-Struktur
-- Audit-Vorbereitung
-- Offline-/Reconnect-Verhalten
-- klare Abgrenzung: keine produktiven Aktionen
-- klare Abgrenzung: kein Code in RDAP3
+- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`  
+  RDAP4-Plan: Rollen, Permissions, Modulfreigaben, Resource-Key-Schema, Edit-Sessions, Locks, Heartbeat, Timeout, Audit, Version-Konflikte.
 
-## Aktualisierte RDAP2-Plan-Dateien
+## Dashboard-v2 / Frontend
 
-### `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`  
+  Dashboard-v2 Design- und Frontend-Richtung: React + Vite bevorzugt, CGN-Dark-/Neon-/Galaxy-Stil, Sidebar Hauptkategorie → Modul, keine dritte Sidebar-Ebene.
 
-Aktualisiert:
-
-- alte Planungs-Subdomain im Entscheidungsblock auf `mods.forrestcgn.de` nachgezogen
-- RDAP3-Minimal-Agent-Verweis ergänzt
-- weiterhin grober Architekturplan
-
-### `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
-
-Aktualisiert:
-
-- Hinweis ergänzt, dass `mods.forrestcgn.de` der führende aktuelle Remote-Modboard-Zielname ist
-- alte Subdomain `modboard.forrestcgn.de` bleibt nur als historische Planungsreferenz relevant
+- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`  
+  Rollen-/Permission-Grundlage für Owner, Admin, Lead-Mod, Mod, Sound-Profi, optional Media-Manager und Readonly.
 
 ## Projektstatus-Dateien
 
-### `project-state/CURRENT_STATUS.md`
+- `project-state/CURRENT_STATUS.md`  
+  Aktueller dokumentierter Projektstand.
 
-Enthält aktuellen Stand:
+- `project-state/NEXT_STEPS.md`  
+  Nächste sinnvolle Schritte und verbotene Nebenbaustellen.
 
-- RDAP3.DOC1 dokumentiert
-- RDAP2.WEB1 bleibt gültig
-- RDAP2-Architektur bleibt gültig
-- DASHUI1 Designbasis bleibt gültig
-- keine Runtime-/Code-/DB-/Config-Änderungen
+- `project-state/TODO.md`  
+  Offene Punkte, erledigte Planungen und spätere Umsetzungsaufgaben.
 
-### `project-state/NEXT_STEPS.md`
+- `project-state/CHANGELOG.md`  
+  Laufendes Projekt-Changelog.
 
-Aktualisiert auf nächsten sinnvollen Schritt:
+- `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`  
+  Changelog für RDAP3.DOC1.
 
-- RDAP4 / Permission- und Edit-Session-/Lock-Datenmodell planen
+- `project-state/CHANGELOG_RDAP4_PERMISSION_LOCK_MODEL_2026-06-23.md`  
+  Changelog für RDAP4.DOC1.
 
-### `project-state/TODO.md`
+## Aktueller Runtime-Kontext
 
-Aktualisiert:
+- `htdocs/overlays/central_event_overlay.html`  
+  Aktueller bestätigter Central-Event-Overlay-Stand HT4.3, nicht durch RDAP4 geändert.
 
-- RDAP3-Minimal-Agent-Konzept als geplant markiert
-- offene Punkte für späteren Agent-Umsetzungsstep ergänzt
-- RDAP4/Rollen/Locks weiterhin offen
+## Nicht durch RDAP4 geändert
 
-### `project-state/FILES.md`
-
-Diese Datei.
-
-### `project-state/CHANGELOG.md`
-
-RDAP3.DOC1 als neuer Changelog-Eintrag ergänzt.
-
-### `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`
-
-Eigene changelogartige Detaildatei für diesen Step.
-
-## Wichtige Runtime-Dateien, die durch diesen Doku-Stand NICHT geändert werden
-
-- `server.js`
-- `backend/modules/*`
-- `backend/modules/helpers/*`
-- `htdocs/dashboard/*`
-- `htdocs/overlays/*`
-- `config/*`
-- `data/*`
-- `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
-
-## Weiterhin relevante Plan-Dateien
-
-- `docs/current/START_HERE_FOR_NEW_CHAT.md`
-- `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`
-- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
-- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
-- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
-
-## Relevante lokale Pfade
-
-- Repo: `D:\Git\stream-control-center`
-- Live-Ziel: `D:\Streaming\stramAssets`
-- Produktive DB: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
-- lokales Backend: `http://127.0.0.1:8080`
-- lokales Dashboard: `http://127.0.0.1:8080/dashboard`
-
-## Geplante Remote-Ziele
-
-- Remote-Modboard: `https://mods.forrestcgn.de`
-- Hetzner Node intern: bevorzugt `127.0.0.1:3000`
-- öffentlich nur HTTPS/WSS
-
-## Webserver-Stand
-
-Geprüft aus RDAP2.WEB1:
-
-- Host: `web`
-- OS: Debian 13 `trixie`
-- nginx aktiv
-- Let's Encrypt aktiv
-- `mods.forrestcgn.de` per HTTPS/IPv4/IPv6 erreichbar
-- Node.js `v20.19.2`
-- npm `9.2.0`
-- npx `9.2.0`
-- apt update sauber
-
-## Node-Neustart
-
-Für RDAP3.DOC1 nicht nötig.
-
-Grund:
-
-- nur Markdown-Dokumentation im Repo
-- keine Backend-Datei
-- keine Dashboard-JS/CSS-Datei
-- keine Overlay-HTML-Datei
-- keine Config
-- keine produktive DB
-- kein Agent-Code
+- keine Backend-Dateien
+- keine Dashboard-Dateien
+- keine Frontend-Dateien
+- keine Agent-Dateien
+- keine Config-Dateien
+- keine SQLite-Dateien
+- keine OBS-Dateien

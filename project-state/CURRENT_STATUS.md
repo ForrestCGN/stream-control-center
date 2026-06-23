@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-Stand: RDAP3.DOC1 / Minimal-Agent-Konzept dokumentiert  
+Stand: RDAP4.DOC1 / Permission- und Lock-Modell dokumentiert  
 Datum: 2026-06-23
 
 ## Aktueller Runtime-Stand
@@ -16,33 +16,45 @@ Central Event Overlay:
 - Overlay ist am Communication Bus verbunden.
 - Kein separates HypeTrain-Overlay-System wird gebaut.
 
-## RDAP3.DOC1 / Minimal-Agent-Konzept
+## RDAP4.DOC1 / Permission- und Lock-Modell
 
 Neu dokumentiert:
 
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
 
-RDAP3 konkretisiert den kleinsten sinnvollen Agent-Plan für die spätere sichere Verbindung zwischen Webserver und Stream-PC.
+RDAP4 konkretisiert das geplante technische Modell für:
 
-Geplant / festgelegt:
+- Rollen
+- Permissions
+- Modulfreigaben
+- Schutzstufen
+- Resource-Key-Schema
+- `resourceType`
+- `resourceVersion`
+- Edit-Sessions
+- Locks
+- Lock-Heartbeat
+- Lock-Timeout
+- Lock-Übernahme
+- Audit-Events
+- Version-Konflikte
+- Agent-Verlust während Bearbeitung
+- gemeinsames Modell für lokales Dashboard und Remote-Modboard
 
-- Stream-PC-Agent wird als separater Node-Prozess geplant.
-- Agent verbindet sich aktiv per WSS zum Webserver.
-- Remote-Modboard-Ziel bleibt `https://mods.forrestcgn.de`.
-- Webserver-Node-App später intern, bevorzugt `127.0.0.1:3000`.
-- Lokales Backend bleibt produktive Runtime auf `http://127.0.0.1:8080`.
-- Agent-Auth wird mit `agentId` + Secret geplant.
-- Secrets dürfen nicht ins Repo, nicht ins Frontend und nicht ins Audit.
-- Heartbeat und Basisstatus werden geplant.
-- Minimal erlaubte Actions für RDAP3:
-  - `agent.ping`
-  - `agent.status.request`
-- Request-/Result-/Audit-Struktur wurde konkretisiert.
-- Offline-/Reconnect-Verhalten wurde konkretisiert.
-- Es gibt keine Offline-Queue.
-- Nach Reconnect werden alte Requests nicht automatisch ausgeführt.
+Festgelegt / geplant:
 
-Nicht geändert durch RDAP3.DOC1:
+- Frontend zeigt Rechte nur an, entscheidet aber keine Sicherheit.
+- Webserver prüft Login, Rollen und Permissions.
+- Agent prüft lokal zusätzlich Allowlist, Aktionstyp und Payload.
+- Rollen sind Permission-Bündel, konkrete Prüfung passiert über Permissions.
+- Twitch-Rollen sind nicht führend, lokale Dashboard-Rollen entscheiden.
+- Produktive Bearbeitung kritischer Ressourcen braucht Edit-Session + Lock.
+- `resourceVersion` schützt vor stillem Überschreiben fremder Änderungen.
+- Bei veralteter Version wird mit `resource_version_conflict` blockiert.
+- Agent offline bedeutet: produktives Speichern gesperrt, keine Offline-Queue.
+- Lokales Dashboard und Remote-Modboard sollen langfristig denselben Lock-/Edit-Session-Mechanismus nutzen.
+
+Nicht geändert durch RDAP4.DOC1:
 
 - kein Backend-Code
 - kein produktives Dashboard
@@ -55,6 +67,23 @@ Nicht geändert durch RDAP3.DOC1:
 - kein Reverse Proxy auf `127.0.0.1:3000`
 - kein systemd-Service für eine Remote-Node-App
 - kein lokaler `stream-control-center`-Node-Neustart nötig
+
+## RDAP3.DOC1 / Minimal-Agent-Konzept
+
+Weiterhin gültig:
+
+- Stream-PC-Agent wird als separater Node-Prozess geplant.
+- Agent verbindet sich aktiv per WSS zum Webserver.
+- Remote-Modboard-Ziel bleibt `https://mods.forrestcgn.de`.
+- Webserver-Node-App später intern, bevorzugt `127.0.0.1:3000`.
+- Lokales Backend bleibt produktive Runtime auf `http://127.0.0.1:8080`.
+- Agent-Auth wird mit `agentId` + Secret geplant.
+- Secrets dürfen nicht ins Repo, nicht ins Frontend und nicht ins Audit.
+- Minimal erlaubte Actions für RDAP3:
+  - `agent.ping`
+  - `agent.status.request`
+- Es gibt keine Offline-Queue.
+- Nach Reconnect werden alte Requests nicht automatisch ausgeführt.
 
 ## RDAP2.WEB1 / Webserver-Grundlage
 
@@ -122,12 +151,10 @@ Wichtigster bestätigter Design-Teststand aus dem Chat:
 
 Neu/aktualisiert:
 
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
+- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
-- `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`
+- `project-state/CHANGELOG_RDAP4_PERMISSION_LOCK_MODEL_2026-06-23.md`

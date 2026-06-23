@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-06-23 - RDAP4.DOC1 / Permission- und Lock-Modell dokumentiert
+
+Reiner Doku-/Planungsstep.
+
+Neu/aktualisiert:
+
+- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+- `project-state/CHANGELOG_RDAP4_PERMISSION_LOCK_MODEL_2026-06-23.md`
+
+Geplant wurden Rollen, Permissions, Modulfreigaben, Schutzstufen, Resource-Key-Schema, `resourceVersion`, Edit-Sessions, Locks, Heartbeat/Timeout, Übernahme, Audit und Konfliktverhalten.
+
+Nicht geändert: Backend, Dashboard, Frontend, Agent, DB, Config, OBS, Runtime. Kein Node-Neustart nötig.
+
 ## RDAP3.DOC1 / Minimal-Agent-Konzept – 2026-06-23
 
 - Neue Plan-Datei ergänzt:
