@@ -1,191 +1,245 @@
 # START HERE FOR NEW CHAT
 
-Stand: 2026-06-23
-Projekt: ForrestCGN / stream-control-center
+Stand: 2026-06-23  
+Projekt: ForrestCGN / stream-control-center  
+Aktueller Stand: DASHUI6C / Dashboard-v2 lokal erreichbar
 
-Diese Datei ist der Einstiegspunkt für neue Chats im Projekt.
+## Diese Datei zuerst lesen
 
-## Master-Prompt
+In einem neuen Chat immer zuerst diese Datei lesen:
 
-Pflichtdatei im Repo:
-`docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`
+```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
+```
 
-GitHub/dev Direktlink:
-https://raw.githubusercontent.com/ForrestCGN/stream-control-center/dev/docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+Danach mindestens diese Dateien prüfen:
 
-## Pflicht-Reihenfolge im neuen Chat
+```text
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
+docs/current/DASHBOARD_V2_REACT_V13_ALIGNMENT.md
+docs/current/DASHBOARD_V2_BUILD_LOCAL_DELIVERY.md
+docs/current/DASHBOARD_V2_STATIC_ROUTE.md
+docs/current/WF1_FRONTEND_GIT_WORKFLOW.md
+docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
+docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
+docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
+```
 
-1. `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt` lesen.
-2. `project-state/CURRENT_STATUS.md` lesen.
-3. `project-state/NEXT_STEPS.md` lesen.
-4. `project-state/TODO.md` lesen.
-5. `project-state/FILES.md` prüfen, wenn Dateien/Pfade unklar sind.
-6. Relevante Datei aus `docs/current/*.md` lesen.
-7. Relevante Modul-Doku aus `docs/modules/*.md` lesen.
-8. Betroffene echte Projektdateien aus `D:\Git\stream-control-center` anfordern, wenn sie nicht vorliegen.
+## Repository und Pfade
 
-## Harte Arbeitsregeln für diesen Projektchat
+```text
+GitHub: https://github.com/ForrestCGN/stream-control-center
+Branch: dev
+Lokales Repo: D:\Git\stream-control-center
+Live-Ziel: D:\Streaming\stramAssets
+Lokaler Server: http://127.0.0.1:8080
+Altes Dashboard: http://127.0.0.1:8080/dashboard/
+Neues Dashboard-v2: http://127.0.0.1:8080/dashboard-v2/
+Produktive SQLite: D:\Streaming\stramAssets\data\sqlite\app.sqlite
+Remote-Modboard: https://mods.forrestcgn.de
+```
 
-- Nicht aus Erinnerung arbeiten.
-- Nicht alte Chatstände mit aktuellen Dateien mischen.
-- Fehlende Dateien exakt anfordern.
-- Keine Patch-/Apply-/Regex-/Append-Scripte.
-- Änderungen als vollständige Dateien mit echten Zielpfaden ab Repo-Root liefern.
-- Keine Funktionalität entfernen.
-- Offene oder aufgeschobene Punkte müssen in `project-state/TODO.md`.
-- Bei Security, DB, Dashboard-Struktur und großen Refactors zuerst planen und auf `go` warten.
-- Tests/Diagnose gehören getrennt in Tests-/Diagnose-Bereiche, nicht dauerhaft in normale Config-/Modulbereiche.
-- Keine Dry-Run-/Debug-/Test-Buttons dauerhaft in normale Bedienoberflächen einbauen.
-- Keine DB löschen, ersetzen, überschreiben oder droppen. Produktive DB niemals überschreiben.
-- Wenn Backend-Dateien geändert werden: Node-Neustart klar nennen.
-- Wenn nur Dashboard/Overlay/Doku ohne Backend geändert wird: keinen Node-Neustart verlangen.
-- Ausgaben kurz halten: gezielte Felder, keine großen Dumps, keine endlosen Listen.
+## Aktueller bestätigter Stand
 
-## Wichtig: Bedeutung von `go`, `ok`, `ja`, `passt`
-
-Wenn Forrest nach einem Plan `go` schreibt:
-- genau den freigegebenen Schritt ausführen
-- ZIP bauen, wenn ein ZIP-Step geplant war
-- keine Zusatzideen einbauen
-
-Wenn Forrest nach bereits gegebenen Testbefehlen `go`, `ok`, `ja` oder `passt` schreibt:
-- dieselben Befehle NICHT wiederholen
-- Ergebnis abwarten oder vorhandenes Ergebnis auswerten
-- keine Befehls-Dauerschleife starten
-
-Wenn Forrest bestätigt, dass ein Test sichtbar/ok war:
-- Ergebnis als bestätigt behandeln
-- nicht erneut dieselben Tests verlangen
-- nächsten sinnvollen Schritt planen oder Doku/TODO aktualisieren
-
-## ZIP-/Step-Workflow
-
-ZIPs müssen direkt nach folgendem Pfad entpackbar sein:
-`D:\Git\stream-control-center`
-
-Pflicht bei ZIP-Lieferung:
-1. `installstep.cmd`-Befehl mit exaktem ZIP-Dateinamen und deutscher Beschreibung.
-2. Hinweis, ob Node/Backend-Neustart nötig ist.
-3. konkrete, kurze Testbefehle oder klare Sichtprüfung.
-4. erwartete Status-/Versionswerte, falls relevant.
-5. `stepdone.cmd`-Befehl mit konkreter deutscher Beschreibung.
-6. `stepundo.cmd`-Hinweis für den Fehlerfall.
-
-Ablauf:
-1. ZIP installieren/testdeploy.
-2. Node nur neu starten, wenn Backend geändert wurde.
-3. Live testen.
-4. Erst bei Erfolg `stepdone.cmd`.
-5. Bei Fehler `stepundo.cmd`.
-
-Nicht mehr:
-ZIP entpacken -> `stepdone.cmd` -> danach testen.
-
-## Primäre Projekt-Truth
-
-- Code-Basis: GitHub/dev + `D:\Git\stream-control-center`
-- Live-System: `D:\Streaming\stramAssets`
-- Produktive DB: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
-- Server: `http://127.0.0.1:8080`
-- Dashboard: `http://127.0.0.1:8080/dashboard`
-- Remote-Modboard geplant: `https://mods.forrestcgn.de`
-- Live-State: `twitch_events` / `GET /api/twitch/events/stream-state`
-- Modul-Kommunikation: `communication_bus`
-- Playback/Queue/Finish: `sound_system`
-
-## RDAP2.WEB1 / aktueller Remote-Webserver-Stand
-
-Aktueller dokumentierter Webserver-Basisstand:
-
-- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
+```text
+DASHUI6C / dashboard-v2 Static Route ergänzt und erfolgreich getestet
+```
 
 Bestätigt:
 
-- Remote-Modboard-Subdomain ist `mods.forrestcgn.de`.
-- Alte Planungs-Subdomain `modboard.forrestcgn.de` ist nicht mehr führend.
-- `https://mods.forrestcgn.de` ist per HTTPS erreichbar.
-- IPv4 und IPv6 liefern `HTTP/2 200`.
-- Let's Encrypt-Zertifikat enthält `mods.forrestcgn.de`.
-- nginx-Konfiguration ist gültig.
-- `apt update` läuft wieder sauber.
-- Node.js/npm/npx sind auf dem Webserver vorhanden:
-  - `node v20.19.2`
-  - `npm 9.2.0`
-  - `npx 9.2.0`
+- `http://127.0.0.1:8080/dashboard-v2/` läuft lokal.
+- `http://127.0.0.1:8080/dashboard/` bleibt das alte produktive Dashboard.
+- React/Vite-Quellcode liegt unter `frontend/dashboard-v2/`.
+- Build-Output liegt unter `htdocs/dashboard-v2/`.
+- Backend liefert `/dashboard-v2` über statische Route aus.
+- Node/Backend wurde nach DASHUI6C neu gestartet.
+- WF1 ist erledigt: `frontend/dashboard-v2/` wird vom Git-/StepDone-Workflow erfasst.
+- Designbasis ist V13 / Topbar Tab inline.
 
-Nicht umgesetzt:
+## Wichtige aktuelle Dateien
 
-- kein Backend-Code
-- kein Dashboard-Code
-- kein Frontend-Code
-- kein Agent-Code
-- keine produktive DB-Änderung
-- kein Reverse Proxy auf `127.0.0.1:3000`
-- kein systemd-Service für Remote-Node-App
-- kein lokaler `stream-control-center`-Node-Neustart nötig
+### Dashboard-v2 Quellcode
+
+```text
+frontend/dashboard-v2/
+```
+
+### Dashboard-v2 Build-Output
+
+```text
+htdocs/dashboard-v2/
+```
+
+### Build-Helper
+
+```text
+build-dashboard-v2.cmd
+```
+
+Dieser nutzt bewusst:
+
+```text
+npm.cmd
+```
+
+und in `.cmd` korrekt:
+
+```text
+call npm.cmd ...
+```
+
+### Backend Static Route
+
+```text
+backend/core/paths.js
+backend/server.js
+```
+
+Neu in `paths.js`:
+
+```js
+DASHBOARD_V2_DIR: path.join(ROOT_DIR, "htdocs", "dashboard-v2"),
+```
+
+Neu in `server.js`:
+
+```js
+app.use("/dashboard-v2", express.static(paths.DASHBOARD_V2_DIR, PUBLIC_STATIC_OPTIONS));
+```
+
+und Index-Fallback für:
+
+```text
+/dashboard-v2
+/dashboard-v2/
+```
+
+## Verbindliche Designbasis
+
+Die verbindliche Designbasis für Dashboard-v2 ist:
+
+```text
+DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip
+```
+
+Sie ist im Repo archiviert unter:
+
+```text
+docs/reference/dashboard-v2-design-test-v13/
+```
+
+Dokumentiert unter:
+
+```text
+docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
+```
+
+Wichtige Designpunkte:
+
+- Galaxy-/Glassmorphism-Hintergrund
+- feste Topbar
+- Topbar mit Breadcrumb links
+- aktiver Modul-Tab inline in der Topbar, z. B. `Remote Agent • Übersicht`
+- Suchfeld in der Topbar
+- Status-Chips in der Topbar
+- Sprachbutton, Benachrichtigung und Userbereich rechts
+- kompakte Sidebar
+- Sidebar als Accordion
+- Hauptkategorie -> Modul
+- keine dritte Sidebar-Ebene
+- Modul-Tabs innerhalb der Modulseite
+- ruhige dunkle CGN-Neon-Flächen
+- keine generische Demo-Dashboard-Optik
+
+## Workflow-Stand
+
+WF1 ist erledigt.
+
+Das Problem vorher:
+
+```text
+?? frontend/dashboard-v2/...
+```
+
+ist behoben.
+
+`stepdone.cmd` nimmt jetzt `frontend/` auf.  
+`tools/upload_streamassets_changes.ps1` kennt `frontend/dashboard-v2/`.
+
+Weiterhin verboten/zu schützen:
+
+```text
+node_modules
+dist
+.vite
+.env
+SQLite/DB-Dateien
+Archive
+Backups
+Secrets
+Token-/Secret-/Credential-Pfade
+```
 
 ## Nächster sinnvoller Schritt
 
-`RDAP3 / Minimal-Agent-Konzept planen`
+```text
+DASHUI7 / Erste read-only Statusseite mit echter API-Anbindung planen
+```
 
-RDAP3 soll zunächst nur planen:
+Empfehlung:
 
-- separater Node-Agent-Prozess
-- Agent-Config
-- WSS-Verbindung
-- Auth mit `agentId` + Secret
-- Heartbeat
-- Basisstatus
-- `agent.ping`
-- `agent.status.request`
-- Request/Result/Audit-Struktur
-- Reconnect-/Offline-Verhalten
-- keine produktiven Aktionen
+```text
+Remote Agent Status
+```
 
-Nicht in RDAP3:
+Aber nur planen und zuerst read-only.
 
-- keine Sound-Steuerung
-- keine OBS-Steuerung
-- keine Overlay-Steuerung
-- keine Media-Schreiboperation
-- keine Text-/Config-Änderung
+Nicht direkt bauen, bis Forrest ausdrücklich `go` sagt.
+
+## DASHUI7-Regeln
+
+DASHUI7 soll zunächst planen:
+
+- Welche bestehende oder neue API wird für Remote-Agent-Status gebraucht?
+- Welche Daten zeigt die Seite?
+- Wie bleibt das read-only?
+- Was ist echter Status, was ist Placeholder?
+- Welche späteren Agent-/WSS-Infos werden vorbereitet?
+- Wie wird Offline/Online angezeigt?
+- Welche Fehler-/Loading-Zustände braucht die Seite?
+
+DASHUI7 darf nicht:
+
+- keine Agent-Aktion ausführen
+- kein produktives `agent.ping`
+- kein Start/Stop
+- keine Schreibfunktion
+- keine DB-Änderung
+- keine OBS-/Sound-/Media-/Overlay-Steuerung
 - keine Commands/Kanalpunkte
-- keine DB-Aktionen
-- keine Datei-/Shell-/Prozessaktionen
+- kein Login-System improvisieren
+- keine produktiven Locks schreiben
 
-## Owner-Regeln
+## Arbeitsregeln
 
-- `communication_bus` ist die zentrale Modul-/Overlay-Kommunikation. Keine parallelen Bus-Systeme bauen.
-- `twitch_events` ist der zentrale Twitch-Event-Provider und die effektive Live-State-Wahrheit.
-- Fachmodule abonnieren Twitch-Events über den Bus, nicht direkt bei Twitch.
-- `sound_system` ist Owner für Sound-/Video-Playback, Queue und echte Finish-Events.
-- Medienauswahl/Upload immer über vorhandenes Media-System/MediaPicker/MediaField, keine eigene Upload-Insel.
-
-## Aktueller HypeTrain-/Central-Overlay-Stand
-
-Letzter bestätigter Code-Stand:
-- HT4.3 Central Event Overlay CGN Base Style ist getestet.
-- `htdocs/overlays/central_event_overlay.html`
-- Overlay ist technisch verbunden.
-- HypeTrain-Channels wurden sichtbar getestet:
-  - `hypetrain.overlay.start`
-  - `hypetrain.overlay.level_up`
-  - `hypetrain.overlay.end`
-  - `hypetrain.overlay.record`
-- Kein Backend, keine DB, keine OBS-Quelle geändert.
-- Overlay bleibt vorerst nicht produktiv/aus.
-- Start- und Rekord-Sound laufen über `sound_system`.
-- Level-Up- und Ende-Sound bleiben offen, bis passende Medien vorhanden sind.
-
-Doku/TODO:
-- Aufgeschobener Punkt: echte HypeTrain-Live-Payloads später bei echtem HypeTrain prüfen und danach finale Template-/Mode-Struktur planen.
-
-## Wenn ein Chat zu lang wird
-
-Wenn der Browser träge wird, Projektstände vermischt werden oder der Assistant anfängt zu raten:
-
-- keinen neuen großen Step mehr anfangen
-- aktuellen Stand zusammenfassen
-- offene Punkte/TODOs nennen
-- benötigte Dateien für den neuen Chat auflisten
-- neuen Chat-Prompt/Handoff erstellen
+- Nicht raten.
+- Fehlende Dateien konkret anfordern.
+- Vor jedem Step zuerst echten Repo-/Dateistand prüfen.
+- Umsetzung nur nach explizitem `go`.
+- Keine bestehende Funktionalität entfernen.
+- Keine produktive DB löschen, ersetzen oder droppen.
+- Keine Patch-/Apply-/Regex-/Append-Scripte.
+- Vollständige Dateien liefern, keine Schnipsel-Patches.
+- ZIPs mit echten Zielpfaden ab Repo-Root.
+- Bei Doku-Step klar sagen: kein Node-Neustart nötig.
+- Bei Backend-Step klar sagen: Node-Neustart nötig.
+- StepDone erst nach Einspielen/Deploy und Test.
+- Tests/Diagnose getrennt von normaler Konfiguration halten.
+- Keine alten Stände oder Parallelstrukturen erfinden.
+- Wenn GitHub-Ausgabe gekürzt/unvollständig ist, Datei vom Nutzer anfordern.
+- Schritt-für-Schritt arbeiten: erst prüfen/planen, dann auf `go` warten.

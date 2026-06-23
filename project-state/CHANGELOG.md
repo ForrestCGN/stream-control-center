@@ -1,27 +1,30 @@
 # CHANGELOG
 
-## 2026-06-23 - DASHUI6C / dashboard-v2 Static Route
+## 2026-06-23 - DASHUI6C / Übergabe für neuen Chat vorbereitet
 
-Status: gebaut
+Status: dokumentiert
 
 Geändert:
 
-- `backend/core/paths.js`: `DASHBOARD_V2_DIR` ergänzt
-- `backend/server.js`: statische Route `/dashboard-v2` ergänzt
-- `backend/server.js`: Index-Fallback für `/dashboard-v2` und `/dashboard-v2/` ergänzt
-- Doku/Projektstatus aktualisiert
+- `docs/current/START_HERE_FOR_NEW_CHAT.md` aktualisiert
+- `docs/current/NEW_CHAT_PROMPT_DASHUI7_READONLY_AGENT_STATUS.md` neu erstellt
+- Projektstatus aktualisiert
 
-Grund:
+Dokumentiert:
 
-- `http://127.0.0.1:8080/dashboard-v2/` lieferte `Cannot GET /dashboard-v2/`, obwohl Build-Dateien vorhanden waren.
+- Dashboard-v2 läuft lokal unter `/dashboard-v2/`
+- Altes Dashboard bleibt produktiv unter `/dashboard/`
+- React/Vite unter `frontend/dashboard-v2/`
+- Build-Output unter `htdocs/dashboard-v2/`
+- Backend Static Route `/dashboard-v2` erledigt
+- WF1 Git-Workflow erledigt
+- Designbasis V13 verbindlich
+- nächster Schritt: DASHUI7 / Remote Agent Status read-only planen
 
 Nicht geändert:
 
-- `/dashboard` bleibt unverändert
-- altes Dashboard bleibt produktiv
+- kein Code
+- kein Backend
 - keine DB
 - keine OBS-Änderung
-
-Node-Neustart:
-
-- nötig, weil Backend-Code geändert wurde
+- kein Node-Neustart nötig

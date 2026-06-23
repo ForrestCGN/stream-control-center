@@ -1,11 +1,21 @@
 # CURRENT STATUS
 
-Stand: DASHUI6C / dashboard-v2 Static Route  
+Stand: DASHUI6C / Dashboard-v2 lokal erreichbar und Übergabe vorbereitet  
 Datum: 2026-06-23
 
 ## Aktueller Dashboard-v2-Stand
 
-Dashboard-v2 befindet sich im Parallelaufbau.
+Dashboard-v2 läuft lokal:
+
+```text
+http://127.0.0.1:8080/dashboard-v2/
+```
+
+Altes Dashboard bleibt produktiv:
+
+```text
+http://127.0.0.1:8080/dashboard/
+```
 
 Technische Basis:
 
@@ -14,63 +24,78 @@ frontend/dashboard-v2/
 React + Vite
 ```
 
-Build-Ziel:
+Build-Output:
 
 ```text
 htdocs/dashboard-v2/
 ```
 
-Lokaler Zielaufruf:
+## Build-Stand
 
-```text
-http://127.0.0.1:8080/dashboard-v2/
-```
+`build-dashboard-v2.cmd` funktioniert.
 
-## Aktueller Backend-Stand
+Wichtig:
 
-DASHUI6C ergänzt die statische Backend-Auslieferung für Dashboard-v2.
+- nutzt `npm.cmd`
+- in `.cmd` korrekt mit `call npm.cmd ...`
+- Build erzeugt `htdocs/dashboard-v2/index.html` und Assets
+
+## Backend-Stand
+
+DASHUI6C ist erledigt.
 
 Neu:
 
-- `paths.DASHBOARD_V2_DIR`
-- `app.use("/dashboard-v2", express.static(...))`
-- Index-Route für `/dashboard-v2` und `/dashboard-v2/`
+- `DASHBOARD_V2_DIR` in `backend/core/paths.js`
+- statische Route `/dashboard-v2` in `backend/server.js`
+- Index-Fallback für `/dashboard-v2` und `/dashboard-v2/`
+
+Backend/Node wurde nach Änderung neu gestartet.
+
+## Workflow-Stand
+
+WF1 ist erledigt.
+
+- `frontend/dashboard-v2/` wird vom Git-/StepDone-Workflow erfasst.
+- `stepdone.cmd` nimmt `frontend/` auf.
+- `tools/upload_streamassets_changes.ps1` kennt `frontend/dashboard-v2/`.
+
+## Designbasis
+
+Verbindliche Designbasis:
+
+```text
+DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip
+```
+
+Archiviert unter:
+
+```text
+docs/reference/dashboard-v2-design-test-v13/
+```
+
+Dokumentiert unter:
+
+```text
+docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
+```
 
 ## Nicht geändert
 
-- `/dashboard` bleibt unverändert
-- altes Dashboard bleibt produktiv
-- kein React-Code geändert
-- keine produktive SQLite
-- keine Projekt-Config
-- keine OBS-Quelle
-- kein Webserver-Deploy
-- kein Reverse Proxy
-- kein systemd-Service
-
-## Node-Neustart
-
-Nötig.
-
-Grund:
-
-```text
-backend/server.js
-backend/core/paths.js
-```
-
-wurden geändert.
+- altes Dashboard nicht ersetzt
+- keine produktive SQLite geändert
+- keine OBS-Änderung
+- keine produktive Agent-Aktion
+- keine Schreibfunktionen im Dashboard-v2
 
 ## Nächster sinnvoller Schritt
 
-Nach Installation, Live-Deploy und Node-Neustart:
-
-```text
-http://127.0.0.1:8080/dashboard-v2/ testen
-```
-
-Danach:
-
 ```text
 DASHUI7 / Erste read-only Statusseite mit echter API-Anbindung planen
+```
+
+Empfehlung:
+
+```text
+Remote Agent Status
 ```

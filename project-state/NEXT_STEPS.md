@@ -1,25 +1,9 @@
 # NEXT STEPS
 
-Stand: DASHUI6C / dashboard-v2 Static Route  
+Stand: DASHUI6C / Übergabe für neuen Chat vorbereitet  
 Datum: 2026-06-23
 
-## Nächster Schritt nach Installation
-
-1. Installieren/deployen.
-2. Lokalen Node neu starten.
-3. Dashboard-v2 öffnen:
-
-```text
-http://127.0.0.1:8080/dashboard-v2/
-```
-
-4. Altes Dashboard gegenprüfen:
-
-```text
-http://127.0.0.1:8080/dashboard/
-```
-
-## Danach sinnvoll
+## Nächster sinnvoller Schritt
 
 ```text
 DASHUI7 / Erste read-only Statusseite mit echter API-Anbindung planen
@@ -31,9 +15,37 @@ Empfohlener Kandidat:
 Remote Agent Status
 ```
 
-Regeln:
+## DASHUI7 zuerst nur planen
 
-- zuerst read-only
-- keine Speichern-/Start-/Stop-/Löschen-Aktion
-- keine produktive Modulmigration
-- keine Schreibfunktion ohne Permission/Lock/Audit
+Prüfen/planen:
+
+- Welche bestehenden API-Endpunkte gibt es?
+- Ob ein neuer read-only Endpoint nötig ist.
+- Welche Daten `Remote Agent Status` anzeigen soll.
+- Was echte Backend-Daten sind.
+- Was vorerst Placeholder bleibt.
+- Loading/Error/Offline/Online-Zustände.
+- Welche Frontend-Dateien betroffen wären.
+- Welche Backend-Dateien betroffen wären.
+- Welche Tests nötig sind.
+- Ob Node-Neustart nötig wäre.
+
+## Nicht in DASHUI7
+
+- keine Agent-Aktion ausführen
+- kein produktives `agent.ping`
+- kein Start/Stop
+- keine Schreibfunktion
+- keine DB-Änderung
+- keine OBS-/Sound-/Media-/Overlay-Steuerung
+- keine Commands/Kanalpunkte
+- kein Login-System improvisieren
+- keine produktiven Locks schreiben
+
+## Wichtig
+
+Vor Umsetzung:
+
+```text
+erst prüfen/planen, dann auf Forrests go warten
+```

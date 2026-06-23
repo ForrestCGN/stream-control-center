@@ -1,20 +1,38 @@
 # TODO
 
-Stand: DASHUI6C / dashboard-v2 Static Route  
+Stand: DASHUI6C / Übergabe für neuen Chat vorbereitet  
 Datum: 2026-06-23
 
-## Jetzt testen
+## Erledigt
 
-- [ ] DASHUI6C installieren
-- [ ] Live deployen
-- [ ] Node neu starten
-- [ ] `http://127.0.0.1:8080/dashboard-v2/` öffnen
-- [ ] `http://127.0.0.1:8080/dashboard/` gegenprüfen
-- [ ] prüfen, ob Assets unter `/dashboard-v2/assets/...` laden
-- [ ] StepDone nach erfolgreichem Test ausführen
+- [x] Dashboard-v2 React/Vite-Grundlage erstellt
+- [x] Designbasis v13 übernommen und dokumentiert
+- [x] WF1 Git-Workflow für `frontend/dashboard-v2/` korrigiert
+- [x] Build-Helper `build-dashboard-v2.cmd` erstellt
+- [x] Build-Helper mit `call npm.cmd` korrigiert
+- [x] Build erzeugt `htdocs/dashboard-v2/`
+- [x] Backend Static Route `/dashboard-v2` ergänzt
+- [x] Dashboard-v2 lokal erreichbar
+- [x] Altes Dashboard bleibt produktiv
+- [x] Übergabe für neuen Chat vorbereitet
 
-## Danach
+## Als nächstes
 
-- [ ] DASHUI7 planen
-- [ ] erste read-only API-Anbindung auswählen
-- [ ] bestehende API-Endpunkte prüfen
+### DASHUI7 / Remote Agent Status read-only planen
+
+- [ ] echte Dateien aus GitHub/dev prüfen
+- [ ] bestehende Backend-Endpunkte prüfen
+- [ ] entscheiden, ob neuer read-only Endpoint nötig ist
+- [ ] Datenmodell für Remote-Agent-Status planen
+- [ ] Frontend-Service-Plan erstellen
+- [ ] UI-Zustände planen: loading, online, offline, error, placeholder
+- [ ] Tests planen
+- [ ] keine Umsetzung ohne `go`
+
+## Weiterhin beachten
+
+- [ ] keine produktive SQLite ändern
+- [ ] keine alten Dashboard-Dateien blind umbauen
+- [ ] keine Schreibfunktionen ohne Permission/Lock/Audit
+- [ ] keine produktiven Agent-Actions
+- [ ] Designbasis v13 nicht verlassen
