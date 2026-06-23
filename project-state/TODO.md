@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED  
+Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_LIVE_DEPLOY_BESTAETIGT  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -37,8 +37,8 @@ Datum: 2026-06-23
 - [x] RDAP7E Server Workdir Cleanup Docs abgeschlossen
 - [x] RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 - [x] RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
-- [x] RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet
-- [x] RDAP7H OAuth Callback Skeleton disabled vorbereitet
+- [x] RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
+- [x] RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
 
 ## Noch offen / als naechstes
 
@@ -61,6 +61,7 @@ Datum: 2026-06-23
 - [ ] Lock-/Audit-Implementierung fuer spaetere Writes planen
 - [ ] Server-ENV nach RDAP7G/RDAP7H Deploy manuell pruefen/ergaenzen, aber `TWITCH_OAUTH_ENABLED=false` und `SESSION_ENABLED=false` beibehalten
 - [ ] Alte RDAP6J-Backup-Referenz unter `/root` bleibt historisch dokumentiert; neue Backups duerfen nicht mehr nach `/root`
+- [ ] Kosmetik spaeter: `moduleBuild` in `remote-modboard/backend/server.js` auf aktuellen RDAP-Stand anheben, aber nur mit eigenem Mini-Scope.
 
 ## Dauerhaft beachten
 

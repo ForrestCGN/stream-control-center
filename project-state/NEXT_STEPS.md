@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED  
+Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_LIVE_DEPLOY_BESTAETIGT  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -14,8 +14,8 @@ RDAP7C1 Server Workdir Cleanup bestanden
 RDAP7E Server Workdir Cleanup Docs abgeschlossen
 RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
-RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet
-RDAP7H OAuth Callback Skeleton disabled vorbereitet
+RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
+RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
 ```
 
 Remote-Modboard bleibt read-only:
@@ -29,6 +29,11 @@ sessionCreationEnabled: false
 loggedIn: false
 oauthStartRouteEnabled: false
 oauthCallbackRouteEnabled: false
+redirectToTwitch: false
+tokenExchangeEnabled: false
+sessionCookieWriteEnabled: false
+databaseWriteEnabled: false
+agentActionsEnabled: false
 ```
 
 ## Sofort naechster sinnvoller Schritt
@@ -46,6 +51,7 @@ Session-Store-/Validation-Layer read-only vorbereiten, weiterhin ohne Session-Er
 RDAP7I darf klaeren/umsetzen, aber erst nach eigenem Scope und go:
 
 ```text
+echte Remote-Modboard-Dateien vor Planung pruefen
 dashboard_sessions nur read-only/validierend lesen
 keine Session erstellen
 keine Cookies setzen

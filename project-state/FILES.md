@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED  
+Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_LIVE_DEPLOY_BESTAETIGT  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -17,6 +17,7 @@ docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
 docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
+docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -39,6 +40,7 @@ docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
 docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
 docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
+docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
@@ -83,20 +85,6 @@ remote-modboard/backend/src/routes/auth-twitch.routes.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/README.md
-```
-
-## RDAP6 SQL-/Runbook-Dateien im Repo
-
-```text
-db/rdap6c/README.md
-db/rdap6c/sql/001_rdap6c_schema_migration.sql
-db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
-db/rdap6c/checks/rdap6c_validation_queries.sql
-db/rdap6c/runbooks/RDAP6C_BACKUP_RESTORE_RUNBOOK.md
-db/rdap6d/README.md
-db/rdap6d/runbooks/RDAP6D_TEST_DB_EXECUTION_RUNBOOK.md
-db/rdap6d/checks/RDAP6D_EXPECTED_RESULTS.md
-db/rdap6d/templates/RDAP6D_TEST_RESULT_TEMPLATE.md
 ```
 
 ## Installierte Dateien auf Webserver
@@ -177,6 +165,14 @@ authEnabled: false
 sessionCreationEnabled: false
 oauthStartRouteEnabled: false
 oauthCallbackRouteEnabled: false
+statusApiVersion: rdap7h.v1
+```
+
+## Webserver-Backups
+
+```text
+/var/backups/stream-control-center/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED_remote-modboard-backend_20260623_213057.tar.gz
+/var/backups/stream-control-center/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_remote-modboard-backend_20260623_213951.tar.gz
 ```
 
 ## Lokale produktive SQLite
