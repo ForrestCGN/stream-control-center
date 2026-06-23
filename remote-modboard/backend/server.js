@@ -3,7 +3,7 @@
 const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 
-const MODULE_BUILD = 'RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE';
+const MODULE_BUILD = 'RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST';
 
 async function main() {
   const config = loadConfig();
