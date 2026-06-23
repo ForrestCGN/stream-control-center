@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS
+Aktueller Stand: RDAP7_LOGIN_SESSION_CONCEPT
 
 ## Diese Datei zuerst lesen
 
@@ -20,14 +20,11 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
-docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
+docs/current/RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS.md
+docs/current/RDAP7_LOGIN_SESSION_CONCEPT.md
 docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
 docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
 docs/current/RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK.md
-docs/current/RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS.md
-docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
-docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 ```
 
 Wenn eine Datei in GitHub/dev fehlt: nicht raten, exakt sagen welche Datei fehlt.
@@ -67,9 +64,8 @@ RDAP6I Auth DB Production Migration Runbook dokumentiert
 RDAP6J Productive Migration Precheck bestanden und Backup erstellt
 RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich ausgefuehrt
 RDAP6L Migrationsergebnis dokumentiert
+RDAP7 Login-/Session-Konzept dokumentiert
 ```
-
-Wichtig: Einige aeltere Prompt-/Status-Dateinamen aus Zwischenstaenden existieren nicht in GitHub/dev. Der belastbare aktuelle Doku-Stand basiert auf den vorhandenen Dateien in `docs/current` und `project-state`.
 
 ## Remote-Modboard / Webserver-Stand
 
@@ -109,8 +105,6 @@ keine Session-Erstellung aktiv
 
 ## Webserver-DB
 
-Final korrigiert:
-
 ```text
 DB-Typ: MariaDB
 Version: 11.8.6
@@ -133,14 +127,6 @@ Vorheriges Backup:
 /root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
 ```
 
-Ausgefuehrte Dateien:
-
-```text
-db/rdap6c/sql/001_rdap6c_schema_migration.sql
-db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
-db/rdap6c/checks/rdap6c_validation_queries.sql
-```
-
 Ergebnis:
 
 ```text
@@ -159,7 +145,7 @@ sound_profi_group_marker_count: 1
 sound_profi_role_permission_count: 0
 ```
 
-Wichtig: Trotz produktiver Schema-/Seed-Migration bleibt das Remote-Modboard read-only.
+Trotz produktiver Schema-/Seed-Migration bleibt das Remote-Modboard read-only:
 
 ```text
 readOnly: true
@@ -169,99 +155,52 @@ authEnabled: false
 sessionCreationEnabled: false
 ```
 
-## Lokale SQLite bleibt unveraendert
+## RDAP7 Konzept
+
+RDAP7 ist nur Konzept/Doku fuer Login und Sessions.
+
+Festgelegt:
 
 ```text
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
+Twitch-OAuth als spaetere Login-Quelle
+Sessions in dashboard_sessions
+Cookies spaeter HttpOnly/Secure/SameSite
+Session-ID nie roh in DB speichern
+Rechteentscheidung immer serverseitig
+Frontend ist keine Sicherheitsentscheidung
+sound_profi bleibt Gruppe/Marker
+VIP gibt keinen Dashboard-Basiszugang
 ```
 
-Keine Migration, kein Ersetzen, kein Loeschen, kein Kopieren ohne separaten Plan und ausdrueckliches Go.
-
-## Rollen-/Gruppenmodell ab RDAP5C3
-
-Twitch-Status:
+Nicht aktiv:
 
 ```text
-streamer / broadcaster
-mod
-vip
-```
-
-Auswirkung:
-
-```text
-streamer -> Dashboard-Basiszugang
-mod      -> Dashboard-Basiszugang
-vip      -> kein Dashboard-Basiszugang, nur Community/Website
-```
-
-Manuell vergebene Dashboard-Rollen:
-
-```text
-lead_mod
-admin
-owner
-spaeter eigene Rollen optional
-```
-
-Dashboard-Gruppen / Markierungen:
-
-```text
-sound_profi
-spaeter event_helfer
-spaeter medien_helfer
-spaeter eigene Gruppen optional
-```
-
-Wichtig:
-
-```text
-sound_profi ist keine Rolle.
-sound_profi ist keine feste Rechte-Sammlung.
-sound_profi ist eine Gruppe / Markierung.
-Modulrechte werden pro Modul konfiguriert.
-Rechte werden serverseitig geprueft, nicht frontendseitig.
+kein Login
+keine Callback-Route aktiv
+keine Session-Erstellung
+keine Cookie-Ausgabe
+keine Auth-Middleware aktiv
 ```
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7_LOGIN_SESSION_CONCEPT
+RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN
 ```
 
-Ziel von RDAP7:
+Ziel:
 
 ```text
-Login-/Session-Konzept fuer Remote-Modboard planen, ohne es direkt zu aktivieren.
-```
-
-Nicht aendern:
-
-```text
-keine produktive SQLite
-keine Remote-Agent-Schreibaktionen
-keine OBS-/Sound-/Overlay-Steuerung
-keine Secrets
-keine Rollenzusammenfuehrung
-keine sound_profi-Rolle
-keine Auth-Aktivierung ohne separaten Plan und Go
+Read-only User-/Identity-/Session-Status-Endpunkte planen, ohne Login zu aktivieren.
 ```
 
 ## Verbindliche Arbeitsweise
 
 - Zuerst echte Dateien/Repo-/Live-Stand pruefen.
 - Nicht raten.
-- Nicht bekannte Infos doppelt und dreifach abfragen.
-- Wenn Dateien fehlen, exakt diese Dateien anfordern.
 - Nur EIN Arbeitsort pro Schritt.
 - Vor jedem Befehlsblock klar sagen: Wo ausfuehren, was macht der Befehl, wann stoppen, welche Ausgabe schicken.
 - Maximal ein Befehlsblock pro Antwort.
-- Vor Code-/ZIP-Aenderungen Scope nennen:
-  - Ziel
-  - betroffene Dateien
-  - Nicht-Aenderungen
-  - Tests
-  - Rollback
 - Umsetzung erst nach Forrests ausdruecklichem `go`.
 - Keine Funktionalitaet entfernen.
 - Keine produktive SQLite ersetzen, loeschen oder neu bauen.

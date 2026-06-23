@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS  
+Stand: RDAP7_LOGIN_SESSION_CONCEPT  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -17,18 +17,6 @@ project-state/FILES.md
 ## Aktuelle RDAP-Dateien im Repo
 
 ```text
-docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
-docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
-docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
-docs/current/REMOTE_DASHBOARD_RDAP5C4_KNOWN_REMOTE_SERVER_FACTS.md
-docs/current/REMOTE_DASHBOARD_RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE.md
-docs/current/REMOTE_DASHBOARD_RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE.md
-docs/current/REMOTE_DASHBOARD_RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION.md
-docs/current/RDAP6A_AUTH_DB_SCHEMA_DRY_RUN_PACKAGE.md
 docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
 docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
@@ -37,21 +25,8 @@ docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
 docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
 docs/current/RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK.md
 docs/current/RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS.md
+docs/current/RDAP7_LOGIN_SESSION_CONCEPT.md
 ```
-
-## Nicht vorhandene Zwischenstand-Dateien aus alten Prompts
-
-Diese Dateien sind in GitHub/dev und lokal nicht vorhanden und duerfen nicht als Pflichtdateien vorausgesetzt werden:
-
-```text
-docs/current/RDAP_STATUS_AND_NEXT_STEPS_2026-06-23.md
-docs/current/RDAP5J_LIVE_TEST_RESULT_2026-06-23.md
-docs/current/RDAP4B_REMOTE_AGENT_RDAP5C3_LIVE_TEST_RESULT_2026-06-23.md
-docs/current/RDAP6_AUTH_DB_MIGRATION_PREP_PLAN.md
-docs/current/RDAP6B_TEST_DB_DRY_RUN_RUNBOOK.md
-```
-
-Wenn diese Inhalte spaeter wirklich benoetigt werden, muessen sie neu aus dem echten Stand heraus dokumentiert werden. Nicht aus Erinnerung nachbauen.
 
 ## Remote-Modboard Paket im Repo
 
@@ -70,16 +45,6 @@ remote-modboard/backend/src/services/db-health.service.js
 remote-modboard/backend/src/services/db.service.js
 remote-modboard/backend/src/services/auth-db-read.service.js
 remote-modboard/backend/src/security/safety.js
-```
-
-## Deploy-/Handoff-Dateien im Repo
-
-```text
-remote-modboard/deploy/README_REMOTE_SERVER_INSTALL.md
-remote-modboard/deploy/systemd/scc-remote-modboard.service.example
-remote-modboard/deploy/nginx/mods.forrestcgn.de.remote-api.example.conf
-remote-modboard/deploy/env/remote-modboard.env.example
-remote-modboard/deploy/scripts/README_COMMANDS.md
 ```
 
 ## RDAP6 SQL-/Runbook-Dateien im Repo
@@ -104,47 +69,7 @@ db/rdap6d/templates/RDAP6D_TEST_RESULT_TEMPLATE.md
 /etc/systemd/system/scc-remote-modboard.service
 ```
 
-## ISPConfig / nginx
-
-Website:
-
-```text
-forrestcgn.de
-```
-
-Subdomain im gleichen vHost:
-
-```text
-mods.forrestcgn.de
-```
-
-ISPConfig-Feld:
-
-```text
-Sites -> Website -> forrestcgn.de -> Options -> nginx Directives
-```
-
-Proxy-Ziel:
-
-```text
-http://127.0.0.1:3010/api/remote/
-```
-
-## Webserver-Fakten
-
-```text
-Webserver: web.cgn.community
-Subdomain: mods.forrestcgn.de
-OS: Debian 13
-nginx vorhanden
-HTTPS / HTTP2 laeuft
-Node v20.19.2
-npm 9.2.0
-git vorhanden
-MariaDB 11.8.6
-```
-
-## Webserver-DB final korrigiert
+## Webserver-DB
 
 ```text
 DB-Typ: MariaDB
@@ -153,7 +78,6 @@ DB-Name: c3stream_control
 DB-User: c1stream_control
 Remote Access: aus
 Charset: utf8mb4
-Backup: woechentlich
 ```
 
 Passwort nicht dokumentieren.
@@ -218,28 +142,12 @@ OBS-/Sound-/Overlay-Systeme
 
 ```text
 backend/modules/remote_agent.js
-```
-
-Aktueller Stand:
-
-```text
 moduleVersion: 0.0.3
 moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ```
 
-Wichtig:
+## Naechste geplante Datei
 
 ```text
-sound_profi ist keine Rolle.
-sound_profi ist Gruppe/Marker.
-sound_profi vergibt selbst keine globalen Rechte.
-Remote-Agent bleibt read-only.
+docs/current/RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN.md
 ```
-
-## Naechste Planungsdatei
-
-```text
-RDAP7_LOGIN_SESSION_CONCEPT
-```
-
-Noch nicht vorhanden; als naechster Schritt zu erstellen.

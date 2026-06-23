@@ -1,11 +1,11 @@
 # CURRENT STATUS
 
-Stand: RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS  
+Stand: RDAP7_LOGIN_SESSION_CONCEPT  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP6K wurde erfolgreich auf der echten Remote-Modboard-/Auth-Ziel-DB `c3stream_control` ausgefuehrt. RDAP6L dokumentiert dieses Ergebnis.
+RDAP6K wurde erfolgreich auf der echten Remote-Modboard-/Auth-Ziel-DB `c3stream_control` ausgefuehrt. RDAP6L dokumentiert dieses Ergebnis. RDAP7 dokumentiert das Login-/Session-Konzept fuer die naechsten Schritte.
 
 Der Remote-Modboard-Service bleibt weiterhin read-only. Es wurde keine Authentifizierung aktiviert, keine Session-Erstellung aktiviert und keine Schreibroute freigeschaltet.
 
@@ -24,11 +24,10 @@ RDAP6I Auth DB Production Migration Runbook dokumentiert
 RDAP6J Productive Migration Precheck bestanden und Backup erstellt
 RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich ausgefuehrt
 RDAP6L Auth DB Productive Migration Result Docs erstellt
+RDAP7 Login-/Session-Konzept dokumentiert
 ```
 
 ## Remote-Modboard read-only live
-
-Der Remote-Modboard-Node-Basisdienst laeuft read-only auf dem Webserver:
 
 ```text
 Webserver: web.cgn.community
@@ -60,67 +59,21 @@ productiveAgentRuntime: false
 agentActionsEnabled: false
 ```
 
-## Service-/Runtime-Stand
-
-```text
-Node: v20.19.2
-npm: 9.2.0
-MariaDB: 11.8.6
-mysql2: 3.22.5
-express: 5.2.1
-dotenv: 17.4.2
-```
-
-## Installierte Pfade auf Webserver
-
-```text
-/opt/stream-control-center/remote-modboard/backend
-/etc/stream-control-center/remote-modboard.env
-/etc/systemd/system/scc-remote-modboard.service
-```
-
-Service-User:
-
-```text
-sccremote
-```
-
-Node-Service laeuft nicht als root.
-
-## Webserver-DB final korrigiert
-
-Final bestaetigt:
+## Webserver-DB
 
 ```text
 DB_USER=c1stream_control
 DB_NAME=c3stream_control
 ```
 
-Nicht mehr verwenden:
-
-```text
-DB_USER=c3stream_control
-DB_NAME=c1stream_control
-```
-
 Passwort wird nicht dokumentiert und darf nicht ins Repo, Frontend oder Chat.
 
 ## RDAP6K produktive Migration
-
-RDAP6K wurde auf dem Webserver gegen `c3stream_control` ausgefuehrt.
 
 Vorheriges Backup:
 
 ```text
 /root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
-```
-
-Ausgefuehrte Dateien:
-
-```text
-db/rdap6c/sql/001_rdap6c_schema_migration.sql
-db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
-db/rdap6c/checks/rdap6c_validation_queries.sql
 ```
 
 Migrationsergebnis:
@@ -153,32 +106,29 @@ lock_rows = 0
 audit_rows = 0
 ```
 
-## Remote-Agent / Rollen-/Gruppenmodell
+## RDAP7 Konzeptentscheidung
 
-`backend/modules/remote_agent.js` steht auf:
+RDAP7 legt nur das Konzept fuer Login und Sessions fest.
 
-```text
-moduleVersion: 0.0.3
-moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
-```
-
-Fuehrend bleibt RDAP5C3:
+Geplant:
 
 ```text
-Rollen und Gruppen sind getrennt.
-sound_profi ist keine Rolle.
-sound_profi ist keine feste Rechte-Sammlung.
-sound_profi ist eine Gruppe / Markierung.
-Modulrechte werden pro Modul konfiguriert.
+Twitch-OAuth als spaetere Login-Quelle
+Sessions in dashboard_sessions
+Session-ID nicht roh speichern
+Cookie HttpOnly/Secure/SameSite
+Rollen/Gruppen/Permissions serverseitig auswerten
+Frontend ist keine Sicherheitsentscheidung
+sound_profi bleibt Gruppe/Marker
+VIP hat keinen Dashboard-Basiszugang
 ```
 
-Der Remote-Agent bleibt read-only.
-
-## Nicht umgesetzt
+Nicht aktiv:
 
 ```text
 kein Auth/Login aktiv
 keine produktiven Sessions aktiv
+keine Cookie-Ausgabe
 keine Remote-Writes
 kein produktiver WSS-Agent
 keine Agent-Actions
@@ -188,30 +138,14 @@ keine freie Shell-/Datei-/Prozesssteuerung
 keine Secrets im Repo oder Frontend
 ```
 
-## Wichtiger Doku-Hinweis
-
-Einige Dateinamen aus Zwischen-Prompts existieren nicht in GitHub/dev und nicht lokal. Sie duerfen nicht als Pflichtdateien vorausgesetzt werden.
-
-Nicht vorhandene Zwischenstand-Dateien:
-
-```text
-docs/current/RDAP_STATUS_AND_NEXT_STEPS_2026-06-23.md
-docs/current/RDAP5J_LIVE_TEST_RESULT_2026-06-23.md
-docs/current/RDAP4B_REMOTE_AGENT_RDAP5C3_LIVE_TEST_RESULT_2026-06-23.md
-docs/current/RDAP6_AUTH_DB_MIGRATION_PREP_PLAN.md
-docs/current/RDAP6B_TEST_DB_DRY_RUN_RUNBOOK.md
-```
-
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7_LOGIN_SESSION_CONCEPT
+RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN
 ```
 
 Ziel:
 
 ```text
-Login-/Session-Konzept fuer Remote-Modboard planen, ohne direkt Login, Cookies oder Sessions zu aktivieren.
+Read-only User-/Identity-/Session-Status-Endpunkte planen, ohne Login zu aktivieren.
 ```
-
-Weiterhin keine Auth-Aktivierung, keine Sessions, keine API-Writes und keine Agent-Actions ohne separaten Plan und separates Go.
