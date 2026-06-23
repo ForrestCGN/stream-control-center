@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST  
+Stand: RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -40,8 +40,9 @@ Datum: 2026-06-23
 - [x] RDAP6F_PREP_DOC_STATUS_SYNC vorbereitet: zentrale Projektstatus-Dokus auf echten Stand gebracht
 - [x] RDAP6F Auth DB Integration Plan dokumentiert
 - [x] RDAP6G Auth Backend Read-only DB Layer vorbereitet
-- [x] RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
-- [x] RDAP6H Build-Label-Cleanup vorbereitet
+- [x] RDAP6H Remote read-only Auth-Model Deploy/Test live bestanden
+- [x] RDAP6H moduleBuild live auf `RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST` aktualisiert
+- [x] RDAP6I Auth DB Production Migration Runbook dokumentiert
 
 ## Wichtige Korrektur
 
@@ -52,21 +53,25 @@ Datum: 2026-06-23
 
 ## Noch offen / als naechstes
 
-### RDAP6I Auth DB Production Migration Runbook
+### RDAP6J Auth DB Production Migration Execution Precheck
 
-- [ ] Ziel-DB `c3stream_control` als echte Produktiv-Ziel-DB bestaetigen
-- [ ] Backup-Befehl fuer `c3stream_control` dokumentieren
-- [ ] Restore-Weg dokumentieren
-- [ ] SQL-Reihenfolge fuer RDAP6C dokumentieren
-- [ ] Validierungsqueries und erwartete Werte dokumentieren
-- [ ] Stop-Punkte definieren
-- [ ] Rollback-Weg definieren
-- [ ] Produktivmigration weiterhin sperren bis separates Go
+- [ ] echten GitHub/dev-Stand pruefen
+- [ ] Ziel-DB `c3stream_control` bestaetigen
+- [ ] DB-User `c1stream_control` bestaetigen
+- [ ] Backup-Ziel auf Server festlegen
+- [ ] pruefen, ob Backup erstellt werden kann
+- [ ] Restore-/Rollback-Weg nochmal bestaetigen
+- [ ] SQL-Dateien aus `db/rdap6c` pruefen
+- [ ] Validation-Datei pruefen
+- [ ] `/api/remote/auth/model` vor Migration read-only testen
+- [ ] keine SQL-Ausfuehrung ohne separates Go
 
 ### Spaeter
 
-- [ ] RDAP6J Produktiv-Migration nur mit Backup/Restore/Validation/separatem Go
+- [ ] RDAP6K Produktiv-Migration nur mit Backup/Restore/Validation/separatem Go
 - [ ] RDAP7 Login-/Session-Konzept separat planen
+- [ ] Permission-Middleware serverseitig planen
+- [ ] Lock-/Audit-Pflicht fuer spaetere Schreibfunktionen planen
 
 ## Dauerhaft beachten
 

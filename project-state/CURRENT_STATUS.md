@@ -1,11 +1,13 @@
 # CURRENT STATUS
 
-Stand: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST  
+Stand: RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP6H wurde live auf `web.cgn.community` getestet. Die RDAP6G-Route `/api/remote/auth/model` ist ueber `https://mods.forrestcgn.de/api/remote/auth/model` erreichbar und bleibt strikt read-only.
+RDAP6I wurde als reines Runbook fuer eine spaetere produktive Auth-DB-Migration vorbereitet.
+
+Dieser Stand fuehrt keine Migration aus, aktiviert keine Authentifizierung, erstellt keine Sessions, aktiviert keine Remote-Writes und keine Agent-Actions.
 
 Fertig und getestet:
 
@@ -17,25 +19,38 @@ RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
 RDAP6G Auth Backend Read-only DB Layer vorbereitet
-RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
+RDAP6H Remote read-only Auth-Model Deploy/Test live bestanden
+RDAP6I Auth DB Production Migration Runbook dokumentiert
 ```
 
-## RDAP6H Live-Test
+## Remote-Modboard read-only live
 
-Gepruefte Routen:
+Der Remote-Modboard-Node-Basisdienst laeuft read-only auf dem Webserver:
 
 ```text
+Webserver: web.cgn.community
+Subdomain/API: https://mods.forrestcgn.de/api/remote/
+Service: scc-remote-modboard.service
+Listen intern: 127.0.0.1:3010
+moduleBuild: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST
+```
+
+Live verfuegbare Routen:
+
+```text
+GET https://mods.forrestcgn.de/api/remote/health
+GET https://mods.forrestcgn.de/api/remote/status
 GET https://mods.forrestcgn.de/api/remote/routes
+GET https://mods.forrestcgn.de/api/remote/health?db=1
 GET https://mods.forrestcgn.de/api/remote/auth/model
 ```
 
-Ergebnis:
+RDAP6H Live-Test bestaetigt:
 
 ```text
-Service aktiv: ja
-npm run check: bestanden
-/api/remote/routes: erreichbar
-/api/remote/auth/model: erreichbar
+Service: active
+/api/remote/routes: OK
+/api/remote/auth/model: OK
 database.reachable: true
 readOnly: true
 writeEnabled: false
@@ -45,28 +60,7 @@ sessionCreationEnabled: false
 schema.ready: false
 ```
 
-`schema.ready=false` ist erwartbar, weil die RDAP6C-Tabellen noch nicht in `c3stream_control` produktiv angelegt wurden.
-
-## Remote-Modboard read-only live
-
-```text
-Webserver: web.cgn.community
-Subdomain/API: https://mods.forrestcgn.de/api/remote/
-Service: scc-remote-modboard.service
-Listen intern: 127.0.0.1:3010
-Deploy-Ziel: /opt/stream-control-center/remote-modboard/backend
-Backup aus RDAP6H: /root/rdap6h_backup_remote_modboard_20260623_151316
-```
-
-Live verfuegbare Read-only-Routen:
-
-```text
-GET https://mods.forrestcgn.de/api/remote/health
-GET https://mods.forrestcgn.de/api/remote/status
-GET https://mods.forrestcgn.de/api/remote/routes
-GET https://mods.forrestcgn.de/api/remote/health?db=1
-GET https://mods.forrestcgn.de/api/remote/auth/model
-```
+`schema.ready=false` ist korrekt, weil die RDAP6C-Tabellen in `c3stream_control` noch nicht produktiv angelegt sind.
 
 ## Service-/Runtime-Stand
 
@@ -79,13 +73,27 @@ express: 5.2.1
 dotenv: 17.4.2
 ```
 
-Node-Service laeuft als Service-User:
+## Installierte Pfade auf Webserver
+
+```text
+/opt/stream-control-center/remote-modboard/backend
+/etc/stream-control-center/remote-modboard.env
+/etc/systemd/system/scc-remote-modboard.service
+```
+
+Service-User:
 
 ```text
 sccremote
 ```
 
+Node-Service laeuft nicht als root.
+
 ## Webserver-DB final korrigiert
+
+Fruehere Doku hatte DB_USER und DB_NAME vertauscht.
+
+Final bestaetigt:
 
 ```text
 DB_USER=c1stream_control
@@ -124,7 +132,7 @@ Der Remote-Agent bleibt read-only.
 
 ## RDAP6D / RDAP6E Test-DB-Ergebnis
 
-Der RDAP6D-Testlauf wurde auf dem Webserver durchgeführt.
+Der RDAP6D-Testlauf wurde auf dem Webserver durchgefuehrt.
 
 ```text
 Server: web.cgn.community
@@ -132,6 +140,14 @@ Pfad: /root/rdap6-test/stream-control-center
 DB: scc_rdap6_test
 Ergebnisdatei auf Server:
 _tmp/rdap6d_webserver_test_output/RDAP6D_TEST_RESULT_FILLED.md
+```
+
+Ausgefuehrt wurden:
+
+```text
+db/rdap6c/sql/001_rdap6c_schema_migration.sql
+db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
+db/rdap6c/checks/rdap6c_validation_queries.sql
 ```
 
 Ergebnis:
@@ -163,6 +179,43 @@ DB-User bleibt c1stream_control.
 
 RDAP6F gibt keine Migration und keine Auth-Aktivierung frei.
 
+## RDAP6G / RDAP6H Stand
+
+RDAP6G hat folgende read-only Route vorbereitet:
+
+```text
+GET /api/remote/auth/model
+```
+
+Zweck:
+
+```text
+Auth-/Rollen-/Gruppen-/Permission-/Schema-Modell aus MariaDB read-only lesen.
+Fehlende Tabellen sauber melden.
+Keine Auth aktivieren.
+Keine Sessions erstellen.
+Keine Writes.
+```
+
+RDAP6H hat den Live-Deploy/Test dieser Route bestanden.
+
+## RDAP6I Runbook
+
+Neue Doku:
+
+```text
+docs/current/RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK.md
+```
+
+Zweck:
+
+```text
+Sicheren Ablauf fuer eine spaetere produktive Migration in c3stream_control dokumentieren.
+Backup, Restore-/Rollback-Weg, SQL-Reihenfolge, Validation und Stop-Punkte festlegen.
+```
+
+RDAP6I fuehrt keine Migration aus.
+
 ## Nicht umgesetzt
 
 ```text
@@ -178,41 +231,16 @@ keine freie Shell-/Datei-/Prozesssteuerung
 keine Secrets im Repo oder Frontend
 ```
 
-## Wichtiger Doku-Hinweis
-
-Einige Dateinamen aus Zwischen-Prompts existieren nicht in GitHub/dev und nicht lokal. Sie duerfen nicht als Pflichtdateien vorausgesetzt werden.
-
-Nicht vorhandene Zwischenstand-Dateien:
-
-```text
-docs/current/RDAP_STATUS_AND_NEXT_STEPS_2026-06-23.md
-docs/current/RDAP5J_LIVE_TEST_RESULT_2026-06-23.md
-docs/current/RDAP4B_REMOTE_AGENT_RDAP5C3_LIVE_TEST_RESULT_2026-06-23.md
-docs/current/RDAP6_AUTH_DB_MIGRATION_PREP_PLAN.md
-docs/current/RDAP6B_TEST_DB_DRY_RUN_RUNBOOK.md
-```
-
-Belastbar vorhandene RDAP6-Dateien:
-
-```text
-docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
-docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
-docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
-docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
-docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
-docs/current/RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST.md
-```
-
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
+RDAP6J_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION_PRECHECK
 ```
 
 Ziel:
 
 ```text
-Sicheres Produktiv-Migrations-Runbook fuer c3stream_control vorbereiten.
+Vor echter SQL-Ausfuehrung nochmals Ziel-DB, Backup-Moeglichkeit, SQL-Dateien, Validation und Rollback-Weg pruefen.
 ```
 
-Weiterhin keine Auth-Aktivierung, keine Sessions, keine Writes und keine Agent-Actions.
+RDAP6J darf nur Precheck sein, ausser Forrest gibt ausdruecklich ein separates Go fuer echte SQL-Ausfuehrung.

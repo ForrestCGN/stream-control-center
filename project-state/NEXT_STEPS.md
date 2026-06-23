@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST  
+Stand: RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -15,61 +15,71 @@ RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
 RDAP6G Auth Backend Read-only DB Layer vorbereitet
-RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
+RDAP6H Remote read-only Auth-Model Deploy/Test live bestanden
+RDAP6I Auth DB Production Migration Runbook dokumentiert
 ```
 
 ## RDAP6H Ergebnis
 
-```text
-GET https://mods.forrestcgn.de/api/remote/auth/model
-```
-
-Antwortet stabil und read-only.
+Live bestaetigt:
 
 ```text
-Service aktiv: ja
-database.reachable: true
-readOnly: true
-writeEnabled: false
-migrationEnabled: false
-authEnabled: false
-sessionCreationEnabled: false
-schema.ready: false
+Service active
+moduleBuild RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST
+GET /api/remote/routes OK
+GET /api/remote/auth/model OK
+database.reachable true
+readOnly true
+writeEnabled false
+migrationEnabled false
+authEnabled false
+sessionCreationEnabled false
+schema.ready false
 ```
 
-`schema.ready=false` ist korrekt, solange die RDAP6C-Tabellen in `c3stream_control` noch nicht produktiv angelegt wurden.
+`schema.ready=false` ist korrekt, bis die RDAP6C-Tabellen in `c3stream_control` produktiv angelegt werden.
+
+## RDAP6I Ergebnis
+
+RDAP6I dokumentiert nur das sichere Runbook fuer eine spaetere Produktiv-Migration.
+
+Wichtig:
+
+```text
+Keine SQL-Ausfuehrung.
+Keine produktive Migration.
+Keine Auth-Aktivierung.
+Keine Session-Erstellung.
+Keine Remote-Writes.
+Keine Agent-Actions.
+```
 
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
+RDAP6J_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION_PRECHECK
 ```
 
 Ziel:
 
 ```text
-Sicheren Produktiv-Migrationsablauf fuer c3stream_control vorbereiten:
-Backup, Restore-Weg, SQL-Reihenfolge, Validation, Rollback und klare Stop-Punkte.
+Vor einer echten Migration auf dem Webserver pruefen:
+- Ziel-DB ist c3stream_control
+- DB-User ist c1stream_control
+- SQL-Dateien aus GitHub/dev sind vorhanden
+- Backup-Ziel ist klar
+- Backup kann erstellt werden
+- Restore-/Rollback-Weg ist klar
+- Validation-Datei ist vorhanden
+- /api/remote/auth/model ist weiterhin read-only erreichbar
 ```
 
-RDAP6I ist zunaechst nur Planung/Runbook. Keine Migration ausfuehren.
+RDAP6J darf noch keine SQL-Dateien ausfuehren, ausser Forrest gibt ausdruecklich ein separates Go fuer echte Produktivmigration.
 
-## Weiterhin nicht erlaubt
-
-```text
-keine Produktivmigration ohne separates Go
-kein Login
-keine Sessions
-keine Remote-Writes
-keine Agent-Actions
-keine OBS-/Sound-/Overlay-/Command-Steuerung
-keine Secrets ins Repo oder Frontend
-```
-
-## Danach moeglich, nicht jetzt
+## Spaeter, nicht jetzt
 
 ```text
-RDAP6J_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION
+RDAP6K_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION
 RDAP7_LOGIN_SESSION_CONCEPT
 ```
 
