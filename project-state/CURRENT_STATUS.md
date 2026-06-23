@@ -1,31 +1,32 @@
 # CURRENT STATUS
 
-Stand: RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN  
+Stand: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP6K wurde erfolgreich auf der echten Remote-Modboard-/Auth-Ziel-DB `c3stream_control` ausgefuehrt. RDAP6L dokumentiert dieses Ergebnis. RDAP7 dokumentiert das Login-/Session-Konzept. RDAP7A dokumentiert den naechsten read-only User-Resolution-Plan.
+RDAP6K wurde erfolgreich auf der echten Remote-Modboard-/Auth-Ziel-DB `c3stream_control` ausgefuehrt. RDAP6L dokumentiert dieses Ergebnis. RDAP7 dokumentiert das Login-/Session-Konzept. RDAP7A dokumentiert den read-only User-Resolution-Plan. RDAP7B fuegt erste read-only Auth-Status-Endpunkte hinzu.
 
 Der Remote-Modboard-Service bleibt weiterhin read-only. Es wurde keine Authentifizierung aktiviert, keine Session-Erstellung aktiviert und keine Schreibroute freigeschaltet.
 
-Fertig und getestet/dokumentiert:
+## RDAP7B Backend-Code
+
+Neue Endpunkte:
 
 ```text
-RDAP5I Remote-Modboard Node-Basisdienst read-only live
-RDAP5J Remote Node Monitoring/Hardening
-RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
-RDAP6D Testdatenbanklauf auf Webserver bestanden
-RDAP6E Test-DB-Auswertung dokumentiert
-RDAP6F Auth DB Integration Plan dokumentiert
-RDAP6G Auth Backend Read-only DB Layer vorbereitet und deployed
-RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
-RDAP6I Auth DB Production Migration Runbook dokumentiert
-RDAP6J Productive Migration Precheck bestanden und Backup erstellt
-RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich ausgefuehrt
-RDAP6L Auth DB Productive Migration Result Docs erstellt
-RDAP7 Login-/Session-Konzept dokumentiert
-RDAP7A Auth Read-only User Resolution Plan dokumentiert
+GET /api/remote/auth/me
+GET /api/remote/auth/session-status
+```
+
+Erwartete Sicherheitswerte:
+
+```text
+readOnly: true
+writeEnabled: false
+migrationEnabled: false
+authEnabled: false
+sessionCreationEnabled: false
+loggedIn: false
 ```
 
 ## Remote-Modboard read-only live
@@ -35,30 +36,9 @@ Webserver: web.cgn.community
 Subdomain/API: https://mods.forrestcgn.de/api/remote/
 Service: scc-remote-modboard.service
 Listen intern: 127.0.0.1:3010
-moduleBuild live: RDAP6H_REMOTE_READONLY_AUTH_MODEL_DEPLOY_TEST
 ```
 
-Live verfuegbare Routen:
-
-```text
-GET https://mods.forrestcgn.de/api/remote/health
-GET https://mods.forrestcgn.de/api/remote/status
-GET https://mods.forrestcgn.de/api/remote/routes
-GET https://mods.forrestcgn.de/api/remote/health?db=1
-GET https://mods.forrestcgn.de/api/remote/auth/model
-```
-
-Bestaetigte Sicherheitswerte:
-
-```text
-readOnly: true
-writeEnabled: false
-migrationEnabled: false
-authEnabled: false
-sessionCreationEnabled: false
-productiveAgentRuntime: false
-agentActionsEnabled: false
-```
+Nach RDAP7B muss der Webserver-Deploy noch getestet und dokumentiert werden.
 
 ## Webserver-DB
 
@@ -95,63 +75,10 @@ dashboard_locks: 0
 dashboard_audit_log: 0
 ```
 
-Rollen-/Gruppen-Validierung:
-
-```text
-sound_profi_role_count = 0
-sound_profi_group_marker_count = 1
-sound_profi_role_permission_count = 0
-module_permission_table_rows = 0
-session_rows = 0
-lock_rows = 0
-audit_rows = 0
-```
-
-## RDAP7/RDAP7A Entscheidung
-
-RDAP7 legt das Konzept fuer Login und Sessions fest. RDAP7A plant die ersten read-only Auth-/User-Resolution-Endpunkte.
-
-Geplant fuer den naechsten technischen Schritt:
-
-```text
-GET /api/remote/auth/status
-GET /api/remote/auth/me
-```
-
-Der erste Zustand bleibt:
-
-```text
-loggedIn: false
-authEnabled: false
-sessionCreationEnabled: false
-loginRoutesEnabled: false
-cookieWriteEnabled: false
-```
-
-Nicht aktiv:
-
-```text
-kein Auth/Login aktiv
-keine produktiven Sessions aktiv
-keine Cookie-Ausgabe
-keine Remote-Writes
-kein produktiver WSS-Agent
-keine Agent-Actions
-keine OBS-/Sound-/Overlay-/Command-Steuerung
-keine lokale SQLite-Aenderung
-keine freie Shell-/Datei-/Prozesssteuerung
-keine Secrets im Repo oder Frontend
-```
-
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7B_AUTH_STATUS_READONLY_ENDPOINTS
+RDAP7C_AUTH_STATUS_DEPLOY_TEST_DOCS
 ```
 
-Ziel:
-
-```text
-Remote-Modboard Backend um read-only Auth-Status-/Me-Endpunkte erweitern.
-Kein Login, keine Sessions, keine Cookies, keine Writes.
-```
+Ziel: RDAP7B auf dem Webserver deployen, Endpunkte testen und Ergebnis dokumentieren.

@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN  
+Stand: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -27,6 +27,7 @@ docs/current/RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK.md
 docs/current/RDAP6L_AUTH_DB_PRODUCTIVE_MIGRATION_RESULT_DOCS.md
 docs/current/RDAP7_LOGIN_SESSION_CONCEPT.md
 docs/current/RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN.md
+docs/current/RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS.md
 ```
 
 ## Remote-Modboard Paket im Repo
@@ -41,58 +42,14 @@ remote-modboard/backend/src/routes/health.routes.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/routes/auth-model.routes.js
+remote-modboard/backend/src/routes/auth-status.routes.js
 remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/db-health.service.js
 remote-modboard/backend/src/services/db.service.js
 remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/src/security/safety.js
 ```
-
-## Fuer RDAP7B voraussichtlich neu/geaendert
-
-```text
-remote-modboard/backend/src/routes/auth-status.routes.js
-remote-modboard/backend/src/services/auth-config.service.js
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/package.json
-remote-modboard/backend/server.js
-```
-
-## RDAP6 SQL-/Runbook-Dateien im Repo
-
-```text
-db/rdap6c/README.md
-db/rdap6c/sql/001_rdap6c_schema_migration.sql
-db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
-db/rdap6c/checks/rdap6c_validation_queries.sql
-db/rdap6c/runbooks/RDAP6C_BACKUP_RESTORE_RUNBOOK.md
-db/rdap6d/README.md
-db/rdap6d/runbooks/RDAP6D_TEST_DB_EXECUTION_RUNBOOK.md
-db/rdap6d/checks/RDAP6D_EXPECTED_RESULTS.md
-db/rdap6d/templates/RDAP6D_TEST_RESULT_TEMPLATE.md
-```
-
-## Installierte Dateien auf Webserver
-
-```text
-/opt/stream-control-center/remote-modboard/backend
-/etc/stream-control-center/remote-modboard.env
-/etc/systemd/system/scc-remote-modboard.service
-```
-
-## Webserver-DB
-
-```text
-DB-Typ: MariaDB
-Version: 11.8.6
-DB-Name: c3stream_control
-DB-User: c1stream_control
-Remote Access: aus
-Charset: utf8mb4
-```
-
-Passwort nicht dokumentieren.
 
 ## Produktive RDAP6K-Migration
 
@@ -120,46 +77,17 @@ dashboard_locks
 dashboard_audit_log
 ```
 
-Bestaetigte API-Route:
+## Neue RDAP7B-Routen
 
 ```text
-GET https://mods.forrestcgn.de/api/remote/auth/model
-schema.ready: true
-readOnly: true
-writeEnabled: false
-authEnabled: false
-sessionCreationEnabled: false
+GET https://mods.forrestcgn.de/api/remote/auth/me
+GET https://mods.forrestcgn.de/api/remote/auth/session-status
 ```
 
 ## Lokale produktive SQLite
 
 ```text
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
+D:\Streaming\stramAssets\data\sqlitepp.sqlite
 ```
 
 Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
-
-## Bewusst nicht geaenderte Dateien / Systeme
-
-```text
-backend/server.js
-Root-package.json
-lokale SQLite
-Stream-PC Backend ausser dokumentiertem read-only remote_agent.js Stand
-Dashboard-v2 Code
-OBS-/Sound-/Overlay-Systeme
-```
-
-## Remote-Agent Stand
-
-```text
-backend/modules/remote_agent.js
-moduleVersion: 0.0.3
-moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
-```
-
-## Naechste geplante Datei
-
-```text
-docs/current/RDAP7B_AUTH_STATUS_READONLY_ENDPOINTS.md
-```
