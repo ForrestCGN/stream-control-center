@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED  
+Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -38,30 +38,28 @@ Datum: 2026-06-23
 - [x] RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 - [x] RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 - [x] RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet
+- [x] RDAP7H OAuth Callback Skeleton disabled vorbereitet
 
 ## Noch offen / als naechstes
 
-### RDAP7H OAuth Callback Skeleton disabled
+### RDAP7I Session Store Read-only/Validation Layer
 
 - [ ] echte Remote-Modboard-Dateien vor Planung pruefen
+- [ ] `dashboard_sessions` nur read-only/validierend lesen
 - [ ] keine Login-Aktivierung
-- [ ] keine Twitch-OAuth-Secrets ins Repo
-- [ ] keine produktive OAuth-Start-Route
-- [ ] keine produktive OAuth-Callback-Route
-- [ ] keine Redirects zu Twitch ausloesen
-- [ ] keinen Code gegen Token tauschen
-- [ ] keine Cookies setzen
 - [ ] keine Session-Erstellung
+- [ ] keine Session-Cookies setzen
 - [ ] keine DB-Writes
+- [ ] keine User-/Rollen-/Gruppen-Schreibroute
+- [ ] keine Remote-Writes
 - [ ] keine Agent-Actions
-- [ ] Status/Routenliste muss disabled-Zustand klar anzeigen
+- [ ] Session-Status klar diagnosefaehig machen
 
 ### Spaeter
 
-- [ ] RDAP7I Session Store Read-only/Validation Layer
 - [ ] RDAP8 Permission Check Middleware Plan
 - [ ] Lock-/Audit-Implementierung fuer spaetere Writes planen
-- [ ] Server-ENV nach RDAP7G Deploy manuell pruefen/ergaenzen, aber `TWITCH_OAUTH_ENABLED=false` und `SESSION_ENABLED=false` beibehalten
+- [ ] Server-ENV nach RDAP7G/RDAP7H Deploy manuell pruefen/ergaenzen, aber `TWITCH_OAUTH_ENABLED=false` und `SESSION_ENABLED=false` beibehalten
 - [ ] Alte RDAP6J-Backup-Referenz unter `/root` bleibt historisch dokumentiert; neue Backups duerfen nicht mehr nach `/root`
 
 ## Dauerhaft beachten

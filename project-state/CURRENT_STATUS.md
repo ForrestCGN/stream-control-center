@@ -1,13 +1,13 @@
 # CURRENT STATUS
 
-Stand: RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED  
+Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP7F ist abgeschlossen und laut User nach GitHub/dev gepusht. `git status --short` war leer.
+RDAP7G ist abgeschlossen, lokal sauber, nach GitHub/dev gepusht und live auf dem Webserver deployed/getestet.
 
-RDAP7G bereitet die Remote-Modboard-ENV und Status-/Safety-Diagnose fuer Twitch OAuth vor, laesst OAuth/Login/Sessions aber effektiv deaktiviert.
+RDAP7H bereitet die spaeteren Twitch-OAuth-Start-/Callback-Pfade als disabled/read-only Skeleton vor. Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Sessions und keine DB-Writes.
 
 ## Fertig und bestaetigt
 
@@ -34,6 +34,7 @@ RDAP7E Server Workdir Cleanup Docs erstellt und nach GitHub/dev gepusht
 RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet
+RDAP7H OAuth Callback Skeleton disabled vorbereitet
 ```
 
 ## Remote-Modboard read-only live
@@ -43,10 +44,12 @@ Webserver: web.cgn.community
 Subdomain/API: https://mods.forrestcgn.de/api/remote/
 Service: scc-remote-modboard.service
 Listen intern: 127.0.0.1:3010
-moduleBuild live vor RDAP7G Deploy: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
+moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
 ```
 
-Live verfuegbare Routen:
+Hinweis: `moduleBuild` ist noch der alte server.js-Buildname. Der tatsaechliche RDAP7H-Code wird ueber `statusApiVersion=rdap7h.v1` und die neuen Auth-/Routenfelder sichtbar.
+
+Live verfuegbare Routen nach RDAP7H:
 
 ```text
 GET https://mods.forrestcgn.de/api/remote/health
@@ -56,9 +59,11 @@ GET https://mods.forrestcgn.de/api/remote/health?db=1
 GET https://mods.forrestcgn.de/api/remote/auth/model
 GET https://mods.forrestcgn.de/api/remote/auth/me
 GET https://mods.forrestcgn.de/api/remote/auth/session-status
+GET https://mods.forrestcgn.de/api/remote/auth/twitch/start
+GET https://mods.forrestcgn.de/api/remote/auth/twitch/callback
 ```
 
-Bestaetigte Sicherheitswerte bleiben:
+## Sicherheitsstatus bleibt
 
 ```text
 readOnly: true
@@ -72,6 +77,8 @@ keine Session-Erstellung
 keine DB-Writes
 productiveAgentRuntime: false
 agentActionsEnabled: false
+oauthStartRouteEnabled: false
+oauthCallbackRouteEnabled: false
 ```
 
 ## Webserver-DB
@@ -84,35 +91,50 @@ DB-Typ: MariaDB 11.8.6
 
 Passwort wird nicht dokumentiert und darf nicht ins Repo, Frontend oder Chat.
 
-## RDAP6K produktive Migration
-
-Vorheriges DB-Backup:
+## RDAP7G Live-Ergebnis
 
 ```text
-/root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
+statusApiVersion: rdap7g.v1
+auth.prepared: true
+auth.enabled: false
+auth.loginEnabled: false
+auth.twitchOAuth.effectiveEnabled: false
+auth.sessions.effectiveEnabled: false
+safety.oauthStartRouteEnabled: false
+safety.oauthCallbackRouteEnabled: false
 ```
 
-Hinweis: Diese alte Backup-Position stammt aus RDAP6J. Neue RDAP-Backups duerfen nicht mehr nach `/root`.
-
-Migrationsergebnis:
+RDAP7G Backup auf dem Webserver:
 
 ```text
-Schema-Migration: OK
-Seed-Migration: OK
-Validation: OK
-schema.ready: true
-missingTables: []
-dashboard_roles: 6
-dashboard_groups: 1
-dashboard_permissions: 22
-dashboard_role_permissions: 18
-dashboard_module_permissions: 0
-dashboard_sessions: 0
-dashboard_locks: 0
-dashboard_audit_log: 0
-sound_profi_role_count = 0
-sound_profi_group_marker_count = 1
-sound_profi_role_permission_count = 0
+/var/backups/stream-control-center/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED_remote-modboard-backend_20260623_213057.tar.gz
+```
+
+## RDAP7H Ergebnis
+
+Neue disabled Skeleton-Routen:
+
+```text
+GET /api/remote/auth/twitch/start
+GET /api/remote/auth/twitch/callback
+```
+
+Erwartet:
+
+```text
+HTTP 403
+kein Redirect zu Twitch
+kein Token-Tausch
+kein Set-Cookie
+keine Session-Erstellung
+keine DB-Writes
+keine Agent-Actions
+```
+
+Status-/Routes-Version:
+
+```text
+statusApiVersion: rdap7h.v1
 ```
 
 ## Server-Ordnerregel ab RDAP7C1
@@ -125,44 +147,14 @@ Backups:             /var/backups/stream-control-center/
 
 `/root` nicht mehr fuer RDAP-Arbeitsordner, Deploy-Clones, Temp-Ordner oder Backups verwenden.
 
-## RDAP7G Ergebnis
-
-`.env.example` korrigiert:
-
-```text
-DB_NAME=c3stream_control
-DB_USER=c1stream_control
-```
-
-Neue disabled OAuth-/Session-Platzhalter:
-
-```text
-TWITCH_OAUTH_ENABLED=false
-TWITCH_REDIRECT_URI=https://mods.forrestcgn.de/api/remote/auth/twitch/callback
-SESSION_ENABLED=false
-SESSION_COOKIE_NAME=scc_remote_session
-```
-
-Status-/Safety-Diagnose vorbereitet:
-
-```text
-auth.prepared: true
-auth.enabled: false
-auth.loginEnabled: false
-auth.twitchOAuth.effectiveEnabled: false
-auth.sessions.effectiveEnabled: false
-safety.oauthStartRouteEnabled: false
-safety.oauthCallbackRouteEnabled: false
-```
-
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED
+RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
 ```
 
 Ziel:
 
 ```text
-OAuth Start-/Callback-Skeleton nur disabled/read-only vorbereiten, weiterhin ohne produktiven Login, ohne Cookies, ohne Sessions und ohne DB-Writes.
+Session-Store-/Validation-Layer read-only planen/vorbereiten, weiterhin ohne Session-Erstellung und ohne Login-Aktivierung.
 ```

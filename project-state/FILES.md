@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED  
+Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -16,6 +16,7 @@ docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
+docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -37,6 +38,7 @@ docs/current/RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS.md
 docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
 docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
+docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
@@ -53,6 +55,7 @@ remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/routes/auth-model.routes.js
 remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/routes/auth-twitch.routes.js
 remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/db-health.service.js
 remote-modboard/backend/src/services/db.service.js
@@ -68,6 +71,17 @@ remote-modboard/backend/.env.example
 remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/security/safety.js
 remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/README.md
+```
+
+## RDAP7H geaenderte Remote-Modboard-Dateien
+
+```text
+remote-modboard/backend/package.json
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/auth-twitch.routes.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/README.md
 ```
 
@@ -154,11 +168,15 @@ dashboard_audit_log
 GET https://mods.forrestcgn.de/api/remote/auth/model
 GET https://mods.forrestcgn.de/api/remote/auth/me
 GET https://mods.forrestcgn.de/api/remote/auth/session-status
+GET https://mods.forrestcgn.de/api/remote/auth/twitch/start
+GET https://mods.forrestcgn.de/api/remote/auth/twitch/callback
 schema.ready: true
 readOnly: true
 writeEnabled: false
 authEnabled: false
 sessionCreationEnabled: false
+oauthStartRouteEnabled: false
+oauthCallbackRouteEnabled: false
 ```
 
 ## Lokale produktive SQLite
@@ -191,5 +209,5 @@ moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ## Naechste geplante Datei
 
 ```text
-docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
+docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 ```
