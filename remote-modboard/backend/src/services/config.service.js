@@ -15,6 +15,11 @@ function loadConfig() {
 
   const host = readString('REMOTE_MODBOARD_HOST', '127.0.0.1');
   const port = readPort('REMOTE_MODBOARD_PORT', 3010);
+  const publicBaseUrl = readString('REMOTE_PUBLIC_BASE_URL', 'https://mods.forrestcgn.de');
+  const twitchRedirectUri = readString(
+    'TWITCH_REDIRECT_URI',
+    `${publicBaseUrl.replace(/\/+$/, '')}/api/remote/auth/twitch/callback`
+  );
 
   return {
     service: 'remote-modboard',
@@ -23,7 +28,7 @@ function loadConfig() {
     port,
     envPath,
     envFileExists,
-    publicBaseUrl: readString('REMOTE_PUBLIC_BASE_URL', 'https://mods.forrestcgn.de'),
+    publicBaseUrl,
     database: {
       engine: readString('DB_ENGINE', 'MariaDB 11.8.6'),
       driver: 'mysql2/promise',
@@ -34,6 +39,26 @@ function loadConfig() {
       passwordConfigured: Boolean(process.env.DB_PASSWORD),
       writeEnabled: false,
       migrationEnabled: false
+    },
+    auth: {
+      authEnabled: false,
+      sessionCreationEnabled: false,
+      twitchOAuth: {
+        prepared: true,
+        requestedEnabled: readBoolean('TWITCH_OAUTH_ENABLED', false),
+        effectiveEnabled: false,
+        clientIdConfigured: isConfiguredSecret('TWITCH_CLIENT_ID'),
+        clientSecretConfigured: isConfiguredSecret('TWITCH_CLIENT_SECRET'),
+        redirectUri: twitchRedirectUri,
+        scopes: readScopes('TWITCH_OAUTH_SCOPES')
+      },
+      sessions: {
+        requestedEnabled: readBoolean('SESSION_ENABLED', false),
+        effectiveEnabled: false,
+        cookieName: readString('SESSION_COOKIE_NAME', 'scc_remote_session'),
+        sessionSecretConfigured: isConfiguredSecret('SESSION_SECRET'),
+        oauthStateSecretConfigured: isConfiguredSecret('OAUTH_STATE_SECRET')
+      }
     },
     paths: {
       cwd: process.cwd(),
@@ -53,6 +78,30 @@ function readPort(key, fallback) {
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) return fallback;
   return parsed;
+}
+
+function readBoolean(key, fallback) {
+  const raw = process.env[key];
+  if (typeof raw !== 'string' || raw.trim() === '') return Boolean(fallback);
+  const normalized = raw.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return Boolean(fallback);
+}
+
+function readScopes(key) {
+  const raw = process.env[key];
+  if (typeof raw !== 'string' || raw.trim() === '') return [];
+  return raw
+    .split(/[\s,]+/)
+    .map((scope) => scope.trim())
+    .filter(Boolean);
+}
+
+function isConfiguredSecret(key) {
+  const value = process.env[key];
+  if (typeof value !== 'string' || value.trim() === '') return false;
+  return !/^change-me/i.test(value.trim());
 }
 
 function isDatabaseConfigured(config) {
@@ -79,6 +128,26 @@ function buildPublicConfigSummary(config) {
       passwordConfigured: config.database.passwordConfigured,
       writeEnabled: false,
       migrationEnabled: false
+    },
+    auth: {
+      authEnabled: false,
+      sessionCreationEnabled: false,
+      twitchOAuth: {
+        prepared: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.prepared),
+        requestedEnabled: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.requestedEnabled),
+        effectiveEnabled: false,
+        clientIdConfigured: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.clientIdConfigured),
+        clientSecretConfigured: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.clientSecretConfigured),
+        redirectUri: config.auth && config.auth.twitchOAuth ? config.auth.twitchOAuth.redirectUri : null,
+        scopes: config.auth && config.auth.twitchOAuth ? config.auth.twitchOAuth.scopes : []
+      },
+      sessions: {
+        requestedEnabled: Boolean(config.auth && config.auth.sessions && config.auth.sessions.requestedEnabled),
+        effectiveEnabled: false,
+        cookieName: config.auth && config.auth.sessions ? config.auth.sessions.cookieName : 'scc_remote_session',
+        sessionSecretConfigured: Boolean(config.auth && config.auth.sessions && config.auth.sessions.sessionSecretConfigured),
+        oauthStateSecretConfigured: Boolean(config.auth && config.auth.sessions && config.auth.sessions.oauthStateSecretConfigured)
+      }
     }
   };
 }

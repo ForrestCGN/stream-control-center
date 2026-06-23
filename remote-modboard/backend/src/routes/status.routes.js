@@ -7,13 +7,14 @@ const { checkDatabaseHealth } = require('../services/db-health.service');
 function registerStatusRoutes(app, context) {
   app.get('/api/remote/status', async (req, res) => {
     const db = await checkDatabaseHealth(context.config, { connect: req.query.db === '1' });
+    const publicConfig = buildPublicConfigSummary(context.config);
 
     res.json({
       ok: true,
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap5f.v1',
+      statusApiVersion: 'rdap7g.v1',
       readOnly: true,
       writeEnabled: false,
       actionEnabled: false,
@@ -28,7 +29,20 @@ function registerStatusRoutes(app, context) {
         uptimeSec: Math.floor(process.uptime()),
         pid: process.pid
       },
-      config: buildPublicConfigSummary(context.config),
+      config: publicConfig,
+      auth: {
+        prepared: true,
+        enabled: false,
+        loginEnabled: false,
+        twitchOAuth: publicConfig.auth.twitchOAuth,
+        sessions: publicConfig.auth.sessions,
+        notes: [
+          'RDAP7G bereitet ENV/Status fuer Twitch OAuth vor.',
+          'OAuth bleibt effektiv deaktiviert.',
+          'Es gibt weiterhin keine produktive Start- oder Callback-Route.',
+          'Es werden keine Cookies gesetzt und keine Sessions erstellt.'
+        ]
+      },
       database: db,
       agent: {
         enabled: false,
