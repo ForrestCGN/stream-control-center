@@ -6,6 +6,7 @@ const { registerHealthRoutes } = require('./routes/health.routes');
 const { registerStatusRoutes } = require('./routes/status.routes');
 const { registerAuthModelRoutes } = require('./routes/auth-model.routes');
 const { registerAuthStatusRoutes } = require('./routes/auth-status.routes');
+const { registerAuthTwitchRoutes } = require('./routes/auth-twitch.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 
 function createApp({ config, moduleBuild }) {
@@ -30,6 +31,7 @@ function createApp({ config, moduleBuild }) {
   registerStatusRoutes(app, context);
   registerAuthModelRoutes(app, context);
   registerAuthStatusRoutes(app, context);
+  registerAuthTwitchRoutes(app, context);
   registerRoutesRoutes(app, context);
 
   app.use((req, res) => {

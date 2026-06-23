@@ -1,6 +1,6 @@
 # Remote Modboard Backend
 
-Stand: RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED
+Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED
 
 This package is the read-only base for the future remote modboard service on `web.cgn.community` / `mods.forrestcgn.de`.
 
@@ -10,6 +10,7 @@ This package is the read-only base for the future remote modboard service on `we
 - Reports MariaDB configuration status without exposing secrets.
 - Optionally tests DB reachability via `?db=1` using `SELECT 1 AS ok` when `mysql2` and ENV are available.
 - Reports Twitch OAuth and session ENV readiness without activating login.
+- Provides disabled/read-only Twitch OAuth start and callback skeleton endpoints.
 - Keeps all productive capabilities disabled.
 
 ## What it does not do
@@ -18,8 +19,8 @@ This package is the read-only base for the future remote modboard service on `we
 - No DB writes.
 - No local SQLite access.
 - No login/auth activation.
-- No Twitch OAuth start route.
-- No Twitch OAuth callback route.
+- No redirect to Twitch.
+- No Twitch OAuth token exchange.
 - No session creation.
 - No cookies.
 - No WSS agent runtime.
@@ -49,7 +50,29 @@ TWITCH_OAUTH_ENABLED=false
 SESSION_ENABLED=false
 ```
 
-Even if these are accidentally changed on the server, RDAP7G still has no productive OAuth start/callback routes and reports the effective auth/session state as disabled.
+Even if these are accidentally changed on the server, RDAP7H still reports effective auth/session state as disabled. The skeleton routes respond with disabled/read-only JSON and do not redirect or exchange tokens.
+
+## Disabled OAuth skeleton routes
+
+```text
+GET /api/remote/auth/twitch/start
+GET /api/remote/auth/twitch/callback
+```
+
+Both routes intentionally return HTTP 403 JSON with:
+
+```text
+authEnabled=false
+oauthEnabled=false
+startRouteEnabled=false
+callbackRouteEnabled=false
+redirectToTwitch=false
+tokenExchangeEnabled=false
+setCookie=false
+createSession=false
+databaseWriteEnabled=false
+agentActionsEnabled=false
+```
 
 ## Planned later redirect URI
 
@@ -75,6 +98,7 @@ node --check .\remote-modboard\backend\src\routes\status.routes.js
 node --check .\remote-modboard\backend\src\routes\routes.routes.js
 node --check .\remote-modboard\backend\src\routes\auth-model.routes.js
 node --check .\remote-modboard\backend\src\routes\auth-status.routes.js
+node --check .\remote-modboard\backend\src\routes\auth-twitch.routes.js
 node --check .\remote-modboard\backend\src\services\config.service.js
 node --check .\remote-modboard\backend\src\services\db-health.service.js
 node --check .\remote-modboard\backend\src\services\db.service.js

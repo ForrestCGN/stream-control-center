@@ -7,9 +7,10 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap7b.v1',
+      statusApiVersion: 'rdap7h.v1',
       readOnly: true,
       writeEnabled: false,
+      authPrepared: true,
       authEnabled: false,
       sessionCreationEnabled: false,
       routes: [
@@ -21,7 +22,7 @@ function registerRoutesRoutes(app, context) {
         {
           method: 'GET',
           path: '/api/remote/status',
-          description: 'Read-only service status, safety flags, DB config state and planned agent state.'
+          description: 'Read-only service status, safety flags, DB config state, OAuth disabled state and planned agent state.'
         },
         {
           method: 'GET',
@@ -40,6 +41,20 @@ function registerRoutesRoutes(app, context) {
         },
         {
           method: 'GET',
+          path: '/api/remote/auth/twitch/start',
+          description: 'RDAP7H disabled/read-only Twitch OAuth Start Skeleton. Kein Redirect zu Twitch, keine Cookies, keine Sessions.',
+          enabled: false,
+          productive: false
+        },
+        {
+          method: 'GET',
+          path: '/api/remote/auth/twitch/callback',
+          description: 'RDAP7H disabled/read-only Twitch OAuth Callback Skeleton. Kein Token-Tausch, keine Cookies, keine Sessions, keine DB-Writes.',
+          enabled: false,
+          productive: false
+        },
+        {
+          method: 'GET',
           path: '/api/remote/routes',
           description: 'Read-only route overview.'
         }
@@ -47,7 +62,10 @@ function registerRoutesRoutes(app, context) {
       disabled: [
         'POST/PUT/PATCH/DELETE remote writes',
         'auth/session creation',
-        'Twitch OAuth callback activation',
+        'productive Twitch OAuth start activation',
+        'productive Twitch OAuth callback activation',
+        'Redirect to Twitch',
+        'OAuth code token exchange',
         'Set-Cookie/session cookie issuance',
         'DB migration',
         'agent action execution',

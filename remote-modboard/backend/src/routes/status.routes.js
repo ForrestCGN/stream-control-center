@@ -14,7 +14,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap7g.v1',
+      statusApiVersion: 'rdap7h.v1',
       readOnly: true,
       writeEnabled: false,
       actionEnabled: false,
@@ -34,12 +34,24 @@ function registerStatusRoutes(app, context) {
         prepared: true,
         enabled: false,
         loginEnabled: false,
-        twitchOAuth: publicConfig.auth.twitchOAuth,
-        sessions: publicConfig.auth.sessions,
+        twitchOAuth: {
+          ...publicConfig.auth.twitchOAuth,
+          startRouteSkeletonPresent: true,
+          callbackRouteSkeletonPresent: true,
+          startRouteEnabled: false,
+          callbackRouteEnabled: false,
+          redirectToTwitch: false,
+          tokenExchangeEnabled: false
+        },
+        sessions: {
+          ...publicConfig.auth.sessions,
+          createSession: false,
+          setCookie: false
+        },
         notes: [
-          'RDAP7G bereitet ENV/Status fuer Twitch OAuth vor.',
+          'RDAP7H stellt disabled/read-only OAuth Start-/Callback-Skeleton-Routen bereit.',
           'OAuth bleibt effektiv deaktiviert.',
-          'Es gibt weiterhin keine produktive Start- oder Callback-Route.',
+          'Start und Callback loesen keinen Redirect zu Twitch und keinen Token-Tausch aus.',
           'Es werden keine Cookies gesetzt und keine Sessions erstellt.'
         ]
       },
