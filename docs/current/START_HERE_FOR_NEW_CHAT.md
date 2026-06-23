@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Stand: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS  
+Stand: RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS  
 Datum: 2026-06-23
 
 ## Sofort zuerst lesen
@@ -11,47 +11,85 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS.md
+docs/current/RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS.md
 ```
 
-## Aktueller Stand
+## Wichtigster aktueller Stand
 
-RDAP6K hat die produktive Auth-DB-Struktur erfolgreich auf `c3stream_control` angelegt. RDAP7 hat Login-/Session-Konzept dokumentiert. RDAP7A hat read-only User-Resolution geplant. RDAP7B fuegt nun die ersten read-only Auth-Status-Endpunkte in den Remote-Modboard-Backend-Code ein.
+RDAP7B wurde auf dem Webserver deployed und in RDAP7C live getestet. RDAP7D dokumentiert das Ergebnis.
 
-## Wichtig
-
-RDAP7B ist noch kein Login-System.
+Live:
 
 ```text
-kein Twitch-Login aktiv
-keine OAuth-Callback-Route aktiv
-keine Session-Erstellung
-keine Cookies setzen
-keine DB-Writes
-keine Agent-Actions
+https://mods.forrestcgn.de/api/remote/auth/me
+https://mods.forrestcgn.de/api/remote/auth/session-status
 ```
 
-## Neue RDAP7B-Endpunkte
+Bestaetigt:
 
 ```text
-GET /api/remote/auth/me
-GET /api/remote/auth/session-status
-```
-
-Beide muessen weiterhin melden:
-
-```text
+Service: active
+moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
 readOnly: true
 writeEnabled: false
 authEnabled: false
 sessionCreationEnabled: false
 loggedIn: false
+schema.ready: true
 ```
+
+## Weiterhin NICHT aktiv
+
+```text
+kein Login
+keine Twitch-OAuth-Callback-Aktivierung
+keine produktiven Sessions
+keine Cookies
+keine DB-Writes ueber API
+keine Agent-Actions
+keine OBS-/Sound-/Overlay-/Command-Steuerung
+```
+
+## Server-Ordnungsregel
+
+Ab jetzt auf dem Webserver:
+
+```text
+keine Arbeitsordner direkt unter /root
+keine Deploy-Clones nach /root/...
+keine Backups lose nach /root/...
+```
+
+Standard:
+
+```text
+Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
+Run-/Log-/Temp-Kram: /opt/stream-control-center/_runtime_tmp/
+Backups: /var/backups/stream-control-center/
+```
+
+RDAP7C1 Cleanup wurde vorbereitet, aber in dieser Doku nicht als erledigt markiert, weil keine Server-Ausgabe vorliegt.
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7C_AUTH_STATUS_DEPLOY_TEST_DOCS
+RDAP7E_TWITCH_OAUTH_DRY_RUN_PLAN
 ```
 
-Erst deployen/testen, dann dokumentieren.
+Nur planen. Keine Secrets ins Repo. Keine Login-Aktivierung ohne separaten Go-Step.
+
+## Arbeitsweise
+
+```text
+immer echten GitHub/dev-Stand pruefen
+keine Annahmen
+keine Funktionalitaet entfernen
+vor Umsetzung Scope nennen
+auf klares go warten
+ZIPs mit echten Repo-Pfaden ab Repo-Root
+kein Desktop als Standard
+keine Root-Wildwuchs-Ordner auf dem Server
+maximal ein Befehlsblock pro Antwort
+bei fehlenden Ergebnissen nicht als erledigt dokumentieren
+kein git add .
+```

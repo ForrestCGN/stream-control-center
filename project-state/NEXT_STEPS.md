@@ -1,18 +1,16 @@
 # NEXT STEPS
 
-Stand: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS  
+Stand: RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS  
 Datum: 2026-06-23
 
 ## Aktueller Stand
 
-Fertig bzw. vorbereitet:
+Fertig und dokumentiert:
 
 ```text
-RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich
-RDAP6L Migrationsergebnis dokumentiert
-RDAP7 Login-/Session-Konzept dokumentiert
-RDAP7A Auth Read-only User Resolution Plan dokumentiert
-RDAP7B Auth Read-only Status Endpoints gebaut
+RDAP7B Auth Read-only Status Endpoints gebaut und gepusht
+RDAP7C Remote Auth Status Deploy/Test bestanden
+RDAP7D Ergebnis dokumentiert
 ```
 
 Remote-Modboard bleibt read-only:
@@ -23,24 +21,56 @@ writeEnabled: false
 migrationEnabled: false
 authEnabled: false
 sessionCreationEnabled: false
+loggedIn: false
 ```
 
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP7C_AUTH_STATUS_DEPLOY_TEST_DOCS
+RDAP7E_TWITCH_OAUTH_DRY_RUN_PLAN
 ```
 
 Ziel:
 
 ```text
-RDAP7B Backend auf Webserver deployen, npm check ausfuehren, Service neustarten, /api/remote/auth/me und /api/remote/auth/session-status testen, Ergebnis dokumentieren.
+Twitch-OAuth-Dry-Run sauber planen, ohne Login zu aktivieren.
+```
+
+Dabei klaeren:
+
+```text
+Twitch Developer App / Redirect URI
+benoetigte ENV-Keys ohne Secrets im Repo
+OAuth State/CSRF Konzept
+Callback-Route spaeter nur nach separatem Go
+Session-Erstellung spaeter nur mit Server-Checks
+Audit/Rate-Limit/Fehlertexte
+```
+
+## Vorher optional / offen
+
+```text
+RDAP7C1_SERVER_WORKDIR_CLEANUP
+```
+
+Status:
+
+```text
+vorbereitet, aber ohne bestaetigte Server-Ausgabe nicht als erledigt dokumentiert
+```
+
+Ziel:
+
+```text
+alte RDAP-Backups aus /root nach /var/backups/stream-control-center verschieben
+alte RDAP-Temp-/Deploy-Clones aus /root entfernen
+/opt/stream-control-center/_deploy_tmp und _runtime_tmp nutzen
 ```
 
 ## Noch nicht erlaubt
 
 ```text
-kein Twitch-Login aktivieren
+kein Login aktivieren
 keine Twitch-OAuth-Secrets ins Repo
 keine Session-Cookies setzen
 keine Session-Erstellung
@@ -48,13 +78,15 @@ keine User-/Rollen-/Gruppen-Schreibroute
 keine Remote-Writes
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine neuen /root RDAP-Arbeitsordner
 ```
 
 ## Spaeter, nicht jetzt
 
 ```text
-RDAP7D Twitch OAuth Login Dry-Run Plan
-RDAP7E Session Store Read-only/Validation Layer
+RDAP7F Twitch OAuth Config/ENV Precheck
+RDAP7G OAuth Callback Dry-Run ohne Session-Erstellung
+RDAP7H Session Store Read-only/Validation Layer
 RDAP8 Permission Check Middleware Plan
 RDAP9 Lock-/Audit-Konzept fuer spaetere Writes
 ```
