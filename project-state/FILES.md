@@ -1,72 +1,58 @@
 # FILES
 
-Stand: RDAP4.DOC1 / Permission- und Lock-Modell dokumentiert  
+Stand: DASHUI2.DOC1 / Frontend-Tech-Entscheidung konkretisiert  
 Datum: 2026-06-23
 
-## Projektgrundlagen
+## Aktuelle Doku-/Statusdateien
 
-- `docs/current/START_HERE_FOR_NEW_CHAT.md`  
-  Einstiegspunkt für neue Chats, Pflicht-Reihenfolge, harte Arbeitsregeln, ZIP-/Step-Workflow.
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`
+- `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+- `project-state/CHANGELOG.md`
 
-- `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`  
-  Master-Prompt für das Projekt. Bei größeren Steps zuerst beachten.
+## Remote Dashboard / Agent / Webserver
 
-## Aktueller Remote-Dashboard-/Agent-Planungsstand
-
-- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`  
-  Webserver-Grundlage für `mods.forrestcgn.de`, HTTPS, nginx, Node/npm und RDAP2.WEB1-Status.
-
-- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`  
-  Gesamtplan Webserver↔Stream-PC-Agent, Zielarchitektur, Sicherheitsgrenzen, Agent-Grundregeln.
-
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`  
-  RDAP2-Entscheidungen: Webserver als Zentrale, Agent als separater Node-Prozess, kein öffentlicher Node-Port, keine Offline-Queue.
-
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`  
-  RDAP3-Minimal-Agent-Konzept: WSS, Auth, Heartbeat, Basisstatus, `agent.ping`, `agent.status.request`, Request/Result/Audit.
-
-- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`  
-  RDAP4-Plan: Rollen, Permissions, Modulfreigaben, Resource-Key-Schema, Edit-Sessions, Locks, Heartbeat, Timeout, Audit, Version-Konflikte.
+- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
 
 ## Dashboard-v2 / Frontend
 
-- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`  
-  Dashboard-v2 Design- und Frontend-Richtung: React + Vite bevorzugt, CGN-Dark-/Neon-/Galaxy-Stil, Sidebar Hauptkategorie → Modul, keine dritte Sidebar-Ebene.
+- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
+- `docs/current/DASHBOARD_V2_FRONTEND_TECH_DECISION.md`
 
-- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`  
-  Rollen-/Permission-Grundlage für Owner, Admin, Lead-Mod, Mod, Sound-Profi, optional Media-Manager und Readonly.
+## Changelog-Dateien
 
-## Projektstatus-Dateien
+- `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`
+- `project-state/CHANGELOG_RDAP4_PERMISSION_LOCK_MODEL_2026-06-23.md`
+- `project-state/CHANGELOG_DASHUI2_FRONTEND_TECH_DECISION_2026-06-23.md`
 
-- `project-state/CURRENT_STATUS.md`  
-  Aktueller dokumentierter Projektstand.
+## Geplante spaetere Dateien, noch nicht erstellt
 
-- `project-state/NEXT_STEPS.md`  
-  Nächste sinnvolle Schritte und verbotene Nebenbaustellen.
+DASHUI3 waere der erste Code-Step fuer:
 
-- `project-state/TODO.md`  
-  Offene Punkte, erledigte Planungen und spätere Umsetzungsaufgaben.
+```text
+frontend/dashboard-v2/
+```
 
-- `project-state/CHANGELOG.md`  
-  Laufendes Projekt-Changelog.
+Spaeterer Build-Output:
 
-- `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`  
-  Changelog für RDAP3.DOC1.
+```text
+htdocs/dashboard-v2/
+```
 
-- `project-state/CHANGELOG_RDAP4_PERMISSION_LOCK_MODEL_2026-06-23.md`  
-  Changelog für RDAP4.DOC1.
+Diese Dateien/Ordner wurden in DASHUI2.DOC1 noch nicht erstellt.
 
-## Aktueller Runtime-Kontext
+## Produktive Pfade, unveraendert
 
-- `htdocs/overlays/central_event_overlay.html`  
-  Aktueller bestätigter Central-Event-Overlay-Stand HT4.3, nicht durch RDAP4 geändert.
-
-## Nicht durch RDAP4 geändert
-
-- keine Backend-Dateien
-- keine Dashboard-Dateien
-- keine Frontend-Dateien
-- keine Agent-Dateien
-- keine Config-Dateien
-- keine SQLite-Dateien
-- keine OBS-Dateien
+- Lokales Repo: `D:\Git\stream-control-center`
+- Live-Ziel: `D:\Streaming\stramAssets`
+- Lokaler Server: `http://127.0.0.1:8080`
+- Lokales Dashboard: `http://127.0.0.1:8080/dashboard`
+- Produktive SQLite: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
+- Remote-Modboard-Ziel: `https://mods.forrestcgn.de`

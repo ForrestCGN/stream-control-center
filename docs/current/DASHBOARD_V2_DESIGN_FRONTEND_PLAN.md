@@ -1,15 +1,15 @@
 # Dashboard v2 Design- und Frontend-Plan
 
-Stand: 2026-06-22  
-Status: bestätigte Designrichtung aus den isolierten Design-Tests v8 bis v13
+Stand: 2026-06-23  
+Status: aktualisiert durch DASHUI2.DOC1 / Frontend-Tech-Entscheidung konkretisiert
 
 ## Zweck dieser Datei
 
-Diese Datei hält die aktuell bestätigte Richtung für Dashboard-v2 fest, damit spätere Chats und Umsetzungen nicht wieder bei null anfangen.
+Diese Datei haelt die bestaetigte Richtung fuer Dashboard-v2 fest, damit spaetere Chats und Umsetzungen nicht wieder bei null anfangen.
 
-Wichtig: Dieser Stand ist **Design-/Frontend-Planung**, keine Runtime-Umsetzung.
+Wichtig: Dieser Stand ist Design-/Frontend-Planung, keine Runtime-Umsetzung.
 
-Nicht geändert durch diesen Plan:
+Nicht geaendert durch diesen Plan:
 
 - kein Backend-Code
 - kein bestehendes Dashboard
@@ -17,58 +17,38 @@ Nicht geändert durch diesen Plan:
 - keine Config
 - keine OBS-Quelle
 - kein Remote-Agent-Code
+- kein React-/Vite-Code
 
-## Bestätigte Designbasis
+## Bestaetigte Designbasis
 
 Als aktuelle Designrichtung gilt der Stand aus:
 
-- `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
+```text
+DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip
+```
 
 Dieser Teststand ist nur ein Mockup/Prototyp, aber die dort gezeigten Regeln gelten als Designbasis.
 
 ## Grundoptik
 
-Das Dashboard-v2 soll einen eigenen CGN-Dark-/Neon-/Galaxy-Stil bekommen.
+Dashboard-v2 bekommt einen eigenen CGN-Dark-/Neon-/Galaxy-Stil.
 
 Festgelegt:
 
 - dunkler blau/lila Grund
 - ruhiger Vision-UI-artiger Galaxy-/Nebula-Hintergrund
 - dezente Dot-/Star-Struktur
-- keine unruhigen oder zu hellen Hintergründe hinter Text
+- keine unruhigen oder zu hellen Hintergruende hinter Text
 - Glassmorphism-Karten mit abgerundeten Ecken
 - Neon-Lila/Cyan/Blau als Akzentfarben
 - hoher Kontrast und gute Lesbarkeit
 - keine direkte Kopie von Creative-Tim/Vision-UI-Code oder Templates
 
-Creative Tim / Vision UI dient nur als Inspiration für:
-
-- Dashboard-Komponenten
-- Kartenaufbau
-- Tabellenstil
-- Timeline/Progress/Chips
-- Glass-/Dark-Look
-- grobe UI-Patterns
-
-Nicht übernommen werden:
-
-- fertiger Creative-Tim-Code
-- deren React-/MUI-/Chakra-Struktur
-- Business-Inhalte wie Sales/Orders
-- Template-/Lizenzstruktur
+Creative Tim / Vision UI dient nur als Inspiration fuer Dashboard-Komponenten, Kartenaufbau, Tabellenstil, Timeline/Progress/Chips, Glass-/Dark-Look und grobe UI-Patterns. Nicht uebernommen werden fertiger Creative-Tim-Code, deren React-/MUI-/Chakra-Struktur, Business-Inhalte und Template-/Lizenzstruktur.
 
 ## Topbar
 
 Die Topbar ist dauerhaft oben fixiert.
-
-Regeln:
-
-- links: Menübutton + Standortanzeige
-- rechts: Sprache, Benachrichtigungen, Avatar, Name, Rolle
-- Suche in der Topbar
-- kein CGN-/ForrestCGN-Brandingblock links oben
-- am Seitenanfang eher dezenter Rand
-- nach Scroll leicht stärkerer weißlich/glassiger Rand mit Schatten
 
 Die Standortanzeige zeigt:
 
@@ -89,12 +69,7 @@ Aktionen
 Shot-Alarm • Statistik
 ```
 
-```text
-Admin
-Benutzer & Rechte • Rollen
-```
-
-Der aktive Tab steht **in derselben Zeile direkt hinter dem Modulnamen**, getrennt mit `•`, nicht darunter.
+Der aktive Tab steht in derselben Zeile direkt hinter dem Modulnamen, getrennt mit `•`, nicht darunter.
 
 ## Navigation
 
@@ -103,38 +78,12 @@ Die linke Sidebar ist die Hauptnavigation.
 Feste Regel:
 
 ```text
-Sidebar = Hauptkategorie → Modul
+Sidebar = Hauptkategorie -> Modul
 Modul-Navi = Unterbereiche innerhalb der Seite
 Admin = Technik, Tiefe, Diagnose, gefährliche Aktionen
 ```
 
 Keine dritte Ebene in der Sidebar.
-
-Gut:
-
-```text
-Community / Events
-  Stream-Events
-  Shot-Alarm
-```
-
-Dann innerhalb von `Stream-Events`:
-
-```text
-Übersicht | Events | Teilnehmer | Runden | Finale | Logs
-```
-
-Nicht gut:
-
-```text
-Community / Events
-  Stream-Events
-    Übersicht
-    Teilnehmer
-    Runden
-    Finale
-    Logs
-```
 
 ## Sidebar-Verhalten
 
@@ -147,7 +96,6 @@ Festgelegt:
 - Sidebar per Menübutton einklappbar
 - unter ca. 1180px als Drawer
 - Sidebar ist auf Desktop fixed, nicht sticky
-- beim Scrollen bewegt sich die Navigation nicht leicht mit
 
 ## Modul-Navi / Tabs
 
@@ -155,34 +103,12 @@ Innerhalb einer Modulseite gibt es direkt unter dem PageHeader eine Modul-Navi.
 
 Beispiele:
 
-Shot-Alarm:
-
 ```text
-Übersicht | Verlauf | Statistik | Texte | Einstellungen
-```
-
-Stream-Events:
-
-```text
-Übersicht | Events | Teilnehmer | Runden | Finale | Logs
-```
-
-Media:
-
-```text
-Bibliothek | Sounds | Videos | Bilder | Uploads | Zuordnungen
-```
-
-Loyalty:
-
-```text
-Übersicht | Transaktionen | Ranking | Giveaways | Glücksrad | Texte
-```
-
-Admin:
-
-```text
-Übersicht | Benutzer | Rollen | Texte | Configs | Diagnose | Audit
+Shot-Alarm: Übersicht | Verlauf | Statistik | Texte | Einstellungen
+Stream-Events: Übersicht | Events | Teilnehmer | Runden | Finale | Logs
+Media: Bibliothek | Sounds | Videos | Bilder | Uploads | Zuordnungen
+Loyalty: Übersicht | Transaktionen | Ranking | Giveaways | Glücksrad | Texte
+Admin: Übersicht | Benutzer | Rollen | Texte | Configs | Diagnose | Audit
 ```
 
 Beim Klick auf einen Tab muss die Topbar den aktiven Tab aktualisieren.
@@ -194,71 +120,21 @@ Normale Streamer-/Mod-Seiten sollen fast alle gleich aufgebaut sein.
 Standardmuster:
 
 1. PageHeader
-   - Modulname
-   - kurze, verständliche Erklärung
-   - keine langen technischen Texte
-
 2. Modul-Navi / Tabs
-   - Unterbereiche des aktuellen Moduls
-
 3. Status-/KPI-Zeile
-   - wichtigste Zahlen
-   - Aktiv/Inaktiv
-   - Warnungen
-   - letzte relevante Aktion
-
 4. Hauptkarte
-   - wichtigste Aktionen
-   - klare Bedienung
-   - keine Technikbegriffe
-
 5. Verlauf / letzte Ereignisse
-   - Timeline oder Tabelle
+6. einfache Optionen nur wenn alltagstauglich
 
-6. Optional einfache Optionen
-   - nur wenn sie für Streamer/Mods im Alltag sinnvoll sind
+Normale Seiten zeigen keine API-Routen, JSON-Rohdaten, DB-Details, Tokens oder Debug-Flags. Diese Dinge gehoeren in Admin.
 
-## Normale Seiten vs Admin
+## Admin
 
-Normale Modul-Seiten sind für Streamer/Mods gedacht.
-
-Dort gehören hin:
-
-- Status
-- einfache Aktionen
-- wichtige Zahlen
-- Verlauf
-- einfache Texte/Optionen
-- verständliche Hinweise
-
-Dort gehören nicht hin:
-
-- API-Routen
-- JSON-Rohdaten
-- Debug-Flags
-- Datenbankdetails
-- Token/Secrets
-- technische Payloads
-- gefährliche Aktionen
-- tiefe Configs
-
-Diese Dinge gehören in Admin.
-
-Admin enthält:
-
-- Userverwaltung
-- Rollen/Rechte
-- Locks
-- Audit-Log
-- Diagnose/Testbereich
-- technische Configs
-- Textvarianten-Editor
-- Secrets/Tokens nur geschützt und nie im Klartext anzeigen
-- Import/Export/Backup später separat planen
+Admin enthaelt Userverwaltung, Rollen/Rechte, Locks, Audit-Log, Diagnose/Testbereich, technische Configs, Textvarianten-Editor und geschuetzte Secret-/Token-Bereiche ohne Klartextanzeige.
 
 ## Erweiterbarkeit / Umstrukturierbarkeit
 
-Dashboard-v2 muss einfach erweiterbar und später umstrukturierbar bleiben.
+Dashboard-v2 muss einfach erweiterbar und spaeter umstrukturierbar bleiben.
 
 Feste Architekturregel:
 
@@ -266,49 +142,33 @@ Feste Architekturregel:
 Navigation, Module, Rechte, Texte, Configs und Seitenstruktur dürfen nicht hart überall verteilt sein.
 ```
 
-Ziel:
+## Frontend-Technik
 
-- neues Modul einfach hinzufügen
-- Modul in andere Hauptkategorie verschieben
-- Modul deaktivieren/ausblenden
-- Rechte pro Modul/Seite/Aktion setzen
-- Tabs pro Modul definieren
-- Texte/Configs zentral verwalten
-- Module getrennt entwickeln
-- Module später ersetzen, ohne die ganze App umzubauen
-
-## Frontend-Technik: bevorzugte Richtung
-
-Aufgrund der Projektgröße ist die bevorzugte Richtung:
+Bestaetigte bevorzugte Richtung:
 
 ```text
 React + Vite
 ```
 
-Aber:
+Details stehen in:
+
+```text
+docs/current/DASHBOARD_V2_FRONTEND_TECH_DECISION.md
+```
+
+Feste Regeln:
 
 - kein Creative-Tim-Template kopieren
 - keine direkte Vision-UI-Codebasis übernehmen
 - keine MUI-/Chakra-Abhängigkeit erzwingen
 - eigenes CGN-Designsystem bauen
 - API/WebSocket/Auth/Locks getrennt von UI halten
-
-Warum React/Vite sinnvoll ist:
-
-- Projekt ist groß genug
-- viele Module
-- viele Zustände
-- Live-Status/WebSocket
-- Locks/Multi-User
-- Tabellen/Filter/Pagination
-- Modals/Toasts
-- Rollen/Rechte
-- wiederverwendbare Komponenten
-- spätere Umstrukturierung einfacher
+- keine Secrets ins Frontend
+- keine echten Sicherheitsentscheidungen im Frontend
 
 ## Vorgeschlagene Frontend-Struktur
 
-Zielstruktur für spätere Umsetzung:
+Zielstruktur fuer spaetere Umsetzung:
 
 ```text
 frontend/dashboard-v2/
@@ -318,14 +178,12 @@ frontend/dashboard-v2/
       router.jsx
       moduleRegistry.js
       navigationRegistry.js
-
     layout/
       AppShell.jsx
       Topbar.jsx
       Sidebar.jsx
       PageHeader.jsx
       ModuleTabs.jsx
-
     components/
       CgnCard.jsx
       CgnButton.jsx
@@ -333,13 +191,11 @@ frontend/dashboard-v2/
       CgnTable.jsx
       CgnPagination.jsx
       CgnTimeline.jsx
-      CgnTransactionList.jsx
       CgnSwitch.jsx
       CgnModal.jsx
       CgnToast.jsx
       CgnAvatar.jsx
       CgnProgress.jsx
-
     modules/
       overview/
       agent/
@@ -349,14 +205,13 @@ frontend/dashboard-v2/
       events/
       shotAlarm/
       admin/
-
     services/
       apiClient.js
       wsClient.js
       authClient.js
       permissionClient.js
       lockClient.js
-
+      agentClient.js
     styles/
       tokens.css
       theme.css
@@ -364,7 +219,7 @@ frontend/dashboard-v2/
       components.css
 ```
 
-Build-Ziel später:
+Build-Ziel spaeter:
 
 ```text
 htdocs/dashboard-v2/
@@ -374,29 +229,7 @@ Der genaue Build-/Deploy-Workflow muss separat geplant werden.
 
 ## Moduldefinitionen / Registry-Idee
 
-Module sollen sich später über Definitionen registrieren.
-
-Beispiel-Idee:
-
-```js
-export default {
-  id: "shot_alarm",
-  label: "Shot-Alarm",
-  category: "actions",
-  icon: "shot",
-  route: "/actions/shot-alarm",
-  permission: "shot_alarm.view",
-  tabs: [
-    { id: "overview", label: "Übersicht", permission: "shot_alarm.view" },
-    { id: "history", label: "Verlauf", permission: "shot_alarm.view" },
-    { id: "stats", label: "Statistik", permission: "shot_alarm.view" },
-    { id: "texts", label: "Texte", permission: "shot_alarm.texts" },
-    { id: "settings", label: "Einstellungen", permission: "shot_alarm.config" }
-  ]
-};
-```
-
-Wenn ein Modul später in eine andere Hauptkategorie soll, darf nicht die halbe Sidebar umgebaut werden müssen.
+Module sollen sich spaeter ueber Definitionen registrieren. Wenn ein Modul spaeter in eine andere Hauptkategorie soll, darf nicht die halbe Sidebar umgebaut werden muessen.
 
 ## Wichtige Komponentenideen
 
@@ -410,37 +243,31 @@ Das eigene CGN-Designsystem soll mindestens diese Bausteine bekommen:
 - `CgnTable`
 - `CgnPagination`
 - `CgnTimeline`
-- `CgnTransactionList`
 - `CgnSwitch`
 - `CgnModal`
+- `CgnConfirmDialog`
 - `CgnToast`
 - `CgnAvatar`
 - `CgnProgress`
 - `CgnModuleTabs`
 - `CgnPageHeader`
+- `CgnLockBanner`
 
-## Design-Teststände aus dem Chat
+## Design-Teststaende aus dem Chat
 
-Die im Chat erzeugten ZIPs waren isolierte Design-Tests und gehören nicht automatisch ins Repo.
+Die im Chat erzeugten ZIPs waren isolierte Design-Tests und gehoeren nicht automatisch ins Repo.
 
-Wichtigster bestätigter Stand:
+Wichtigster bestaetigter Stand:
 
-- `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
-
-Davor relevante Schritte:
-
-- v8: mehrere Beispielseiten/Komponenten
-- v9: Vision-UI-artiger Hintergrund, kompaktere HD-Karten, Topbar-Scroll-Rand
-- v10: fixed Sidebar, stärkerer Scroll-Rand
-- v11: Beispiele für Sidebar→Modul plus Modul-Navi/Tabs
-- v12: Topbar zeigt Modul + aktiven Tab
-- v13: aktiver Tab inline hinter Modulnamen mit Punkt
+```text
+DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip
+```
 
 ## Weiteres Vorgehen
 
-Trotz bestätigter Designrichtung bleibt die Priorität:
+Prioritaet bleibt:
 
-1. sichere Webserver↔Stream-PC-Agent-Architektur
+1. sichere Webserver-Stream-PC-Agent-Architektur
 2. Rollen/Rechte/Locks
 3. React/Vite-Frontend-Entscheidung sauber dokumentieren
 4. kleiner technischer Dashboard-v2-Prototyp

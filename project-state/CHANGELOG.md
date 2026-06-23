@@ -1,5 +1,31 @@
 # CHANGELOG
 
+Stand: DASHUI2.DOC1 / Frontend-Tech-Entscheidung konkretisiert  
+Datum: 2026-06-23
+
+## 2026-06-23 - DASHUI2.DOC1
+
+Siehe:
+
+- `project-state/CHANGELOG_DASHUI2_FRONTEND_TECH_DECISION_2026-06-23.md`
+
+Kurzfassung:
+
+- Dashboard-v2 Frontend-Tech-Entscheidung konkretisiert.
+- `React + Vite` als bevorzugte Richtung festgehalten.
+- Build-Ziel spaeter `htdocs/dashboard-v2/` dokumentiert.
+- Quellcode-Ziel spaeter `frontend/dashboard-v2/` dokumentiert.
+- Lokale und Remote-Nutzung geplant.
+- Modul-Registry und Navigation-Registry geplant.
+- CGN-Komponentensystem geplant.
+- API-/WebSocket-/Auth-/Permission-/Lock-/Agent-Clients getrennt geplant.
+- Creative Tim / Vision UI nur als Inspiration, keine Codebasis.
+- Kein Code, keine DB, keine Config, kein Backend, kein Agent, kein Node-Neustart.
+
+## Vorherige Einträge
+
+# CHANGELOG
+
 ## 2026-06-23 - RDAP4.DOC1 / Permission- und Lock-Modell dokumentiert
 
 Reiner Doku-/Planungsstep.

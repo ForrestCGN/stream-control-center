@@ -1,159 +1,89 @@
 # NEXT STEPS
 
-Stand: RDAP4.DOC1 / Permission- und Lock-Modell dokumentiert  
+Stand: DASHUI2.DOC1 / Frontend-Tech-Entscheidung konkretisiert  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
-DASHUI2 / Frontend-Tech-Entscheidung konkretisieren
+```text
+DASHUI3 / Minimaler React-Prototyp planen oder bauen nach explizitem go
+```
 
-Ziel:
+Ziel fuer DASHUI3, falls freigegeben:
 
-- `React + Vite` als bevorzugte Richtung final prüfen und bestätigen
-- Build-/Deploy-Ziel nach `htdocs/dashboard-v2/` planen
-- lokale Dashboard-v2-Nutzung auf Stream-PC planen
-- Remote-Modboard-Nutzung unter `mods.forrestcgn.de` planen
-- AppShell mit Topbar/Sidebar/PageHeader/ModuleTabs planen
-- Modul-Registry planen
-- Navigation-Registry planen
-- CGN-Komponentensystem planen
-- API-/WebSocket-/Lock-Clients sauber trennen
-- Frontend-Sicherheitsgrenzen festhalten
-- keinen Creative-Tim-/Vision-UI-Code übernehmen
-- noch keinen produktiven Dashboard-v2-Code ohne separaten Umsetzungsstep
+- neues Frontend-Grundgeruest unter `frontend/dashboard-v2/`
+- React + Vite Minimalsetup
+- AppShell mit Topbar/Sidebar/PageHeader/ModuleTabs
+- eine Beispielseite, bevorzugt `Remote Agent` oder `Uebersicht`
+- Modul-Registry und Navigation-Registry als minimale Struktur
+- erste CGN-Basisstyles/Tokens
+- Build-Ziel nach `htdocs/dashboard-v2/` planen oder vorbereiten
+- keine produktive Modulmigration
+- keine alten Dashboard-Dateien blind umbauen
+- keine produktiven Aktionen
+- keine Secrets
 
 Wichtig:
 
-- RDAP3 hat nur den Minimal-Agent geplant, keinen Agent-Code erstellt.
-- RDAP4 hat nur Permission-/Lock-/Edit-Session-Modell geplant, keine DB und keinen Code geändert.
-- Ohne separate Freigabe kein React-Prototyp und kein produktiver Umbau.
+- DASHUI3 waere der erste Code-Step in dieser Frontend-Linie.
+- Vor DASHUI3 muss klar sein, ob wirklich ein Code-Prototyp gebaut werden soll.
+- Bei Frontend-Code ist kein Backend-Node-Neustart noetig, solange keine Backend-Dateien geaendert werden.
 
 ## Danach sinnvoll
 
-DASHUI3 / Minimaler React-Prototyp erst nach Freigabe
+```text
+RDAP5 / Webserver-App-Minimalplanung
+```
 
 Ziel:
 
-- AppShell mit Topbar/Sidebar/PageHeader/ModuleTabs
-- eine Beispielseite, z. B. Remote Agent oder Übersicht
-- lokale statische Auslieferung planen/testen
-- kein altes Dashboard umbauen
-- keine produktive Modulmigration
-- keine produktiven Actions
-- keine Secrets im Frontend
+- spaetere Node-App auf Webserver intern `127.0.0.1:3000` planen
+- WSS-Endpunkt fuer Agent planen
+- Login-/Session-Grundstruktur planen
+- Agent-Registry planen
+- Audit-Grundstruktur planen
+- noch keine produktiven Remote-Actions
 
-RDAP5 / Agent-Webserver-Minimaltest planen
+Alternativ:
 
-Ziel:
+```text
+DASHUI3.DOC1 / Minimal-Prototyp erst genauer planen
+```
 
-- Webserver-WSS-Endpunkt planen
-- Agent-Dateistruktur planen
-- Secret-Speicherort finalisieren
-- Agent-Registry auf Webserver planen
-- `agent.ping` und `agent.status.request` als erste Testaktionen planen
-- noch keine produktiven Actions
+Falls vor Code noch eine extra Doku gewuenscht ist.
 
-## Bestätigter RDAP4-Planungsstand
-
-Siehe:
-
-- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
-
-Geplant / festgelegt:
-
-- Backend entscheidet, Frontend zeigt nur an.
-- Rollen sind Permission-Bündel.
-- Konkrete Prüfung passiert über Permissions.
-- Twitch-Rollen sind nicht führend.
-- Produktive Bearbeitung kritischer Ressourcen braucht Edit-Session und Lock.
-- `resourceKey`, `resourceType` und `resourceVersion` sind geplant.
-- `resourceVersion` schützt gegen stille Überschreibung.
-- Lock-Heartbeat und Timeout sind geplant.
-- Lock-Übernahme braucht Permission und Audit.
-- Agent-Verlust während Bearbeitung sperrt produktives Speichern.
-- Keine Offline-Queue.
-- Lokales Dashboard und Remote-Modboard sollen denselben Lock-/Edit-Session-Mechanismus verwenden.
-
-## Bestätigter RDAP3-Planungsstand
-
-Siehe:
-
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
-
-Geplant / festgelegt:
-
-- Agent ist ein separater Node-Prozess.
-- Agent verbindet sich aktiv per WSS zum Webserver.
-- Remote-Ziel: `https://mods.forrestcgn.de`.
-- Webserver-Node-App später intern, bevorzugt `127.0.0.1:3000`.
-- Öffentlich nur HTTPS/WSS, kein öffentlicher Node-Port.
-- Lokales Backend bleibt `http://127.0.0.1:8080`.
-- Auth mit `agentId` + Secret.
-- Secret nicht ins Repo, nicht ins Frontend, nicht ins Audit.
-- Minimal erlaubte Actions:
-  - `agent.ping`
-  - `agent.status.request`
-- Request-/Result-/Audit-Struktur geplant.
-- Offline-/Reconnect-Verhalten geplant.
-- Keine Offline-Queue.
-
-## Bestätigte Webserver-Basis
+## Bestaetigte Grundlagen
 
 Siehe:
 
 - `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
-
-Festgelegt / geprüft:
-
-- Subdomain: `mods.forrestcgn.de`
-- Webserver: Hetzner/KVM-VM, Debian 13 `trixie`
-- nginx aktiv und gültig
-- Let's Encrypt-Zertifikat enthält `mods.forrestcgn.de`
-- HTTPS über IPv4 und IPv6 liefert `HTTP/2 200`
-- apt-Repository-Stand ist wieder sauber
-- Rspamd-Key wurde repariert
-- Node.js `v20.19.2`, npm `9.2.0`, npx `9.2.0`
-- Node-App später intern, bevorzugt `127.0.0.1:3000`
-- öffentlich nur HTTPS/WSS, kein öffentlicher Node-Port
-
-## Bestätigte Designbasis für spätere Frontend-Arbeit
-
-Siehe:
-
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
+- `docs/current/DASHBOARD_V2_FRONTEND_TECH_DECISION.md`
 - `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 
-Wichtigster Design-Teststand:
+Festgelegt:
 
-- `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
-
-Festgelegte UI-Regeln:
-
-- Sidebar = Hauptkategorie → Modul
-- keine dritte Sidebar-Ebene
-- Modul-Navi/Tabs innerhalb der Modulseite
-- Topbar zeigt `Hauptbereich` und `Modul • aktiver Tab`
-- normale Seiten bleiben streamer-/modfreundlich
-- Admin enthält Technik, tiefe Config, Diagnose, Rechte, Audit
-- Module müssen leicht erweiterbar und umstrukturierbar bleiben
-
-## Parallel fachlich offen
-
-HypeTrain / Central Event Overlay:
-
-- Echte HypeTrain-Live-Payloads während eines echten HypeTrains prüfen.
-- Prüfen, ob `central_event_overlay.html` alle relevanten HypeTrain-Felder korrekt anzeigt.
-- Finale Template-/Mode-Struktur für das zentrale Event-Overlay planen.
-- Level-Up-Sound auswählen und aktivieren, sobald ein passendes Medium vorhanden ist.
-- Ende-Sound auswählen und aktivieren, sobald ein passendes Medium vorhanden ist.
+- Remote-Modboard: `https://mods.forrestcgn.de`
+- Webserver: Hetzner/KVM-VM mit nginx und Let's Encrypt
+- Node-App spaeter intern, bevorzugt `127.0.0.1:3000`
+- oeffentlich nur HTTPS/WSS, kein oeffentlicher Node-Port
+- Stream-PC-Agent als separater Node-Prozess
+- lokales Backend bleibt `127.0.0.1:8080`
+- keine Offline-Queue
+- produktive SQLite bleibt unangetastet
+- `React + Vite` als bevorzugte Dashboard-v2-Richtung
+- Build-Ziel spaeter `htdocs/dashboard-v2/`
 
 ## Nicht als nächstes nebenbei machen
 
-- kein produktiver Dashboard-v2-Code ohne separaten Umsetzungsstep
-- kein Agent-Code ohne separaten Umsetzungsstep
-- kein Permission-Code ohne RDAP4-Plan bewusst in einen Umsetzungsstep zu überführen
+- kein produktiver Dashboard-v2-Code ohne klares `go`
+- kein Agent-Code ohne separaten Step
+- kein Permission-Code ohne DB-/API-Planung
 - keine DB-Migration ohne separaten Step
 - keine OBS-Quellen automatisch ändern
 - keine produktive Remote-Agent-Verbindung ohne Minimaltest
 - keine Sound-/Media-/Config-Remote-Actions als ersten Agent-Test
 - kein Creative-Tim-/Vision-UI-Template direkt einbauen
 - keine alte Dashboard-Struktur blind umbauen
+- keine Secrets ins Frontend legen
