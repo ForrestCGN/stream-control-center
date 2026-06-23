@@ -1,23 +1,49 @@
 # CURRENT STATUS
 
-Stand: RDAP5C4_KNOWN_REMOTE_SERVER_FACTS_AND_NEXT_CHAT_HANDOFF  
+Stand: RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN  
 Datum: 2026-06-23
 
 ## Aktueller bestätigter Stand
 
-RDAP5C4 wurde als reiner Doku-/Korrektur-/Übergabe-Step erstellt. Es wurde nichts produktiv umgesetzt.
+RDAP5E wurde als reiner Planungs-/Doku-Step erstellt.
 
-Wichtige Korrektur:
+Es wurde nichts produktiv umgesetzt.
 
 ```text
-RDAP5D_REMOTE_SERVER_NODE_ENV_CHECK muss nicht als kompletter Hauptstep wiederholt werden.
-Node/npm/git/MariaDB-Client sind auf dem Webserver bereits bekannt vorhanden.
+kein Backend-Code
+kein Frontend-Code
+keine produktive SQLite
+keine MariaDB-Aenderung
+keine DB-Migration
+keine Schreibroute
+kein produktiver WSS-Agent
+keine Agent-Actions
+keine OBS-/Sound-/Overlay-Steuerung
+keine Commands-/Kanalpunkte-Steuerung
+keine Datei-/Shell-/Prozesssteuerung
+kein Login-Code
+kein npm install
+keine Secrets
+keine nginx-/Service-Aenderung
 ```
 
-Nächster sinnvoller Hauptstep:
+## Zweck von RDAP5E
+
+RDAP5E plant, wie der spaetere Remote-Modboard-Node-Service auf `web.cgn.community` fuer `mods.forrestcgn.de` aufgebaut werden soll.
+
+Geplant wurden:
 
 ```text
-RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN
+Service-Pfad auf dem Webserver
+Node-Service-Startkonzept
+nginx-/Reverse-Proxy-Konzept
+ENV-/Secret-Ablage
+MariaDB-Verbindungsstrategie
+erste read-only Health/API
+Logging-/Audit-Vorbereitung
+spaetere Agent-Anbindung
+Sicherheitsgrenzen gegen freie Shell-/Datei-/Prozessbefehle
+Rollback-/Undo-Konzept
 ```
 
 ## Bekannter Webserver-Stand
@@ -35,7 +61,7 @@ git vorhanden
 MariaDB-Client vorhanden
 ```
 
-Noch nicht umgesetzt:
+Weiterhin noch nicht umgesetzt:
 
 ```text
 kein produktiver Remote-Modboard-Node-Service
@@ -48,9 +74,18 @@ kein produktiver Login/Auth-Service
 
 ## Webserver-DB
 
+Bestaetigt per Server-Gegencheck:
+
 ```text
-Server: web.cgn.community
-DB-Typ: MySQL/MariaDB
+mysql --version:
+mysql from 11.8.6-MariaDB, client 15.2 for debian-linux-gnu (x86_64) using EditLine wrapper
+```
+
+Damit gilt:
+
+```text
+DB-Engine: MariaDB 11.8.6
+Client: mysql client 15.2
 DB-Name: c1stream_control
 DB-User: c3stream_control
 Remote Access: aus
@@ -72,7 +107,7 @@ Keine Migration, kein Ersetzen, kein Löschen, kein Kopieren ohne separaten Plan
 
 ## Repo-/Dependency-Stand
 
-Aus RDAP5C:
+Aus RDAP5C/RDAP5C4:
 
 ```text
 package.json:
@@ -113,6 +148,14 @@ mod
 vip
 ```
 
+Auswirkung:
+
+```text
+streamer -> Dashboard-Basiszugang
+mod      -> Dashboard-Basiszugang
+vip      -> kein Dashboard-Basiszugang, nur Community/Website
+```
+
 Manuell vergebene Dashboard-Rollen:
 
 ```text
@@ -150,23 +193,52 @@ dashboard_audit_log
 agent_registry
 ```
 
-## Nicht geändert durch RDAP5C4
+Wichtig:
 
-- kein Backend-Code
-- kein Frontend-Code
-- keine produktive SQLite
-- keine MariaDB-Aenderung
-- keine DB-Migration
-- keine Schreibroute
-- kein produktiver WSS-Agent
-- keine Agent-Actions
-- keine OBS-/Sound-/Overlay-Steuerung
-- keine Commands-/Kanalpunkte-Steuerung
-- keine Datei-/Shell-/Prozesssteuerung
-- kein Login-Code
-- kein npm install
-- keine Secrets
-- keine nginx-/Service-Aenderung
+```text
+dashboard_role_permissions ist nicht mehr starres Hauptmodell.
+Modulmatrix nutzt target_type + target_key.
+Keine festen Spalten wie default_for_sound_profi.
+Neue Rollen/Gruppen spaeter ohne DB-Schema-Aenderung moeglich.
+```
+
+## RDAP5E Architekturentscheidung
+
+Empfohlener Service-Pfad:
+
+```text
+/opt/stream-control-center/remote-modboard/
+```
+
+Secrets getrennt:
+
+```text
+/etc/stream-control-center/remote-modboard.env
+```
+
+Empfohlener interner Node-Port:
+
+```text
+127.0.0.1:3010
+```
+
+Oeffentlicher Einstieg:
+
+```text
+https://mods.forrestcgn.de
+```
+
+Spaetere Proxy-Routen:
+
+```text
+/api/remote/health
+/api/remote/status
+/api/remote/routes
+/api/remote/auth/*
+/api/remote/users/*
+/api/remote/agent/*
+/ws/agent
+```
 
 ## Wichtige Leitplanken
 

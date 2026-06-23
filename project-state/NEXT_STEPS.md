@@ -1,34 +1,106 @@
 # NEXT STEPS
 
-Stand: RDAP5C4_KNOWN_REMOTE_SERVER_FACTS_AND_NEXT_CHAT_HANDOFF  
+Stand: RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN
+RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE
 ```
 
-## Ziel von RDAP5E
+## Ziel von RDAP5F
 
-RDAP5E soll planen, wie der Remote-Modboard-Node-Service auf `web.cgn.community` für `mods.forrestcgn.de` aufgebaut wird.
+RDAP5F soll ein erstes minimales Remote-Modboard-Node-Paket vorbereiten.
 
-Keine Umsetzung.
+Wichtig:
 
-Planungspunkte:
+```text
+nur read-only
+kein produktiver Node-Service-Start
+keine nginx-Aenderung
+keine DB-Migration
+keine MariaDB-Schreibaktion
+keine lokale SQLite-Aenderung
+keine Secrets im Repo
+kein Agent
+keine Agent-Actions
+keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine freie Shell-/Datei-/Prozesssteuerung
+```
 
-- Service-Pfad auf dem Webserver
-- Start-/Service-Konzept
-- nginx-/Reverse-Proxy-Konzept für Remote-API
-- ENV-/Secret-Ablage
-- MariaDB-Verbindungsstrategie
-- erste read-only Health/API
-- Logging/Audit-Vorbereitung
-- spätere Agent-Anbindung
-- keine freien Shell-/Datei-/Prozessbefehle
-- Rollback-/Undo-Konzept
+## Geplanter Scope RDAP5F
 
-## Bereits bekannte Server-Fakten
+Moegliche neue Repo-Pfade:
+
+```text
+remote-modboard/backend/package.json
+remote-modboard/backend/server.js
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/health.routes.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/README.md
+remote-modboard/config/remote-modboard.example.json
+```
+
+Moegliche Doku-/Projektstatus-Dateien:
+
+```text
+docs/current/REMOTE_DASHBOARD_RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+```
+
+## RDAP5F read-only API
+
+Geplante Routen:
+
+```text
+GET /api/remote/health
+GET /api/remote/status
+GET /api/remote/routes
+```
+
+Erwartete Sicherheitswerte:
+
+```text
+readOnly: true
+writeEnabled: false
+agentActionsEnabled: false
+migrationEnabled: false
+freeShellCommands: false
+freeFileCommands: false
+freeProcessCommands: false
+```
+
+## Vor RDAP5F Umsetzung prüfen
+
+Ein kurzer Gegencheck direkt vor echter Installation/Deployment ist erlaubt:
+
+```bash
+node -v
+npm -v
+git --version
+mysql --version
+whoami
+pwd
+which node
+ls -la /opt
+ls -la /etc/stream-control-center 2>/dev/null || true
+```
+
+Fuer nginx erst bei spaeterem Proxy-Step:
+
+```bash
+nginx -T | grep -n "mods.forrestcgn.de" -A 30 -B 10
+```
+
+## Bekannte Server-Fakten
 
 Nicht nochmal als großen Check planen:
 
@@ -41,28 +113,28 @@ Node v20.19.2 vorhanden
 npm 9.2.0 vorhanden
 git vorhanden
 MariaDB-Client vorhanden
+MariaDB 11.8.6 vorhanden
 ```
 
-Ein kurzer Gegencheck direkt vor echter Installation ist okay.
+## RDAP5F darf
 
-## RDAP5E darf
-
-- Plan erstellen
-- Ziel-Dateistruktur vorschlagen
-- Service-/nginx-/ENV-Konzept vorschlagen
-- Healthcheck-Konzept planen
-- erste read-only API planen
+- kleines read-only Node-Paket vorbereiten
+- Dateistruktur im Repo vorschlagen/liefern
+- `.env.example` ohne echte Secrets liefern
+- Health-/Status-/Routes-API read-only bauen
+- MariaDB-Verbindung optional nur read-only per Healthcheck planen
 - Tests planen
 - Rollback/Undo planen
 
-## RDAP5E darf nicht
+## RDAP5F darf nicht ohne neues Go
 
-- kein npm install
+- kein produktiver Node-Service-Start
+- kein systemd-Service aktivieren
+- keine nginx-/Firewall-/Proxy-Aenderung
+- kein npm install auf dem Webserver
 - keine DB-Migration
 - keine MariaDB-Schreibaktion
 - keine lokale SQLite-Aenderung
-- keinen produktiven Node-Service starten
-- keine nginx-/Firewall-/Proxy-Aenderung
 - keine Secrets ins Repo oder Frontend schreiben
 - keine Agent-Actions aktivieren
 - keine OBS-/Sound-/Overlay-/Command-Steuerung
@@ -71,10 +143,10 @@ Ein kurzer Gegencheck direkt vor echter Installation ist okay.
 ## Danach mögliche Schritte
 
 ```text
-RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE
+RDAP5G_REMOTE_NODE_SYSTEMD_NGINX_DRY_RUN_PLAN
 ```
 
-Erst nach RDAP5E-Plan und separatem Go.
+Erst nach RDAP5F read-only Paket und separatem Go.
 
 Oder:
 
@@ -82,4 +154,4 @@ Oder:
 RDAP6_AUTH_DB_MIGRATION_PREP
 ```
 
-Erst nach Service-/ENV-/Secret-Klärung.
+Erst nach Service-/ENV-/Secret-Klärung und separatem Backup-/Rollback-/Migrationsplan.
