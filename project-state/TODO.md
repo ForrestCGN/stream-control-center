@@ -4,79 +4,77 @@ Stand: 2026-06-23
 
 ## Offen / geplant
 
-### RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING
+### RDAP5J Live-Akzeptanztests ausfuehren
 
-Prioritaet: hoch, aber erst nach Plan und Go.
+RDAP5J ist als Runbook dokumentiert. Forrest muss die Tests ausfuehren und die Ausgaben posten.
 
-Aufgaben:
+Pruefpunkte:
 
-- Remote-Node-Monitoring fuer den read-only Stand planen.
-- Health-, Status- und Routes-Pruefung dokumentieren.
-- systemd-, journal- und nginx-Pruefung dokumentieren.
-- Hardening pruefen, aber keine blinden Service-Aenderungen.
-- Keine Secrets loggen oder dokumentieren.
-- Keine Schreib-, Agent- oder Auth-Funktionen aktivieren.
+- Service enabled/active.
+- Journal ohne Crash-Loops.
+- Node nur lokal auf `127.0.0.1:3010`.
+- lokale API funktioniert.
+- externe API funktioniert.
+- DB-Lesetest funktioniert.
+- read-only bleibt unveraendert.
+- keine Secrets in Ausgaben.
+
+Doku:
+
+```text
+docs/current/REMOTE_DASHBOARD_RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING.md
+```
 
 ### RDAP4B remote_agent.js auf RDAP5C3 korrigieren
 
-Prioritaet: wichtig, aber separater Step.
+Separater Step.
 
-Problem:
+Regeln:
 
-`backend/modules/remote_agent.js` ist noch RDAP4B-Stand und fuehrt `sound_profi` dort als Rolle/Permission-Preset. Das ist fachlich ueberholt.
-
-Regeln fuer den spaeteren Fix:
-
-- Datei zuerst echt aus Repo/dev/live lesen.
+- Datei zuerst echt lesen.
 - Keine Funktionalitaet entfernen.
 - Bestehende read-only RDAP4B-Routen nicht entfernen.
 - `sound_profi` darf keine Rolle sein.
-- `sound_profi` darf kein festes globales Permission-Preset sein.
 - `sound_profi` ist Gruppe/Markierung.
 - Rechte ueber `target_type` + `target_key` / Modulmatrix denken.
-- Umsetzung nur nach eigenem Scope und Forrests ausdruecklichem Go.
+- Umsetzung nur nach eigenem Scope und Go.
 
 ### RDAP6_AUTH_DB_MIGRATION_PREP
 
-Prioritaet: spaeter.
+Spaeterer separater Step.
 
-Nur vorbereiten mit:
+Nur mit:
 
 - Backup-Konzept
 - `schema_migrations`
-- User-Tabelle
-- Twitch-Identity-Tabelle
-- Rollen-Tabelle
-- Gruppen/Markierungen-Tabelle
-- Modulpermission-Matrix mit `target_type` + `target_key`
+- User-/Twitch-/Rollen-/Gruppen-/Modulmatrix-Entwurf
 - Audit-Log-Konzept
-
-Nicht ohne separates Go:
-
-- DB-Migration ausfuehren
-- produktive MariaDB-Struktur aendern
-- produktive SQLite aendern
-- Auth aktivieren
-- Sessions aktivieren
-- Remote-Schreibfunktionen aktivieren
-- Agent-Aktionen aktivieren
+- separatem Go
 
 ## Erledigt / dokumentiert
 
+### RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING_DOCS
+
+Dokumentiert am 2026-06-23.
+
+Festgehalten:
+
+- Monitoring-Runbook fuer Remote-Node angelegt.
+- Hardening-Checkliste dokumentiert.
+- Akzeptanzkriterien dokumentiert.
+- keine Code-, DB-, Service- oder nginx-Aenderung vorgenommen.
+
 ### RDAP5I_DOCS_FINALIZE_REMOTE_READONLY_LIVE
 
-Status: dokumentiert am 2026-06-23.
+Dokumentiert am 2026-06-23.
 
 Festgehalten:
 
 - RDAP5I read-only live erfolgreich.
-- Remote API unter `mods.forrestcgn.de/api/remote/` dokumentiert.
-- DB-Lesetest ueber `health?db=1` dokumentiert.
-- korrekte DB-Zuordnung dokumentiert:
-  - `DB_USER=c1stream_control`
-  - `DB_NAME=c3stream_control`
+- Remote API dokumentiert.
+- DB-Lesetest dokumentiert.
+- korrekte DB-Zuordnung dokumentiert.
 - falsche alte Zuordnung markiert.
 - Passwort wird nicht dokumentiert.
 - nginx/ISPConfig Proxy dokumentiert.
 - systemd-Service-Status dokumentiert.
-- deaktivierte Schreib-, Agent-, Auth- und Migrationsfunktionen dokumentiert.
