@@ -1,15 +1,23 @@
 # TODO
 
-Stand: RDAP2.DOC1 / Remote-Dashboard-Agent Architekturentscheidungen dokumentiert  
-Datum: 2026-06-22
+Stand: RDAP2.WEB1 / Webserver-Grundlage für Remote-Modboard geprüft  
+Datum: 2026-06-23
 
 ## Remote Dashboard / Webserver-Agent
 
-Erledigt / entschieden in RDAP2:
+Erledigt / entschieden:
 
 - Webserver↔Stream-PC-Agent Grundarchitektur geklärt.
-- Subdomain festgelegt: `modboard.forrestcgn.de`.
-- Hetzner + ISPConfig + nginx + Let's Encrypt als Webserver-Basis festgelegt.
+- Remote-Modboard-Subdomain geändert und vorbereitet: `mods.forrestcgn.de`.
+- Die alte Planungs-Subdomain `modboard.forrestcgn.de` ist nicht mehr führend.
+- `mods.forrestcgn.de` ist per HTTPS, IPv4 und IPv6 erreichbar.
+- Hetzner + ISPConfig + nginx + Let's Encrypt als Webserver-Basis geprüft.
+- Node.js/npm auf dem Webserver installiert und geprüft:
+  - `node v20.19.2`
+  - `npm 9.2.0`
+  - `npx 9.2.0`
+- Rspamd-Repository-Key repariert.
+- `apt update` läuft wieder sauber.
 - Node-App intern auf Hetzner geplant, bevorzugt `127.0.0.1:3000`.
 - Stream-PC-Agent als separater Node-Prozess geplant.
 - Bestehendes lokales Backend bleibt Runtime auf `127.0.0.1:8080`.
@@ -43,6 +51,17 @@ Noch zu planen für RDAP3:
 - Audit-Voreintrag und Audit-Abschluss planen.
 - Offline-/Reconnect-Verhalten konkretisieren.
 - Keine Sound-/OBS-/Media-/Config-/Text-Actions in RDAP3.
+
+## Webserver-Sicherheit später prüfen
+
+Später separat und nicht blind ändern:
+
+- SSH-Zugriff auf IP/VPN begrenzen prüfen.
+- FTP-Port `21/tcp` prüfen: wird er wirklich gebraucht?
+- DNS-Port `53/udp` prüfen: wird der Server wirklich als öffentlicher DNS genutzt?
+- MariaDB lauschte beim Check auf `0.0.0.0:3306` und `[::]:3306`, war aber nicht per UFW freigegeben. Nicht blind ändern, weil ISPConfig/Mail/Hosting davon abhängen kann.
+- nginx-HTTP/2-Warnung aus ISPConfig-vHosts später bereinigen, kein aktueller Blocker.
+- Das laut `apt update` verfügbare Paket-Update später bewusst prüfen, kein blindes Full-Upgrade.
 
 ## Rollen / Permissions / Multi-User
 
@@ -79,7 +98,7 @@ Noch zu planen für RDAP4:
 - `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md` als aktuelle Designbasis verwenden.
 - `React + Vite` als bevorzugte Frontend-Richtung technisch prüfen/finalisieren.
 - Build-/Deploy-Ziel nach `htdocs/dashboard-v2/` planen.
-- Remote-Ziel `modboard.forrestcgn.de` einplanen.
+- Remote-Ziel `mods.forrestcgn.de` einplanen.
 - Lokale Nutzung unter `127.0.0.1:8080/dashboard-v2` einplanen.
 - Eigenes CGN-Designsystem planen.
 - Modul-Registry planen.
