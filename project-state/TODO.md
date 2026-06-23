@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE  
+Stand: RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -12,38 +12,38 @@ Datum: 2026-06-23
 - [x] RDAP5C2 Rollen-/Gruppenmodell vereinfacht
 - [x] RDAP5C3 DB-Plan auf Rollen + Gruppen + Modulmatrix korrigiert
 - [x] Webserver-DB in ISPConfig angelegt
-- [x] Webserver-DB-Daten dokumentiert ohne Passwort
-- [x] lokale SQLite bleibt unangetastet
 - [x] bekannte Webserver-Fakten konsolidiert
-- [x] Node/npm/git/MariaDB-Client als bereits bekannt dokumentiert
 - [x] MariaDB-Version auf Webserver bestaetigt: 11.8.6
-- [x] RDAP5D als separater grosser Node-Check uebersprungen/korrigiert
 - [x] RDAP5E Remote-Modboard Node-Service-Plan dokumentiert
 - [x] RDAP5F Remote-Node-Base-Readonly-Paket vorbereitet
 - [x] RDAP5G Remote-Node-Server-Installationsplan dokumentiert
-- [x] RDAP5H Remote-Node-Server-Handoff-/Installationspaket vorbereitet
-- [x] keine Migration ausgefuehrt
-- [x] kein npm install ausgefuehrt
-- [x] keine nginx-/Service-Aenderung ausgefuehrt
+- [x] RDAP5H Remote-Node-Server-Handoff-Paket vorbereitet
+- [x] RDAP5I Service-Pfade auf Webserver angelegt
+- [x] RDAP5I Service-User `sccremote` angelegt
+- [x] RDAP5I Service-Code nach `/opt/stream-control-center/remote-modboard/backend` kopiert
+- [x] RDAP5I ENV-Datei auf Server angelegt, Passwort nicht gepostet
+- [x] RDAP5I `npm install --omit=dev` nur im separaten Remote-Paket ausgefuehrt
+- [x] RDAP5I `npm run check` erfolgreich
+- [x] RDAP5I lokaler Dry-Run auf `127.0.0.1:3010` erfolgreich
+- [x] RDAP5I DB-Zugriff geklaert und erfolgreich getestet
+- [x] RDAP5I systemd-Service installiert und gestartet
+- [x] RDAP5I nginx-Proxy ueber ISPConfig nginx Directives eingerichtet
+- [x] RDAP5I HTTPS-Healthchecks erfolgreich
 
-## Als nächstes
+## Wichtige Korrektur
 
-### RDAP5I / Remote Server Readonly Install Execution
+- [x] DB_USER/DB_NAME-Verwechslung erkannt
+- [x] Echt bestaetigt: `DB_USER=c1stream_control`
+- [x] Echt bestaetigt: `DB_NAME=c3stream_control`
+- [ ] Alte Doku-Stellen mit vertauschter Angabe korrigieren/uebersteuern
 
-- [ ] Webserver-Lesetest ausfuehren
-- [ ] Zielpfad `/opt/stream-control-center/remote-modboard/backend` pruefen/anlegen
-- [ ] Service-User `sccremote` pruefen/anlegen
-- [ ] ENV-/Secret-Datei `/etc/stream-control-center/remote-modboard.env` auf Server erstellen
-- [ ] Passwort nur direkt auf dem Server eintragen, nicht posten/dokumentieren
-- [ ] Service-Code auf Webserver kopieren
-- [ ] `npm install --omit=dev` nur im Remote-Paket ausfuehren
-- [ ] `npm run check` im Remote-Paket ausfuehren
-- [ ] lokalen Dry-Run auf `127.0.0.1:3010` testen
-- [ ] systemd-Service installieren/starten
-- [ ] lokale Healthchecks testen
-- [ ] nginx-Reverse-Proxy fuer `/api/remote/` einbinden
-- [ ] HTTPS-Healthchecks testen
-- [ ] Rollback/Undo pruefbar halten
+## Noch sofort offen
+
+- [ ] `systemctl is-enabled scc-remote-modboard.service` pruefen
+- [ ] `systemctl is-active scc-remote-modboard.service` pruefen
+- [ ] `journalctl -u scc-remote-modboard.service -n 30 --no-pager` pruefen
+- [ ] RDAP5I-Doku final in GitHub/dev einspielen
+- [ ] Neuen Chat-Prompt mit aktuellem Live-Stand speichern
 
 ## Verbindlicher TODO aus RDAP5F
 

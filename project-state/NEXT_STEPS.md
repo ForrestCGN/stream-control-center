@@ -1,98 +1,93 @@
 # NEXT STEPS
 
-Stand: RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE  
+Stand: RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION  
 Datum: 2026-06-23
 
-## Nächster sinnvoller Schritt
+## Aktueller Stand
+
+RDAP5I ist technisch live read-only erfolgreich:
 
 ```text
-RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION
+https://mods.forrestcgn.de/api/remote/health?db=1
+https://mods.forrestcgn.de/api/remote/status
+https://mods.forrestcgn.de/api/remote/routes
 ```
 
-## Ziel von RDAP5I
+Bestaetigt:
 
-RDAP5I soll die echte, kontrollierte Installation des RDAP5F/RDAP5H Remote-Modboard-Node-Basisdienstes auf `web.cgn.community` vorbereiten und ausfuehren, aber weiterhin nur read-only.
+```text
+ok: true
+readOnly: true
+writeEnabled: false
+database.reachable: true
+agent.enabled: false
+agent.actionsEnabled: false
+```
+
+## Sofort naechster Schritt
+
+```text
+RDAP5I_DOCS_FINALIZE_REMOTE_READONLY_LIVE
+```
 
 Ziel:
 
 ```text
-Remote-Modboard-Node-Service als read-only Basisdienst betreiben
-/api/remote/health
-/api/remote/status
-/api/remote/routes
+Live-Installation final dokumentieren
+DB_USER/DB_NAME-Korrektur in allen relevanten Projektdateien festhalten
+systemd/nginx/ISPConfig/Healthcheck-Ergebnisse dokumentieren
+Prompt fuer neuen Chat aktualisieren
 ```
 
-## RDAP5I Reihenfolge
+## Noch auszufuehrende Abschlusspruefungen
 
-```text
-1. Server-Lesetest ausfuehren
-2. Zielpfade pruefen/anlegen
-3. Service-User pruefen/anlegen
-4. Service-Code nach /opt/stream-control-center/remote-modboard/backend kopieren
-5. ENV-Datei auf Server aus Vorlage erstellen, Passwort nur direkt auf Server eintragen
-6. npm install --omit=dev nur im Remote-Paket ausfuehren
-7. npm run check ausfuehren
-8. lokalen Node-Dry-Run testen
-9. systemd-Service installieren/starten
-10. lokale Healthchecks ausfuehren
-11. nginx-Reverse-Proxy fuer /api/remote/ einbinden
-12. nginx -t und reload
-13. HTTPS-Healthchecks pruefen
-14. Rollback pruefbar halten
-```
-
-## Vor RDAP5I auszufuehrende Lesebefehle
+Auf `web.cgn.community`:
 
 ```bash
-whoami
-pwd
-node -v
-npm -v
-mysql --version
-which node
-ls -la /opt
-ls -la /etc/stream-control-center 2>/dev/null || true
-nginx -T | grep -n "mods.forrestcgn.de" -A 30 -B 10
+systemctl is-enabled scc-remote-modboard.service
+systemctl is-active scc-remote-modboard.service
+journalctl -u scc-remote-modboard.service -n 30 --no-pager
 ```
 
-## RDAP5I darf nach separatem Go
+Erwartung:
 
 ```text
-Serverpfade pruefen/anlegen
-Service-User pruefen/anlegen
-Dateien auf Webserver kopieren
-npm install nur im separaten Remote-Paket ausfuehren
-systemd-Service installieren/starten
-nginx-Reverse-Proxy fuer /api/remote/ einbinden
-read-only Healthchecks ausfuehren
-Rollback ausfuehren, falls Test scheitert
+enabled
+active
+keine Fehler im Journal
 ```
 
-## RDAP5I darf nicht ohne eigenes separates Go
+## Danach moegliche Schritte
+
+### Option A: RDAP5J Remote Node Monitoring and Hardening
 
 ```text
-keine DB-Migration
-keine MariaDB-Schreibaktion
-keine Auth-/Session-Erstellung
-keine Agent-Actions
-keine OBS-/Sound-/Overlay-/Command-Steuerung
-keine lokale SQLite-Aenderung
-keine Secrets im Repo oder Chat posten
-kein /ws/agent produktiv aktivieren
+Service-Logs/Monitoring pruefen
+nginx/API-Sicherheitsheader planen
+Rate-Limit fuer /api/remote/ planen
+Healthcheck-Monitoring planen
+systemd-Hardening pruefen
+Rollback-Doku finalisieren
 ```
 
-## Danach mögliche Schritte
+Keine Auth/DB-Migration.
+
+### Option B: RDAP6 Auth DB Migration Prep
+
+Nur nach separatem Go und eigener Planung.
 
 ```text
-RDAP6_AUTH_DB_MIGRATION_PREP
+MariaDB-Migrationsplan vorbereiten
+schema_migrations planen
+User-/Twitch-/Rollen-/Gruppen-/Modulmatrix-Tabellen vorbereiten
+keine Schreibmigration ohne Backup und weiteres Go
 ```
 
-Erst nach stabil laufendem read-only Remote-Node-Basisdienst und separatem DB-Migrationsplan.
-
-Oder:
+## RDAP5I darf als erledigt gelten, wenn
 
 ```text
-RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING
+systemd enabled/active bestaetigt
+Journal ohne Fehler bestaetigt
+GitHub/dev Doku aktualisiert
+DB_USER/DB_NAME-Korrektur ueberall dokumentiert
 ```
-
-Nur falls vor Auth noch Logging/Monitoring/Hardening vertieft werden soll.

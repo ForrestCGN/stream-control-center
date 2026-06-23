@@ -1,59 +1,118 @@
 # CURRENT STATUS
 
-Stand: RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE  
+Stand: RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION  
 Datum: 2026-06-23
 
-## Aktueller bestätigter Arbeitsstand
+## Aktueller bestaetigter Arbeitsstand
 
-RDAP5H erstellt ein kontrolliertes Handoff-/Installationspaket fuer den spaeteren Remote-Modboard-Node-Service auf `web.cgn.community` fuer `mods.forrestcgn.de`.
+RDAP5I wurde erfolgreich live umgesetzt.
 
-Fuehrender Service-Code bleibt:
-
-```text
-remote-modboard/backend/
-```
-
-Neu hinzugekommen sind ausschliesslich Deploy-/Server-Handoff-Dateien:
-
-```text
-remote-modboard/deploy/README_REMOTE_SERVER_INSTALL.md
-remote-modboard/deploy/systemd/scc-remote-modboard.service.example
-remote-modboard/deploy/nginx/mods.forrestcgn.de.remote-api.example.conf
-remote-modboard/deploy/env/remote-modboard.env.example
-remote-modboard/deploy/scripts/README_COMMANDS.md
-```
-
-## Enthaltenes Zielbild
-
-```text
-Node-Service intern: 127.0.0.1:3010
-Service-Name: scc-remote-modboard.service
-Empfohlener Pfad: /opt/stream-control-center/remote-modboard/backend
-ENV-Datei: /etc/stream-control-center/remote-modboard.env
-nginx-Reverse-Proxy: /api/remote/ -> 127.0.0.1:3010/api/remote/
-```
-
-## Bekannter Webserver-/DB-Stand
+Der Remote-Modboard-Node-Basisdienst laeuft read-only auf dem Webserver:
 
 ```text
 Webserver: web.cgn.community
-Remote-Modboard: https://mods.forrestcgn.de
-OS: Debian 13
-nginx vorhanden
-HTTPS / HTTP2 laeuft
-Node v20.19.2 vorhanden
-npm 9.2.0 vorhanden
-git vorhanden
-MariaDB-Client vorhanden
-MariaDB: 11.8.6
-DB-Name: c1stream_control
-DB-User: c3stream_control
-Remote Access: aus
-Charset: utf8mb4
-Backup: woechentlich
+Subdomain/API: https://mods.forrestcgn.de/api/remote/
+Service: scc-remote-modboard.service
+Listen intern: 127.0.0.1:3010
 ```
 
-Passwort wurde nicht dokumentiert und darf nicht ins Repo oder Frontend.
+## Live verfuegbare Routen
+
+```text
+GET https://mods.forrestcgn.de/api/remote/health
+GET https://mods.forrestcgn.de/api/remote/status
+GET https://mods.forrestcgn.de/api/remote/routes
+```
+
+Mit DB-Lesetest:
+
+```text
+GET https://mods.forrestcgn.de/api/remote/health?db=1
+```
+
+## Bestaetigte Health-Werte
+
+```text
+ok: true
+readOnly: true
+writeEnabled: false
+actionEnabled: false
+productiveAgentRuntime: false
+driverAvailable: true
+configured: true
+connectionTested: true
+reachable: true
+migrationEnabled: false
+error: null
+```
+
+## Service-/Runtime-Stand
+
+```text
+Node: v20.19.2
+npm: 9.2.0
+MariaDB: 11.8.6
+mysql2: 3.22.5
+express: 5.2.1
+dotenv: 17.4.2
+```
+
+## Installierte Pfade auf Webserver
+
+```text
+/opt/stream-control-center/remote-modboard/backend
+/etc/stream-control-center/remote-modboard.env
+/etc/systemd/system/scc-remote-modboard.service
+```
+
+## Service-User
+
+```text
+sccremote
+```
+
+Node-Service laeuft nicht als root.
+
+## Wichtige DB-Korrektur
+
+Fruehere Doku hatte DB_USER und DB_NAME vertauscht.
+
+Final bestaetigt:
+
+```text
+DB_USER=c1stream_control
+DB_NAME=c3stream_control
+```
+
+Nicht mehr verwenden:
+
+```text
+DB_USER=c3stream_control
+DB_NAME=c1stream_control
+```
+
+## nginx / ISPConfig
+
+Die nginx-Einbindung wurde ueber ISPConfig im Feld `nginx Directives` der Website `forrestcgn.de` umgesetzt.
+
+Block:
+
+```nginx
+location ^~ /api/remote/ {
+    proxy_pass http://127.0.0.1:3010/api/remote/;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_read_timeout 30s;
+    proxy_connect_timeout 5s;
+    proxy_send_timeout 30s;
+}
+```
+
+`nginx -t` war erfolgreich, danach wurde `systemctl reload nginx` ausgefuehrt.
 
 ## Rollen-/Gruppenmodell
 
@@ -67,37 +126,53 @@ sound_profi ist eine Gruppe / Markierung.
 Modulrechte werden pro Modul konfiguriert.
 ```
 
-## Nicht geändert durch RDAP5H
+Der Remote-Status bestaetigt:
 
 ```text
-kein produktiver Node-Service gestartet
-kein npm install ausgefuehrt
-keine nginx-Aenderung ausgefuehrt
-keine systemd-Aenderung ausgefuehrt
+soundProfiIsRole: false
+soundProfiIsGroupMarker: true
+modulePermissionMatrixUsesTargetTypeAndTargetKey: true
+```
+
+## Nicht umgesetzt
+
+```text
 keine DB-Migration
 keine MariaDB-Schreibaktion
-keine lokale SQLite-Aenderung
-kein Login/Auth
-kein WSS-Agent
+kein Auth/Login
+keine Sessions
+kein produktiver WSS-Agent
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
-keine Datei-/Shell-/Prozesssteuerung
-keine echten Secrets
-backend/server.js unveraendert
-backend/modules/remote_agent.js unveraendert
-Root-package.json unveraendert
+keine lokale SQLite-Aenderung
+keine freie Shell-/Datei-/Prozesssteuerung
+keine Secrets im Repo oder Frontend
 ```
 
-## Wichtiger erkannter Altstand
-
-`backend/modules/remote_agent.js` ist noch RDAP4B-Stand und fuehrt `sound_profi` dort weiterhin als Rolle/Permission-Preset.
-
-Das ist seit RDAP5C3 fachlich ueberholt und bleibt als verbindlicher TODO bestehen.
-
-## Nächster sinnvoller Schritt
+## Noch offen / als naechstes
 
 ```text
-RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION
+systemctl is-enabled scc-remote-modboard.service
+systemctl is-active scc-remote-modboard.service
+journalctl -u scc-remote-modboard.service -n 30 --no-pager
 ```
 
-Ziel: Echte, kontrollierte Ausfuehrung auf dem Webserver nur nach separatem Go: Pfade pruefen, Service-User/ENV/Dateien/npm/systemd/nginx/Healthchecks Schritt fuer Schritt ausfuehren.
+Danach Doku finalisieren und GitHub/dev aktualisieren.
+
+## Naechster sinnvoller Schritt
+
+```text
+RDAP5I_DOCS_FINALIZE_REMOTE_READONLY_LIVE
+```
+
+Danach moeglich:
+
+```text
+RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING
+```
+
+oder nach separatem Plan:
+
+```text
+RDAP6_AUTH_DB_MIGRATION_PREP
+```

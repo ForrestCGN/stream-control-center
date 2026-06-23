@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE  
+Stand: RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -14,7 +14,7 @@ project-state/TODO.md
 project-state/FILES.md
 ```
 
-## RDAP / Remote-Dashboard Planung
+## Aktuelle RDAP-Dateien
 
 ```text
 docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
@@ -27,10 +27,10 @@ docs/current/REMOTE_DASHBOARD_RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE.md
 docs/current/REMOTE_DASHBOARD_RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5E_REMOTE_NODE_SERVICE_PLAN.md
+docs/current/REMOTE_DASHBOARD_RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION.md
 ```
 
-## Remote-Modboard-Paket aus RDAP5F
+## Remote-Modboard Paket im Repo
 
 ```text
 remote-modboard/backend/package.json
@@ -46,7 +46,7 @@ remote-modboard/backend/src/services/db-health.service.js
 remote-modboard/backend/src/security/safety.js
 ```
 
-## Neue Server-Handoff-Dateien aus RDAP5H
+## Deploy-/Handoff-Dateien im Repo
 
 ```text
 remote-modboard/deploy/README_REMOTE_SERVER_INSTALL.md
@@ -56,22 +56,39 @@ remote-modboard/deploy/env/remote-modboard.env.example
 remote-modboard/deploy/scripts/README_COMMANDS.md
 ```
 
-## Bewusst nicht geänderte Dateien
+## Installierte Dateien auf Webserver
 
 ```text
-backend/server.js
-backend/modules/remote_agent.js
-package.json
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
+/opt/stream-control-center/remote-modboard/backend
+/etc/stream-control-center/remote-modboard.env
+/etc/systemd/system/scc-remote-modboard.service
 ```
 
-## Wichtiger Altstand / späterer Korrekturpunkt
+## ISPConfig / nginx
+
+Website:
 
 ```text
-backend/modules/remote_agent.js
+forrestcgn.de
 ```
 
-Diese Datei ist noch RDAP4B-Stand und fuehrt `sound_profi` als Rolle/Permission-Preset. Das ist seit RDAP5C3 ueberholt und steht verbindlich in TODO.md.
+Subdomain im gleichen vHost:
+
+```text
+mods.forrestcgn.de
+```
+
+ISPConfig-Feld:
+
+```text
+Sites -> Website -> forrestcgn.de -> Options -> nginx Directives
+```
+
+Proxy-Ziel:
+
+```text
+http://127.0.0.1:3010/api/remote/
+```
 
 ## Webserver-Fakten
 
@@ -81,21 +98,19 @@ Subdomain: mods.forrestcgn.de
 OS: Debian 13
 nginx vorhanden
 HTTPS / HTTP2 laeuft
-mods.forrestcgn.de liefert 200 OK
-Node v20.19.2 vorhanden
-npm 9.2.0 vorhanden
+Node v20.19.2
+npm 9.2.0
 git vorhanden
-MariaDB-Client vorhanden
-MariaDB 11.8.6 vorhanden
+MariaDB 11.8.6
 ```
 
-## Webserver-DB
+## Webserver-DB final korrigiert
 
 ```text
 DB-Typ: MariaDB
 Version: 11.8.6
-DB-Name: c1stream_control
-DB-User: c3stream_control
+DB-Name: c3stream_control
+DB-User: c1stream_control
 Remote Access: aus
 Charset: utf8mb4
 Backup: woechentlich
@@ -111,12 +126,21 @@ D:\Streaming\stramAssets\data\sqlite\app.sqlite
 
 Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
 
-## Hinweis fuer naechsten Chat
-
-Nächster sinnvoller Schritt:
+## Bewusst nicht geaenderte Dateien / Systeme
 
 ```text
-RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION
+backend/server.js
+backend/modules/remote_agent.js
+Root-package.json
+lokale SQLite
+Stream-PC Backend
+Dashboard-v2 Code
 ```
 
-Keine DB-Migration, keine Secrets im Repo/Chat, keine produktiven Agent-Actions, kein `/ws/agent` produktiv ohne separates Go.
+## Wichtiger Altstand / spaeterer Korrekturpunkt
+
+```text
+backend/modules/remote_agent.js
+```
+
+Diese Datei ist noch RDAP4B-Stand und fuehrt `sound_profi` als Rolle/Permission-Preset. Das ist seit RDAP5C3 ueberholt und steht verbindlich in TODO.md.
