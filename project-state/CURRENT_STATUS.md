@@ -4,9 +4,11 @@ Stand: 2026-06-23
 
 ## Kurzstatus
 
-Das Projekt `stream-control-center` hat fuer das Remote Dashboard / Modboard den Stand `RDAP5I_REMOTE_READONLY_LIVE` erreicht.
+Das Projekt `stream-control-center` hat fuer das Remote Dashboard / Modboard den Stand `RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING_DOCS` erreicht.
 
-RDAP5I ist technisch live und read-only erfolgreich. Die oeffentliche Subdomain `mods.forrestcgn.de` leitet `/api/remote/` per nginx/ISPConfig an den lokalen Node-Service auf `127.0.0.1:3010` weiter.
+RDAP5I ist technisch live und read-only erfolgreich. RDAP5J dokumentiert darauf aufbauend Monitoring- und Hardening-Pruefungen fuer den live laufenden read-only Remote-Node.
+
+Wichtig: RDAP5J hat keine Code-, DB-, Service- oder nginx-Aenderung aktiviert. Es ist ein sicherer Runbook-/Dokumentationsstand.
 
 ## Live-Endpunkte
 
@@ -104,7 +106,29 @@ Deaktiviert:
 - DB migration
 - Agent action execution
 - OBS/Sound/Overlay/Command control
-- Shell/File/Process operations
+- riskante Systemoperationen ueber Remote-Agent
+
+## RDAP5J Akzeptanztests
+
+RDAP5J ist dokumentiert. Die Tests muessen auf Server/lokal ausgefuehrt und von Forrest bestaetigt werden.
+
+Zu pruefen:
+
+- Service ist enabled und active.
+- Journal zeigt keine Crash-Loops.
+- Node lauscht nur lokal auf `127.0.0.1:3010`.
+- lokale API liefert Health/Status/Routes.
+- oeffentliche API liefert Health/Status/Routes.
+- DB-Lesetest funktioniert.
+- read-only bleibt aktiv.
+- Write/Auth/Migration/Agent-Actions bleiben aus.
+- keine Secrets im Journal oder Output.
+
+Details stehen in:
+
+```text
+docs/current/REMOTE_DASHBOARD_RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING.md
+```
 
 ## Aktueller fachlicher Alt-TODO
 
@@ -121,11 +145,15 @@ Wichtig fuer diesen spaeteren Step:
 
 ## Naechster sinnvoller Projektstep
 
+Nach bestaetigtem RDAP5J-Test: StepDone mit Hinweis auf Monitoring/Hardening, Service aktiv, Node lokal gebunden, API/DB-Lesetest ok und read-only unveraendert.
+
+Danach optional separat planen:
+
 ```text
-RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING
+RDAP4B_REMOTE_AGENT_RDAP5C3_ROLE_GROUP_REVISION
 ```
 
-Alternativ spaeter:
+oder:
 
 ```text
 RDAP6_AUTH_DB_MIGRATION_PREP
