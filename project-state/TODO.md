@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION  
+Stand: RDAP6F_PREP_DOC_STATUS_SYNC  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -29,37 +29,42 @@ Datum: 2026-06-23
 - [x] RDAP5I systemd-Service installiert und gestartet
 - [x] RDAP5I nginx-Proxy ueber ISPConfig nginx Directives eingerichtet
 - [x] RDAP5I HTTPS-Healthchecks erfolgreich
+- [x] RDAP5J Remote Node Monitoring/Hardening abgeschlossen
+- [x] RDAP4B -> RDAP5C3 `backend/modules/remote_agent.js` korrigiert
+- [x] `sound_profi` im Remote-Agent nicht mehr als Rolle gefuehrt
+- [x] `sound_profi` im Remote-Agent als Gruppe/Marker dokumentiert
+- [x] RDAP6C Auth-DB-Migrationsskript-Paket vorbereitet
+- [x] RDAP6D Test-DB-Ausfuehrungsanleitung vorbereitet
+- [x] RDAP6D Testdatenbanklauf auf Webserver durchgefuehrt
+- [x] RDAP6E Test-DB-Ergebnis ausgewertet und dokumentiert
+- [x] RDAP6F_PREP_DOC_STATUS_SYNC vorbereitet: zentrale Projektstatus-Dokus auf echten Stand gebracht
 
 ## Wichtige Korrektur
 
 - [x] DB_USER/DB_NAME-Verwechslung erkannt
 - [x] Echt bestaetigt: `DB_USER=c1stream_control`
 - [x] Echt bestaetigt: `DB_NAME=c3stream_control`
-- [ ] Alte Doku-Stellen mit vertauschter Angabe korrigieren/uebersteuern
+- [x] Aktuelle zentrale Doku-Dateien mit korrigierter Angabe aktualisiert
 
-## Noch sofort offen
+## Noch offen / als naechstes
 
-- [ ] `systemctl is-enabled scc-remote-modboard.service` pruefen
-- [ ] `systemctl is-active scc-remote-modboard.service` pruefen
-- [ ] `journalctl -u scc-remote-modboard.service -n 30 --no-pager` pruefen
-- [ ] RDAP5I-Doku final in GitHub/dev einspielen
-- [ ] Neuen Chat-Prompt mit aktuellem Live-Stand speichern
+### RDAP6F Auth DB Integration Plan
 
-## Verbindlicher TODO aus RDAP5F
-
-### RDAP4B remote_agent.js auf RDAP5C3 korrigieren
-
-- [ ] `backend/modules/remote_agent.js` pruefen und spaeter auf RDAP5C3 Rollen-/Gruppenmodell korrigieren
-- [ ] `sound_profi` darf dort nicht mehr als Rolle gefuehrt werden
-- [ ] `sound_profi` darf dort kein festes globales Permission-Preset mehr sein
-- [ ] `sound_profi` muss als Gruppe/Markierung behandelt werden
-- [ ] Modulrechte muessen ueber `target_type` + `target_key` / Modulmatrix gedacht werden
-- [ ] Bestehende read-only RDAP4B-Routen duerfen bei der Korrektur nicht entfernt werden
-- [ ] Korrektur erst nach eigenem Scope und Forrests ausdruecklichem Go
+- [ ] Ziel-DB fuer Remote-Dashboard/Auth festlegen
+- [ ] klaeren, ob `scc_rdap6_test` reine Test-DB bleibt
+- [ ] klaeren, welche echte DB-Struktur fuer Remote-Modboard/Auth genutzt wird
+- [ ] minimale Backend-Anbindung planen
+- [ ] Login-/Session-Konzept planen, aber noch nicht aktivieren
+- [ ] serverseitige Permission-Pruefung planen
+- [ ] Lock-/Audit-Grundregeln fuer spaetere Schreibfunktionen planen
+- [ ] keine Auth-Aktivierung ohne separaten Plan und ausdrueckliches Go
 
 ## Dauerhaft beachten
 
 - [ ] bekannte Infos nicht unnoetig doppelt und dreifach abfragen
+- [ ] nur EIN Arbeitsort pro Schritt
+- [ ] vor Befehlen sagen: Wo ausfuehren, was macht der Befehl, wann stoppen, welche Ausgabe schicken
+- [ ] maximal ein Befehlsblock pro Antwort
 - [ ] keine produktive SQLite loeschen/ersetzen
 - [ ] keine MariaDB ohne Backup-/Migrationsplan beschreiben
 - [ ] keine alten Dashboard-Dateien blind umbauen

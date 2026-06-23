@@ -1,11 +1,23 @@
 # CURRENT STATUS
 
-Stand: RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION  
+Stand: RDAP6F_PREP_DOC_STATUS_SYNC  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP5I wurde erfolgreich live umgesetzt.
+Der RDAP-Dokumentationsstand wurde auf den echten GitHub/dev- und lokalen Repo-Stand synchronisiert.
+
+Fertig und getestet:
+
+```text
+RDAP5I Remote-Modboard Node-Basisdienst read-only live
+RDAP5J Remote Node Monitoring/Hardening
+RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
+RDAP6D Testdatenbanklauf auf Webserver bestanden
+RDAP6E Test-DB-Auswertung dokumentiert
+```
+
+## Remote-Modboard read-only live
 
 Der Remote-Modboard-Node-Basisdienst laeuft read-only auf dem Webserver:
 
@@ -16,21 +28,16 @@ Service: scc-remote-modboard.service
 Listen intern: 127.0.0.1:3010
 ```
 
-## Live verfuegbare Routen
+Live verfuegbare Routen:
 
 ```text
 GET https://mods.forrestcgn.de/api/remote/health
 GET https://mods.forrestcgn.de/api/remote/status
 GET https://mods.forrestcgn.de/api/remote/routes
-```
-
-Mit DB-Lesetest:
-
-```text
 GET https://mods.forrestcgn.de/api/remote/health?db=1
 ```
 
-## Bestaetigte Health-Werte
+Bestaetigte Health-Werte:
 
 ```text
 ok: true
@@ -65,7 +72,7 @@ dotenv: 17.4.2
 /etc/systemd/system/scc-remote-modboard.service
 ```
 
-## Service-User
+Service-User:
 
 ```text
 sccremote
@@ -73,7 +80,7 @@ sccremote
 
 Node-Service laeuft nicht als root.
 
-## Wichtige DB-Korrektur
+## Webserver-DB final korrigiert
 
 Fruehere Doku hatte DB_USER und DB_NAME vertauscht.
 
@@ -91,30 +98,16 @@ DB_USER=c3stream_control
 DB_NAME=c1stream_control
 ```
 
-## nginx / ISPConfig
+Passwort wird nicht dokumentiert und darf nicht ins Repo, Frontend oder Chat.
 
-Die nginx-Einbindung wurde ueber ISPConfig im Feld `nginx Directives` der Website `forrestcgn.de` umgesetzt.
+## Remote-Agent / Rollen-/Gruppenmodell
 
-Block:
+`backend/modules/remote_agent.js` steht auf:
 
-```nginx
-location ^~ /api/remote/ {
-    proxy_pass http://127.0.0.1:3010/api/remote/;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_read_timeout 30s;
-    proxy_connect_timeout 5s;
-    proxy_send_timeout 30s;
-}
+```text
+moduleVersion: 0.0.3
+moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ```
-
-`nginx -t` war erfolgreich, danach wurde `systemctl reload nginx` ausgefuehrt.
-
-## Rollen-/Gruppenmodell
 
 Fuehrend bleibt RDAP5C3:
 
@@ -126,21 +119,54 @@ sound_profi ist eine Gruppe / Markierung.
 Modulrechte werden pro Modul konfiguriert.
 ```
 
-Der Remote-Status bestaetigt:
+Der Remote-Agent bleibt read-only.
+
+## RDAP6D / RDAP6E Test-DB-Ergebnis
+
+Der RDAP6D-Testlauf wurde auf dem Webserver durchgeführt.
 
 ```text
-soundProfiIsRole: false
-soundProfiIsGroupMarker: true
-modulePermissionMatrixUsesTargetTypeAndTargetKey: true
+Server: web.cgn.community
+Pfad: /root/rdap6-test/stream-control-center
+DB: scc_rdap6_test
+Ergebnisdatei auf Server:
+_tmp/rdap6d_webserver_test_output/RDAP6D_TEST_RESULT_FILLED.md
+```
+
+Ausgeführt wurden:
+
+```text
+db/rdap6c/sql/001_rdap6c_schema_migration.sql
+db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
+db/rdap6c/checks/rdap6c_validation_queries.sql
+```
+
+Ergebnis:
+
+```text
+RDAP6D Testdatenbanklauf bestanden: ja
+Produktivlauf freigegeben: nein
+```
+
+Wichtige Validierungswerte:
+
+```text
+sound_profi_role_count = 0
+sound_profi_group_marker_count = 1
+sound_profi_role_permission_count = 0
+module_permission_table_rows = 0
+session_rows = 0
+lock_rows = 0
+audit_rows = 0
 ```
 
 ## Nicht umgesetzt
 
 ```text
-keine DB-Migration
-keine MariaDB-Schreibaktion
+keine produktive DB-Migration
+keine MariaDB-Schreibaktion auf Ziel-/Produktiv-DB
 kein Auth/Login
-keine Sessions
+keine produktiven Sessions
 kein produktiver WSS-Agent
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
@@ -149,30 +175,38 @@ keine freie Shell-/Datei-/Prozesssteuerung
 keine Secrets im Repo oder Frontend
 ```
 
-## Noch offen / als naechstes
+## Wichtiger Doku-Hinweis
+
+Einige Dateinamen aus Zwischen-Prompts existieren nicht in GitHub/dev und nicht lokal. Sie duerfen nicht als Pflichtdateien vorausgesetzt werden.
+
+Nicht vorhandene Zwischenstand-Dateien:
 
 ```text
-systemctl is-enabled scc-remote-modboard.service
-systemctl is-active scc-remote-modboard.service
-journalctl -u scc-remote-modboard.service -n 30 --no-pager
+docs/current/RDAP_STATUS_AND_NEXT_STEPS_2026-06-23.md
+docs/current/RDAP5J_LIVE_TEST_RESULT_2026-06-23.md
+docs/current/RDAP4B_REMOTE_AGENT_RDAP5C3_LIVE_TEST_RESULT_2026-06-23.md
+docs/current/RDAP6_AUTH_DB_MIGRATION_PREP_PLAN.md
+docs/current/RDAP6B_TEST_DB_DRY_RUN_RUNBOOK.md
 ```
 
-Danach Doku finalisieren und GitHub/dev aktualisieren.
+Belastbar vorhanden und fuer RDAP6F relevant:
+
+```text
+docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
+docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
+docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
+```
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP5I_DOCS_FINALIZE_REMOTE_READONLY_LIVE
+RDAP6F_AUTH_DB_INTEGRATION_PLAN
 ```
 
-Danach moeglich:
+Ziel:
 
 ```text
-RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING
+Planen, wie die getesteten Auth-/Rollen-/Gruppen-/Permission-/Session-/Lock-/Audit-Tabellen in die echte Remote-Dashboard-/Webserver-Struktur eingebunden werden.
 ```
 
-oder nach separatem Plan:
-
-```text
-RDAP6_AUTH_DB_MIGRATION_PREP
-```
+RDAP6F bleibt ein Planungsstep. Keine Auth-Aktivierung ohne finales Login-/Session-Konzept und klares Ziel-DB-Konzept.

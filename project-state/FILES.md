@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION  
+Stand: RDAP6F_PREP_DOC_STATUS_SYNC  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -14,7 +14,7 @@ project-state/TODO.md
 project-state/FILES.md
 ```
 
-## Aktuelle RDAP-Dateien
+## Aktuelle RDAP-Dateien im Repo
 
 ```text
 docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
@@ -28,7 +28,25 @@ docs/current/REMOTE_DASHBOARD_RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE.md
 docs/current/REMOTE_DASHBOARD_RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE.md
 docs/current/REMOTE_DASHBOARD_RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION.md
+docs/current/RDAP6A_AUTH_DB_SCHEMA_DRY_RUN_PACKAGE.md
+docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
+docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
+docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
 ```
+
+## Nicht vorhandene Zwischenstand-Dateien aus alten Prompts
+
+Diese Dateien sind in GitHub/dev und lokal nicht vorhanden und duerfen nicht als Pflichtdateien vorausgesetzt werden:
+
+```text
+docs/current/RDAP_STATUS_AND_NEXT_STEPS_2026-06-23.md
+docs/current/RDAP5J_LIVE_TEST_RESULT_2026-06-23.md
+docs/current/RDAP4B_REMOTE_AGENT_RDAP5C3_LIVE_TEST_RESULT_2026-06-23.md
+docs/current/RDAP6_AUTH_DB_MIGRATION_PREP_PLAN.md
+docs/current/RDAP6B_TEST_DB_DRY_RUN_RUNBOOK.md
+```
+
+Wenn diese Inhalte spaeter wirklich benoetigt werden, muessen sie neu aus dem echten Stand heraus dokumentiert werden. Nicht aus Erinnerung nachbauen.
 
 ## Remote-Modboard Paket im Repo
 
@@ -54,6 +72,20 @@ remote-modboard/deploy/systemd/scc-remote-modboard.service.example
 remote-modboard/deploy/nginx/mods.forrestcgn.de.remote-api.example.conf
 remote-modboard/deploy/env/remote-modboard.env.example
 remote-modboard/deploy/scripts/README_COMMANDS.md
+```
+
+## RDAP6 SQL-/Runbook-Dateien im Repo
+
+```text
+db/rdap6c/README.md
+db/rdap6c/sql/001_rdap6c_schema_migration.sql
+db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
+db/rdap6c/checks/rdap6c_validation_queries.sql
+db/rdap6c/runbooks/RDAP6C_BACKUP_RESTORE_RUNBOOK.md
+db/rdap6d/README.md
+db/rdap6d/runbooks/RDAP6D_TEST_DB_EXECUTION_RUNBOOK.md
+db/rdap6d/checks/RDAP6D_EXPECTED_RESULTS.md
+db/rdap6d/templates/RDAP6D_TEST_RESULT_TEMPLATE.md
 ```
 
 ## Installierte Dateien auf Webserver
@@ -130,17 +162,31 @@ Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
 
 ```text
 backend/server.js
-backend/modules/remote_agent.js
 Root-package.json
 lokale SQLite
-Stream-PC Backend
+Stream-PC Backend ausser dokumentiertem read-only remote_agent.js Stand
 Dashboard-v2 Code
+OBS-/Sound-/Overlay-Systeme
 ```
 
-## Wichtiger Altstand / spaeterer Korrekturpunkt
+## Remote-Agent Stand
 
 ```text
 backend/modules/remote_agent.js
 ```
 
-Diese Datei ist noch RDAP4B-Stand und fuehrt `sound_profi` als Rolle/Permission-Preset. Das ist seit RDAP5C3 ueberholt und steht verbindlich in TODO.md.
+Aktueller Stand:
+
+```text
+moduleVersion: 0.0.3
+moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
+```
+
+Wichtig:
+
+```text
+sound_profi ist keine Rolle.
+sound_profi ist Gruppe/Marker.
+sound_profi vergibt selbst keine globalen Rechte.
+Remote-Agent bleibt read-only.
+```

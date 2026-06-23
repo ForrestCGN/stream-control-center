@@ -1,93 +1,97 @@
 # NEXT STEPS
 
-Stand: RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION  
+Stand: RDAP6F_PREP_DOC_STATUS_SYNC  
 Datum: 2026-06-23
 
 ## Aktueller Stand
 
-RDAP5I ist technisch live read-only erfolgreich:
+Fertig und getestet:
 
 ```text
-https://mods.forrestcgn.de/api/remote/health?db=1
-https://mods.forrestcgn.de/api/remote/status
-https://mods.forrestcgn.de/api/remote/routes
+RDAP5I Remote-Modboard Node-Basisdienst read-only live
+RDAP5J Remote Node Monitoring/Hardening
+RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
+RDAP6D Testdatenbanklauf auf Webserver bestanden
+RDAP6E Test-DB-Auswertung dokumentiert
 ```
 
-Bestaetigt:
+RDAP6E bestaetigt:
 
 ```text
-ok: true
-readOnly: true
-writeEnabled: false
-database.reachable: true
-agent.enabled: false
-agent.actionsEnabled: false
+Schema erfolgreich: ja
+Seeds erfolgreich: ja
+Validation Queries erfolgreich: ja
+RDAP6D Testdatenbanklauf bestanden: ja
+Produktivlauf freigegeben: nein
 ```
 
 ## Sofort naechster Schritt
 
 ```text
-RDAP5I_DOCS_FINALIZE_REMOTE_READONLY_LIVE
+RDAP6F_AUTH_DB_INTEGRATION_PLAN
 ```
 
-Ziel:
+## Ziel RDAP6F
+
+Planen, wie die getesteten Auth-/Rollen-/Gruppen-/Permission-/Session-/Lock-/Audit-Tabellen in die echte Remote-Dashboard-/Webserver-Struktur eingebunden werden.
+
+RDAP6F darf noch keine Auth aktivieren, solange Login-/Session-Konzept und Ziel-DB nicht final klar sind.
+
+## RDAP6F Scope
 
 ```text
-Live-Installation final dokumentieren
-DB_USER/DB_NAME-Korrektur in allen relevanten Projektdateien festhalten
-systemd/nginx/ISPConfig/Healthcheck-Ergebnisse dokumentieren
-Prompt fuer neuen Chat aktualisieren
+- GitHub/dev und vorhandene RDAP6E-Doku pruefen
+- aktuelle Webserver-/MariaDB-/Repo-Struktur pruefen
+- Ziel-DB festlegen: Test-DB behalten, neue echte Dashboard-DB oder bestehende Remote-DB-Struktur
+- minimale Backend-Anbindung planen
+- Tabellen-/Helper-Zuständigkeit planen
+- Login-/Session-Konzept als eigenen Folgeschritt vorbereiten
+- Permission-Checks serverseitig planen
+- Lock-/Audit-Grundregeln fuer spaetere Schreibfunktionen planen
 ```
 
-## Noch auszufuehrende Abschlusspruefungen
-
-Auf `web.cgn.community`:
-
-```bash
-systemctl is-enabled scc-remote-modboard.service
-systemctl is-active scc-remote-modboard.service
-journalctl -u scc-remote-modboard.service -n 30 --no-pager
-```
-
-Erwartung:
+## RDAP6F Nicht-Aenderungen
 
 ```text
-enabled
-active
-keine Fehler im Journal
+keine produktive SQLite
+keine Remote-Agent-Schreibaktionen
+keine OBS-/Sound-/Overlay-Steuerung
+keine Secrets
+keine Rollenzusammenführung
+keine sound_profi-Rolle
+keine Auth-Aktivierung
+keine produktiven Sessions
+keine produktiven Agent-Actions
+keine freie Shell-/Datei-/Prozesssteuerung
 ```
 
-## Danach moegliche Schritte
+## Vor RDAP6F beachten
 
-### Option A: RDAP5J Remote Node Monitoring and Hardening
+Nur EIN Arbeitsort pro Schritt.
+
+Vor jedem Befehl klar sagen:
 
 ```text
-Service-Logs/Monitoring pruefen
-nginx/API-Sicherheitsheader planen
-Rate-Limit fuer /api/remote/ planen
-Healthcheck-Monitoring planen
-systemd-Hardening pruefen
-Rollback-Doku finalisieren
+Wo ausführen: PowerShell lokal ODER Server-Konsole ODER MariaDB-Konsole.
+Was macht der Befehl?
+Wann stoppen?
+Welche Ausgabe soll Forrest schicken?
 ```
 
-Keine Auth/DB-Migration.
+Maximal ein Befehlsblock pro Antwort. Danach auf Ausgabe warten.
 
-### Option B: RDAP6 Auth DB Migration Prep
+## Erwartetes RDAP6F-Ergebnis
 
-Nur nach separatem Go und eigener Planung.
+Eine Plan-/Entscheidungsdoku, noch kein Produktivcode:
 
 ```text
-MariaDB-Migrationsplan vorbereiten
-schema_migrations planen
-User-/Twitch-/Rollen-/Gruppen-/Modulmatrix-Tabellen vorbereiten
-keine Schreibmigration ohne Backup und weiteres Go
+docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
 ```
 
-## RDAP5I darf als erledigt gelten, wenn
+Optional danach erst mit separatem Go:
 
 ```text
-systemd enabled/active bestaetigt
-Journal ohne Fehler bestaetigt
-GitHub/dev Doku aktualisiert
-DB_USER/DB_NAME-Korrektur ueberall dokumentiert
+RDAP6G_AUTH_BACKEND_READONLY_DB_BRIDGE_PLAN
 ```
+
+oder aehnlich, aber erst wenn RDAP6F sauber entschieden ist.

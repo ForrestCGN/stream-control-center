@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP5C4_KNOWN_REMOTE_SERVER_FACTS_AND_NEXT_CHAT_HANDOFF
+Aktueller Stand: RDAP6F_PREP_DOC_STATUS_SYNC
 
 ## Diese Datei zuerst lesen
 
@@ -20,19 +20,12 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
-docs/current/DASHBOARD_V2_REACT_V13_ALIGNMENT.md
-docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
-docs/current/REMOTE_DASHBOARD_RDAP5_AUTH_USER_MODEL_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP5A_TWITCH_BASE_ACCESS_NO_VIP_DASHBOARD.md
-docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP5C_AUTH_DB_MIGRATION_DESIGN.md
-docs/current/REMOTE_DASHBOARD_RDAP5C2_SIMPLE_ROLE_AND_MODULE_PERMISSION_MODEL.md
-docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
-docs/current/REMOTE_DASHBOARD_RDAP5C4_KNOWN_REMOTE_SERVER_FACTS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5E_REMOTE_NODE_SERVICE_PLAN.md
+docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
+docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
+docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 ```
+
+Wenn eine Datei in GitHub/dev fehlt: nicht raten, exakt sagen welche Datei fehlt.
 
 ## Repository und Pfade
 
@@ -47,52 +40,72 @@ Neues Dashboard-v2 lokal: http://127.0.0.1:8080/dashboard-v2/
 Produktive lokale SQLite: D:\Streaming\stramAssets\data\sqlite\app.sqlite
 Remote-Modboard: https://mods.forrestcgn.de
 Remote-Webserver: web.cgn.community
+Server-Testpfad zuletzt: /root/rdap6-test/stream-control-center
 Übergabe-ZIPs bevorzugt: D:\Git\stream-control-center\_handoff\
 Downloads: %USERPROFILE%\Downloads
 ```
 
 ## Aktueller bestätigter Stand
 
-RDAP5C4 korrigiert den Übergabestand:
+Fertig und getestet:
 
 ```text
-Node/npm/git/MariaDB-Client sind auf dem Webserver bereits bekannt vorhanden.
-RDAP5D als reiner Node-Check ist nicht mehr der nächste Hauptstep.
-Nächster sinnvoller Hauptstep ist RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN.
+RDAP5I Remote-Modboard Node-Basisdienst read-only live
+RDAP5J Remote Node Monitoring/Hardening
+RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
+RDAP6D Testdatenbanklauf auf Webserver bestanden
+RDAP6E Test-DB-Auswertung dokumentiert
 ```
 
-## Bekannter Webserver-Stand
+Wichtig: Einige ältere Prompt-/Status-Dateinamen aus Zwischenständen existieren nicht in GitHub/dev. Der belastbare aktuelle Doku-Stand basiert auf den vorhandenen Dateien in `docs/current` und `project-state`, besonders `RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md`.
+
+## Remote-Modboard / Webserver-Stand
 
 ```text
 Webserver: web.cgn.community
-Subdomain: mods.forrestcgn.de
-OS: Debian 13
-nginx vorhanden
-HTTPS / HTTP2 läuft
-mods.forrestcgn.de liefert 200 OK
-Node v20.19.2 vorhanden
-npm 9.2.0 vorhanden
-git vorhanden
-MariaDB-Client vorhanden
-noch kein produktiver Node-Service
-noch kein Reverse Proxy fuer Remote-API
-noch kein Remote-Agent
+Subdomain/API: https://mods.forrestcgn.de/api/remote/
+Service: scc-remote-modboard.service
+Listen intern: 127.0.0.1:3010
+Node: v20.19.2
+npm: 9.2.0
+MariaDB: 11.8.6
 ```
 
-Ein kurzer Gegencheck direkt vor Installation/Deployment ist erlaubt, aber nicht wieder alles doppelt planen.
+Live verfuegbare Read-only-Routen:
+
+```text
+GET https://mods.forrestcgn.de/api/remote/health
+GET https://mods.forrestcgn.de/api/remote/status
+GET https://mods.forrestcgn.de/api/remote/routes
+GET https://mods.forrestcgn.de/api/remote/health?db=1
+```
+
+Bewusst weiterhin nicht aktiv:
+
+```text
+keine Remote-Writes
+keine produktiven Agent-Actions
+kein produktiver WSS-Agent
+keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine Datei-/Shell-/Prozesssteuerung
+keine Secrets im Repo oder Frontend
+```
 
 ## Webserver-DB
 
+Final korrigiert:
+
 ```text
-DB-Typ: MySQL/MariaDB
-DB-Name: c1stream_control
-DB-User: c3stream_control
+DB-Typ: MariaDB
+Version: 11.8.6
+DB-Name: c3stream_control
+DB-User: c1stream_control
 Remote Access: aus
 Charset: utf8mb4
 Backup: woechentlich
 ```
 
-Passwort wird nicht dokumentiert und darf nicht ins Repo oder Frontend.
+Passwort wird nicht dokumentiert und darf nicht ins Repo, Frontend oder Chat.
 
 ## Lokale SQLite bleibt unverändert
 
@@ -123,7 +136,7 @@ vip      -> kein Dashboard-Basiszugang, nur Community/Website
 Manuell vergebene Dashboard-Rollen:
 
 ```text
-leadmod
+lead_mod
 admin
 owner
 spaeter eigene Rollen optional
@@ -145,55 +158,71 @@ sound_profi ist keine Rolle.
 sound_profi ist keine feste Rechte-Sammlung.
 sound_profi ist eine Gruppe / Markierung.
 Modulrechte werden pro Modul konfiguriert.
+Rechte werden serverseitig geprüft, nicht frontendseitig.
 ```
 
-## Revidiertes DB-Konzept
+## RDAP6D / RDAP6E Ergebnis
 
-Geplante Tabellen:
+Der RDAP6D-Testlauf wurde auf dem Webserver durchgeführt.
 
 ```text
-schema_migrations
-dashboard_users
-dashboard_twitch_status
-dashboard_roles
-dashboard_user_roles
-dashboard_groups
-dashboard_user_groups
-dashboard_permissions
-dashboard_module_permission_matrix
-dashboard_user_permission_overrides
-dashboard_sessions
-dashboard_locks
-dashboard_audit_log
-agent_registry
+Server: web.cgn.community
+Pfad: /root/rdap6-test/stream-control-center
+DB: scc_rdap6_test
+Ergebnisdatei auf Server:
+_tmp/rdap6d_webserver_test_output/RDAP6D_TEST_RESULT_FILLED.md
 ```
 
-Wichtig:
+Ausgeführt wurden:
 
 ```text
-dashboard_role_permissions ist nicht mehr starres Hauptmodell.
-Modulmatrix nutzt target_type + target_key.
-Keine festen Spalten wie default_for_sound_profi.
-Neue Rollen/Gruppen spaeter ohne DB-Schema-Aenderung moeglich.
+db/rdap6c/sql/001_rdap6c_schema_migration.sql
+db/rdap6c/sql/002_rdap6c_seed_roles_groups_permissions.sql
+db/rdap6c/checks/rdap6c_validation_queries.sql
 ```
 
-## Weiterhin bewusst nicht aktiv
+Ergebnis:
 
 ```text
-kein produktiver Remote-Modboard-Node-Service
-kein produktiver WSS-Agent
-keine Agent-Actions
-keine Schreibroute
-keine DB-Migration
-keine OBS-Steuerung
-keine Sound-Steuerung
-keine Overlay-Steuerung
-keine Commands-/Kanalpunkte-Steuerung
-keine Datei-/Shell-/Prozesssteuerung
-kein Login/Auth-Code
-keine Secrets im Repo oder Frontend
-kein npm install
-keine nginx-/Service-Aenderung
+RDAP6D Testdatenbanklauf bestanden: ja
+Produktivlauf freigegeben: nein
+```
+
+Wichtige Validierungswerte:
+
+```text
+sound_profi_role_count = 0
+sound_profi_group_marker_count = 1
+sound_profi_role_permission_count = 0
+module_permission_table_rows = 0
+session_rows = 0
+lock_rows = 0
+audit_rows = 0
+```
+
+## Nächster sinnvoller Schritt
+
+```text
+RDAP6F_AUTH_DB_INTEGRATION_PLAN
+```
+
+Ziel von RDAP6F:
+
+```text
+Planen, wie die getesteten Auth-/Rollen-/Gruppen-/Permission-/Session-/Lock-/Audit-Tabellen in die echte Remote-Dashboard-/Webserver-Struktur eingebunden werden.
+```
+
+RDAP6F darf noch keine Auth aktivieren, solange Login-/Session-Konzept und Ziel-DB nicht final klar sind.
+
+Nicht ändern:
+
+```text
+keine produktive SQLite
+keine Remote-Agent-Schreibaktionen
+keine OBS-/Sound-/Overlay-Steuerung
+keine Secrets
+keine Rollenzusammenführung
+keine sound_profi-Rolle
 ```
 
 ## Verbindliche Arbeitsweise
@@ -202,6 +231,9 @@ keine nginx-/Service-Aenderung
 - Nicht raten.
 - Nicht bekannte Infos doppelt und dreifach abfragen.
 - Wenn Dateien fehlen, exakt diese Dateien anfordern.
+- Nur EIN Arbeitsort pro Schritt.
+- Vor jedem Befehlsblock klar sagen: Wo ausführen, was macht der Befehl, wann stoppen, welche Ausgabe schicken.
+- Maximal ein Befehlsblock pro Antwort.
 - Vor Code-/ZIP-Änderungen Scope nennen:
   - Ziel
   - betroffene Dateien
@@ -218,18 +250,3 @@ keine nginx-/Service-Aenderung
 - Downloads liegen im normalen Downloads-Ordner.
 - `installstep.cmd` spielt ZIPs ein und startet `testdeploy.cmd`.
 - `stepdone.cmd` erst nach erfolgreichem Live-Test.
-- Bei Fehlern `stepundo.cmd` nutzen.
-
-## Nächster sinnvoller Schritt
-
-```text
-RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN
-```
-
-Ziel:
-
-```text
-Planen, wie der Remote-Modboard-Node-Service auf web.cgn.community fuer mods.forrestcgn.de aufgebaut wird.
-```
-
-Noch keine Installation, keine Migration, kein npm install, keine nginx-/Service-Aenderung.
