@@ -1,11 +1,15 @@
-# FILES
+# CHANGELOG DASHUI4 React-Vite-Prototyp
 
-Stand: DASHUI4 / Minimaler React-Vite-Prototyp gebaut  
-Datum: 2026-06-23
+Datum: 2026-06-23  
+Status: DASHUI4 / Minimaler React-Vite-Prototyp gebaut
 
-## Neue/aktualisierte Dateien in diesem Step
+## Zweck
 
-### Dashboard-v2 Quellcode
+Der Step erstellt die erste Quellcodebasis für Dashboard-v2 unter `frontend/dashboard-v2/`.
+
+## Geändert
+
+### Neu erstellt
 
 - `frontend/dashboard-v2/package.json`
 - `frontend/dashboard-v2/index.html`
@@ -32,54 +36,55 @@ Datum: 2026-06-23
 - `frontend/dashboard-v2/src/services/agentClient.js`
 - `frontend/dashboard-v2/src/styles/theme.css`
 - `frontend/dashboard-v2/src/styles/global.css`
-
-### Doku/Projektstatus
-
 - `docs/current/DASHBOARD_V2_REACT_VITE_PROTOTYPE.md`
-- `docs/current/DASHBOARD_V2_PARALLEL_MIGRATION_PLAN.md`
+- `project-state/CHANGELOG_DASHUI4_REACT_VITE_PROTOTYPE_2026-06-23.md`
+
+### Aktualisiert
+
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
-- `project-state/CHANGELOG_DASHUI4_REACT_VITE_PROTOTYPE_2026-06-23.md`
-- `project-state/CHANGELOG_DASHUI4B_SAFE_FILE_NAMES_2026-06-23.md`
 
-## Relevante vorhandene Doku-Dateien
+## Enthalten
 
-- `docs/current/START_HERE_FOR_NEW_CHAT.md`
-- `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`
-- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
-- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
-- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
-- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
-- `docs/current/DASHBOARD_V2_FRONTEND_TECH_DECISION.md`
+- React + Vite Grundgerüst
+- AppShell
+- Sidebar
+- Topbar
+- PageHeader
+- ModuleTabs
+- CGN-Dark-/Neon-/Galaxy-Basisdesign
+- Navigation-Registry
+- Modul-Registry
+- Beispielseite `Übersicht`
+- Beispielseite `Remote Agent`
+- Platzhalterseiten für spätere Module
+- vorbereitete Service-Dateien ohne produktive Actions
 
-## Bewusst nicht geändert
+## Nicht geändert
 
-- `htdocs/dashboard/`
-- `htdocs/dashboard-v2/`
-- `backend/`
-- `config/`
-- `htdocs/overlays/`
-- produktive SQLite
-- OBS
-- Webserver/systemd/nginx
+- kein Backend-Code
+- kein bestehendes lokales Dashboard unter `htdocs/dashboard/`
+- kein Build-Output unter `htdocs/dashboard-v2/`
+- kein Agent-Code
+- keine produktive SQLite
+- keine Projekt-Config
+- keine OBS-Quelle
+- kein Webserver-Deploy
+- kein Reverse Proxy
+- kein systemd-Service
+- kein lokaler Node-Neustart
 
-## Späterer Build-Output
-
-Noch nicht im ZIP enthalten:
+## Nächster sinnvoller Schritt
 
 ```text
-htdocs/dashboard-v2/
+DASHUI5 / Build- und lokaler Auslieferungsweg prüfen
 ```
 
-Dieser Ordner entsteht später durch:
+## Node-Neustart
 
-```powershell
-cd frontend/dashboard-v2
-npm run build
-```
+Nicht nötig.
+
+Grund: nur Frontend-Quellcode und Markdown-Doku. Kein laufender Node-/Backend-Code wurde geändert.

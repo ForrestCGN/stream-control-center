@@ -1,28 +1,40 @@
 # TODO
 
-Stand: DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan dokumentiert  
+Stand: DASHUI4 / Minimaler React-Vite-Prototyp gebaut  
 Datum: 2026-06-23
 
 ## Offen / als nächstes
 
-### DASHUI4 / Minimaler React-Vite-Prototyp
+### DASHUI5 / Build- und lokaler Auslieferungsweg prüfen
 
-- [ ] `frontend/dashboard-v2/` anlegen
-- [ ] React + Vite Grundgerüst bauen
-- [ ] AppShell bauen
-- [ ] Sidebar-Regel Hauptkategorie -> Modul umsetzen
-- [ ] Topbar mit `Hauptbereich` und `Modul • aktiver Tab` umsetzen
-- [ ] PageHeader bauen
-- [ ] ModuleTabs bauen
-- [ ] CGN-Tokens/Theme anlegen
-- [ ] Modul-Registry vorbereiten
-- [ ] Navigation-Registry vorbereiten
-- [ ] Beispielseite `Übersicht`
-- [ ] Beispielseite `Remote Agent`
-- [ ] keine produktive Modulmigration
-- [ ] keine Schreibfunktion
-- [ ] kein Login-Zwang
-- [ ] altes Dashboard nicht ändern
+- [ ] `cd frontend/dashboard-v2`
+- [ ] `npm install`
+- [ ] `npm run build`
+- [ ] prüfen, ob `htdocs/dashboard-v2/` erzeugt wird
+- [ ] prüfen, ob Assets korrekt referenziert werden
+- [ ] lokalen Aufruf über `/dashboard-v2/` prüfen
+- [ ] altes Dashboard unter `/dashboard` gegenprüfen
+- [ ] kein Backend ändern
+- [ ] keine produktiven Aktionen ausführen
+
+## DASHUI4 erledigt
+
+- [x] `frontend/dashboard-v2/` angelegt
+- [x] React + Vite Grundgerüst gebaut
+- [x] AppShell gebaut
+- [x] Sidebar-Regel Hauptkategorie -> Modul vorbereitet
+- [x] Topbar mit `Hauptbereich` und `Modul • aktiver Tab` gebaut
+- [x] PageHeader gebaut
+- [x] ModuleTabs gebaut
+- [x] CGN-Theme/Theme angelegt
+- [x] Modul-Registry vorbereitet
+- [x] Navigation-Registry vorbereitet
+- [x] Beispielseite `Übersicht`
+- [x] Beispielseite `Remote Agent`
+- [x] keine produktive Modulmigration
+- [x] keine Schreibfunktion
+- [x] kein Login-Zwang
+- [x] altes Dashboard nicht geändert
 
 ## Dashboard-v2 Migration
 

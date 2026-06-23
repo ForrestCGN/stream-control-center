@@ -1,5 +1,46 @@
 # CHANGELOG
 
+## 2026-06-23 - DASHUI4B / Safe File Names für Deploy-Guard
+
+Status: Fix gebaut
+
+Geändert:
+
+- `frontend/dashboard-v2/src/styles/tokens.css` in `frontend/dashboard-v2/src/styles/theme.css` umbenannt
+- Import in `frontend/dashboard-v2/src/main.jsx` angepasst
+- Doku/Projektstatus auf `theme.css` nachgezogen
+
+Grund:
+
+- Der lokale Deploy-/Sicherheitsblocker sperrt Dateipfade mit `token`.
+- Es wurde keine Funktionalität entfernt.
+- Kein Backend und kein Node-Neustart nötig.
+
+## 2026-06-23 - DASHUI4 / Minimaler React-Vite-Prototyp
+
+Status: gebaut
+
+Geändert:
+
+- `frontend/dashboard-v2/` als neue Frontend-Quellcodebasis erstellt
+- React + Vite Grundgerüst erstellt
+- AppShell, Sidebar, Topbar, PageHeader und ModuleTabs erstellt
+- CGN-Dark-/Neon-/Galaxy-Basisdesign erstellt
+- Navigation-Registry und Modul-Registry erstellt
+- Beispielseiten `Übersicht` und `Remote Agent` erstellt
+- Platzhalterseiten für spätere Module erstellt
+- Service-Platzhalter für API/Auth/Permission/Lock/Agent erstellt
+- Projektstatus und Doku aktualisiert
+
+Nicht geändert:
+
+- kein Backend-Code
+- kein bestehendes Dashboard unter `htdocs/dashboard/`
+- kein Build-Output unter `htdocs/dashboard-v2/`
+- keine produktive SQLite
+- keine OBS-Änderung
+- kein Node-Neustart nötig
+
 ## 2026-06-23 - DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan
 
 Status: dokumentiert

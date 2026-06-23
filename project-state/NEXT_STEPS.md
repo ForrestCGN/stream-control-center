@@ -1,56 +1,29 @@
 # NEXT STEPS
 
-Stand: DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan dokumentiert  
+Stand: DASHUI4 / Minimaler React-Vite-Prototyp gebaut  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-DASHUI4 / Minimaler React-Vite-Prototyp
+DASHUI5 / Build- und lokaler Auslieferungsweg prüfen
 ```
 
 Ziel:
 
-- `frontend/dashboard-v2/` als neue Frontend-Quellcode-Basis anlegen
-- React + Vite Grundgerüst erstellen
-- AppShell mit Sidebar/Topbar/PageHeader/ModuleTabs bauen
-- CGN-Dark-/Neon-/Galaxy-Basisdesign anlegen
-- zentrale Theme-/Token-Dateien anlegen
-- Modul-/Navigation-Registry vorbereiten
-- Beispielseite `Übersicht` bauen
-- Beispielseite `Remote Agent` bauen
-- keine produktive Modulmigration
-- keine Schreibfunktionen
-- kein Login-Zwang
+- `frontend/dashboard-v2/` installieren
+- `npm install` ausführen
+- `npm run build` ausführen
+- prüfen, ob `htdocs/dashboard-v2/` korrekt entsteht
+- prüfen, ob der lokale Server die Seite später unter `/dashboard-v2/` ausliefern kann
+- keine produktiven Aktionen
 - kein altes Dashboard ändern
 - kein Backend ändern
-- kein Agent-Code
-
-Wichtig:
-
-- DASHUI4 ist der erste Code-Step für Dashboard-v2.
-- Umsetzung nur nach explizitem `go`.
-- ZIP muss echte Zielpfade ab Repo-Root enthalten.
-- Node-/Backend-Neustart ist nur nötig, wenn Backend-Dateien geändert werden. Für reinen Frontend-Quellcode noch nicht.
-- Bestehendes Dashboard unter `htdocs/dashboard/` bleibt unangetastet.
 
 ## Danach sinnvoll
 
 ```text
-DASHUI5 / Build- und Deploy-Weg für dashboard-v2 planen oder bauen
-```
-
-Mögliche Ziele:
-
-- Build-Output nach `htdocs/dashboard-v2/`
-- lokaler Aufruf unter `http://127.0.0.1:8080/dashboard-v2`
-- keine produktiven Aktionen
-- kein Remote-Webserver-Deploy ohne separaten Step
-
-## Danach sinnvoll
-
-```text
-DASHUI6 / erste read-only Statusseite
+DASHUI6 / erste read-only Statusseite mit echter API-Anbindung
 ```
 
 Mögliche Kandidaten:
@@ -65,6 +38,18 @@ Regel:
 - zuerst read-only
 - keine Speichern-/Start-/Stop-/Löschen-Aktion
 - keine produktive Modulmigration
+
+## Danach sinnvoll
+
+```text
+DASHUI7 / Auth-/Permission-Platzhalter sauber an Webserver-Plan angleichen
+```
+
+Nicht zu früh:
+
+- kein hartes Login im lokalen Prototyp, bevor Webserver-Auth geplant ist
+- keine echten Sicherheitsentscheidungen im Frontend
+- keine Secrets ins Frontend
 
 ## Modulmigration später
 

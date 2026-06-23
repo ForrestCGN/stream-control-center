@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-Stand: DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan dokumentiert  
+Stand: DASHUI4 / Minimaler React-Vite-Prototyp gebaut  
 Datum: 2026-06-23
 
 ## Aktueller Runtime-Stand
@@ -16,34 +16,43 @@ Central Event Overlay:
 - Overlay ist am Communication Bus verbunden.
 - Kein separates HypeTrain-Overlay-System wird gebaut.
 
-## Aktueller Remote-/Dashboard-v2-Planungsstand
+## Aktueller Dashboard-v2-Stand
 
-Aktueller dokumentierter Planungsstand:
+Aktueller dokumentierter und gebauter Planungs-/Prototypstand:
 
 ```text
-DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan dokumentiert
+DASHUI4 / Minimaler React-Vite-Prototyp gebaut
 ```
 
-Dieser Step dokumentiert:
+Dieser Step erstellt erstmals Quellcode unter:
 
-- altes Dashboard bleibt produktiv unter `http://127.0.0.1:8080/dashboard`
-- neues Dashboard-v2 entsteht parallel unter `http://127.0.0.1:8080/dashboard-v2`
-- kein Big-Bang-Umbau
-- keine blinde Ersetzung von `htdocs/dashboard/`
-- Migration erfolgt Modul für Modul
-- jedes Modul startet in v2 zuerst read-only
-- Schreibfunktionen erst mit Permission, Lock, resourceVersion, Confirm und Audit
-- Login wird gestuft eingeführt
-- Remote-Modboard bleibt Ziel unter `https://mods.forrestcgn.de`
+```text
+frontend/dashboard-v2/
+```
+
+Enthalten:
+
+- React + Vite Grundgerüst
+- AppShell
+- Sidebar
+- Topbar
+- PageHeader
+- ModuleTabs
+- CGN-Dark-/Neon-/Galaxy-Basisdesign
+- Navigation-Registry
+- Modul-Registry
+- Beispielseite `Übersicht`
+- Beispielseite `Remote Agent`
+- Platzhalterseiten für geplante Module
+- vorbereitete Service-Dateien ohne produktive Aktionen
 
 ## Nicht geändert
 
-Durch DASHUI3.DOC1 wurde nichts an der Runtime geändert:
+Durch DASHUI4 wurde nichts an der Runtime geändert:
 
 - kein Backend-Code
-- kein bestehendes lokales Dashboard
-- kein Frontend-Code
-- kein React-/Vite-Projekt
+- kein bestehendes lokales Dashboard unter `htdocs/dashboard/`
+- kein Build-Output unter `htdocs/dashboard-v2/`
 - kein Agent-Code
 - keine produktive SQLite
 - keine Projekt-Config
@@ -55,38 +64,26 @@ Durch DASHUI3.DOC1 wurde nichts an der Runtime geändert:
 
 ## Aktuelle Architekturentscheidungen
 
-- Webserver ist langfristig öffentliche Dashboard-/Modboard-Zentrale.
-- Stream-PC-Agent wird sichere Brücke zum lokalen System.
-- Stream-PC bleibt produktive Runtime / Ausführer.
-- Lokales Backend bleibt produktiv auf `127.0.0.1:8080`.
-- Agent wird als separater Node-Prozess geplant.
-- Login, User, Rollen, Permissions und Modulfreigaben werden führend auf dem Webserver verwaltet.
-- Agent offline: Login/Lesen möglich, produktive Bearbeitung/Aktionen gesperrt.
-- Keine Offline-Queue.
-- Texte und Configs bleiben produktiv führend auf dem Stream-PC.
-- Produktive SQLite bleibt unangetastet.
+- Altes Dashboard bleibt produktiv unter `http://127.0.0.1:8080/dashboard`.
+- Dashboard-v2 entsteht parallel.
+- Dashboard-v2-Quellcode liegt unter `frontend/dashboard-v2/`.
+- Späterer Build-Output ist `htdocs/dashboard-v2/`.
+- Module werden einzeln migriert.
+- Jedes Modul startet zuerst read-only.
+- Schreibfunktionen erst mit Permission, Lock, resourceVersion, Confirm und Audit.
+- Remote-Modboard-Ziel bleibt `https://mods.forrestcgn.de`.
 
 ## Nächster sinnvoller Schritt
 
 ```text
-DASHUI4 / Minimaler React-Vite-Prototyp
+DASHUI5 / Build- und lokaler Auslieferungsweg prüfen
 ```
-
-DASHUI4 soll erst nach explizitem `go` gebaut werden.
 
 Ziel:
 
-- `frontend/dashboard-v2/` Grundgerüst
-- React + Vite
-- AppShell
-- Sidebar
-- Topbar
-- PageHeader
-- ModuleTabs
-- Beispielseite `Remote Agent`
-- Beispielseite `Übersicht`
-- zentrale Styles/Tokens
-- keine produktive Modulmigration
-- keine Schreibfunktion
-- kein Login-Zwang
+- Abhängigkeiten installieren
+- Vite-Build testen
+- Build nach `htdocs/dashboard-v2/` prüfen
+- lokalen Aufruf prüfen
 - kein altes Dashboard ändern
+- keine produktiven Aktionen
