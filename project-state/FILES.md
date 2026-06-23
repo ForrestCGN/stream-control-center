@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_LIVE_DEPLOY_BESTAETIGT  
+Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -12,12 +12,9 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
-docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
-docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
 docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
+docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -41,8 +38,11 @@ docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
 docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
+docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
+
+Hinweis: `docs/current/RDAP7H_CHAT_HANDOFF_AND_NEXT_PROMPT.md` und `docs/current/NEXT_CHAT_PROMPT_RDAP7I.txt` waren beim RDAP7I-Start nicht im GitHub/dev-Stand vorhanden.
 
 ## Remote-Modboard Paket im Repo
 
@@ -62,6 +62,7 @@ remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/db-health.service.js
 remote-modboard/backend/src/services/db.service.js
 remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/services/auth-session-read.service.js
 remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/src/security/safety.js
 ```
@@ -84,6 +85,18 @@ remote-modboard/backend/src/app.js
 remote-modboard/backend/src/routes/auth-twitch.routes.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/README.md
+```
+
+## RDAP7I geaenderte Remote-Modboard-Dateien
+
+```text
+remote-modboard/backend/package.json
+remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/services/auth-session-read.service.js
+remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/README.md
 ```
 
@@ -162,10 +175,11 @@ schema.ready: true
 readOnly: true
 writeEnabled: false
 authEnabled: false
+loginEnabled: false
 sessionCreationEnabled: false
 oauthStartRouteEnabled: false
 oauthCallbackRouteEnabled: false
-statusApiVersion: rdap7h.v1
+statusApiVersion erwartet nach RDAP7I Deploy: rdap7i.v1
 ```
 
 ## Webserver-Backups
@@ -174,6 +188,8 @@ statusApiVersion: rdap7h.v1
 /var/backups/stream-control-center/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED_remote-modboard-backend_20260623_213057.tar.gz
 /var/backups/stream-control-center/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_remote-modboard-backend_20260623_213951.tar.gz
 ```
+
+Vor RDAP7I Deploy neues Backup unter `/var/backups/stream-control-center/` erstellen.
 
 ## Lokale produktive SQLite
 
@@ -192,6 +208,11 @@ lokale SQLite
 Stream-PC Backend ausser dokumentiertem read-only remote_agent.js Stand
 Dashboard-v2 Code
 OBS-/Sound-/Overlay-Systeme
+remote-modboard/backend/server.js
+remote-modboard/backend/.env.example
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/auth-twitch.routes.js
+remote-modboard/backend/src/security/safety.js
 ```
 
 ## Remote-Agent Stand
@@ -205,5 +226,5 @@ moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ## Naechste geplante Datei
 
 ```text
-docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
+docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 ```

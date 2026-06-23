@@ -1,13 +1,13 @@
 # CURRENT STATUS
 
-Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_LIVE_DEPLOY_BESTAETIGT  
+Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
 RDAP7H ist abgeschlossen, lokal sauber, nach GitHub/dev gepusht und live auf dem Webserver deployed/getestet.
 
-RDAP7H stellt die spaeteren Twitch-OAuth-Start-/Callback-Pfade als disabled/read-only Skeleton bereit. Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Sessions und keine DB-Writes.
+RDAP7I bereitet den Session-Store-/Validation-Layer read-only vor. `dashboard_sessions` wird nur per SELECT diagnostisch/validierend gelesen. Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Session-Erstellung, keine Session-Verlaengerung, keine DB-Writes und keine Agent-Actions.
 
 ## Fertig und bestaetigt
 
@@ -35,6 +35,7 @@ RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
+RDAP7I Session Store Read-only Validation Layer vorbereitet
 ```
 
 ## Remote-Modboard read-only live
@@ -45,12 +46,12 @@ Subdomain/API: https://mods.forrestcgn.de/api/remote/
 Service: scc-remote-modboard.service
 Listen intern: 127.0.0.1:3010
 moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
-statusApiVersion live: rdap7h.v1
+statusApiVersion erwartet nach RDAP7I Deploy: rdap7i.v1
 ```
 
-Hinweis: `moduleBuild` ist noch der alte server.js-Buildname. Der tatsaechliche RDAP7H-Code wird ueber `statusApiVersion=rdap7h.v1` und die neuen Auth-/Routenfelder bestaetigt.
+Hinweis: `moduleBuild` ist noch der alte server.js-Buildname. Das ist kosmetisch und soll nur mit eigenem Mini-Scope angepasst werden.
 
-## Live verfuegbare Routen nach RDAP7H
+## Live verfuegbare Routen nach RDAP7I
 
 ```text
 GET https://mods.forrestcgn.de/api/remote/health
@@ -87,35 +88,55 @@ secretsInFrontend: false
 secretsLogged: false
 ```
 
-## RDAP7H Live-Test Ergebnis
+## RDAP7I erwartetes Test-Ergebnis
 
 Status:
 
 ```text
 status.ok: True
-statusApiVersion: rdap7h.v1
+statusApiVersion: rdap7i.v1
 auth.prepared: true
 auth.enabled: false
 auth.loginEnabled: false
-startRouteSkeletonPresent: true
-callbackRouteSkeletonPresent: true
-startRouteEnabled: false
-callbackRouteEnabled: false
-redirectToTwitch: false
-tokenExchangeEnabled: false
-sessions.effectiveEnabled: false
-sessions.createSession: false
-sessions.setCookie: false
+auth.sessions.storePrepared: true
+auth.sessions.readOnlyValidationPrepared: true
+auth.sessions.readOnlyValidationEnabled: true
+auth.sessions.readsDashboardSessions: true
+auth.sessions.createSession: false
+auth.sessions.setCookie: false
+auth.sessions.refreshSession: false
+auth.sessions.updateLastSeen: false
+auth.sessions.databaseWriteEnabled: false
 ```
 
-Routenliste:
+Session-Status ohne Cookie:
 
 ```text
-GET /api/remote/auth/twitch/start     enabled=false productive=false
-GET /api/remote/auth/twitch/callback  enabled=false productive=false
+ok: true
+statusApiVersion: rdap7i.v1
+session.cookiePresent: false
+session.lookupPerformed: false
+session.valid: false
+session.reason: no_session_cookie
+kein Set-Cookie
+keine DB-Writes
 ```
 
-Start-/Callback-Test:
+Session-Status mit Fake-Cookie:
+
+```text
+ok: true
+statusApiVersion: rdap7i.v1
+session.cookiePresent: true
+session.cookieValueFingerprint vorhanden
+session.valid: false
+session.reason: session_not_found oder DB/readiness-bezogener Fehler
+kein voller Cookie-Wert in Ausgabe
+kein Set-Cookie
+keine DB-Writes
+```
+
+Start-/Callback-Test bleibt:
 
 ```text
 HTTP/1.1 403 Forbidden
@@ -141,6 +162,8 @@ RDAP7H Backup:
 /var/backups/stream-control-center/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_remote-modboard-backend_20260623_213951.tar.gz
 ```
 
+Vor RDAP7I Webserver-Deploy neues Backup unter `/var/backups/stream-control-center/` erstellen.
+
 ## Webserver-DB
 
 ```text
@@ -164,11 +187,11 @@ Backups:             /var/backups/stream-control-center/
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
+RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN
 ```
 
 Ziel:
 
 ```text
-Session-Store-/Validation-Layer read-only planen/vorbereiten, weiterhin ohne Session-Erstellung und ohne Login-Aktivierung.
+Permission-Check-Middleware planen/vorbereiten, weiterhin ohne produktive Remote-Writes und ohne Agent-Actions.
 ```

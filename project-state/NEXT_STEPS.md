@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_LIVE_DEPLOY_BESTAETIGT  
+Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -16,6 +16,7 @@ RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
+RDAP7I Session Store Read-only Validation Layer vorbereitet
 ```
 
 Remote-Modboard bleibt read-only:
@@ -25,39 +26,63 @@ readOnly: true
 writeEnabled: false
 migrationEnabled: false
 authEnabled: false
+loginEnabled: false
 sessionCreationEnabled: false
+sessionCookieWriteEnabled: false
 loggedIn: false
 oauthStartRouteEnabled: false
 oauthCallbackRouteEnabled: false
 redirectToTwitch: false
 tokenExchangeEnabled: false
-sessionCookieWriteEnabled: false
 databaseWriteEnabled: false
 agentActionsEnabled: false
+```
+
+RDAP7I erlaubt nur:
+
+```text
+dashboard_sessions per SELECT validierend lesen
+Session-Cookie-Namen erkennen
+Cookie-Wert nicht ausgeben
+kurzen Cookie-Fingerprint fuer Diagnose anzeigen
+Session exists/valid/expires/revoked diagnostisch melden
+```
+
+RDAP7I erlaubt nicht:
+
+```text
+Session erstellen
+Session verlaengern
+last_seen_at aktualisieren
+Cookie setzen
+Login aktivieren
+User-/Rollen-/Gruppen-Schreibroute
+DB-Writes
+Remote-Writes
+Agent-Actions
 ```
 
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
+RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN
 ```
 
 Ziel:
 
 ```text
-Session-Store-/Validation-Layer read-only vorbereiten, weiterhin ohne Session-Erstellung und ohne Login-Aktivierung.
+Permission-Check-Middleware fuer spaetere Remote-Modboard-Bereiche planen/vorbereiten.
 ```
 
-RDAP7I darf klaeren/umsetzen, aber erst nach eigenem Scope und go:
+RDAP8 darf klaeren/umsetzen, aber erst nach eigenem Scope und go:
 
 ```text
 echte Remote-Modboard-Dateien vor Planung pruefen
-dashboard_sessions nur read-only/validierend lesen
-keine Session erstellen
-keine Cookies setzen
-keine Login-Aktivierung
-keine DB-Writes
-Session-Status klar diagnosefaehig machen
+bestehendes Rollen-/Gruppen-/Permission-Modell weiterverwenden
+Backend entscheidet Rechte, Frontend nur Anzeige
+keine Schreibrouten ohne Lock/Audit/Permission
+keine Agent-Actions
+keine OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
 ## Noch nicht erlaubt
@@ -80,8 +105,8 @@ keine OBS-/Sound-/Overlay-/Command-Steuerung
 ## Danach moeglich, nicht jetzt
 
 ```text
-RDAP8 Permission Check Middleware Plan
 RDAP9 Lock-/Audit-Konzept fuer spaetere Writes
+RDAP10 Agent-Handshake/Allowlist-Plan
 ```
 
 ## Arbeitsregel
