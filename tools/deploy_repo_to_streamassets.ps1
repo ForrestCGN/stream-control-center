@@ -195,6 +195,7 @@ $backupPaths = @(
   "backend",
   "config",
   "htdocs\dashboard",
+  "htdocs\dashboard-v2",
   "htdocs\alerts",
   "htdocs\overlays",
   "htdocs\public",
@@ -223,6 +224,7 @@ Copy-DirectorySafe -RelativePath "config\secrets" -Include @("*.example")
 
 Copy-DirectorySafe -RelativePath "htdocs\dashboard" -Include @("*.html", "*.css", "*.js")
 Copy-DirectorySafe -RelativePath "htdocs\dashboard\modules" -Include @("*.html", "*.css", "*.js")
+Copy-DirectorySafe -RelativePath "htdocs\dashboard-v2" -Include @("*.html", "*.css", "*.js", "*.json", "*.svg", "*.png", "*.jpg", "*.jpeg", "*.webp", "*.ico", "*.txt", "*.map", "*.webmanifest")
 Copy-DirectorySafe -RelativePath "htdocs\alerts" -Include @("*.html", "*.css", "*.js")
 Copy-DirectorySafe -RelativePath "htdocs\overlays" -Include @("*.html", "*.css", "*.js")
 Copy-DirectorySafe -RelativePath "htdocs\public" -Include @("*.html", "*.css", "*.js")
@@ -238,4 +240,4 @@ Copy-FileSafe "htdocs\index.html"
 
 Write-Step "Fertig. Aktuelles Backup: $latestBackupRoot"
 Write-Step "History-Backups: $historyRoot"
-Write-Step "Naechster Test: http://127.0.0.1:8080/dashboard/"
+Write-Step "Naechster Test: http://127.0.0.1:8080/dashboard/ und http://127.0.0.1:8080/dashboard-v2/"

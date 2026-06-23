@@ -17,8 +17,8 @@ export const navigationSections = [
       },
       {
         route: "live.remoteAgent",
-        title: "Remote Agent",
-        subtitle: "geplant / read-only"
+        title: "Stream-PC",
+        subtitle: "Verbindung / read-only"
       }
     ]
   },

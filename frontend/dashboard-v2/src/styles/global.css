@@ -674,3 +674,115 @@ button {
     flex-direction: column;
   }
 }
+
+.remote-agent-grid .glass-card {
+  min-height: 0;
+}
+
+.remote-status-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .045);
+}
+
+.remote-status-hero strong,
+.remote-status-hero span {
+  display: block;
+}
+
+.remote-status-hero strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.remote-status-hero span {
+  margin-top: 3px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.remote-status-dot {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .28);
+}
+
+.remote-status-dot--ok {
+  background: var(--green);
+  box-shadow: 0 0 18px var(--green);
+}
+
+.remote-status-dot--warn {
+  background: var(--yellow);
+  box-shadow: 0 0 18px var(--yellow);
+}
+
+.remote-status-dot--danger {
+  background: var(--danger);
+  box-shadow: 0 0 18px var(--danger);
+}
+
+.capability-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.capability-item {
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .04);
+}
+
+.capability-item span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted2);
+}
+
+.capability-item strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.capability-item--ok {
+  border-color: rgba(69, 245, 167, .22);
+}
+
+.capability-item--warn {
+  border-color: rgba(255, 209, 102, .22);
+}
+
+.capability-item--danger {
+  border-color: rgba(255, 84, 112, .22);
+}
+
+.remote-agent-error {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 84, 112, .26);
+  border-radius: 14px;
+  color: #ffd6de;
+  background: rgba(255, 84, 112, .08);
+  overflow-wrap: anywhere;
+}
+
+.remote-agent-notes {
+  margin-top: 14px;
+}
+
+@media (max-width: 640px) {
+  .capability-grid {
+    grid-template-columns: 1fr;
+  }
+}

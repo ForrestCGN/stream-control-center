@@ -20,7 +20,7 @@ export const moduleRegistry = {
   "live.remoteAgent": {
     id: "live.remoteAgent",
     sectionTitle: "Live",
-    moduleTitle: "Remote Agent",
+    moduleTitle: "Stream-PC Verbindung",
     activeTabTitle: "Übersicht",
     migrationStatus: "read_only",
     component: RemoteAgentPage,

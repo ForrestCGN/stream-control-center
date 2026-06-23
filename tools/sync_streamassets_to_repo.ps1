@@ -62,6 +62,7 @@ Copy-SafeDirectory -RelativePath "config\secrets" -Include @("*.example") -Exclu
 
 Copy-SafeDirectory -RelativePath "htdocs\dashboard" -Include @("*.html", "*.css", "*.js") -Exclude @()
 Copy-SafeDirectory -RelativePath "htdocs\dashboard\modules" -Include @("*.html", "*.css", "*.js") -Exclude @()
+Copy-SafeDirectory -RelativePath "htdocs\dashboard-v2" -Include @("*.html", "*.css", "*.js", "*.json", "*.svg", "*.png", "*.jpg", "*.jpeg", "*.webp", "*.ico", "*.txt", "*.map", "*.webmanifest") -Exclude @()
 Copy-SafeDirectory -RelativePath "htdocs\alerts" -Include @("*.html", "*.css", "*.js") -Exclude @()
 Copy-SafeDirectory -RelativePath "htdocs\overlays" -Include @("*.html", "*.css", "*.js") -Exclude @()
 Copy-SafeDirectory -RelativePath "htdocs\public" -Include @("*.html", "*.css", "*.js") -Exclude @()

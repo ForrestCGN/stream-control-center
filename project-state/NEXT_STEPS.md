@@ -1,51 +1,106 @@
 # NEXT STEPS
 
-Stand: DASHUI6C / Übergabe für neuen Chat vorbereitet  
+Stand: RDAP3A-FIX1 / DASHUI7 Stream-PC Verbindung UI-Begriffe korrigiert  
 Datum: 2026-06-23
 
-## Nächster sinnvoller Schritt
+## Aktueller nächster Schritt nach Einspielen
 
-```text
-DASHUI7 / Erste read-only Statusseite mit echter API-Anbindung planen
+Zuerst RDAP3A-FIX1 testen.
+
+Build und Testdeploy:
+
+```cmd
+build-dashboard-v2.cmd
+testdeploy.cmd
 ```
 
-Empfohlener Kandidat:
+API prüfen:
 
-```text
-Remote Agent Status
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/status" | ConvertTo-Json -Depth 8
 ```
 
-## DASHUI7 zuerst nur planen
+Erwartung:
 
-Prüfen/planen:
+```text
+ok: true
+module: remote_agent
+moduleBuild: RDAP3A_DASHUI7_READONLY_STATUS
+readOnly: true
+writeEnabled: false
+actionEnabled: false
+status.connectionState: offline
+```
 
-- Welche bestehenden API-Endpunkte gibt es?
-- Ob ein neuer read-only Endpoint nötig ist.
-- Welche Daten `Remote Agent Status` anzeigen soll.
-- Was echte Backend-Daten sind.
-- Was vorerst Placeholder bleibt.
-- Loading/Error/Offline/Online-Zustände.
-- Welche Frontend-Dateien betroffen wären.
-- Welche Backend-Dateien betroffen wären.
-- Welche Tests nötig sind.
-- Ob Node-Neustart nötig wäre.
+Dashboard prüfen:
 
-## Nicht in DASHUI7
+```text
+http://127.0.0.1:8080/dashboard-v2/?v=rdap3a-fix1
+Live -> Stream-PC
+```
 
-- keine Agent-Aktion ausführen
-- kein produktives `agent.ping`
-- kein Start/Stop
-- keine Schreibfunktion
-- keine DB-Änderung
-- keine OBS-/Sound-/Media-/Overlay-Steuerung
+Erwartung:
+
+```text
+Stream-PC Verbindung
+Stream-PC nicht verbunden
+read-only
+kein WSS-Dienst verbunden
+keine Schreibroute
+keine produktiven Aktionen
+```
+
+Die alte Platzhalteranzeige darf nicht mehr sichtbar sein:
+
+```text
+Status in DASHUI5
+Platzhalter
+```
+
+## Nächster Planungsstep
+
+```text
+RDAP3B / Minimaler WSS-Dienst lokal im Testmodus planen
+```
+
+RDAP3B soll zuerst nur planen:
+
+- eigener lokaler Node-Dienst für den Stream-PC
+- lokale Config
+- agentId + Secret
+- WSS-Verbindung im Testmodus
+- Heartbeat senden
+- Statusdaten an Server übergeben
+- Reconnect-Verhalten
+- Auth-Fehler sauber anzeigen
+- weiterhin keine produktiven Aktionen
+
+## Nicht in RDAP3B ohne gesondertes go
+
+- keine OBS-Steuerung
+- keine Sound-Steuerung
+- keine Overlay-Steuerung
+- keine Media-Schreiboperation
+- keine Text-/Config-Änderung
 - keine Commands/Kanalpunkte
-- kein Login-System improvisieren
-- keine produktiven Locks schreiben
+- keine DB-Aktionen
+- keine Datei-/Shell-/Prozessaktionen
+- kein Remote-Start/Stop
+
+## Spätere Steps
+
+```text
+RDAP3C / Webserver Reverse Proxy + WSS-Test planen
+RDAP3D / Agent Heartbeat live gegen mods.forrestcgn.de planen
+RDAP4 / Permission-/Lock-/Audit-Modell konkretisieren
+```
 
 ## Wichtig
 
-Vor Umsetzung:
+Vor jedem weiteren Step:
 
-```text
-erst prüfen/planen, dann auf Forrests go warten
-```
+- echten Repo-/Dateistand prüfen
+- keine Annahmen
+- fehlende Dateien konkret anfordern
+- Umsetzung nur nach Forrests `go`
+- keine bestehende Funktionalität entfernen
