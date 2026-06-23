@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN  
+Stand: RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -37,30 +37,32 @@ Datum: 2026-06-23
 - [x] RDAP7E Server Workdir Cleanup Docs abgeschlossen
 - [x] RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 - [x] RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
+- [x] RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet
 
 ## Noch offen / als naechstes
 
-### RDAP7G Twitch OAuth ENV/Server Prep disabled
+### RDAP7H OAuth Callback Skeleton disabled
 
-- [ ] vor RDAP7G echten GitHub/dev Stand erneut pruefen
-- [ ] `remote-modboard/backend/.env.example` DB_NAME/DB_USER gegen bestaetigten Live-Stand pruefen und ggf. korrigieren
-- [ ] OAuth-/Session-ENV-Werte ohne echte Secrets vorbereiten
-- [ ] Server-ENV nur unter `/etc/stream-control-center/remote-modboard.env` vorbereiten
-- [ ] `TWITCH_OAUTH_ENABLED=false` beibehalten
-- [ ] `SESSION_ENABLED=false` beibehalten
+- [ ] echte Remote-Modboard-Dateien vor Planung pruefen
 - [ ] keine Login-Aktivierung
-- [ ] keine Session-Erstellung
+- [ ] keine Twitch-OAuth-Secrets ins Repo
+- [ ] keine produktive OAuth-Start-Route
+- [ ] keine produktive OAuth-Callback-Route
+- [ ] keine Redirects zu Twitch ausloesen
+- [ ] keinen Code gegen Token tauschen
 - [ ] keine Cookies setzen
+- [ ] keine Session-Erstellung
 - [ ] keine DB-Writes
 - [ ] keine Agent-Actions
-- [ ] keine OBS-/Sound-/Overlay-/Command-Steuerung
+- [ ] Status/Routenliste muss disabled-Zustand klar anzeigen
 
 ### Spaeter
 
-- [ ] RDAP7H OAuth Callback Skeleton read-only/disabled
 - [ ] RDAP7I Session Store Read-only/Validation Layer
 - [ ] RDAP8 Permission Check Middleware Plan
 - [ ] Lock-/Audit-Implementierung fuer spaetere Writes planen
+- [ ] Server-ENV nach RDAP7G Deploy manuell pruefen/ergaenzen, aber `TWITCH_OAUTH_ENABLED=false` und `SESSION_ENABLED=false` beibehalten
+- [ ] Alte RDAP6J-Backup-Referenz unter `/root` bleibt historisch dokumentiert; neue Backups duerfen nicht mehr nach `/root`
 
 ## Dauerhaft beachten
 

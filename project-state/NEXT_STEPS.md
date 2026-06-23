@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN  
+Stand: RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -14,6 +14,7 @@ RDAP7C1 Server Workdir Cleanup bestanden
 RDAP7E Server Workdir Cleanup Docs abgeschlossen
 RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
+RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet
 ```
 
 Remote-Modboard bleibt read-only:
@@ -30,24 +31,25 @@ loggedIn: false
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED
+RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED
 ```
 
 Ziel:
 
 ```text
-ENV-/Server-Vorbereitung fuer Twitch OAuth, weiterhin disabled, ohne produktiven Login zu aktivieren.
+OAuth Start-/Callback-Skeleton serverseitig vorbereiten, aber weiterhin disabled/read-only.
 ```
 
-RDAP7G soll klaeren/umsetzen, aber erst nach eigenem Scope und go:
+RDAP7H darf klaeren/umsetzen, aber erst nach eigenem Scope und go:
 
 ```text
-.env.example Werte pruefen und ggf. ohne Secrets korrigieren
-Server-ENV-Platzhalter in /etc/stream-control-center/remote-modboard.env vorbereiten
-TWITCH_OAUTH_ENABLED=false setzen
-SESSION_ENABLED=false setzen
-keine Start-/Callback-Route produktiv aktivieren
-Status-/Safety-Ausgabe ggf. nur read-only um OAuth-disabled-Status erweitern
+Routenpfade fuer /auth/twitch/start und /auth/twitch/callback als disabled skeleton planen
+keinen Redirect zu Twitch aktivieren
+keinen Code gegen Token tauschen
+keine Cookies setzen
+keine Sessions erstellen
+keine DB-Writes
+Status/Routenliste muss klar melden, dass OAuth-Routen disabled sind
 ```
 
 ## Noch nicht erlaubt
@@ -55,6 +57,7 @@ Status-/Safety-Ausgabe ggf. nur read-only um OAuth-disabled-Status erweitern
 ```text
 kein Login aktivieren
 keine Twitch-OAuth-Secrets ins Repo
+keine OAuth-Start-Route produktiv freischalten
 keine OAuth-Callback-Route produktiv freischalten
 keine Session-Cookies setzen
 keine Session-Erstellung
@@ -67,7 +70,6 @@ keine OBS-/Sound-/Overlay-/Command-Steuerung
 ## Danach moeglich, nicht jetzt
 
 ```text
-RDAP7H OAuth Callback Skeleton read-only/disabled
 RDAP7I Session Store Read-only/Validation Layer
 RDAP8 Permission Check Middleware Plan
 RDAP9 Lock-/Audit-Konzept fuer spaetere Writes

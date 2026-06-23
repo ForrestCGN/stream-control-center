@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN  
+Stand: RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -12,8 +12,10 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
+docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
+docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -34,6 +36,7 @@ docs/current/RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS.md
 docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
 docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
+docs/current/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
@@ -56,6 +59,16 @@ remote-modboard/backend/src/services/db.service.js
 remote-modboard/backend/src/services/auth-db-read.service.js
 remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/src/security/safety.js
+```
+
+## RDAP7G geaenderte Remote-Modboard-Dateien
+
+```text
+remote-modboard/backend/.env.example
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/security/safety.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/README.md
 ```
 
 ## RDAP6 SQL-/Runbook-Dateien im Repo
@@ -115,6 +128,8 @@ Vorheriges Backup:
 /root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
 ```
 
+Hinweis: Historischer Pfad aus RDAP6J. Ab RDAP7C1 keine neuen RDAP-Backups mehr nach `/root`.
+
 Produktiv angelegte Tabellen in `c3stream_control`:
 
 ```text
@@ -146,15 +161,6 @@ authEnabled: false
 sessionCreationEnabled: false
 ```
 
-## Geplante OAuth-Route
-
-Noch nicht produktiv freigeschaltet:
-
-```text
-GET https://mods.forrestcgn.de/api/remote/auth/twitch/start
-GET https://mods.forrestcgn.de/api/remote/auth/twitch/callback
-```
-
 ## Lokale produktive SQLite
 
 ```text
@@ -172,9 +178,6 @@ lokale SQLite
 Stream-PC Backend ausser dokumentiertem read-only remote_agent.js Stand
 Dashboard-v2 Code
 OBS-/Sound-/Overlay-Systeme
-Remote-Modboard Code
-Remote-Modboard Service
-Remote-Modboard DB
 ```
 
 ## Remote-Agent Stand
@@ -185,8 +188,8 @@ moduleVersion: 0.0.3
 moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ```
 
-## Naechste geplante Datei / naechster Step
+## Naechste geplante Datei
 
 ```text
-RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED
+docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 ```
