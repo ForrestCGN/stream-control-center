@@ -136,20 +136,17 @@ export const navigationSections = [
       {
         route: "admin.users",
         title: "Benutzer & Rechte",
-        subtitle: "später",
-        disabled: true
+        subtitle: "Permissions / read-only"
       },
       {
         route: "admin.locks",
         title: "Locks",
-        subtitle: "später",
-        disabled: true
+        subtitle: "Modell / read-only"
       },
       {
         route: "admin.audit",
         title: "Audit",
-        subtitle: "später",
-        disabled: true
+        subtitle: "Modell / read-only"
       }
     ]
   }

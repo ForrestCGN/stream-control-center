@@ -39,7 +39,7 @@ export function RemoteAgentPage() {
 
   return (
     <div className="view-grid remote-agent-grid">
-      <Card title="Stream-PC Verbindung" eyebrow="RDAP3A / Read-only">
+      <Card title="Stream-PC Verbindung" eyebrow="RDAP4C2 / Betriebsstatus">
         <div className="remote-status-hero">
           <StatusDot state={view.connectionState} />
           <div>
@@ -85,23 +85,31 @@ export function RemoteAgentPage() {
         </div>
       </Card>
 
-      <Card title="Sicherheitsgrenzen" eyebrow="Keine produktiven Aktionen">
-        <div className="capability-grid">
+      <Card title="Sicherheitskurzstatus" eyebrow="Keine produktiven Aktionen">
+        <div className="chip-row">
+          <StatusBadge tone={view.capabilities.permissionsModel ? 'ok' : 'warn'}>Permissions-Modell</StatusBadge>
+          <StatusBadge tone={view.capabilities.locksStatus ? 'ok' : 'warn'}>Lock-Status</StatusBadge>
+          <StatusBadge tone={view.capabilities.auditModel ? 'ok' : 'warn'}>Audit-Modell</StatusBadge>
+          <StatusBadge tone="danger">produktive Aktionen aus</StatusBadge>
+        </div>
+
+        <div className="capability-grid" style={{ marginTop: 14 }}>
           <Capability label="Status lesen" enabled={view.capabilities.status} />
-          <Capability label="Ping" enabled={view.capabilities.ping} />
-          <Capability label="Status aktiv anfordern" enabled={view.capabilities.statusRequest} />
+          <Capability label="Permissions anzeigen" enabled={view.capabilities.permissionsModel} />
+          <Capability label="Locks anzeigen" enabled={view.capabilities.locksStatus} />
+          <Capability label="Audit anzeigen" enabled={view.capabilities.auditModel} />
           <Capability label="OBS steuern" enabled={view.capabilities.obsControl} danger />
           <Capability label="Sound steuern" enabled={view.capabilities.soundControl} danger />
           <Capability label="Overlay steuern" enabled={view.capabilities.overlayControl} danger />
-          <Capability label="Media schreiben" enabled={view.capabilities.mediaWrite} danger />
-          <Capability label="Texte/Config schreiben" enabled={view.capabilities.textConfigWrite} danger />
-          <Capability label="DB schreiben" enabled={view.capabilities.databaseWrite} danger />
-          <Capability label="Dateien schreiben" enabled={view.capabilities.fileWrite} danger />
-          <Capability label="Shell/Prozess" enabled={view.capabilities.shell || view.capabilities.processControl} danger />
+          <Capability label="DB/Dateien/Shell" enabled={view.capabilities.databaseWrite || view.capabilities.fileWrite || view.capabilities.shell || view.capabilities.processControl} danger />
         </div>
+
+        <p className="card-footer">
+          Detailmodelle für Rollen, Locks und Audit liegen im Admin-Bereich. Diese Seite bleibt die normale Verbindungsübersicht.
+        </p>
       </Card>
 
-      <Card title="API-Zustand" eyebrow="DASHUI7">
+      <Card title="API-Zustand" eyebrow="RDAP4C2">
         <div className="chip-row">
           <StatusBadge tone={loadState === 'ready' ? 'ok' : loadState === 'error' ? 'danger' : 'info'}>
             {loadState === 'ready' ? 'API geladen' : loadState === 'error' ? 'API-Fehler' : 'lädt'}
@@ -181,11 +189,15 @@ function normalizeStatus(data) {
       status: Boolean(capabilities.status),
       ping: Boolean(capabilities.ping),
       statusRequest: Boolean(capabilities.statusRequest),
+      permissionsModel: Boolean(capabilities.permissionsModel),
+      locksStatus: Boolean(capabilities.locksStatus),
+      auditModel: Boolean(capabilities.auditModel),
       obsControl: Boolean(capabilities.obsControl),
       soundControl: Boolean(capabilities.soundControl),
       overlayControl: Boolean(capabilities.overlayControl),
       mediaWrite: Boolean(capabilities.mediaWrite),
       textConfigWrite: Boolean(capabilities.textConfigWrite),
+      commandControl: Boolean(capabilities.commandControl),
       databaseWrite: Boolean(capabilities.databaseWrite),
       fileWrite: Boolean(capabilities.fileWrite),
       shell: Boolean(capabilities.shell),
@@ -205,9 +217,10 @@ function getConnectionLabel(state) {
 }
 
 function getConnectionHint(state, reason) {
+  if (reason === 'rdap4b_no_agent_runtime_yet') return 'Noch kein produktiver WSS-Dienst in RDAP4B/RDAP4C2. Dieser Offline-Status ist aktuell korrekt.';
   if (reason === 'rdap3a_no_agent_runtime_yet') return 'Noch kein produktiver WSS-Dienst in RDAP3A. Dieser Offline-Status ist aktuell korrekt.';
   if (reason) return reason;
-  if (state === 'offline') return 'Noch kein produktiver WSS-Dienst in RDAP3A.';
+  if (state === 'offline') return 'Noch kein produktiver WSS-Dienst vorhanden.';
   if (state === 'online') return 'Heartbeat wurde empfangen.';
   return 'Warte auf Statusdaten.';
 }
