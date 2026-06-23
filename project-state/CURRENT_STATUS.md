@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED  
+Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED  
 Datum: 2026-06-23
 
 ## Aktueller bestätigter Stand
@@ -13,7 +13,16 @@ RDAP4B erweitert das vorhandene Backend-Modul:
 backend/modules/remote_agent.js
 ```
 
-um read-only Modellrouten für Permissions, Locks und Audit. Es wurde bewusst **kein neues Modul** angelegt.
+um read-only Modellrouten für Permissions, Locks und Audit. Es wurde bewusst **kein neues Backend-Modul** angelegt.
+
+RDAP4C/C2 hat danach Dashboard-v2 erweitert:
+
+- `agentClient.js` lädt die vorhandenen RDAP4B read-only Routen.
+- `Live -> Stream-PC` zeigt wieder nur die Betriebs-/Verbindungsübersicht.
+- Technische Sicherheitsmodelle wurden in vorhandene Admin-Bereiche verschoben:
+  - `Admin -> Benutzer & Rechte`
+  - `Admin -> Locks`
+  - `Admin -> Audit`
 
 ## Bestätigte RDAP4B-Routen
 
@@ -47,29 +56,77 @@ productiveAgentRuntime: false
 - Es gibt keine Schreibroute.
 - Es gibt keine produktive Agent-Ausführung.
 - Es gibt keine DB-Migration und keine SQLite-Änderung.
+- Es gibt kein Login/Auth-System in Dashboard-v2.
+- Es gibt keine OBS-/Sound-/Overlay-/Media-/Text-/Config-/Command-Steuerung.
 
-## Vorheriger bestätigter Stand
+## Dashboard-v2 aktueller Aufbau
 
-RDAP3A/FIX1 und DASHUI6D wurden erfolgreich live geprüft:
+### Live -> Stream-PC
 
-- Dashboard-v2 ist lokal unter `/dashboard-v2/` erreichbar.
-- Bestehendes Dashboard bleibt unter `/dashboard/` produktiv.
-- Dashboard-v2 Build-Output liegt unter `htdocs/dashboard-v2/`.
-- Deploy-Workflow nimmt `htdocs/dashboard-v2/` mit nach Live.
-- Dashboard-v2 zeigt sichtbar `Stream-PC Verbindung`.
+Betriebs-/Verbindungsübersicht:
 
-## Nicht geändert durch RDAP4B
+- Stream-PC Verbindung
+- Offline/Online-Status
+- Letzter Kontakt / Heartbeat
+- Lokaler Stream-PC
+- Remote-Modboard Ziel
+- Sicherheitsgrenzen als Kurzstatus
+- API-Zustand kurz
 
-- kein neues Modul
-- kein Frontend-Code
-- keine React-Komponenten
+### Admin -> Benutzer & Rechte
+
+Read-only Sicherheitsmodell:
+
+- Rollenmodell
+- Permissions-Modell
+- Spezialrolle `sound_profi`
+- Role-Permission-Presets
+- Hinweis: Twitch-Rollen sind nicht automatisch Dashboard-Rechte
+
+### Admin -> Locks
+
+Read-only Lock-Modell:
+
+- Lock-Nullstatus
+- Resource-Key-Format
+- Heartbeat/Timeout
+- Takeover-Regeln
+- aktive Locks aktuell 0
+
+### Admin -> Audit
+
+Read-only Audit-Modell:
+
+- Mindestfelder
+- Eventtypen
+- Quellen
+- Retention-Hinweis
+- Read-only API-Routen
+
+## Geänderte Dateien durch RDAP4C/C2
+
+```text
+frontend/dashboard-v2/src/services/agentClient.js
+frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminUsersPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminLocksPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminAuditPage.jsx
+frontend/dashboard-v2/src/app/moduleRegistry.js
+frontend/dashboard-v2/src/app/navigation.js
+```
+
+## Nicht geändert durch RDAP4C/C2
+
+- kein Backend-Code
+- keine produktive SQLite
 - keine DB-Migration
-- keine SQLite-Änderung
+- keine Schreibroute
 - kein produktiver WSS-Agent
 - keine Agent-Actions
 - keine OBS-/Sound-/Overlay-Steuerung
 - keine Commands-/Kanalpunkte-Steuerung
 - keine Datei-/Shell-/Prozesssteuerung
+- kein neues Hauptmodul
 
 ## Wichtige Leitplanken
 
@@ -79,3 +136,5 @@ RDAP3A/FIX1 und DASHUI6D wurden erfolgreich live geprüft:
 - Keine freie Shell-/Datei-/Prozesssteuerung.
 - Frontend zeigt Rechte nur an; Backend entscheidet.
 - Bestehende Module nutzen, kein Modul-Wildwuchs.
+- Normale Live-Seiten streamer-/modfreundlich halten.
+- Technische Rechte-/Lock-/Audit-Dinge gehören in Admin.

@@ -1,84 +1,104 @@
 # NEXT STEPS
 
-Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED  
+Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP4C_DASHBOARD_V2_SECURITY_MODEL_VIEW
+RDAP5_REMOTE_AUTH_USER_MODEL_PLAN
 ```
 
-## Ziel von RDAP4C
+## Ziel von RDAP5
 
-Dashboard-v2 soll die mit RDAP4B bereitgestellten read-only Modellrouten sichtbar machen.
+RDAP5 soll **nur planen**, wie Remote-Modboard/Login/User/Rollen/Grants später sauber umgesetzt werden.
 
-Bestehende Seite weiter nutzen:
+Noch keine Umsetzung.
 
-```text
-Live -> Stream-PC
-Stream-PC Verbindung
-```
+Zu klären/planen:
 
-Neue Anzeige-/Infobereiche:
+- Login-Modell für `https://mods.forrestcgn.de`
+- lokale Dashboard-User
+- lokale Dashboard-Rollen
+- konkrete Permission-Grants
+- Verhältnis Twitch-Rollen zu lokalen Dashboard-Rechten
+- Owner/Admin/Mod/Sound-Profi/Readonly
+- sichere Session-/Token-Regeln
+- Agent-Secret-Verwaltung, aber niemals im Frontend
+- serverseitige Permission-Checks
+- Audit-Pflicht für Login, Permission-Check, Lock und produktive Aktionen
+- spätere DB-Struktur/Migration nur als separater Plan
 
-- Rollen/Permissions-Modell
-- Spezialrolle `sound_profi`
-- Lock-Modell und aktueller Lock-Nullstatus
-- Audit-Modell
-- Sicherheitsgrenzen / deaktivierte produktive Capabilities
-
-## Vor RDAP4C prüfen
+## Vor RDAP5 prüfen
 
 Zuerst echte aktuelle Dateien aus Repo/Live prüfen, insbesondere:
 
 ```text
-frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
-frontend/dashboard-v2/src/services/agentClient.js
-frontend/dashboard-v2/src/app/moduleRegistry.js
-frontend/dashboard-v2/src/app/navigation.js
-frontend/dashboard-v2/src/styles/*
-backend/modules/remote_agent.js
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
+docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
+docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
 project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
+backend/modules/remote_agent.js
+backend/modules/helpers/helper_security.js
+backend/modules/helpers/helper_routes.js
+backend/modules/helpers/helper_config.js
+backend/modules/helpers/helper_state.js
+backend/core/security.js
+backend/core/config.js
+backend/core/paths.js
 ```
 
-## RDAP4C darf
+Falls Dateien fehlen oder anders heißen: exakt anfordern, nicht raten.
 
-- bestehende Stream-PC-Verbindung-Seite erweitern
-- vorhandenen API-Client erweitern
-- read-only Daten laden und anzeigen
-- Loading/Error-Zustände anzeigen
-- Design V13 weiter einhalten
+## RDAP5 darf
 
-## RDAP4C darf nicht
+- Architektur und Datenmodell planen
+- vorhandene Security-/Config-/Route-/State-Helper prüfen
+- DB-Migrationsbedarf nur beschreiben
+- Rollen-/Permission-/Grant-Modell konkretisieren
+- Lock-/Audit-Anforderungen für spätere Schreibfunktionen konkretisieren
+- klare Abgrenzung Webserver vs. Stream-PC-Agent festlegen
 
+## RDAP5 darf nicht
+
+- keine DB-Migration umsetzen
+- keine produktive SQLite ändern
+- kein Login improvisieren
 - keine Schreibbuttons einbauen
 - keine produktiven Aktionen auslösen
-- keine DB-Migration
-- kein Login improvisieren
 - keine Agent-Actions produktiv schalten
 - keine OBS-/Sound-/Overlay-Steuerung
 - keine Commands/Kanalpunkte produktiv bearbeiten
 - keine SQLite ersetzen oder zurücksetzen
 - kein neues Modul ohne zwingenden Grund
+- keine Secrets ins Repo oder Frontend schreiben
 
-## Spätere mögliche Schritte
+## Alternative, falls erst UI/Lesbarkeit geglättet werden soll
 
 ```text
-RDAP5_REMOTE_AUTH_USER_MODEL_PLAN
+DASHV2_ADMIN_SECURITY_VIEW_POLISH
 ```
 
-für Login/User/Rollen/Grant-Speicherung.
+Ziel:
 
-Oder:
+- Admin-Security-Seiten lesbarer machen.
+- Lange Presets einklappen oder kompakter darstellen.
+- Keine neue Funktion.
+- Keine API-/Backend-/DB-Änderung.
+
+## Spätere mögliche Schritte
 
 ```text
 RDAP4D_PERMISSION_LOCK_DB_PLAN
 ```
 
-für konkrete DB-Planung, aber erst nach Sichtung bestehender DB-/Helper-Patterns und separatem Go.
+für konkrete DB-Planung zu Permissions, Locks und Audit, aber erst nach Sichtung bestehender DB-/Helper-Patterns und separatem Go.
+
+```text
+RDAP6_MINIMAL_REMOTE_AUTH_IMPLEMENTATION
+```
+
+erst nach RDAP5-Plan, konkreter Datei-/DB-Prüfung und separatem Go.

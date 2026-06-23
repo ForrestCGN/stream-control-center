@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED  
+Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -21,25 +21,37 @@ Datum: 2026-06-23
 - [x] RDAP4B API nach Node-Neustart getestet
 - [x] bestätigt: keine produktiven Capabilities aktiv
 - [x] bestätigt: keine Schreibroute, keine DB, kein WSS-Agent, keine Agent-Actions
-- [x] kein neues Modul für RDAP4B angelegt
+- [x] kein neues Backend-Modul für RDAP4B angelegt
 - [x] RDAP4B per `stepdone.cmd` abgeschlossen
+- [x] RDAP4C Dashboard-v2 liest RDAP4B Sicherheitsmodell read-only
+- [x] RDAP4C2 Struktur korrigiert: technische Modelle aus `Live -> Stream-PC` herausgelöst
+- [x] `Live -> Stream-PC` bleibt Betriebs-/Verbindungsübersicht
+- [x] `Admin -> Benutzer & Rechte` zeigt Permissions/Rollen/Sound-Profi read-only
+- [x] `Admin -> Locks` zeigt Lock-Modell/Nullstatus read-only
+- [x] `Admin -> Audit` zeigt Audit-Modell/API-Routen read-only
+- [x] keine Schreibbuttons, keine produktiven Aktionen, kein Login, kein WSS-Agent in RDAP4C/C2
 
 ## Als nächstes
 
-### RDAP4C / Dashboard-v2 Anzeige für Sicherheitsmodell
+### RDAP5 / Remote Auth User Model Plan
 
-- [ ] echte Frontend-Dateien aus aktuellem Repo-/Live-Stand prüfen
-- [ ] vorhandene `RemoteAgentPage.jsx` nutzen
-- [ ] vorhandenen `agentClient` erweitern statt Parallelclient bauen
-- [ ] Permissions-Modell read-only anzeigen
-- [ ] Spezialrolle `sound_profi` sichtbar machen
-- [ ] Lock-Modell und Nullstatus read-only anzeigen
-- [ ] Audit-Modell read-only anzeigen
-- [ ] Sicherheitsgrenzen/Capabilities verständlich anzeigen
-- [ ] keine Schreibbuttons einbauen
-- [ ] keine produktiven Aktionen auslösen
-- [ ] UX sauber als `Stream-PC Verbindung` weiterführen
-- [ ] nach Build `build-dashboard-v2.cmd`, `installstep.cmd`, `testdeploy.cmd`, Live-Test, dann `stepdone.cmd`
+- [ ] echte aktuelle Repo-/Live-Dateien prüfen
+- [ ] bestehende Security-/Config-/Route-/State-Helper prüfen
+- [ ] Login-/User-/Rollen-/Grant-Modell planen
+- [ ] Verhältnis Twitch-Rollen zu lokalen Dashboard-Rechten klären
+- [ ] `sound_profi` sauber als Spezialrolle einplanen
+- [ ] serverseitige Permission-Checks planen
+- [ ] Session-/Token-/Secret-Regeln planen
+- [ ] Audit-Pflicht für Login/Permissions/Locks/Aktionen planen
+- [ ] DB-/Migration nur planen, nicht umsetzen
+- [ ] keine Schreibroute ohne separaten Plan und separates Go
+
+## Optionaler UI-/UX-Polish
+
+- [ ] Admin-Security-Seiten noch lesbarer machen
+- [ ] lange Permission-Presets ggf. einklappbar/kompakter darstellen
+- [ ] normale Live-Seiten streamer-/modfreundlich halten
+- [ ] technische Details konsequent in Admin oder zentrale Admin-Dialoge auslagern
 
 ## Dauerhaft beachten
 

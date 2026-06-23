@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED
+Aktueller Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED
 
 ## Diese Datei zuerst lesen
 
@@ -28,6 +28,7 @@ docs/current/WF1_FRONTEND_GIT_WORKFLOW.md
 docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5_AFTER_RDAP4C2.md
 ```
 
 ## Repository und Pfade
@@ -49,7 +50,7 @@ Downloads: %USERPROFILE%\Downloads
 ## Aktueller bestätigter Stand
 
 ```text
-RDAP4B remote_agent read-only Permission-, Lock- und Audit-Modellrouten getestet und per stepdone abgeschlossen
+RDAP4C2 Dashboard-v2 verteilt das RDAP4B Sicherheitsmodell sauber auf vorhandene Admin-Bereiche.
 ```
 
 Bestätigt:
@@ -58,9 +59,14 @@ Bestätigt:
 - Bestehendes Dashboard bleibt unter `/dashboard/` produktiv.
 - Dashboard-v2 Build-Output liegt unter `htdocs/dashboard-v2/`.
 - Deploy-Workflow nimmt `htdocs/dashboard-v2/` mit nach Live.
-- Dashboard-v2 zeigt sichtbar `Stream-PC Verbindung`.
-- `backend/modules/remote_agent.js` ist weiterhin das vorhandene Modul für Remote-/Stream-PC-Anbindung; RDAP4B hat kein neues Modul angelegt.
-- Node wurde nach RDAP4B neu gestartet und die API-Routen wurden getestet.
+- `backend/modules/remote_agent.js` bleibt das vorhandene Modul für Remote-/Stream-PC-Anbindung.
+- RDAP4B Backend/API bleibt unverändert.
+- RDAP4C/C2 ergänzt nur Dashboard-v2 Frontend-Anzeige.
+- `Live -> Stream-PC` ist wieder eine normale Betriebs-/Verbindungsübersicht.
+- Technische Security-Modellansichten liegen jetzt in vorhandenen Admin-Bereichen:
+  - `Admin -> Benutzer & Rechte`
+  - `Admin -> Locks`
+  - `Admin -> Audit`
 
 ## Aktuelle RDAP4B API-Routen
 
@@ -87,6 +93,61 @@ productiveAgentRuntime: false
 
 Der Offline-Status ist aktuell korrekt, weil noch kein produktiver WSS-Agent existiert.
 
+## Dashboard-v2 Struktur nach RDAP4C2
+
+### Live -> Stream-PC
+
+Soll nur Betriebsstatus zeigen:
+
+```text
+Stream-PC Verbindung
+Offline/Online-Status
+Letzter Kontakt
+Heartbeat
+Lokaler Stream-PC
+Remote-Modboard Ziel
+Sicherheitsgrenzen als Kurzstatus
+API-Zustand kurz
+```
+
+### Admin -> Benutzer & Rechte
+
+Zeigt read-only:
+
+```text
+Permissions-Modell
+Rollenmodell
+Spezialrolle sound_profi
+Role-Permission-Presets
+Twitch-Rollen sind nicht automatisch Dashboard-Rechte
+```
+
+### Admin -> Locks
+
+Zeigt read-only:
+
+```text
+Lock-Modell
+Nullstatus
+Resource-Key-Format
+Heartbeat/Timeout
+Takeover-Regeln
+aktive Locks: aktuell 0
+```
+
+### Admin -> Audit
+
+Zeigt read-only:
+
+```text
+Audit-Modell
+Mindestfelder
+Eventtypen
+Quellen
+Retention-Hinweis
+Read-only API-Routen
+```
+
 ## Weiterhin bewusst nicht aktiv
 
 ```text
@@ -99,6 +160,7 @@ keine Sound-Steuerung
 keine Overlay-Steuerung
 keine Commands-/Kanalpunkte-Steuerung
 keine Datei-/Shell-/Prozesssteuerung
+kein Login/Auth improvisiert
 ```
 
 ## Wichtige aktuelle Dateien
@@ -107,14 +169,21 @@ keine Datei-/Shell-/Prozesssteuerung
 backend/modules/remote_agent.js
 backend/server.js
 backend/core/paths.js
+
+frontend/dashboard-v2/src/services/agentClient.js
+frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminUsersPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminLocksPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminAuditPage.jsx
+frontend/dashboard-v2/src/app/moduleRegistry.js
+frontend/dashboard-v2/src/app/navigation.js
+
 frontend/dashboard-v2/
 htdocs/dashboard-v2/
 build-dashboard-v2.cmd
-tools/deploy_repo_to_streamassets.ps1
-tools/sync_streamassets_to_repo.ps1
-tools/upload_streamassets_changes.ps1
 testdeploy.cmd
 stepdone.cmd
+stepundo.cmd
 ```
 
 ## Verbindliche Designbasis
@@ -135,6 +204,8 @@ Wichtige Punkte:
 - keine dritte Sidebar-Ebene
 - Moduldetails innerhalb der Modulseite
 - ruhige dunkle CGN-Neon-Flächen
+- normale Bereiche streamer-/modfreundlich halten
+- technische Dinge gehören in Admin oder zentrale Admin-Dialoge
 
 ## Verbindliche Arbeitsweise
 
@@ -156,25 +227,26 @@ Wichtige Punkte:
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP4C_DASHBOARD_V2_SECURITY_MODEL_VIEW
+RDAP5_REMOTE_AUTH_USER_MODEL_PLAN
 ```
 
 Ziel:
 
-- Dashboard-v2 zeigt die neuen RDAP4B read-only Modellrouten an.
-- Bestehende Seite `Live -> Stream-PC` / `Stream-PC Verbindung` weiter nutzen.
-- Keine neue Modulflut.
-- Zusatzbereiche für Rollen/Permissions, Locks, Audit und Sicherheitsgrenzen anzeigen.
-- Weiterhin keine Schreibbuttons und keine produktiven Aktionen.
+- Login-/User-/Rollen-/Grant-Modell für Remote-Modboard planen.
+- Noch keine Umsetzung.
+- Noch keine DB-Migration.
+- Noch keine produktive Schreibfunktion.
+- Zuerst bestehende DB-/Helper-/Security-Patterns prüfen.
+- Danach separater Plan und separates `go`.
 
-Vor RDAP4C zuerst die echten aktuellen Frontend-Dateien prüfen, insbesondere:
+Alternative vor RDAP5, falls Forrest erst Optik/UX glätten möchte:
 
 ```text
-frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
-frontend/dashboard-v2/src/services/agentClient.js
-frontend/dashboard-v2/src/app/moduleRegistry.js
-frontend/dashboard-v2/src/app/navigation.js
-frontend/dashboard-v2/src/styles/*
-project-state/*
-docs/current/*
+DASHV2_ADMIN_SECURITY_VIEW_POLISH
 ```
+
+Ziel:
+
+- Admin-Security-Seiten noch lesbarer machen.
+- Keine neue Funktion.
+- Keine API-/Backend-/DB-Änderung.

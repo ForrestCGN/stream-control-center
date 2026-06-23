@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED  
+Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -20,6 +20,7 @@ project-state/FILES.md
 docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5_AFTER_RDAP4C2.md
 ```
 
 ## Backend / aktueller RDAP4B-Status
@@ -30,7 +31,7 @@ backend/server.js
 backend/core/paths.js
 ```
 
-`remote_agent.js` enthält jetzt:
+`remote_agent.js` enthält:
 
 ```text
 GET /api/remote-agent/status
@@ -54,14 +55,33 @@ Build-Output:
 htdocs/dashboard-v2/
 ```
 
-Für RDAP4C besonders relevant:
+Für RDAP4C/C2 besonders relevant:
 
 ```text
-frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
 frontend/dashboard-v2/src/services/agentClient.js
+frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminUsersPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminLocksPage.jsx
+frontend/dashboard-v2/src/modules/admin/AdminAuditPage.jsx
 frontend/dashboard-v2/src/app/moduleRegistry.js
 frontend/dashboard-v2/src/app/navigation.js
 frontend/dashboard-v2/src/styles/*
+```
+
+## Dashboard-v2 aktuelle Struktur nach RDAP4C2
+
+```text
+Live -> Stream-PC
+  frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
+
+Admin -> Benutzer & Rechte
+  frontend/dashboard-v2/src/modules/admin/AdminUsersPage.jsx
+
+Admin -> Locks
+  frontend/dashboard-v2/src/modules/admin/AdminLocksPage.jsx
+
+Admin -> Audit
+  frontend/dashboard-v2/src/modules/admin/AdminAuditPage.jsx
 ```
 
 ## Build-/Deploy-/Sync-Workflow
@@ -71,9 +91,11 @@ build-dashboard-v2.cmd
 tools/deploy_repo_to_streamassets.ps1
 tools/sync_streamassets_to_repo.ps1
 tools/upload_streamassets_changes.ps1
+installstep.cmd
 testdeploy.cmd
 stepdone.cmd
 stepundo.cmd
+stepstatus.cmd
 ```
 
 ## Designreferenz
@@ -89,8 +111,7 @@ docs/current/DASHBOARD_V2_STATIC_ROUTE.md
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
-docs/current/NEXT_CHAT_PROMPT_RDAP4C_AFTER_RDAP4B.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5_AFTER_RDAP4C2.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -99,4 +120,4 @@ project-state/FILES.md
 
 ## Hinweis für nächsten Chat
 
-Für RDAP4C zuerst die echten aktuellen Frontend-Dateien prüfen. Kein Frontend aus Erinnerung rekonstruieren. Übergabe-ZIPs bevorzugt unter `_handoff` erzeugen, nicht Desktop.
+Für RDAP5 zuerst die echten aktuellen Dateien prüfen. Kein Login/Auth/DB-Modell aus Erinnerung rekonstruieren. Keine DB-Migration ohne separaten Plan und separates Go. Übergabe-ZIPs bevorzugt unter `_handoff` erzeugen, nicht Desktop.
