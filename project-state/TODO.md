@@ -1,37 +1,41 @@
 # TODO
 
-Stand: RDAP5B_AUTH_DB_SCHEMA_PLAN_DOCUMENTED  
+Stand: RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION_DOCUMENTED  
 Datum: 2026-06-23
 
 ## Erledigt
 
 - [x] RDAP5 Auth/User/Rollen/Modulrechte-Plan dokumentiert
 - [x] RDAP5A Twitch-Basiszugang dokumentiert
-- [x] Twitch MOD und STREAMER als Dashboard-Basiszugang eingeplant
-- [x] Twitch VIP als kein Dashboard-Basiszugang festgelegt
-- [x] VIP fuer spaetere Community-/Website-Funktionen vorgesehen
-- [x] LEADMOD als lokale manuelle Zusatzrolle festgelegt
-- [x] SOUND_PROFI als lokale Zusatzfreigabe mit Basiszugang festgelegt
-- [x] Webserver-DB in ISPConfig angelegt
-- [x] Webserver-DB-Daten dokumentiert ohne Passwort
 - [x] RDAP5B DB-/Schema-Konzept dokumentiert
+- [x] RDAP5C Migration-/Helper-/Secret-Design dokumentiert
+- [x] RDAP5C2 Rollen-/Gruppenmodell vereinfacht
+- [x] `sound_profi` als Gruppe/Markierung statt Rolle festgelegt
+- [x] RDAP5C3 DB-Plan auf Rollen + Gruppen + Modulmatrix korrigiert
+- [x] `dashboard_groups` eingeplant
+- [x] `dashboard_user_groups` eingeplant
+- [x] generische Modulmatrix mit `target_type` + `target_key` eingeplant
+- [x] feste `default_for_sound_profi`-Spalten verworfen
+- [x] Webserver-DB in ISPConfig angelegt
 - [x] lokale SQLite bleibt unangetastet
 - [x] keine Migration ausgefuehrt
+- [x] kein npm install ausgefuehrt
 
 ## Als nächstes
 
-### RDAP5C / Auth DB Migration Design
+### RDAP5D / Remote Server Node ENV Check
 
-- [ ] echte aktuelle Repo-/Live-Dateien prüfen
-- [ ] klaeren, ob/wie Node auf dem Webserver laeuft
-- [ ] DB-Zugriff auf `c1stream_control` sicher planen
-- [ ] Secret-/ENV-Ablage planen
-- [ ] MySQL/MariaDB-Treiber planen
-- [ ] Migrationsversionierung planen
-- [ ] Backup-/Rollback-Regeln planen
-- [ ] Seeds fuer Rollen/Permissions planen
-- [ ] lokale SQLite nicht anfassen
-- [ ] keine Migration ohne separates Go
+- [ ] klaeren, ob Node auf web.cgn.community installiert ist
+- [ ] Node-Version pruefen
+- [ ] npm-Version pruefen
+- [ ] SSH/Shell-Zugriff klaeren
+- [ ] Webroot/Subdomain-Pfad fuer `mods.forrestcgn.de` klaeren
+- [ ] ENV-/Secret-Ablage klaeren
+- [ ] DB-Zugriff per localhost klaeren
+- [ ] dauerhaften Node-Prozess planen
+- [ ] Reverse Proxy/API-Zugriff planen
+- [ ] keine Installation ohne separates Go
+- [ ] keine DB-Migration ohne separates Go
 
 ## Dauerhaft beachten
 
@@ -41,9 +45,9 @@ Datum: 2026-06-23
 - [ ] keine Schreibfunktionen ohne Permission/Lock/Audit
 - [ ] keine produktiven Agent-Actions ohne Allowlist
 - [ ] keine freie Shell-/Datei-/Prozesssteuerung
-- [ ] jedes Modul braucht eigene Permission-Keys
 - [ ] Backend prueft Rechte; Frontend ist keine Sicherheitsentscheidung
-- [ ] Twitch MOD/STREAMER/VIP bei Login/Refresh neu pruefen
 - [ ] VIP gibt keine Dashboard-Grundrechte
+- [ ] `sound_profi` hat keine festen globalen Rechte
+- [ ] Rollen und Gruppen getrennt halten
 - [ ] Secrets niemals ins Repo oder Frontend
 - [ ] bei fehlenden Dateien exakt nachfragen

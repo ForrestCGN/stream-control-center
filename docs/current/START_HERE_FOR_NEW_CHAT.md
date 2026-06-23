@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP5B_AUTH_DB_SCHEMA_PLAN_DOCUMENTED
+Aktueller Stand: RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION_DOCUMENTED
 
 ## Diese Datei zuerst lesen
 
@@ -27,7 +27,10 @@ docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
 docs/current/REMOTE_DASHBOARD_RDAP5_AUTH_USER_MODEL_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP5A_TWITCH_BASE_ACCESS_NO_VIP_DASHBOARD.md
 docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5C_AFTER_RDAP5B.md
+docs/current/REMOTE_DASHBOARD_RDAP5C_AUTH_DB_MIGRATION_DESIGN.md
+docs/current/REMOTE_DASHBOARD_RDAP5C2_SIMPLE_ROLE_AND_MODULE_PERMISSION_MODEL.md
+docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5D_AFTER_RDAP5C3.md
 ```
 
 ## Repository und Pfade
@@ -48,11 +51,17 @@ Downloads: %USERPROFILE%\Downloads
 
 ## Aktueller bestätigter Stand
 
+RDAP5C3 korrigiert das DB-Tabellenkonzept:
+
 ```text
-RDAP5B dokumentiert das DB-/Schema-Konzept fuer Remote-Modboard/Auth/User/Rollen/Permissions/Sessions/Locks/Audit.
+Rollen und Gruppen sind getrennt.
+sound_profi ist keine Rolle.
+sound_profi ist keine feste Rechte-Sammlung.
+sound_profi ist eine Gruppe / Markierung.
+Modulrechte werden pro Modul konfiguriert.
 ```
 
-Webserver-DB vorhanden:
+## Webserver-DB
 
 ```text
 Server: web.cgn.community
@@ -72,40 +81,67 @@ Lokale SQLite bleibt unveraendert:
 D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-## RDAP5A Rollen-/Rechte-Grundsatz
+## Rollen-/Gruppenmodell ab RDAP5C3
+
+### Twitch-Status
 
 ```text
-Twitch MOD = Dashboard-Grundzugang moeglich
-Twitch STREAMER/Broadcaster = Dashboard-Grundzugang
-Twitch VIP = Community-/Website-Status, kein Dashboard-Grundzugang
+streamer / broadcaster
+mod
+vip
 ```
 
-Lokale Rollen/Freigaben:
+Auswirkung:
 
 ```text
-LEADMOD = manuell lokal
-ADMIN = manuell lokal
-OWNER = manuell lokal / Systemhoheit
-SOUND_PROFI = lokale Zusatzfreigabe
-User-Allow = direkte Zusatzfreigabe
-User-Deny = direkte Sperre
+streamer -> Dashboard-Basiszugang
+mod      -> Dashboard-Basiszugang
+vip      -> kein Dashboard-Basiszugang, nur Community/Website
 ```
 
-## RDAP5B geplante Tabellen
+### Manuell vergebene Dashboard-Rollen
 
 ```text
+leadmod
+admin
+owner
+spaeter eigene Rollen optional
+```
+
+### Dashboard-Gruppen / Markierungen
+
+```text
+sound_profi
+spaeter event_helfer
+spaeter medien_helfer
+spaeter eigene Gruppen optional
+```
+
+## Revidierte Tabellen
+
+```text
+schema_migrations
 dashboard_users
 dashboard_twitch_status
 dashboard_roles
 dashboard_user_roles
+dashboard_groups
+dashboard_user_groups
 dashboard_permissions
-dashboard_role_permissions
-dashboard_user_permission_overrides
 dashboard_module_permission_matrix
+dashboard_user_permission_overrides
 dashboard_sessions
 dashboard_locks
 dashboard_audit_log
 agent_registry
+```
+
+Wichtig:
+
+```text
+dashboard_role_permissions ist nicht mehr Hauptmodell.
+Modulmatrix nutzt target_type + target_key.
+Keine festen Spalten wie default_for_sound_profi.
 ```
 
 ## Weiterhin bewusst nicht aktiv
@@ -122,6 +158,7 @@ keine Commands-/Kanalpunkte-Steuerung
 keine Datei-/Shell-/Prozesssteuerung
 kein Login/Auth-Code
 keine Secrets im Repo oder Frontend
+kein npm install
 ```
 
 ## Verbindliche Arbeitsweise
@@ -144,12 +181,7 @@ keine Secrets im Repo oder Frontend
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5C_AUTH_DB_MIGRATION_DESIGN
+RDAP5D_REMOTE_SERVER_NODE_ENV_CHECK
 ```
 
-Ziel:
-
-- Migration-/Helper-Design fuer die Webserver-DB planen.
-- Noch keine Migration ausfuehren.
-- Vorher echte Server-/Node-/DB-Zugriffsmoeglichkeiten klaeren.
-- Secrets sicher planen.
+Jetzt Webserver-/Node-/ENV-Frage klären. Keine Installation, keine Migration.

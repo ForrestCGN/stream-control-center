@@ -1,89 +1,90 @@
 # NEXT STEPS
 
-Stand: RDAP5B_AUTH_DB_SCHEMA_PLAN_DOCUMENTED  
+Stand: RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION_DOCUMENTED  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5C_AUTH_DB_MIGRATION_DESIGN
+RDAP5D_REMOTE_SERVER_NODE_ENV_CHECK
 ```
 
-## Ziel von RDAP5C
+## Ziel von RDAP5D
 
-RDAP5C soll planen, wie die in RDAP5B beschriebenen Tabellen spaeter sicher in der Webserver-DB angelegt werden.
+RDAP5D soll klaeren, ob und wie Node fuer das Remote-Modboard auf `web.cgn.community` / `mods.forrestcgn.de` laufen kann.
 
-Noch keine Ausfuehrung.
+Noch keine Umsetzung.
 
-Zu klaeren/planen:
+Zu klaeren:
 
-- Wo laeuft spaeter Node fuer `mods.forrestcgn.de`?
-- Wie bekommt Node sicheren Zugriff auf `c1stream_control`?
-- Wo liegen DB-Secrets sicher?
-- Welcher DB-Treiber wird fuer MySQL/MariaDB genutzt?
-- Wie werden Migrationen versioniert?
-- Wie wird vor Migration gesichert?
-- Wie wird Migration idempotent?
-- Wie wird Rollback dokumentiert?
-- Wie werden Seeds fuer Rollen/Permissions sauber eingespielt?
-- Wie bleibt lokale SQLite unangetastet?
+- Ist Node auf dem Webserver installiert?
+- Welche Node-Version?
+- Gibt es NPM?
+- Gibt es SSH/Shell-Zugriff?
+- Wo liegt der Webroot fuer `mods.forrestcgn.de`?
+- Wie kann ein Node-Prozess dauerhaft laufen?
+  - systemd?
+  - PM2?
+  - ISPConfig App/Proxy?
+  - anderer Hosting-Mechanismus?
+- Wie werden ENV/Secrets sicher gespeichert?
+- Kann Node die DB `c1stream_control` per localhost erreichen?
+- Gibt es Reverse Proxy fuer `/api` oder eigene Portweiterleitung?
+- Welche Grenzen setzt ISPConfig/Hosting?
 
-## Vor RDAP5C prüfen
+## Vor RDAP5D prüfen
 
 Zuerst echte aktuelle Dateien aus Repo/Live prüfen, insbesondere:
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
+docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/FILES.md
-backend/modules/helpers/helper_config.js
-backend/modules/helpers/helper_security.js
-backend/core/security.js
-backend/core/paths.js
 package.json
 ```
 
-Zusätzlich klaeren:
+Am Server spaeter nur lesende Checks:
 
-```text
-gibt es auf dem Webserver bereits Node?
-welche Node-Version?
-wo soll das Remote-Modboard laufen?
-wie werden ENV/Secrets dort gespeichert?
+```bash
+node -v
+npm -v
+which node
+which npm
+whoami
+pwd
 ```
 
-## RDAP5C darf
+Keine Installation ohne separates Go.
 
-- Migration-/Helper-Design planen
-- DB-Treiber vorschlagen
-- Secret-/ENV-Strategie planen
-- Seeds fuer Rollen/Permissions planen
-- Backup-/Rollback-Regeln planen
-- Install-/Testablauf planen
+## RDAP5D darf
 
-## RDAP5C darf nicht
+- Server-/Node-/ENV-Moeglichkeiten klaeren
+- Befehle fuer reine Checks vorbereiten
+- ISPConfig-/Webserver-Optionen dokumentieren
+- naechsten Umsetzungsweg empfehlen
 
+## RDAP5D darf nicht
+
+- kein npm install
 - keine DB-Migration ausfuehren
-- keine produktive SQLite ändern
 - keine MariaDB schreiben
-- kein Login-Code bauen
-- keine Schreibbuttons einbauen
-- keine produktiven Aktionen auslösen
-- keine Agent-Actions produktiv schalten
+- keine lokale SQLite anfassen
+- keinen Node-Service produktiv starten
 - keine Secrets ins Repo oder Frontend schreiben
+- keine Firewall-/Proxy-Aenderungen ohne separates Go
 
 ## Spätere mögliche Schritte
 
 ```text
-RDAP5D_AUTH_DB_MIGRATION_DRYRUN
+RDAP5E_REMOTE_NODE_BASE_SKELETON_PLAN
 ```
 
-Nur wenn Zugriff/Secrets/Backup geklaert sind.
+Oder:
 
 ```text
 RDAP6_MINIMAL_REMOTE_AUTH_IMPLEMENTATION
 ```
 
-Erst nach DB-Migrationsdesign, echter Datei-/DB-Pruefung und separatem Go.
+erst nach Server-/Node-/ENV-Klärung und separatem Go.

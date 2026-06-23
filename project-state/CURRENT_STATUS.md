@@ -1,28 +1,24 @@
 # CURRENT STATUS
 
-Stand: RDAP5B_AUTH_DB_SCHEMA_PLAN_DOCUMENTED  
+Stand: RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION_DOCUMENTED  
 Datum: 2026-06-23
 
 ## Aktueller bestätigter Stand
 
-RDAP5B wurde als reiner Planungs-/Doku-Step erstellt. Es wurde nichts produktiv umgesetzt.
+RDAP5C3 wurde als reiner Planungs-/Doku-Step erstellt. Es wurde nichts produktiv umgesetzt.
 
-RDAP5B dokumentiert das DB-/Schema-Konzept fuer:
+RDAP5C3 korrigiert den DB-/Schema-Plan:
 
-- User
-- Twitch-Status
-- lokale Rollen
-- Modulrechte
-- User-Allows
-- User-Denies
-- Sessions
-- Locks
-- Audit
-- Agent-Registry
+- Rollen und Gruppen sind getrennt.
+- `sound_profi` ist keine Rolle.
+- `sound_profi` ist keine feste Rechte-Sammlung.
+- `sound_profi` ist eine Gruppe / Markierung.
+- Modulrechte werden pro Modul konfiguriert.
+- Die Modulmatrix nutzt `target_type` und `target_key`.
+- Feste Spalten wie `default_for_sound_profi` sollen nicht verwendet werden.
+- `dashboard_role_permissions` ist nicht mehr das starre Hauptmodell.
 
 ## Webserver-DB
-
-Auf dem Webserver wurde eine MySQL/MariaDB-Datenbank angelegt:
 
 ```text
 Server: web.cgn.community
@@ -45,64 +41,56 @@ Die lokale produktive SQLite bleibt unveraendert:
 D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-RDAP5B ersetzt, migriert oder veraendert diese DB nicht.
+RDAP5C3 ersetzt, migriert oder veraendert diese DB nicht.
 
-## Pattern-Pruefung
+## Rollen-/Gruppenmodell
 
-Beim RDAP5B-Start wurden per GitHub-Code-Suche keine belastbaren Treffer gefunden fuer:
+Twitch-Status:
 
 ```text
-DatabaseSync
-CREATE TABLE IF NOT EXISTS
-sqlite
-app.sqlite
-better-sqlite3
+streamer / broadcaster
+mod
+vip
 ```
 
-Daraus folgt:
-
-- keine vorhandene DB-Migrationsdatei annehmen
-- kein DB-Helper erfinden
-- vor spaeterer Umsetzung echte Live-/Repo-Dateien erneut pruefen
-- falls DB-Code vorhanden ist, aber nicht in GitHub-Suche auftaucht: Datei gezielt anfordern
-
-## RDAP5A wichtige Entscheidungen
+Manuell vergebene Dashboard-Rollen:
 
 ```text
-Twitch MOD = Dashboard-Grundzugang moeglich
-Twitch STREAMER/Broadcaster = Dashboard-Grundzugang
-Twitch VIP = kein Dashboard-Grundzugang
+leadmod
+admin
+owner
+spaeter eigene Rollen optional
 ```
 
-Lokale Rollen/Freigaben:
+Dashboard-Gruppen / Markierungen:
 
 ```text
-LEADMOD = manuell lokal
-ADMIN = manuell lokal
-OWNER = manuell lokal / Systemhoheit
-SOUND_PROFI = lokale Zusatzfreigabe
-User-Allow = direkte Zusatzfreigabe
-User-Deny = direkte Sperre
+sound_profi
+spaeter event_helfer
+spaeter medien_helfer
+spaeter eigene Gruppen optional
 ```
 
-## RDAP5B geplante Tabellen
+## Revidierte Tabellen
 
 ```text
+schema_migrations
 dashboard_users
 dashboard_twitch_status
 dashboard_roles
 dashboard_user_roles
+dashboard_groups
+dashboard_user_groups
 dashboard_permissions
-dashboard_role_permissions
-dashboard_user_permission_overrides
 dashboard_module_permission_matrix
+dashboard_user_permission_overrides
 dashboard_sessions
 dashboard_locks
 dashboard_audit_log
 agent_registry
 ```
 
-## Nicht geändert durch RDAP5B
+## Nicht geändert durch RDAP5C3
 
 - kein Backend-Code
 - kein Frontend-Code
@@ -116,6 +104,7 @@ agent_registry
 - keine Commands-/Kanalpunkte-Steuerung
 - keine Datei-/Shell-/Prozesssteuerung
 - kein Login-Code
+- kein npm install
 - keine Secrets
 
 ## Wichtige Leitplanken
@@ -123,8 +112,10 @@ agent_registry
 - Keine produktive SQLite ersetzen oder löschen.
 - Webserver-DB fuer Remote-Modboard/Auth getrennt planen.
 - Keine Schreibfunktionen ohne Permission/Lock/Audit.
+- Keine DB-Migration ohne Backup-/Rollback-/Secret-Plan.
 - Keine Agent-Aktionen ohne Allowlist.
 - Keine freie Shell-/Datei-/Prozesssteuerung.
 - Frontend zeigt Rechte nur an; Backend entscheidet.
-- Jedes Modul braucht eigene Permission-Matrix.
 - VIP ist kein Dashboard-Basiszugang.
+- `sound_profi` hat keine festen globalen Rechte.
+- Modulfreigaben sollen streamerfreundlich per Haekchen konfigurierbar werden.
