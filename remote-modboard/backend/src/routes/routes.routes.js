@@ -7,9 +7,11 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap6g.v1',
+      statusApiVersion: 'rdap7b.v1',
       readOnly: true,
       writeEnabled: false,
+      authEnabled: false,
+      sessionCreationEnabled: false,
       routes: [
         {
           method: 'GET',
@@ -28,6 +30,16 @@ function registerRoutesRoutes(app, context) {
         },
         {
           method: 'GET',
+          path: '/api/remote/auth/me',
+          description: 'Read-only Auth-Status fuer aktuellen Request. Login ist deaktiviert, daher loggedIn=false. Keine Cookies, keine Sessions, keine Writes.'
+        },
+        {
+          method: 'GET',
+          path: '/api/remote/auth/session-status',
+          description: 'Read-only Session-Status fuer aktuellen Request. Keine Session-Erstellung und keine DB-Writes.'
+        },
+        {
+          method: 'GET',
           path: '/api/remote/routes',
           description: 'Read-only route overview.'
         }
@@ -35,6 +47,8 @@ function registerRoutesRoutes(app, context) {
       disabled: [
         'POST/PUT/PATCH/DELETE remote writes',
         'auth/session creation',
+        'Twitch OAuth callback activation',
+        'Set-Cookie/session cookie issuance',
         'DB migration',
         'agent action execution',
         'OBS/Sound/Overlay/Command control',

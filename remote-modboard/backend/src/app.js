@@ -5,6 +5,7 @@ const { buildSafetyBlock } = require('./security/safety');
 const { registerHealthRoutes } = require('./routes/health.routes');
 const { registerStatusRoutes } = require('./routes/status.routes');
 const { registerAuthModelRoutes } = require('./routes/auth-model.routes');
+const { registerAuthStatusRoutes } = require('./routes/auth-status.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 
 function createApp({ config, moduleBuild }) {
@@ -28,6 +29,7 @@ function createApp({ config, moduleBuild }) {
   registerHealthRoutes(app, context);
   registerStatusRoutes(app, context);
   registerAuthModelRoutes(app, context);
+  registerAuthStatusRoutes(app, context);
   registerRoutesRoutes(app, context);
 
   app.use((req, res) => {
@@ -38,7 +40,9 @@ function createApp({ config, moduleBuild }) {
       error: 'not_found',
       path: req.path,
       readOnly: true,
-      writeEnabled: false
+      writeEnabled: false,
+      authEnabled: false,
+      sessionCreationEnabled: false
     });
   });
 
@@ -51,7 +55,9 @@ function createApp({ config, moduleBuild }) {
       moduleBuild,
       error: 'internal_error',
       readOnly: true,
-      writeEnabled: false
+      writeEnabled: false,
+      authEnabled: false,
+      sessionCreationEnabled: false
     });
   });
 
