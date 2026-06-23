@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE  
+Stand: RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -20,27 +20,31 @@ Datum: 2026-06-23
 - [x] RDAP5D als separater grosser Node-Check uebersprungen/korrigiert
 - [x] RDAP5E Remote-Modboard Node-Service-Plan dokumentiert
 - [x] RDAP5F Remote-Node-Base-Readonly-Paket vorbereitet
+- [x] RDAP5G Remote Node Server Install Plan dokumentiert
 - [x] keine Migration ausgefuehrt
 - [x] kein npm install ausgefuehrt
 - [x] keine nginx-/Service-Aenderung ausgefuehrt
 
 ## Als nächstes
 
-### RDAP5G / Remote Node Server Install Plan
+### RDAP5H / Remote Node Server Install Package
 
-- [ ] Webserver-Zielpfad pruefen
-- [ ] Service-User planen
-- [ ] ENV-/Secret-Datei planen
-- [ ] npm install nur im separaten `remote-modboard/backend` planen
-- [ ] systemd-Service planen
-- [ ] nginx-Reverse-Proxy fuer `/api/remote/` planen
-- [ ] spaeteren `/ws/agent` Pfad nur vorbereiten, nicht aktiv produktiv nutzen
-- [ ] Healthcheck nach Start planen
-- [ ] Rollback/Undo planen
-- [ ] keine Installation ohne separates Go
-- [ ] kein npm install ohne separates Go
+- [ ] Webserver-Zielpfad final anhand echter Lesebefehle bestaetigen
+- [ ] Service-User `sccremote` pruefen/anlegen
+- [ ] Zielpfad `/opt/stream-control-center/remote-modboard/backend` pruefen/anlegen
+- [ ] ENV-/Secret-Datei `/etc/stream-control-center/remote-modboard.env` vorbereiten
+- [ ] DB-Passwort nur serverseitig in ENV setzen, nicht posten/dokumentieren
+- [ ] `npm install --omit=dev` nur im separaten Remote-Paket planen/ausfuehren
+- [ ] systemd-Service `scc-remote-modboard.service` vorbereiten
+- [ ] nginx-Site vor Aenderung sichern
+- [ ] nginx-Reverse-Proxy fuer `/api/remote/` vorbereiten
+- [ ] spaeteren `/ws/agent` Pfad nur vorbereiten, nicht produktiv nutzen
+- [ ] `nginx -t` vor Reload ausfuehren
+- [ ] Healthcheck lokal `127.0.0.1:3010` pruefen
+- [ ] Healthcheck oeffentlich `https://mods.forrestcgn.de/api/remote/health` pruefen
+- [ ] Rollback/Undo dokumentieren und griffbereit halten
 - [ ] keine DB-Migration ohne separates Go
-- [ ] keine nginx-/Service-Aenderung ohne separates Go
+- [ ] keine Agent-Actions ohne separates Go
 
 ## Verbindlicher TODO aus RDAP5F
 

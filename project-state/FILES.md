@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE  
+Stand: RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -25,10 +25,11 @@ docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
 docs/current/REMOTE_DASHBOARD_RDAP5C4_KNOWN_REMOTE_SERVER_FACTS.md
 docs/current/REMOTE_DASHBOARD_RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE.md
+docs/current/REMOTE_DASHBOARD_RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN.md
 docs/current/NEXT_CHAT_PROMPT_RDAP5E_REMOTE_NODE_SERVICE_PLAN.md
 ```
 
-## Neues Remote-Modboard-Paket aus RDAP5F
+## Remote-Modboard-Paket aus RDAP5F
 
 ```text
 remote-modboard/backend/package.json
@@ -42,6 +43,16 @@ remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/db-health.service.js
 remote-modboard/backend/src/security/safety.js
+```
+
+## RDAP5G Doku-Update
+
+```text
+docs/current/REMOTE_DASHBOARD_RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
 ```
 
 ## Bewusst nicht geänderte Dateien
@@ -104,9 +115,7 @@ Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
 Nächster sinnvoller Schritt:
 
 ```text
-RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN
+RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE
 ```
 
-Nicht nochmal als Hauptstep Node/npm/git/MariaDB-Client pruefen; diese Infos sind bekannt. Frischer Gegencheck direkt vor Installation ist okay.
-
-Keine DB-Migration, kein npm install, keine Secrets, keine nginx-/Service-Aenderung ohne separates Go.
+Vor RDAP5H echte Webserver-Lesebefehle ausfuehren und Pfade pruefen. Keine DB-Migration, keine Secrets, keine produktiven Agent-Actions ohne separates Go.

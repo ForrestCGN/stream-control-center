@@ -1,33 +1,33 @@
 # CURRENT STATUS
 
-Stand: RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE  
+Stand: RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN  
 Datum: 2026-06-23
 
 ## Aktueller bestätigter Arbeitsstand
 
-RDAP5F bereitet das erste separate Remote-Modboard-Node-Basispaket vor.
+RDAP5G dokumentiert den Installationsplan fuer das in RDAP5F vorbereitete separate Remote-Modboard-Node-Basispaket.
 
-Neue Basis:
+Neue Basis aus RDAP5F:
 
 ```text
 remote-modboard/backend/
 ```
 
-Ziel:
+RDAP5G ist reine Planung.
+
+## Enthalten in RDAP5G
 
 ```text
-Read-only Remote-Modboard-Service fuer web.cgn.community / mods.forrestcgn.de vorbereiten.
+Webserver-Zielpfad geplant
+Service-User-Konzept geplant
+ENV-/Secret-Datei geplant
+npm install nur im separaten remote-modboard/backend geplant
+systemd-Service-Konzept geplant
+nginx-Reverse-Proxy fuer /api/remote/ geplant
+optionaler /ws/agent Pfad fuer spaeter dokumentiert
+Healthchecks nach Start geplant
+Rollback/Undo geplant
 ```
-
-## Enthalten
-
-```text
-GET /api/remote/health
-GET /api/remote/status
-GET /api/remote/routes
-```
-
-Alle Routen sind read-only.
 
 ## Bekannter Webserver-/DB-Stand
 
@@ -63,7 +63,7 @@ sound_profi ist eine Gruppe / Markierung.
 Modulrechte werden pro Modul konfiguriert.
 ```
 
-## Nicht geändert durch RDAP5F
+## Nicht geändert durch RDAP5G
 
 ```text
 kein produktiver Node-Service gestartet
@@ -90,12 +90,14 @@ Root-package.json unveraendert
 
 Das ist seit RDAP5C3 fachlich ueberholt.
 
-RDAP5F aendert diese Datei bewusst noch nicht, setzt aber einen verbindlichen TODO fuer einen spaeteren Korrekturstep.
+Dieser Punkt bleibt verbindlich in TODO.md und wird nicht in RDAP5G repariert.
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN
+RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE
 ```
 
-Ziel: Webserver-Installationsplan fuer Pfade, ENV, npm install im separaten Remote-Paket, systemd und nginx-Reverse-Proxy vorbereiten.
+Ziel: konkretes Installationspaket/Anweisungen fuer Webserver-Pfad, ENV-Datei, npm install im separaten Remote-Paket, systemd und nginx-Reverse-Proxy vorbereiten.
+
+RDAP5H erst nach separatem Go.

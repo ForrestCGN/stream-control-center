@@ -1,33 +1,34 @@
 # NEXT STEPS
 
-Stand: RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE  
+Stand: RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN
+RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE
 ```
 
-## Ziel von RDAP5G
+## Ziel von RDAP5H
 
-RDAP5G soll planen, wie das in RDAP5F vorbereitete Remote-Modboard-Node-Basispaket auf `web.cgn.community` installiert wird.
+RDAP5H soll aus dem RDAP5G-Plan ein konkretes Installationspaket bzw. konkrete Installationsanweisungen fuer `web.cgn.community` vorbereiten.
 
-Planungspunkte:
+Geplante Punkte:
 
 ```text
-Webserver-Zielpfad pruefen
-Service-User planen
-ENV-/Secret-Datei planen
-npm install nur im separaten remote-modboard/backend planen
-systemd-Service planen
-nginx-Reverse-Proxy fuer /api/remote/ planen
-optionalen /ws/agent Pfad fuer spaeter planen
-Healthcheck nach Start planen
-Rollback/Undo planen
+Webserver-Zielpfad final anhand echter Lesebefehle bestaetigen
+Service-User sccremote anlegen oder pruefen
+Remote-Modboard-Paket nach /opt/stream-control-center/remote-modboard/backend bringen
+ENV-/Secret-Datei unter /etc/stream-control-center/remote-modboard.env vorbereiten
+npm install --omit=dev nur im separaten remote-modboard/backend ausfuehren
+systemd-Service scc-remote-modboard.service vorbereiten
+nginx-Reverse-Proxy fuer /api/remote/ vorbereiten
+nginx -t vor reload pruefen
+Healthcheck lokal und ueber https://mods.forrestcgn.de pruefen
+Rollback/Undo griffbereit halten
 ```
 
-## Vor RDAP5G einmalig als Lesetest erlaubt
+## Vor RDAP5H als Lesetest erlaubt
 
 ```bash
 whoami
@@ -38,47 +39,48 @@ mysql --version
 which node
 ls -la /opt
 ls -la /etc/stream-control-center 2>/dev/null || true
+nginx -T 2>/dev/null | grep -n "mods.forrestcgn.de" -A 30 -B 10 || true
 ```
 
 Keine Installation ohne separates Go.
 
-## RDAP5G darf
+## RDAP5H darf erst nach separatem Go
 
 ```text
-Plan erstellen
-Lesebefehle fuer Serverpfade nennen
-systemd/nginx/ENV-Konzept konkretisieren
-Installationsreihenfolge planen
-Tests planen
-Rollback planen
+npm install im separaten remote-modboard/backend ausfuehren
+Service-User anlegen
+Dateien nach /opt kopieren
+/etc/stream-control-center/remote-modboard.env anlegen
+systemd-Service anlegen
+nginx-Site sichern und Reverse-Proxy einbauen
+Service starten
+Healthchecks ausfuehren
 ```
 
-## RDAP5G darf nicht ohne separates Go
+## RDAP5H darf nicht ohne separaten DB-/Auth-/Agent-Plan
 
 ```text
-kein produktiver Node-Service starten
-kein npm install ausfuehren
-keine nginx-Aenderung ausfuehren
-keine systemd-Aenderung ausfuehren
 keine DB-Migration
 keine MariaDB-Schreibaktion
 keine lokale SQLite-Aenderung
-keine Secrets posten/dokumentieren
+kein Login/Auth aktivieren
+keinen produktiven Agent aktivieren
 keine Agent-Actions aktivieren
+keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine freie Shell-/Datei-/Prozesssteuerung
+keine Secrets ins Repo oder Frontend schreiben
 ```
 
 ## Danach mögliche Schritte
 
 ```text
-RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE
+RDAP5I_REMOTE_NODE_PROXY_HEALTH_TEST
 ```
 
-Erst nach RDAP5G-Plan und separatem Go.
-
-Oder spaeter:
+oder spaeter:
 
 ```text
 RDAP6_AUTH_DB_MIGRATION_PREP
 ```
 
-Erst nach stabil laufendem Remote-Node-Basisdienst und separatem DB-Migrationsplan.
+RDAP6 erst nach stabil laufendem Remote-Node-Basisdienst und separatem DB-Migrationsplan.
