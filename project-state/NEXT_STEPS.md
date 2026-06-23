@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS  
+Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -9,9 +9,10 @@ Fertig und dokumentiert:
 
 ```text
 RDAP7B Auth Read-only Status Endpoints gebaut
-RDAP7C Remote Auth Status Deploy/Test bestanden
+RDAP7C Remote Auth Status Deploy/Test live bestanden
 RDAP7C1 Server Workdir Cleanup bestanden
-RDAP7E Cleanup-/Status-Doku erstellt
+RDAP7E Server Workdir Cleanup Docs abgeschlossen
+RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 ```
 
 Remote-Modboard bleibt read-only:
@@ -28,52 +29,33 @@ loggedIn: false
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP8_TWITCH_OAUTH_DRY_RUN_PLAN
+RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN
 ```
 
 Ziel:
 
 ```text
-Twitch-OAuth-Login als Dry-Run planen, ohne produktiven Login, Callback, Cookies oder Session-Erstellung zu aktivieren.
+Twitch-OAuth-Dry-Run planen, ohne produktiven Login zu aktivieren.
 ```
 
-Dabei zu klaeren:
+RDAP7F soll klaeren:
 
 ```text
-Twitch OAuth Redirect-URI fuer mods.forrestcgn.de
-no-secret-in-repo Regel
-ENV-Namen fuer Client-ID/Secret/Callback
-serverseitige Callback-Sicherheitsregeln
-State/Nonce-Konzept
-Cookie-Regeln
-Session-Hash-Regeln
-User-/Identity-Anlage erst in separatem Write-Step
-Rollback/Disable-Schalter
-```
-
-## Server-Arbeitsorte ab sofort
-
-```text
-Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
-Run-/Temp-Dateien:   /opt/stream-control-center/_runtime_tmp/
-Backups:             /var/backups/stream-control-center/
-```
-
-Nicht mehr verwenden:
-
-```text
-/root/rdap*-deploy
-/root/rdap*-migration
-/root/rdap*-precheck
-/root/rdap*_backup_*
+Twitch Developer Console App/Redirect-URL
+benoetigte ENV-Werte ohne Secrets im Repo
+Callback-/Redirect-Pfade
+State-/CSRF-Konzept
+Fehler-/Stop-Punkte
+Testplan
+Rollback
 ```
 
 ## Noch nicht erlaubt
 
 ```text
-kein produktiver Login
+kein Login aktivieren
 keine Twitch-OAuth-Secrets ins Repo
-keine OAuth-Callback-Aktivierung ohne separaten Go
+keine OAuth-Callback-Route produktiv freischalten
 keine Session-Cookies setzen
 keine Session-Erstellung
 keine User-/Rollen-/Gruppen-Schreibroute
@@ -82,16 +64,16 @@ keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
-## Spaeter, nicht jetzt
+## Danach moeglich, nicht jetzt
 
 ```text
-RDAP8B Twitch OAuth ENV/Callback Readiness Check
-RDAP8C OAuth Callback Dry-Run Code ohne Session-Erstellung
-RDAP8D Session Store Read-only/Validation Layer
-RDAP9 Permission Check Middleware Plan
-RDAP10 Lock-/Audit-Konzept fuer spaetere Writes
+RDAP7G Twitch OAuth ENV/Server Prep ohne Login-Aktivierung
+RDAP7H OAuth Callback Skeleton read-only/disabled
+RDAP7I Session Store Read-only/Validation Layer
+RDAP8 Permission Check Middleware Plan
+RDAP9 Lock-/Audit-Konzept fuer spaetere Writes
 ```
 
 ## Arbeitsregel
 
-Nur EIN Arbeitsort pro Schritt. Keine Server-/PowerShell-/DB-Schritte mischen.
+Nur EIN Arbeitsort pro Schritt. Keine Server-/PowerShell-/DB-Schritte mischen. Keine RDAP-Arbeitsordner mehr in `/root`.

@@ -1,0 +1,141 @@
+# Neuer Chat Prompt - stream-control-center RDAP Fortsetzung
+
+Bitte arbeite im Projekt `ForrestCGN/stream-control-center` weiter.
+
+## Wichtigster Start
+
+Lies zuerst diese Dateien auf GitHub/dev in genau dieser Reihenfolge:
+
+```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
+```
+
+Wenn eine Datei fehlt oder nicht vollstaendig lesbar ist: nicht raten, sondern exakt sagen, welche Datei fehlt.
+
+## Projektstand
+
+Aktueller bestaetigter Stand:
+
+```text
+RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS
+```
+
+RDAP7E ist laut letztem Chat lokal installiert, committed und nach GitHub/dev gepusht; `git status --short` war leer.
+
+Wichtige erledigte Punkte:
+
+```text
+RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich
+RDAP7B Auth Read-only Status Endpoints gebaut
+RDAP7C Live-Deploy/Test bestanden
+RDAP7C1 Server Workdir Cleanup bestanden
+RDAP7E Doku abgeschlossen
+```
+
+Live Remote-Modboard:
+
+```text
+https://mods.forrestcgn.de/api/remote/
+Service: scc-remote-modboard.service
+moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
+readOnly: true
+writeEnabled: false
+authEnabled: false
+sessionCreationEnabled: false
+```
+
+Bestaetigte Live-Routen:
+
+```text
+GET /api/remote/health
+GET /api/remote/status
+GET /api/remote/routes
+GET /api/remote/auth/model
+GET /api/remote/auth/me
+GET /api/remote/auth/session-status
+```
+
+## Wichtige Regeln
+
+Arbeitsweise zwingend einhalten:
+
+```text
+- GitHub/dev ist Single Source of Truth.
+- Echte Dateien pruefen, nicht raten.
+- Keine Funktionalitaet entfernen.
+- Keine Parallelstrukturen bauen, vorhandene Module/Helper nutzen.
+- Vor Umsetzung Scope nennen und auf ausdrueckliches go warten.
+- Pro Antwort maximal ein Befehlsblock.
+- Vor Befehlen immer sagen: Wo ausfuehren, was macht der Befehl, wann stoppen, welche Ausgabe schicken.
+- Keine langen unnoetigen Ausgaben anfordern.
+- ZIPs mit echten Repo-Pfaden ab Repo-Root liefern.
+- Kein Desktop als Standardpfad.
+- Kein git add . verwenden.
+- StepDone erst nach Einspielen/Deploy/Test.
+```
+
+Server-Regel ab RDAP7C1:
+
+```text
+Keine RDAP-Arbeitsordner, Deploy-Clones oder Backups mehr direkt in /root.
+Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
+Runtime-/Temp:       /opt/stream-control-center/_runtime_tmp/
+Backups:             /var/backups/stream-control-center/
+```
+
+Security-Regeln:
+
+```text
+- Keine Secrets ins Repo, Frontend oder Chat.
+- Backend prueft Rechte; Frontend ist keine Sicherheitsentscheidung.
+- Keine Schreibfunktionen ohne Permission/Lock/Audit.
+- Keine produktiven Agent-Actions ohne Allowlist.
+- Keine freie Shell-/Datei-/Prozesssteuerung.
+- Rollen und Gruppen getrennt halten.
+- sound_profi ist Gruppe/Marker, keine Rolle.
+- VIP gibt keine Dashboard-Grundrechte.
+```
+
+## Naechster Auftrag
+
+Bitte mache als naechstes:
+
+```text
+RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN
+```
+
+Wichtig: Das ist zuerst nur Planung/Doku. Noch kein produktiver Login.
+
+Ziel von RDAP7F:
+
+```text
+Twitch-OAuth-Dry-Run sauber planen:
+- benoetigte ENV-Werte
+- Twitch Developer Console Einstellungen
+- Redirect-/Callback-URLs fuer mods.forrestcgn.de
+- State/CSRF-Regel
+- Fehler-/Stop-Punkte
+- Testplan
+- Rollback
+```
+
+Nicht erlauben in RDAP7F:
+
+```text
+kein Twitch-Login aktivieren
+keinen OAuth-Callback produktiv freischalten
+keine Cookies setzen
+keine Session-Erstellung
+keine DB-Writes
+keine Agent-Actions
+keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine Secrets ins Repo oder Frontend
+```
+
+Wenn du nach dem Lesen der Dateien bereit bist, gib zuerst nur den Scope fuer RDAP7F aus und warte auf mein `go`.

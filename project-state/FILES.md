@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS  
+Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -12,6 +12,8 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
+docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -30,6 +32,8 @@ docs/current/RDAP7A_AUTH_READONLY_USER_RESOLUTION_PLAN.md
 docs/current/RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS.md
 docs/current/RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS.md
+docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
 ## Remote-Modboard Paket im Repo
@@ -75,23 +79,18 @@ db/rdap6d/templates/RDAP6D_TEST_RESULT_TEMPLATE.md
 /etc/systemd/system/scc-remote-modboard.service
 ```
 
-## Neue Webserver-Arbeitsordner
-
-Ab RDAP7E:
+## Server-Arbeitsordner ab RDAP7C1
 
 ```text
-/opt/stream-control-center/_deploy_tmp
-/opt/stream-control-center/_runtime_tmp
-/var/backups/stream-control-center
+Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
+Runtime-/Temp:       /opt/stream-control-center/_runtime_tmp/
+Backups:             /var/backups/stream-control-center/
 ```
 
-Nicht mehr fuer RDAP-Arbeit verwenden:
+Nicht mehr fuer RDAP-Deploy/Temp/Backup nutzen:
 
 ```text
-/root/rdap*-deploy
-/root/rdap*-migration
-/root/rdap*-precheck
-/root/rdap*_backup_*
+/root
 ```
 
 ## Webserver-DB
@@ -113,12 +112,6 @@ Vorheriges Backup:
 
 ```text
 /root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
-```
-
-Kuenftige Backups gehoeren nach:
-
-```text
-/var/backups/stream-control-center
 ```
 
 Produktiv angelegte Tabellen in `c3stream_control`:
@@ -145,23 +138,17 @@ dashboard_audit_log
 GET https://mods.forrestcgn.de/api/remote/auth/model
 GET https://mods.forrestcgn.de/api/remote/auth/me
 GET https://mods.forrestcgn.de/api/remote/auth/session-status
-```
-
-Bestaetigt:
-
-```text
 schema.ready: true
 readOnly: true
 writeEnabled: false
 authEnabled: false
 sessionCreationEnabled: false
-loggedIn: false
 ```
 
 ## Lokale produktive SQLite
 
 ```text
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
+D:\Streaming\stramAssets\data\sqlitepp.sqlite
 ```
 
 Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
@@ -188,5 +175,5 @@ moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ## Naechste geplante Datei
 
 ```text
-docs/current/RDAP8_TWITCH_OAUTH_DRY_RUN_PLAN.md
+docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 ```

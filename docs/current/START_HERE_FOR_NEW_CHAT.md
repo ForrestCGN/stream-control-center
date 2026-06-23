@@ -1,9 +1,11 @@
 # START HERE FOR NEW CHAT
 
-Stand: RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS  
+Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
 Datum: 2026-06-23
 
 ## Zuerst lesen
+
+Bitte zuerst diese Dateien lesen, bevor geplant oder gebaut wird:
 
 ```text
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
@@ -11,99 +13,75 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS.md
+docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
-## Projekt
-
-Repository:
+## Aktueller gesicherter Stand
 
 ```text
-ForrestCGN/stream-control-center
-Branch: dev
-Lokal: D:\Git\stream-control-center
-Live Stream-PC: D:\Streaming\stramAssets
-Remote-Modboard: https://mods.forrestcgn.de
-Webserver: web.cgn.community
+RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS
+```
+
+RDAP7E wurde laut User lokal installiert, committed und nach GitHub/dev gepusht. `git status --short` war leer.
+
+## Kurzstatus
+
+```text
+RDAP6K produktive Auth-DB-Migration auf c3stream_control erfolgreich
+RDAP7B read-only Auth-Status-Endpunkte gebaut
+RDAP7C Live-Deploy/Test bestanden
+RDAP7C1 Server Workdir Cleanup bestanden
+RDAP7E Cleanup-Doku abgeschlossen
+```
+
+## Live Remote-Modboard
+
+```text
+URL: https://mods.forrestcgn.de/api/remote/
+Service: scc-remote-modboard.service
+moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
+readOnly: true
+writeEnabled: false
+authEnabled: false
+sessionCreationEnabled: false
+```
+
+## Server-Ordnerregel
+
+Nicht mehr verwenden:
+
+```text
+/root fuer RDAP-Deploy-Clones, Arbeitsordner, Temp-Ordner oder Backups
+```
+
+Stattdessen:
+
+```text
+Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
+Runtime-/Temp:       /opt/stream-control-center/_runtime_tmp/
+Backups:             /var/backups/stream-control-center/
 ```
 
 ## Arbeitsweise
 
 ```text
-Nicht raten.
-Echte Dateien zuerst pruefen.
-Vor Umsetzung Scope nennen.
-Auf ausdrueckliches go warten.
+GitHub/dev als Single Source of Truth.
+Echte Dateien pruefen, nicht raten.
 Keine Funktionalitaet entfernen.
-Vorhandene Helper/Module nutzen.
-Keine Parallelstrukturen bauen.
-Keine Secrets ins Repo oder Frontend.
-Backend prueft Rechte; Frontend ist keine Sicherheitsentscheidung.
-Ein Arbeitsort pro Schritt.
+Vor Umsetzung Scope nennen und auf go warten.
 Maximal ein Befehlsblock pro Antwort.
-Kein git add .
-Bei ZIPs echte Repo-Pfade ab Repo-Root.
+Vor Befehlen sagen: Wo ausfuehren, was macht der Befehl, wann stoppen, welche Ausgabe schicken.
+Keine langen unnoetigen Ausgaben anfordern.
+Kein git add . verwenden.
+ZIPs mit echten Repo-Pfaden liefern.
+StepDone erst nach Einspielen/Deploy/Test.
 ```
 
-## Server-Ordnerregel
-
-Ab RDAP7E gilt fuer Webserver-Schritte:
+## Naechster sinnvoller Schritt
 
 ```text
-Keine RDAP-Arbeitsordner direkt unter /root.
-Keine Deploy-Clones direkt unter /root.
-Keine RDAP-Backups direkt unter /root.
+RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN
 ```
 
-Standardpfade:
-
-```text
-Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
-Run-/Temp-Dateien:   /opt/stream-control-center/_runtime_tmp/
-Backups:             /var/backups/stream-control-center/
-```
-
-## Bestaetigter Stand
-
-```text
-RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich.
-RDAP7B Auth read-only Status-Endpunkte gebaut und auf GitHub/dev.
-RDAP7C Live-Deploy/Test erfolgreich.
-RDAP7C1 Server Workdir Cleanup erfolgreich.
-RDAP7E dokumentiert diesen Stand.
-```
-
-Live-Routen:
-
-```text
-GET https://mods.forrestcgn.de/api/remote/health
-GET https://mods.forrestcgn.de/api/remote/status
-GET https://mods.forrestcgn.de/api/remote/routes
-GET https://mods.forrestcgn.de/api/remote/health?db=1
-GET https://mods.forrestcgn.de/api/remote/auth/model
-GET https://mods.forrestcgn.de/api/remote/auth/me
-GET https://mods.forrestcgn.de/api/remote/auth/session-status
-```
-
-Sicherheitsstatus:
-
-```text
-readOnly: true
-writeEnabled: false
-migrationEnabled: false
-authEnabled: false
-sessionCreationEnabled: false
-loggedIn: false
-keine Cookies
-keine Session-Erstellung
-keine DB-Writes
-keine Agent-Actions
-```
-
-## Naechster Schritt
-
-```text
-RDAP8_TWITCH_OAUTH_DRY_RUN_PLAN
-```
-
-Nur planen. Noch keinen echten Login aktivieren.
+Nur Plan/Doku. Noch kein Login, keine Cookies, keine Sessions, keine Writes.

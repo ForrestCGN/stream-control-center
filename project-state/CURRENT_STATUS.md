@@ -1,15 +1,15 @@
 # CURRENT STATUS
 
-Stand: RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS  
+Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP7B wurde als read-only Backend-Code-Step gebaut und deployed. RDAP7C Live-Test war erfolgreich. RDAP7C1 Server Workdir Cleanup wurde ausgefuehrt und bestaetigt. RDAP7E dokumentiert diesen Stand.
+RDAP7E ist abgeschlossen und laut User nach GitHub/dev gepusht. `git status --short` war leer.
 
-Der Remote-Modboard-Service bleibt weiterhin read-only. Es wurde keine Authentifizierung aktiviert, keine Session-Erstellung aktiviert, kein Cookie gesetzt und keine Schreibroute freigeschaltet.
+RDAP7F dokumentiert den Chat-Handoff und legt die naechste Chat-Prompt-Datei an. Dieser Step enthaelt keine Code-, DB-, Service-, Auth-, Session-, Cookie-, Agent- oder Remote-Write-Aenderungen.
 
-Fertig und getestet:
+## Fertig und bestaetigt
 
 ```text
 RDAP5I Remote-Modboard Node-Basisdienst read-only live
@@ -25,11 +25,13 @@ RDAP6J Productive Migration Precheck bestanden und Backup erstellt
 RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich ausgefuehrt
 RDAP6L Auth DB Productive Migration Result Docs erstellt
 RDAP7 Login-/Session-Konzept dokumentiert
-RDAP7A Auth Read-only User Resolution Plan dokumentiert
-RDAP7B Auth Read-only Status Endpoints gebaut
-RDAP7C Remote Auth Status Deploy/Test bestanden
-RDAP7C1 Server Workdir Cleanup bestanden
-RDAP7E Server Workdir Cleanup Docs erstellt
+RDAP7A Auth Read-only User Resolution Plan eingespielt
+RDAP7B Auth Read-only Status Endpoints gebaut und nach GitHub/dev gepusht
+RDAP7C Remote Auth Status Deploy/Test live bestanden
+RDAP7C1 Server Workdir Cleanup live bestanden
+RDAP7D Auth Status Deploy Result Docs erstellt
+RDAP7E Server Workdir Cleanup Docs erstellt und nach GitHub/dev gepusht
+RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
 ```
 
 ## Remote-Modboard read-only live
@@ -63,6 +65,9 @@ migrationEnabled: false
 authEnabled: false
 sessionCreationEnabled: false
 loggedIn: false
+keine Cookies
+keine Session-Erstellung
+keine DB-Writes
 productiveAgentRuntime: false
 agentActionsEnabled: false
 ```
@@ -72,19 +77,18 @@ agentActionsEnabled: false
 ```text
 DB_USER=c1stream_control
 DB_NAME=c3stream_control
+DB-Typ: MariaDB 11.8.6
 ```
 
 Passwort wird nicht dokumentiert und darf nicht ins Repo, Frontend oder Chat.
 
 ## RDAP6K produktive Migration
 
-Vorheriges Backup:
+Vorheriges DB-Backup:
 
 ```text
 /root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
 ```
-
-Hinweis: Vor RDAP7E wurde auf dem Webserver die neue Backup-Regel eingefuehrt. Kuenftige Backups gehoeren nach `/var/backups/stream-control-center/`, nicht nach `/root`.
 
 Migrationsergebnis:
 
@@ -102,41 +106,29 @@ dashboard_module_permissions: 0
 dashboard_sessions: 0
 dashboard_locks: 0
 dashboard_audit_log: 0
+sound_profi_role_count = 0
+sound_profi_group_marker_count = 1
+sound_profi_role_permission_count = 0
 ```
 
-## RDAP7C Live-Test
+## Server-Ordnerregel ab RDAP7C1
 
 ```text
-Service: active
-moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
-/api/remote/routes: neue Auth-Status-Routen sichtbar
-/api/remote/auth/me: OK
-/api/remote/auth/session-status: OK
-/api/remote/auth/model: weiterhin read-only, schema.ready true
+Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
+Runtime-/Temp:       /opt/stream-control-center/_runtime_tmp/
+Backups:             /var/backups/stream-control-center/
 ```
 
-## RDAP7C1 Server Workdir Cleanup
-
-Bestaetigt:
-
-```text
-/opt/stream-control-center/_deploy_tmp angelegt
-/opt/stream-control-center/_runtime_tmp angelegt
-/var/backups/stream-control-center angelegt
-/root enthaelt keine RDAP-Ordner mehr
-scc-remote-modboard.service blieb active
-```
-
-Neue Regel:
-
-```text
-Keine RDAP-Arbeitsordner direkt unter /root.
-Keine Deploy-Clones direkt unter /root.
-Keine RDAP-Backups direkt unter /root.
-```
+`/root` nicht mehr fuer RDAP-Arbeitsordner, Deploy-Clones, Temp-Ordner oder Backups verwenden.
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP8_TWITCH_OAUTH_DRY_RUN_PLAN
+RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN
+```
+
+Ziel:
+
+```text
+Twitch-OAuth-Dry-Run planen, ohne Login zu aktivieren.
 ```
