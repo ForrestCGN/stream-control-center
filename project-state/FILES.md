@@ -1,58 +1,69 @@
 # FILES
 
-Stand: DASHUI2.DOC1 / Frontend-Tech-Entscheidung konkretisiert  
+Stand: DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan dokumentiert  
 Datum: 2026-06-23
 
-## Aktuelle Doku-/Statusdateien
+## Neue/aktualisierte Doku-Dateien in diesem Step
 
-- `docs/current/START_HERE_FOR_NEW_CHAT.md`
-- `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`
+- `docs/current/DASHBOARD_V2_PARALLEL_MIGRATION_PLAN.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
+- `project-state/CHANGELOG_DASHUI3_PARALLEL_MIGRATION_PLAN_2026-06-23.md`
 
-## Remote Dashboard / Agent / Webserver
+## Relevante vorhandene Doku-Dateien
 
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`
+- `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`
 - `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
 - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 - `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
 - `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
 - `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
-
-## Dashboard-v2 / Frontend
-
+- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
 - `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 - `docs/current/DASHBOARD_V2_FRONTEND_TECH_DECISION.md`
 
-## Changelog-Dateien
+## Für DASHUI4 später geplante Pfade
 
-- `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`
-- `project-state/CHANGELOG_RDAP4_PERMISSION_LOCK_MODEL_2026-06-23.md`
-- `project-state/CHANGELOG_DASHUI2_FRONTEND_TECH_DECISION_2026-06-23.md`
-
-## Geplante spaetere Dateien, noch nicht erstellt
-
-DASHUI3 waere der erste Code-Step fuer:
+Noch nicht angelegt durch DASHUI3.DOC1:
 
 ```text
 frontend/dashboard-v2/
+htdocs/dashboard-v2/
 ```
 
-Spaeterer Build-Output:
+Geplante spätere Quellcode-Struktur:
+
+```text
+frontend/dashboard-v2/
+  package.json
+  vite.config.js
+  index.html
+  src/
+    main.jsx
+    app/
+    layout/
+    components/
+    services/
+    modules/
+    styles/
+```
+
+Geplanter späterer Build-Output:
 
 ```text
 htdocs/dashboard-v2/
 ```
 
-Diese Dateien/Ordner wurden in DASHUI2.DOC1 noch nicht erstellt.
+## Nicht geändert
 
-## Produktive Pfade, unveraendert
-
-- Lokales Repo: `D:\Git\stream-control-center`
-- Live-Ziel: `D:\Streaming\stramAssets`
-- Lokaler Server: `http://127.0.0.1:8080`
-- Lokales Dashboard: `http://127.0.0.1:8080/dashboard`
-- Produktive SQLite: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
-- Remote-Modboard-Ziel: `https://mods.forrestcgn.de`
+- `htdocs/dashboard/`
+- `backend/`
+- `config/`
+- `htdocs/overlays/`
+- produktive SQLite
+- OBS
+- Webserver/systemd/nginx

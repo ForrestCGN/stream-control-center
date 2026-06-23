@@ -1,89 +1,99 @@
 # NEXT STEPS
 
-Stand: DASHUI2.DOC1 / Frontend-Tech-Entscheidung konkretisiert  
+Stand: DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan dokumentiert  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-DASHUI3 / Minimaler React-Prototyp planen oder bauen nach explizitem go
-```
-
-Ziel fuer DASHUI3, falls freigegeben:
-
-- neues Frontend-Grundgeruest unter `frontend/dashboard-v2/`
-- React + Vite Minimalsetup
-- AppShell mit Topbar/Sidebar/PageHeader/ModuleTabs
-- eine Beispielseite, bevorzugt `Remote Agent` oder `Uebersicht`
-- Modul-Registry und Navigation-Registry als minimale Struktur
-- erste CGN-Basisstyles/Tokens
-- Build-Ziel nach `htdocs/dashboard-v2/` planen oder vorbereiten
-- keine produktive Modulmigration
-- keine alten Dashboard-Dateien blind umbauen
-- keine produktiven Aktionen
-- keine Secrets
-
-Wichtig:
-
-- DASHUI3 waere der erste Code-Step in dieser Frontend-Linie.
-- Vor DASHUI3 muss klar sein, ob wirklich ein Code-Prototyp gebaut werden soll.
-- Bei Frontend-Code ist kein Backend-Node-Neustart noetig, solange keine Backend-Dateien geaendert werden.
-
-## Danach sinnvoll
-
-```text
-RDAP5 / Webserver-App-Minimalplanung
+DASHUI4 / Minimaler React-Vite-Prototyp
 ```
 
 Ziel:
 
-- spaetere Node-App auf Webserver intern `127.0.0.1:3000` planen
-- WSS-Endpunkt fuer Agent planen
-- Login-/Session-Grundstruktur planen
-- Agent-Registry planen
-- Audit-Grundstruktur planen
-- noch keine produktiven Remote-Actions
+- `frontend/dashboard-v2/` als neue Frontend-Quellcode-Basis anlegen
+- React + Vite Grundgerüst erstellen
+- AppShell mit Sidebar/Topbar/PageHeader/ModuleTabs bauen
+- CGN-Dark-/Neon-/Galaxy-Basisdesign anlegen
+- zentrale Theme-/Token-Dateien anlegen
+- Modul-/Navigation-Registry vorbereiten
+- Beispielseite `Übersicht` bauen
+- Beispielseite `Remote Agent` bauen
+- keine produktive Modulmigration
+- keine Schreibfunktionen
+- kein Login-Zwang
+- kein altes Dashboard ändern
+- kein Backend ändern
+- kein Agent-Code
 
-Alternativ:
+Wichtig:
+
+- DASHUI4 ist der erste Code-Step für Dashboard-v2.
+- Umsetzung nur nach explizitem `go`.
+- ZIP muss echte Zielpfade ab Repo-Root enthalten.
+- Node-/Backend-Neustart ist nur nötig, wenn Backend-Dateien geändert werden. Für reinen Frontend-Quellcode noch nicht.
+- Bestehendes Dashboard unter `htdocs/dashboard/` bleibt unangetastet.
+
+## Danach sinnvoll
 
 ```text
-DASHUI3.DOC1 / Minimal-Prototyp erst genauer planen
+DASHUI5 / Build- und Deploy-Weg für dashboard-v2 planen oder bauen
 ```
 
-Falls vor Code noch eine extra Doku gewuenscht ist.
+Mögliche Ziele:
 
-## Bestaetigte Grundlagen
+- Build-Output nach `htdocs/dashboard-v2/`
+- lokaler Aufruf unter `http://127.0.0.1:8080/dashboard-v2`
+- keine produktiven Aktionen
+- kein Remote-Webserver-Deploy ohne separaten Step
 
-Siehe:
+## Danach sinnvoll
 
-- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
-- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
-- `docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md`
-- `docs/current/DASHBOARD_V2_FRONTEND_TECH_DECISION.md`
-- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
+```text
+DASHUI6 / erste read-only Statusseite
+```
 
-Festgelegt:
+Mögliche Kandidaten:
 
-- Remote-Modboard: `https://mods.forrestcgn.de`
-- Webserver: Hetzner/KVM-VM mit nginx und Let's Encrypt
-- Node-App spaeter intern, bevorzugt `127.0.0.1:3000`
-- oeffentlich nur HTTPS/WSS, kein oeffentlicher Node-Port
-- Stream-PC-Agent als separater Node-Prozess
-- lokales Backend bleibt `127.0.0.1:8080`
-- keine Offline-Queue
-- produktive SQLite bleibt unangetastet
-- `React + Vite` als bevorzugte Dashboard-v2-Richtung
-- Build-Ziel spaeter `htdocs/dashboard-v2/`
+- Remote Agent Status
+- Systemstatus
+- Twitch-Events Status
+- Sound-System Status
+
+Regel:
+
+- zuerst read-only
+- keine Speichern-/Start-/Stop-/Löschen-Aktion
+- keine produktive Modulmigration
+
+## Modulmigration später
+
+Module werden einzeln migriert.
+
+Empfohlene Reihenfolge:
+
+1. System / Diagnose
+2. Remote Agent / Agent Status
+3. Twitch-Events Status
+4. Sound-System Status
+5. Shot-Alarm
+6. HypeTrain / Twitch-Events Zusatzseiten
+7. Event-System
+8. Loyalty Core
+9. Loyalty Giveaways / Glücksrad
+10. Media
+11. Overlays
+12. OBS
+13. Commands / Kanalpunkte
+14. Admin / Benutzer / Rollen / Permissions / Audit
 
 ## Nicht als nächstes nebenbei machen
 
-- kein produktiver Dashboard-v2-Code ohne klares `go`
-- kein Agent-Code ohne separaten Step
-- kein Permission-Code ohne DB-/API-Planung
-- keine DB-Migration ohne separaten Step
-- keine OBS-Quellen automatisch ändern
-- keine produktive Remote-Agent-Verbindung ohne Minimaltest
-- keine Sound-/Media-/Config-Remote-Actions als ersten Agent-Test
-- kein Creative-Tim-/Vision-UI-Template direkt einbauen
-- keine alte Dashboard-Struktur blind umbauen
-- keine Secrets ins Frontend legen
+- kein produktives altes Dashboard ersetzen
+- keine Big-Bang-Migration
+- keine Schreibfunktionen ohne Permission/Lock/Audit
+- kein Login-System improvisieren
+- kein Remote-Modboard-Deploy ohne Webserver-/Auth-Step
+- keine OBS-/Sound-/Media-/Command-Aktionen im ersten Prototyp
+- keine produktive DB-Migration
+- keine Creative-Tim-/Vision-UI-Codebasis übernehmen

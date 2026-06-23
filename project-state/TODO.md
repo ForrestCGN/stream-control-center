@@ -1,82 +1,67 @@
 # TODO
 
-Stand: DASHUI2.DOC1 / Frontend-Tech-Entscheidung konkretisiert  
+Stand: DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan dokumentiert  
 Datum: 2026-06-23
 
-## Offen / nächste Planung
+## Offen / als nächstes
 
-### DASHUI3 / Minimaler React-Prototyp
+### DASHUI4 / Minimaler React-Vite-Prototyp
 
-Status: offen, nur nach explizitem `go`.
+- [ ] `frontend/dashboard-v2/` anlegen
+- [ ] React + Vite Grundgerüst bauen
+- [ ] AppShell bauen
+- [ ] Sidebar-Regel Hauptkategorie -> Modul umsetzen
+- [ ] Topbar mit `Hauptbereich` und `Modul • aktiver Tab` umsetzen
+- [ ] PageHeader bauen
+- [ ] ModuleTabs bauen
+- [ ] CGN-Tokens/Theme anlegen
+- [ ] Modul-Registry vorbereiten
+- [ ] Navigation-Registry vorbereiten
+- [ ] Beispielseite `Übersicht`
+- [ ] Beispielseite `Remote Agent`
+- [ ] keine produktive Modulmigration
+- [ ] keine Schreibfunktion
+- [ ] kein Login-Zwang
+- [ ] altes Dashboard nicht ändern
 
-Aufgaben:
+## Dashboard-v2 Migration
 
-- entscheiden, ob DASHUI3 direkt als Code-Prototyp gebaut wird oder erst als weitere Detailplanung
-- `frontend/dashboard-v2/` als neue Frontend-Quelle planen/erstellen
-- `React + Vite` Minimalsetup vorbereiten
-- AppShell mit Topbar, Sidebar, PageHeader und ModuleTabs bauen
-- eine Beispielseite erstellen, bevorzugt Remote Agent/Uebersicht
-- Modul-Registry und Navigation-Registry minimal anlegen
-- CGN-Basisstyles/Tokens anlegen
-- Build-Output nach `htdocs/dashboard-v2/` vorbereiten
-- keine produktive Modulmigration
-- keine alten Dashboard-v1-Dateien umbauen
+- [ ] jedes Modul vor Migration einzeln prüfen
+- [ ] alte Dashboard-Funktionen pro Modul vollständig auflisten
+- [ ] bestehende API-Endpunkte pro Modul prüfen
+- [ ] v2-Modulseiten zuerst read-only bauen
+- [ ] Schreibfunktionen erst nach Permission-/Lock-/Audit-Vorbereitung
+- [ ] Migrationsstatus je Modul führen:
+  - `not_started`
+  - `read_only`
+  - `write_beta`
+  - `v2_preferred`
+  - `legacy_retained`
+  - `legacy_deprecated`
 
-### RDAP5 / Webserver-App-Minimalplanung
+## Login / Remote-Modboard
 
-Status: offen.
+- [ ] lokales Dashboard-v2 zunächst mit vorbereiteter Auth-Struktur
+- [ ] lokalen Dev-/Owner-Kontext später sauber kapseln
+- [ ] Webserver-Login separat planen
+- [ ] Permission-Auswertung serverseitig planen
+- [ ] keine Secrets ins Frontend
+- [ ] produktive Agent-Aktionen nur mit Permission + Lock + Audit
 
-Aufgaben:
+## Alte offene Punkte
 
-- Webserver-Node-App-Konzept fuer `127.0.0.1:3000` planen
-- WSS-Endpunkt fuer Agent planen
-- Agent-Registry planen
-- Session-/Login-Basismodell planen
-- Audit-Grundstruktur planen
-- Reverse-Proxy-/nginx-Planung vorbereiten
-- noch keine produktiven Remote-Actions
+### HypeTrain / Central Event Overlay
 
-### Agent / Sicherheit
+- [ ] echte HypeTrain-Live-Payloads während echtem HypeTrain prüfen
+- [ ] prüfen, ob `central_event_overlay.html` alle relevanten Felder korrekt anzeigt
+- [ ] finale Template-/Mode-Struktur für Central Event Overlay planen
+- [ ] Level-Up-Sound auswählen und aktivieren, wenn passendes Medium vorhanden ist
+- [ ] Ende-Sound auswählen und aktivieren, wenn passendes Medium vorhanden ist
 
-Status: offen.
+## Nicht vergessen
 
-Aufgaben:
-
-- Secret-Handling konkretisieren
-- Agent-Config-Beispiel spaeter ohne echte Secrets erstellen
-- Allowlist-Struktur fuer spaetere Agent-Actions planen
-- Payload-Validierung planen
-- Request-Timeouts und Expiry-Regeln spaeter in Code uebernehmen
-
-### Permissions / Locks
-
-Status: offen.
-
-Aufgaben:
-
-- RDAP4-Modell spaeter in konkrete DB-/API-Planung ueberfuehren
-- `resourceKey`-Konventionen weiter sammeln
-- Edit-Session-/Lock-UI fuer Dashboard-v2 planen
-- Lock-Audit-Anzeigen planen
-- Konfliktanzeige bei `resourceVersion` planen
-
-### Doku-Nachpflege
-
-Status: offen.
-
-Aufgaben:
-
-- alte Referenzen auf `modboard.forrestcgn.de` bei Gelegenheit auf `mods.forrestcgn.de` vereinheitlichen
-- DASHUI2 nach Einspielen per StepDone bestaetigen
-- neue DASHUI2-Dateien in spaeteren neuen Chats als Pflichtkontext aufnehmen
-
-## Dauerhaft beachten
-
-- Keine Funktionalität entfernen.
-- Keine produktive SQLite löschen, ersetzen oder droppen.
-- Keine Patch-/Apply-/Regex-/Append-Scripte.
-- Vollständige Dateien mit echten Zielpfaden liefern.
-- Node-Neustart nur nennen, wenn Backend-Dateien geändert wurden.
-- Bei reinen Doku-/Frontend-Static-Steps keinen Backend-Neustart verlangen.
-- Tests/Diagnose getrennt von normaler Bedienoberfläche halten.
-- GitHub/dev bleibt Prüfquelle, solange keine aktuelleren Live-Dateien oder ZIPs vorliegen.
+- keine produktive SQLite löschen, ersetzen, überschreiben oder droppen
+- keine alten Dashboard-Dateien blind umbauen
+- keine Patch-/Apply-/Regex-/Append-Scripte
+- vollständige Dateien mit echten Zielpfaden liefern
+- StepDone erst nach Einspielen/Deploy und Test

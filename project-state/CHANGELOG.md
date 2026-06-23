@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-06-23 - DASHUI3.DOC1 / Parallelbetrieb und Modul-Migrationsplan
+
+Status: dokumentiert
+
+Geändert:
+
+- `docs/current/DASHBOARD_V2_PARALLEL_MIGRATION_PLAN.md` neu erstellt
+- `project-state/CURRENT_STATUS.md` aktualisiert
+- `project-state/NEXT_STEPS.md` aktualisiert
+- `project-state/TODO.md` aktualisiert
+- `project-state/FILES.md` aktualisiert
+- `project-state/CHANGELOG_DASHUI3_PARALLEL_MIGRATION_PLAN_2026-06-23.md` neu erstellt
+
+Entscheidung:
+
+- bestehendes Dashboard bleibt produktiv
+- Dashboard-v2 entsteht parallel
+- Migration Modul für Modul
+- read-only-first
+- Login gestuft
+- Schreibfunktionen erst mit Permission/Lock/Audit
+- kein Code und kein Node-Neustart nötig
+
 Stand: DASHUI2.DOC1 / Frontend-Tech-Entscheidung konkretisiert  
 Datum: 2026-06-23
 
