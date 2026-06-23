@@ -1,7 +1,7 @@
 # NEXT STEPS
 
-Stand: RDAP2.DOC1 / Remote-Dashboard-Agent Architekturentscheidungen dokumentiert  
-Datum: 2026-06-22
+Stand: RDAP2.WEB1 / Webserver-Grundlage für Remote-Modboard geprüft  
+Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
@@ -21,6 +21,13 @@ Ziel:
 - Agent-Config-Format planen
 - keine produktiven Aktionen
 - keine Sound-/OBS-/Media-/Config-/Text-Actions
+
+Wichtig:
+
+- Die Webserver-Grundlage ist jetzt vorbereitet.
+- `https://mods.forrestcgn.de` ist per HTTPS, IPv4 und IPv6 erreichbar.
+- Node.js/npm sind auf dem Webserver vorhanden.
+- RDAP3 soll trotzdem zuerst Planung bleiben und noch keinen produktiven Agent-Code erstellen.
 
 ## Danach sinnvoll
 
@@ -47,7 +54,7 @@ Ziel:
 - `React + Vite` als bevorzugte Richtung prüfen und final bestätigen
 - Build-/Deploy-Ziel nach `htdocs/dashboard-v2/` planen
 - lokale Dashboard-v2-Nutzung auf Stream-PC einplanen
-- Remote-Modboard unter `modboard.forrestcgn.de` einplanen
+- Remote-Modboard unter `mods.forrestcgn.de` einplanen
 - Modul-Registry und Navigation-Registry planen
 - CGN-Komponentensystem planen
 - API-/WebSocket-/Lock-Clients sauber trennen
@@ -62,6 +69,25 @@ Ziel:
 - keine produktive Modulmigration
 - kein alter Dashboard-Umbau ohne separaten Step
 
+## Bestätigte Webserver-Basis
+
+Siehe:
+
+- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
+
+Festgelegt / geprüft:
+
+- Subdomain: `mods.forrestcgn.de`
+- Webserver: Hetzner/KVM-VM, Debian 13 `trixie`
+- nginx aktiv und gültig
+- Let's Encrypt-Zertifikat enthält `mods.forrestcgn.de`
+- HTTPS über IPv4 und IPv6 liefert `HTTP/2 200`
+- apt-Repository-Stand ist wieder sauber
+- Rspamd-Key wurde repariert
+- Node.js `v20.19.2`, npm `9.2.0`, npx `9.2.0`
+- Node-App später intern, bevorzugt `127.0.0.1:3000`
+- öffentlich nur HTTPS/WSS, kein öffentlicher Node-Port
+
 ## Bestätigte RDAP2-Architektur
 
 Siehe:
@@ -70,8 +96,8 @@ Siehe:
 
 Festgelegte RDAP2-Regeln:
 
-- Subdomain: `modboard.forrestcgn.de`
 - Webserver: Hetzner + ISPConfig + nginx + Let's Encrypt
+- Remote-Modboard: `https://mods.forrestcgn.de`
 - Node-App: intern, bevorzugt `127.0.0.1:3000`
 - Stream-PC-Agent: separater Node-Prozess
 - lokales Backend: `127.0.0.1:8080`
