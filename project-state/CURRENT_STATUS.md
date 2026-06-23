@@ -1,11 +1,11 @@
 # CURRENT STATUS
 
-Stand: RDAP6F_PREP_DOC_STATUS_SYNC  
+Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-Der RDAP-Dokumentationsstand wurde auf den echten GitHub/dev- und lokalen Repo-Stand synchronisiert.
+RDAP6F wurde als Planungsstep dokumentiert. Der Plan legt fest, wie die getesteten Auth-/Rollen-/Gruppen-/Permission-/Session-/Lock-/Audit-Tabellen spaeter in die echte Remote-Modboard-/Webserver-Struktur eingebunden werden.
 
 Fertig und getestet:
 
@@ -15,6 +15,7 @@ RDAP5J Remote Node Monitoring/Hardening
 RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
 RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
+RDAP6F Auth DB Integration Plan dokumentiert
 ```
 
 ## Remote-Modboard read-only live
@@ -197,16 +198,26 @@ docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
 docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 ```
 
+## RDAP6F Entscheidung
+
+```text
+scc_rdap6_test bleibt reine Testdatenbank.
+Die echte Remote-Modboard-/Auth-Ziel-DB ist c3stream_control.
+DB-User bleibt c1stream_control.
+```
+
+RDAP6F gibt keine Migration und keine Auth-Aktivierung frei.
+
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP6F_AUTH_DB_INTEGRATION_PLAN
+RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER
 ```
 
 Ziel:
 
 ```text
-Planen, wie die getesteten Auth-/Rollen-/Gruppen-/Permission-/Session-/Lock-/Audit-Tabellen in die echte Remote-Dashboard-/Webserver-Struktur eingebunden werden.
+Remote-Modboard bekommt eine sichere interne read-only DB-Schicht fuer Auth-Modell-Daten.
 ```
 
-RDAP6F bleibt ein Planungsstep. Keine Auth-Aktivierung ohne finales Login-/Session-Konzept und klares Ziel-DB-Konzept.
+Weiterhin keine Auth-Aktivierung, keine Sessions, keine Writes und keine Agent-Actions.

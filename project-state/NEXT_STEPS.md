@@ -1,11 +1,11 @@
 # NEXT STEPS
 
-Stand: RDAP6F_PREP_DOC_STATUS_SYNC  
+Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN  
 Datum: 2026-06-23
 
 ## Aktueller Stand
 
-Fertig und getestet:
+Fertig und dokumentiert:
 
 ```text
 RDAP5I Remote-Modboard Node-Basisdienst read-only live
@@ -13,85 +13,83 @@ RDAP5J Remote Node Monitoring/Hardening
 RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
 RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
+RDAP6F Auth DB Integration Plan dokumentiert
 ```
 
-RDAP6E bestaetigt:
+## RDAP6F Entscheidung
 
 ```text
-Schema erfolgreich: ja
-Seeds erfolgreich: ja
-Validation Queries erfolgreich: ja
-RDAP6D Testdatenbanklauf bestanden: ja
-Produktivlauf freigegeben: nein
+scc_rdap6_test bleibt reine Testdatenbank.
+Die echte Remote-Modboard-/Auth-Ziel-DB ist c3stream_control.
+DB-User bleibt c1stream_control.
 ```
 
-## Sofort naechster Schritt
+Wichtig:
 
 ```text
-RDAP6F_AUTH_DB_INTEGRATION_PLAN
+RDAP6F ist nur Planung.
+Keine SQL-Ausfuehrung.
+Keine Auth-Aktivierung.
+Keine Session-Erstellung.
+Keine Remote-Writes.
+Keine Agent-Actions.
 ```
 
-## Ziel RDAP6F
-
-Planen, wie die getesteten Auth-/Rollen-/Gruppen-/Permission-/Session-/Lock-/Audit-Tabellen in die echte Remote-Dashboard-/Webserver-Struktur eingebunden werden.
-
-RDAP6F darf noch keine Auth aktivieren, solange Login-/Session-Konzept und Ziel-DB nicht final klar sind.
-
-## RDAP6F Scope
+## Sofort naechster sinnvoller Schritt
 
 ```text
-- GitHub/dev und vorhandene RDAP6E-Doku pruefen
-- aktuelle Webserver-/MariaDB-/Repo-Struktur pruefen
-- Ziel-DB festlegen: Test-DB behalten, neue echte Dashboard-DB oder bestehende Remote-DB-Struktur
-- minimale Backend-Anbindung planen
-- Tabellen-/Helper-Zuständigkeit planen
-- Login-/Session-Konzept als eigenen Folgeschritt vorbereiten
-- Permission-Checks serverseitig planen
-- Lock-/Audit-Grundregeln fuer spaetere Schreibfunktionen planen
+RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER
 ```
 
-## RDAP6F Nicht-Aenderungen
+Ziel:
 
 ```text
-keine produktive SQLite
-keine Remote-Agent-Schreibaktionen
-keine OBS-/Sound-/Overlay-Steuerung
-keine Secrets
-keine Rollenzusammenführung
-keine sound_profi-Rolle
-keine Auth-Aktivierung
-keine produktiven Sessions
-keine produktiven Agent-Actions
-keine freie Shell-/Datei-/Prozesssteuerung
+Remote-Modboard bekommt eine sichere interne read-only DB-Schicht, um Auth-/Rollen-/Gruppen-/Permission-Modell-Daten aus MariaDB zu lesen und ueber Diagnose-/Modellrouten auszugeben.
 ```
 
-## Vor RDAP6F beachten
-
-Nur EIN Arbeitsort pro Schritt.
-
-Vor jedem Befehl klar sagen:
+RDAP6G darf weiterhin nicht aktivieren:
 
 ```text
-Wo ausführen: PowerShell lokal ODER Server-Konsole ODER MariaDB-Konsole.
-Was macht der Befehl?
-Wann stoppen?
-Welche Ausgabe soll Forrest schicken?
+kein Login
+keine Cookies
+keine Sessions
+keine Schreibaktionen
+keine Locks schreiben
+keine Audit-Eintraege schreiben
+keine Agent-Actions
+keine OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
-Maximal ein Befehlsblock pro Antwort. Danach auf Ausgabe warten.
+## Voraussichtlich betroffene Dateien fuer RDAP6G
 
-## Erwartetes RDAP6F-Ergebnis
-
-Eine Plan-/Entscheidungsdoku, noch kein Produktivcode:
+Vor Umsetzung muessen diese Dateien vollstaendig aus GitHub/dev geprueft werden:
 
 ```text
-docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
+remote-modboard/backend/package.json
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/db-health.service.js
 ```
 
-Optional danach erst mit separatem Go:
+Voraussichtlich neue Dateien:
 
 ```text
-RDAP6G_AUTH_BACKEND_READONLY_DB_BRIDGE_PLAN
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/routes/auth-model.routes.js
 ```
 
-oder aehnlich, aber erst wenn RDAP6F sauber entschieden ist.
+## Spaeter, nicht jetzt
+
+```text
+RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
+RDAP6I_AUTH_DB_PRODUCTION_MIGRATION_EXECUTION
+RDAP7_LOGIN_SESSION_CONCEPT
+```
+
+Produktive Migration erst mit Backup, Restore-Weg, Validation und separatem Go.
+
+## Arbeitsregel
+
+Nur EIN Arbeitsort pro Schritt. Keine Server-/PowerShell-/DB-Schritte mischen.

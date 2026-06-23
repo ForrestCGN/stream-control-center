@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP6F_PREP_DOC_STATUS_SYNC  
+Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -32,6 +32,7 @@ docs/current/RDAP6A_AUTH_DB_SCHEMA_DRY_RUN_PACKAGE.md
 docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
 docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
+docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
 ```
 
 ## Nicht vorhandene Zwischenstand-Dateien aus alten Prompts
@@ -189,4 +190,20 @@ sound_profi ist keine Rolle.
 sound_profi ist Gruppe/Marker.
 sound_profi vergibt selbst keine globalen Rechte.
 Remote-Agent bleibt read-only.
+```
+
+
+## RDAP6F Planungsdatei
+
+```text
+docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
+```
+
+Legt fest:
+
+```text
+scc_rdap6_test bleibt reine Testdatenbank.
+c3stream_control ist die geplante echte Remote-Modboard-/Auth-Ziel-DB.
+RDAP6G soll nur eine read-only DB-Schicht und Modellrouten vorbereiten.
+Keine Auth-Aktivierung und keine Migration durch RDAP6F.
 ```

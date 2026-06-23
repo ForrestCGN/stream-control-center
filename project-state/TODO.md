@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP6F_PREP_DOC_STATUS_SYNC  
+Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -38,6 +38,7 @@ Datum: 2026-06-23
 - [x] RDAP6D Testdatenbanklauf auf Webserver durchgefuehrt
 - [x] RDAP6E Test-DB-Ergebnis ausgewertet und dokumentiert
 - [x] RDAP6F_PREP_DOC_STATUS_SYNC vorbereitet: zentrale Projektstatus-Dokus auf echten Stand gebracht
+- [x] RDAP6F Auth DB Integration Plan dokumentiert
 
 ## Wichtige Korrektur
 
@@ -48,16 +49,23 @@ Datum: 2026-06-23
 
 ## Noch offen / als naechstes
 
-### RDAP6F Auth DB Integration Plan
+### RDAP6G Auth Backend Read-only DB Layer
 
-- [ ] Ziel-DB fuer Remote-Dashboard/Auth festlegen
-- [ ] klaeren, ob `scc_rdap6_test` reine Test-DB bleibt
-- [ ] klaeren, welche echte DB-Struktur fuer Remote-Modboard/Auth genutzt wird
-- [ ] minimale Backend-Anbindung planen
-- [ ] Login-/Session-Konzept planen, aber noch nicht aktivieren
-- [ ] serverseitige Permission-Pruefung planen
-- [ ] Lock-/Audit-Grundregeln fuer spaetere Schreibfunktionen planen
-- [ ] keine Auth-Aktivierung ohne separaten Plan und ausdrueckliches Go
+- [ ] echte Remote-Modboard-Dateien vor Umsetzung vollstaendig pruefen
+- [ ] zentrale read-only DB-Schicht planen/umsetzen
+- [ ] Auth-Modell-Leserouten planen/umsetzen
+- [ ] Rollen/Gruppen/Permissions/Modulmatrix nur lesen
+- [ ] keine Login-Aktivierung
+- [ ] keine Session-Erstellung
+- [ ] keine Schreibaktionen
+- [ ] keine Agent-Actions
+- [ ] keine produktive Migration ohne separaten Plan und Go
+
+### Spaeter
+
+- [ ] RDAP6H Produktiv-Migrations-Runbook vorbereiten
+- [ ] RDAP6I Produktiv-Migration nur mit Backup/Restore/Validation/separatem Go
+- [ ] RDAP7 Login-/Session-Konzept separat planen
 
 ## Dauerhaft beachten
 

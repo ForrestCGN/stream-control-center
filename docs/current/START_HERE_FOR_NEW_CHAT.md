@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP6F_PREP_DOC_STATUS_SYNC
+Aktueller Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN
 
 ## Diese Datei zuerst lesen
 
@@ -21,6 +21,7 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
+docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
 docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
 docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 ```
@@ -55,6 +56,7 @@ RDAP5J Remote Node Monitoring/Hardening
 RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
 RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
+RDAP6F Auth DB Integration Plan dokumentiert
 ```
 
 Wichtig: Einige ältere Prompt-/Status-Dateinamen aus Zwischenständen existieren nicht in GitHub/dev. Der belastbare aktuelle Doku-Stand basiert auf den vorhandenen Dateien in `docs/current` und `project-state`, besonders `RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md`.
@@ -200,19 +202,27 @@ lock_rows = 0
 audit_rows = 0
 ```
 
+## RDAP6F Entscheidung
+
+```text
+scc_rdap6_test bleibt reine Testdatenbank.
+Die echte Remote-Modboard-/Auth-Ziel-DB ist c3stream_control.
+DB-User bleibt c1stream_control.
+```
+
+RDAP6F ist nur Planung. Keine Migration, keine Auth-Aktivierung, keine Sessions.
+
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP6F_AUTH_DB_INTEGRATION_PLAN
+RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER
 ```
 
-Ziel von RDAP6F:
+Ziel von RDAP6G:
 
 ```text
-Planen, wie die getesteten Auth-/Rollen-/Gruppen-/Permission-/Session-/Lock-/Audit-Tabellen in die echte Remote-Dashboard-/Webserver-Struktur eingebunden werden.
+Remote-Modboard bekommt eine sichere interne read-only DB-Schicht fuer Auth-Modell-Daten.
 ```
-
-RDAP6F darf noch keine Auth aktivieren, solange Login-/Session-Konzept und Ziel-DB nicht final klar sind.
 
 Nicht ändern:
 
