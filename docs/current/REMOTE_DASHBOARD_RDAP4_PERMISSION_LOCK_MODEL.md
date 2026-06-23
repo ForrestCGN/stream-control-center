@@ -1,122 +1,215 @@
-# RDAP4 / Permission- und Edit-Session-/Lock-Datenmodell
+# RDAP4A / Rechte-, Rollen-, Lock- und Audit-Modell
 
-Stand: RDAP4.DOC1 / Permission- und Lock-Modell geplant  
+Stand: RDAP4A_PERMISSION_LOCK_AUDIT_MODEL_DOCS  
 Datum: 2026-06-23  
-Projekt: ForrestCGN / stream-control-center
+Projekt: ForrestCGN / stream-control-center / Remote-Dashboard & Modboard
 
 ## Zweck
 
-Diese Datei plant das technische Grundmodell für Rollen, Permissions, Modulfreigaben, zentrale Edit-Sessions und Locks im späteren Remote-Modboard.
+RDAP4A beschreibt das Sicherheits- und Arbeitsmodell für das spätere Remote-Modboard unter:
 
-RDAP4 ist ein reiner Planungs-/Doku-Step.
+```text
+https://mods.forrestcgn.de
+```
 
-Nicht umgesetzt durch diesen Step:
+Der Step ist bewusst **nur Doku/Planung**. Er legt fest, wie Rollen, Permissions, Modulfreigaben, Bearbeitungs-Locks, Audit und Agent-Allowlist später zusammenspielen sollen.
+
+## Ergebnis dieses Steps
+
+Dieser Step dokumentiert:
+
+- lokale Dashboard-Rollen und konkrete Permissions
+- Spezialrolle `sound_profi`
+- Schutzstufen für Ressourcen
+- Resource-Key- und Resource-Version-Modell
+- Edit-Session-/Lock-Modell mit Heartbeat und Timeout
+- Owner/Admin-Übernahme von Locks
+- Audit-Grundmodell
+- Agent-Sicherheitsgrenzen und Allowlist-Prinzip
+- spätere API-/DB-Planung als nächster Schritt
+
+## Nicht umgesetzt durch RDAP4A
+
+RDAP4A ändert nichts Produktives.
+
+Nicht enthalten:
 
 - kein Backend-Code
-- kein Dashboard-Code
 - kein Frontend-Code
+- keine React-Komponenten
+- keine API-Routen
+- keine DB-Migration
+- keine SQLite-Änderung
 - kein Agent-Code
-- keine Datenbankmigration
-- keine produktive SQLite-Änderung
-- keine Projekt-Config-Änderung
-- keine OBS-Änderung
-- kein Node-Neustart
+- kein WSS-Code
+- keine OBS-Steuerung
+- keine Sound-Steuerung
+- keine Overlay-Steuerung
+- keine Commands-/Kanalpunkte-Steuerung
+- keine produktiven Aktionen
 
-## Ausgangslage
+## Aktueller technischer Ausgangsstand
 
-Führende Grundlage:
+Bekannter Stand vor RDAP4A:
 
-- Remote-Modboard-Ziel: `https://mods.forrestcgn.de`
-- Webserver ist öffentliche Dashboard-/Modboard-Zentrale.
-- Stream-PC-Agent ist sichere Brücke zum lokalen System.
-- Stream-PC bleibt produktive Runtime / Ausführer.
-- Lokales Backend bleibt auf `http://127.0.0.1:8080`.
-- Webserver verwaltet Login, User, Rollen, Permissions und Modulfreigaben.
-- Agent wird nicht für grundsätzliche Login-/Rechteentscheidungen abgefragt.
-- Texte und Configs bleiben produktiv führend auf dem Stream-PC.
-- Produktive SQLite bleibt unangetastet.
-- Lokales Dashboard und Remote-Modboard sollen langfristig denselben Edit-Session-/Lock-Mechanismus verwenden.
+- Dashboard-v2 läuft parallel zum bestehenden Dashboard unter `/dashboard-v2/`.
+- Bestehendes Dashboard unter `/dashboard/` bleibt produktiv.
+- Dashboard-v2 Build-Ausgabe liegt unter `htdocs/dashboard-v2/`.
+- Deploy-Workflow synchronisiert `htdocs/dashboard-v2/` nach Live.
+- RDAP3A liefert eine read-only Status-API unter `/api/remote-agent/status`.
+- Die Dashboard-v2-Seite heißt sichtbar `Stream-PC Verbindung`.
+- RDAP3A enthält noch keinen produktiven WSS-Agent.
+- Aktueller Offline-Status der Stream-PC-Verbindung ist korrekt.
 
-## Grundprinzipien
+## Zielarchitektur
+
+Das spätere System besteht aus drei klar getrennten Bereichen:
+
+```text
+[Browser / Modboard]
+        |
+        | HTTPS / WSS
+        v
+[Webserver / mods.forrestcgn.de]
+        |
+        | gesicherter Agent-Kanal, aktiv vom Stream-PC aufgebaut
+        v
+[Stream-PC / lokales stream-control-center]
+```
+
+Grundregeln:
+
+- Der Stream-PC öffnet keine öffentlichen Ports.
+- Der Stream-PC verbindet sich später aktiv per WSS zum Webserver.
+- Der Webserver verwaltet Login, Benutzer, Rollen, Permissions, Locks und Audit.
+- Der lokale Stream-PC bleibt Ausführer für lokale produktive Aktionen.
+- Der Agent akzeptiert nur explizit erlaubte Action-Typen.
+- Keine freie Shell.
+- Keine freien Dateipfade.
+- Keine freie Prozesssteuerung.
+- Keine Offline-Queue für produktive Aktionen.
+
+## Sicherheitsprinzipien
 
 ### 1. Backend entscheidet, Frontend zeigt nur an
 
-Das Frontend darf Rechte sichtbar machen oder Buttons ausblenden, aber niemals Sicherheitsentscheidungen treffen.
+Das Frontend darf Buttons ausblenden, Status anzeigen und Hinweise geben. Es darf aber niemals die Sicherheitsentscheidung treffen.
 
 Verbindlich:
 
+- Permissions werden serverseitig geprüft.
 - Frontend enthält keine Secrets.
-- Frontend darf Permissions nicht als Wahrheit behandeln.
-- Webserver prüft Login, Rollen und Permissions.
-- Agent prüft lokal zusätzlich Allowlist, Aktionstyp und Payload.
-- Produktive Aktionen brauchen Request-ID, Permission-Prüfung, Agent-Status und Audit.
+- Frontend-Permissions sind nur UI-Hinweise.
+- Webserver prüft User, Rolle, Permission, Lock und Audit-Pflicht.
+- Stream-PC-Agent prüft zusätzlich Allowlist und Payload.
 
-### 2. Rollen sind bequem, Permissions sind entscheidend
+### 2. Rollen bündeln, Permissions entscheiden
 
-Rollen sind Bündel von Permissions. Die konkrete Prüfung passiert über Permissions.
+Rollen dienen nur als bequeme Bündel. Die eigentliche Prüfung erfolgt auf konkreten Permission-Keys.
 
 Beispiel:
 
-- Rolle: `sound_profi`
-- Permission: `media.sound.upload`
-- Permission: `sound.command.edit`
-- Permission: `channelpoints.sound.edit`
+```text
+Rolle: sound_profi
+Permission: media.upload
+Permission: media.edit
+Permission: sound.test
+Permission: sound.command.edit
+Permission: channelpoints.edit
+```
 
-Dadurch können später Sonderfreigaben pro User oder Modul ergänzt werden, ohne starre Rollenlogik umzubauen.
+Dadurch können später einzelne User gezielt freigeschaltet werden, ohne starre Sonderlogik zu bauen.
 
-### 3. Twitch-Rollen sind nicht führend
+### 3. Twitch-Rollen sind nicht automatisch Dashboard-Rechte
 
-Twitch-Rollen können als Vorschlag oder Mapping dienen, aber nicht automatisch produktive Rechte garantieren.
+Twitch-Rollen können später als Mapping-Hilfe dienen, sind aber nicht führend.
 
 Beispiele:
 
-- Twitch-Mod kann lokal nur `mod` sein.
-- Ein lokaler `sound_profi` muss nicht Twitch-Mod sein.
-- Owner/Admin können unabhängig von Twitch verwaltet werden.
+- Ein Twitch-Mod bekommt nicht automatisch Admin-Rechte.
+- Ein lokaler `sound_profi` muss kein Twitch-Mod sein.
+- Owner/Admin werden lokal im Dashboard-/Modboard-System verwaltet.
+- Kritische Rechte müssen bewusst vergeben werden.
 
-### 4. Produktive Bearbeitung nur mit Edit-Session und Lock
+### 4. Jede produktive Änderung braucht Audit
 
-Für schreibende Bearbeitung an kritischen Ressourcen gilt:
+Produktive Änderungen müssen später nachvollziehbar sein.
 
-- Resource laden
-- `resourceVersion` prüfen
+Jede relevante Aktion braucht mindestens:
+
+- wer
+- wann
+- woher
+- welche Ressource
+- welche Permission
+- alter/neuer Wert oder sichere Zusammenfassung
+- Erfolg/Fehler
+- Request-/Correlation-ID
+
+### 5. Keine parallele Bearbeitung ohne Lock
+
+Texte, Configs, Overlay-Layouts, Sound-Zuordnungen, Commands und Rollen dürfen nicht gleichzeitig unkoordiniert bearbeitet werden.
+
+Darum gilt:
+
+- Ressource laden
+- Version merken
 - Edit-Session starten
 - Lock setzen
 - Heartbeat senden
-- Änderungen speichern
-- `resourceVersion` erhöhen
+- Speichern nur mit gültigem Lock
+- Version beim Speichern prüfen
 - Audit schreiben
 - Lock freigeben
 
-Keine produktive Änderung ohne gültige Rechteprüfung und Audit.
-
 ## Rollenmodell
 
-Geplante Rollen:
+Geplante lokale Rollen:
 
-| Rolle | Zweck |
-| --- | --- |
-| `owner` | Vollzugriff, Sicherheits-/Systemhoheit, Rollenverwaltung, Notfallübernahme |
-| `admin` | Administration ohne Owner-Sonderrechte, Module/Configs/Audit verwalten |
-| `lead_mod` | erweiterte Mod-Rechte, Mod-Team-Funktionen, ausgewählte Modulverwaltung |
-| `mod` | normale Stream-/Mod-Bedienung, Events starten/stoppen, einfache Aktionen |
-| `sound_profi` | Sound-/Media-/Command-/Kanalpunkte-bezogene Pflege ohne Systemrechte |
-| `media_manager` | optional getrennte Medienpflege, falls später nötig |
-| `readonly` | lesender Zugriff, keine produktive Bearbeitung |
+| Rolle | Zweck | Kritische Grenzen |
+| --- | --- | --- |
+| `owner` | Vollzugriff, System-/Security-Hoheit, Notfallübernahme | nicht inflationär vergeben |
+| `admin` | Verwaltung von Modulen, Configs, Usern je nach Freigabe | keine Owner-Sonderrechte ohne explizite Permission |
+| `lead_mod` | erweiterte Mod-Team-Funktionen, ausgewählte Modulverwaltung | keine Security-/Systemrechte |
+| `mod` | normale Stream-/Mod-Bedienung, Events starten/stoppen | keine globalen Config-/Security-Rechte |
+| `sound_profi` | Sound-/Media-/Command-/Kanalpunkte-Pflege | keine System-/Security-/Owner-Rechte |
+| `media_manager` | optionale Medienpflege, falls später getrennt nötig | keine Systemrechte |
+| `readonly` | nur lesen | keine produktiven Aktionen |
 
-Wichtig:
+### Spezialrolle `sound_profi`
 
-- `sound_profi` darf keine System-/Security-/Owner-Rechte bekommen.
-- `media_manager` bleibt optional, bis klar ist, ob er neben `sound_profi` gebraucht wird.
-- Owner-Rechte nicht unnötig an Admins verteilen.
+`Sound-Profi` ist eine bewusst begrenzte Spezialrolle.
+
+Darf später können:
+
+- Media/Sounds hochladen
+- Media/Sounds bearbeiten
+- Media/Sounds löschen, sofern freigegeben
+- Sounds testen
+- Sounds zuordnen
+- Sound-Commands bearbeiten
+- Kanalpunkte-Aktionen für Sound-/Media-Funktionen bearbeiten
+- zugehörige Texte/Configs lesen oder bearbeiten, wenn freigegeben
+
+Darf **nicht** können:
+
+- Owner-/Security-Rechte verwalten
+- globale Rollen vergeben
+- Agent-Secrets verwalten
+- freie Shell-/Datei-/Prozessaktionen auslösen
+- Datenbankmigrationen starten
+- globale System-Konfiguration ändern
+- alle Module automatisch bearbeiten
 
 ## Permission-Namensschema
 
-Vorgeschlagenes Schema:
+Schema:
 
 ```text
 bereich.modul.aktion
 ```
+
+Bei globalen Bereichen kann `modul` entfallen oder als Bereich genutzt werden.
 
 Beispiele:
 
@@ -125,10 +218,10 @@ dashboard.read
 admin.audit.read
 admin.users.manage
 admin.roles.manage
-agent.status.read
-agent.action.execute
 locks.read
 locks.takeover
+agent.status.read
+agent.action.execute
 texts.read
 texts.edit
 config.read
@@ -140,6 +233,7 @@ media.delete
 media.sound.assign
 sound.test
 sound.command.edit
+channelpoints.read
 channelpoints.edit
 overlay.layout.read
 overlay.layout.edit
@@ -155,90 +249,77 @@ stream_events.control
 
 Jede Ressource bekommt eine Schutzstufe.
 
-| Schutzstufe | Beschreibung | Beispiele |
+| Schutzstufe | Bedeutung | Beispiele |
 | --- | --- | --- |
-| `public_read` | für eingeloggte User lesbar, keine produktive Auswirkung | Übersicht, Status |
-| `mod_action` | normale Stream-/Mod-Aktion | Event starten, Shot-Alarm stoppen |
-| `content_edit` | Texte/Configs/Layouts bearbeiten | Chattexte, Overlay-Layout |
-| `media_edit` | Medien hochladen, bearbeiten, löschen | Sounds, Videos, Kategorien |
-| `admin_config` | technische oder globale Einstellungen | Rollen, Modulfreigaben |
-| `security` | Sicherheitsrelevant | Agent-Secret, Auth, Owner-Rechte |
-| `dangerous` | potenziell zerstörerisch oder produktiv kritisch | Löschen, Massenänderungen, Migrationen |
+| `public_read` | eingeloggte User dürfen lesen | Status, Übersicht |
+| `mod_action` | normale Mod-/Stream-Aktion | Event starten, Shot-Alarm aktivieren/deaktivieren |
+| `content_edit` | Inhalte bearbeiten | Chattexte, Textvarianten, Hinweise |
+| `config_edit` | Konfiguration bearbeiten | Moduloptionen, Cooldowns, Limits |
+| `media_edit` | Medien verwalten | Sounds, Videos, Kategorien |
+| `layout_edit` | Layout/Overlay-Positionen bearbeiten | Event-Overlay-Layout |
+| `admin_config` | globale Admin-Einstellungen | Modulfreigaben, Rollen |
+| `security` | sicherheitsrelevant | Agent-Secret, Auth, Owner-Rechte |
+| `dangerous` | potenziell zerstörerisch | Massenänderungen, Löschaktionen, Migrationen |
 
-Regel:
+Regeln:
 
-- `security` und `dangerous` brauchen separate Bestätigung und Audit.
-- Keine Shell-/Datei-/Prozessaktionen über den Agent in dieser Planungsphase.
+- `security` und `dangerous` brauchen extra Bestätigung.
+- `security` und `dangerous` brauchen Audit.
+- `dangerous` darf nicht über generische Agent-Actions laufen.
+- Keine freie Shell-/Prozess-/Dateisteuerung über den Agent.
 
 ## Resource-Key-Modell
 
-`resourceKey` ist die stabile eindeutige Kennung einer bearbeitbaren Ressource.
+Jede bearbeitbare Ressource bekommt einen stabilen `resourceKey`.
 
 Format:
 
 ```text
-<resourceType>:<scope>:<id-or-name>
+<resourceType>:<module-or-scope>:<id-or-name>
 ```
 
 Beispiele:
 
 ```text
 texts:shot_alarm:chat_messages
+texts:stream_events:event_messages
 config:loyalty:core
+config:shot_alarm:rules
 media:item:1234
 media:category:sounds
-overlay:layout:central_event
-command:sound:example
-channelpoints:vip30
+overlay:layout:event_winner
+command:sound:vip30
+channelpoints:reward:vip_sound
+roles:user:forrestcgn
+agent:registry:stream-pc-main
 ```
 
 Regeln:
 
 - `resourceKey` muss stabil bleiben.
-- Keine zufälligen Anzeigenamen als alleinige Resource-ID nutzen.
-- Bei DB-Objekten möglichst echte IDs verwenden.
-- Bei Config/Text-Dateien Modul + Bereich verwenden.
-- `resourceKey` darf keine Secrets enthalten.
+- Keine zufälligen Anzeigenamen als alleinige ID.
+- Keine Secrets im Resource-Key.
+- Bei DB-Objekten echte IDs nutzen.
+- Bei Config/Text-Dateien Modul + Bereich nutzen.
 
-## Resource-Felder
+## Resource-Version-Modell
 
-Geplante Felder pro Ressource:
-
-```json
-{
-  "resourceKey": "texts:shot_alarm:chat_messages",
-  "resourceType": "texts",
-  "module": "shot_alarm",
-  "scope": "chat_messages",
-  "resourceVersion": 12,
-  "title": "Shot-Alarm Chattexte",
-  "requiresAgent": true,
-  "requiredReadPermission": "texts.read",
-  "requiredEditPermission": "texts.edit",
-  "protectionLevel": "content_edit",
-  "updatedAt": "2026-06-23T00:00:00.000Z",
-  "updatedBy": "user-id"
-}
-```
-
-## Resource-Version-Konflikt
-
-`resourceVersion` schützt vor Überschreiben fremder Änderungen.
+Jede bearbeitbare Ressource bekommt eine `resourceVersion`.
 
 Ablauf:
 
-1. User lädt Ressource mit Version `12`.
+1. User lädt Ressource Version `12`.
 2. User startet Bearbeitung mit Version `12`.
-3. Jemand anderes speichert vorher Version `13`.
-4. User versucht mit Version `12` zu speichern.
+3. Ein anderer User speichert vorher Version `13`.
+4. Erster User versucht mit Version `12` zu speichern.
 5. Backend blockiert mit `resource_version_conflict`.
-6. Frontend zeigt Konflikt verständlich an.
+6. UI zeigt: `Diese Daten wurden inzwischen geändert. Bitte neu laden.`
 
-Keine automatische stille Zusammenführung bei produktiven Configs/Texten.
+Keine stille Überschreibung bei produktiven Texten/Configs.
 
 ## Edit-Session-Modell
 
-Eine Edit-Session beschreibt eine aktive Bearbeitung durch einen User/Client.
+Eine Edit-Session beschreibt eine aktive Bearbeitung.
 
 Geplante Felder:
 
@@ -258,13 +339,23 @@ Geplante Felder:
 }
 ```
 
-Mögliche `source`-Werte:
+Geplante `source`-Werte:
 
 ```text
 local_dashboard
 remote_modboard
 admin_tool
 system
+```
+
+Statuswerte:
+
+```text
+active
+saved
+cancelled
+expired
+taken_over
 ```
 
 ## Lock-Modell
@@ -276,7 +367,7 @@ Geplante Felder:
 ```json
 {
   "lockId": "uuid",
-  "resourceKey": "overlay:layout:central_event",
+  "resourceKey": "overlay:layout:event_winner",
   "editSessionId": "uuid",
   "userId": "user-id",
   "displayName": "ForrestCGN",
@@ -300,77 +391,90 @@ taken_over
 cancelled
 ```
 
-## Lock-Heartbeat
-
-Während der Bearbeitung sendet der Client regelmäßig einen Heartbeat.
+## Heartbeat und Timeout
 
 Vorschlag:
 
 - Client-Heartbeat: alle 10 Sekunden
 - Lock-Timeout: 60 Sekunden ohne Heartbeat
-- Takeover frühestens nach Timeout + 60 Sekunden
+- Übernahme frühestens nach Timeout + 60 Sekunden
 
-Begründung:
+Verhalten:
 
-- kurz genug, damit verlassene Locks nicht ewig blockieren
-- lang genug, damit kurze Netzwerkprobleme nicht sofort stören
+- Verpasste Heartbeats blockieren nicht sofort.
+- Abgelaufene Locks werden sichtbar.
+- Owner/Admin dürfen abhängig von Permission übernehmen.
+- Übernahme muss auditiert werden.
 
 ## Lock-Übernahme
 
-Übernahme ist nur erlaubt, wenn:
+Übernahme ist erlaubt, wenn:
 
 - Lock abgelaufen ist oder Owner/Admin explizit übernimmt
-- User die Permission `locks.takeover` besitzt
-- Audit-Eintrag erstellt wird
-- betroffener User im UI sichtbar genannt wird
+- User Permission `locks.takeover` besitzt
+- Ressource nicht `security` ist, außer User ist Owner
+- Audit-Eintrag geschrieben wird
+- UI sichtbar anzeigt, wer vorher bearbeitet hat
 
-Rollen-Vorschlag:
-
-| Rolle | Darf Locks übernehmen? |
+| Rolle | Lock-Übernahme |
 | --- | --- |
-| owner | ja, immer |
-| admin | ja, außer Security-Ressourcen |
-| lead_mod | nur für freigegebene Modulbereiche |
-| mod | nein |
-| sound_profi | nur eigene Sound-/Media-Ressourcen, falls freigegeben |
-| readonly | nein |
+| `owner` | ja, alle Bereiche |
+| `admin` | ja, außer Security/Owner-Bereiche |
+| `lead_mod` | nur freigegebene Modulbereiche |
+| `mod` | nein |
+| `sound_profi` | nur eigene/freigegebene Sound-/Media-Ressourcen, wenn erlaubt |
+| `readonly` | nein |
 
-## Agent-Verlust während Bearbeitung
+## Agent-Offline-Verhalten
 
-Wenn der Agent offline geht:
+Wenn der Agent offline ist:
 
-- bestehende Edit-Session bleibt sichtbar, aber speichernde produktive Aktionen werden blockiert
-- Lock bleibt bis Timeout bestehen
-- UI zeigt `Agent offline - Speichern aktuell gesperrt`
-- keine Offline-Queue
-- keine automatische spätere Ausführung
-- nach Reconnect muss Status neu geprüft werden
-- alter Save-Request darf nicht automatisch erneut ausgeführt werden
+- Lesende Ansichten bleiben möglich, sofern Webserver-Daten vorhanden sind.
+- Produktives Speichern an Stream-PC-Ressourcen wird blockiert.
+- UI zeigt `Stream-PC nicht verbunden` oder `Agent offline - Speichern gesperrt`.
+- Bestehende Locks laufen normal aus.
+- Keine Offline-Queue.
+- Keine spätere automatische Ausführung alter Requests.
+- Nach Reconnect muss der Status neu geprüft werden.
 
-Lesende Ansicht bleibt möglich, sofern Webserver-Daten vorhanden sind.
+## Agent-Allowlist-Modell
 
-## Lokales Dashboard und Remote-Modboard
+Der spätere Agent akzeptiert nur bekannte Action-Typen.
 
-Langfristiges Ziel:
+Beispiel-Struktur:
 
-- beide nutzen denselben `resourceKey`
-- beide nutzen dieselbe `resourceVersion`
-- beide nutzen denselben Lock-Mechanismus
-- beide schreiben Audit in ein gemeinsames Schema
+```json
+{
+  "actionType": "sound.test.play",
+  "requestId": "uuid",
+  "correlationId": "uuid",
+  "resourceKey": "media:item:1234",
+  "requiredPermission": "sound.test",
+  "payload": {
+    "mediaId": 1234,
+    "target": "preview"
+  }
+}
+```
 
-Wichtig:
+Verbindliche Agent-Regeln:
 
-- lokales Dashboard darf nicht heimlich Locks umgehen
-- Remote-Modboard darf nicht produktiv speichern, wenn Agent offline ist
-- lokale produktive Runtime auf dem Stream-PC bleibt führend
+- Action-Type muss in Allowlist stehen.
+- Payload wird schematisch geprüft.
+- Keine freien Pfade.
+- Keine Shell.
+- Keine Prozesssteuerung.
+- Keine SQL-Rohbefehle.
+- Keine beliebigen HTTP-Fetches.
+- Keine Ausführung ohne `requestId` und `correlationId`.
+- Erfolgs-/Fehlerstatus geht zurück an Webserver und Audit.
 
-## Audit-Modell für Locks und Bearbeitung
-
-Jede relevante Aktion bekommt `auditId` und `correlationId`.
+## Audit-Modell
 
 Audit-Events:
 
 ```text
+permission.denied
 edit_session.started
 edit_session.heartbeat
 edit_session.saved
@@ -384,7 +488,10 @@ lock.takeover_requested
 lock.taken_over
 resource.version_conflict
 resource.save_blocked_agent_offline
-permission.denied
+agent.action.requested
+agent.action.accepted
+agent.action.rejected
+agent.action.finished
 ```
 
 Minimale Audit-Felder:
@@ -415,41 +522,43 @@ Nicht ins Audit:
 - Tokens
 - private Keys
 - komplette Medieninhalte
+- volle sensible Payloads
 - riesige Rohdaten
-- vollständige sensible Payloads
 
-## Permission-Prüfung bei produktiver Bearbeitung
+## Produktiver Bearbeitungsablauf
 
-Ablauf beim Starten einer Bearbeitung:
+### Start Bearbeitung
 
 1. User ist eingeloggt.
 2. Webserver prüft Leserecht.
-3. Webserver prüft Edit-Recht für Ressource.
-4. Webserver prüft Agent-Status, falls Ressource `requiresAgent: true` hat.
-5. Webserver prüft bestehende Locks.
-6. Webserver erstellt Edit-Session.
-7. Webserver erstellt Lock.
-8. Audit `edit_session.started` und `lock.created`.
+3. Webserver prüft Edit-Recht.
+4. Webserver prüft Schutzstufe.
+5. Webserver prüft Agent-Status, falls `requiresAgent: true`.
+6. Webserver prüft bestehende Locks.
+7. Webserver erstellt Edit-Session.
+8. Webserver erstellt Lock.
+9. Audit wird geschrieben.
 
-Ablauf beim Speichern:
+### Speichern
 
-1. User ist eingeloggt.
-2. Webserver prüft Edit-Recht erneut.
-3. Webserver prüft gültige Edit-Session.
+1. Webserver prüft Login erneut.
+2. Webserver prüft Permission erneut.
+3. Webserver prüft aktive Edit-Session.
 4. Webserver prüft aktiven Lock.
 5. Webserver prüft `resourceVersion`.
-6. Webserver prüft Agent online, falls produktive Stream-PC-Ressource.
+6. Bei Stream-PC-Ressource: Agent online prüfen.
 7. Agent prüft Allowlist und Payload.
 8. Änderung wird produktiv ausgeführt.
 9. `resourceVersion` wird erhöht.
-10. Audit `edit_session.saved`.
+10. Audit wird geschrieben.
 11. Lock wird freigegeben oder Session bleibt offen, je nach UI-Fluss.
 
-## Bereiche, die Locks brauchen
+## Ressourcen, die Locks brauchen
 
 Locks zwingend:
 
 - Texte bearbeiten
+- Textvarianten bearbeiten
 - Configs bearbeiten
 - Overlay-Layouts bearbeiten
 - Commands bearbeiten
@@ -461,15 +570,45 @@ Locks zwingend:
 
 Locks nicht zwingend:
 
-- reine Statusseiten
+- Statusseiten lesen
 - Logs lesen
 - Audit lesen
 - Dashboard-Übersichten
-- Test-/Diagnose-Ausgaben lesen
+- rein lesende Diagnose
+
+## UI-Verhalten
+
+Wenn Ressource frei ist:
+
+- Button `Bearbeiten`
+- Klick startet Edit-Session + Lock
+- UI zeigt Lock-Status
+
+Wenn Ressource gelockt ist:
+
+- Anzeige `Wird bearbeitet von <Name>`
+- andere User sehen lesend weiter
+- Bearbeiten gesperrt
+- berechtigte Rollen sehen Übernahme-Option
+
+Wenn Lock abgelaufen ist:
+
+- Anzeige `Bearbeitung vermutlich verlassen`
+- berechtigte User dürfen übernehmen
+
+Wenn Version veraltet ist:
+
+- Anzeige `Diese Daten wurden inzwischen geändert. Bitte neu laden.`
+- keine stille Überschreibung
+
+Wenn Agent offline ist:
+
+- Anzeige `Stream-PC nicht verbunden`
+- Speichern produktiver Stream-PC-Ressourcen gesperrt
 
 ## Modulfreigaben
 
-Neben globalen Rollen braucht es Modulfreigaben.
+Neben Rollen braucht es Modulfreigaben.
 
 Beispiel:
 
@@ -494,65 +633,35 @@ Beispiel:
 }
 ```
 
-Regel:
+Regeln:
 
-- Modulfreigabe erweitert nur innerhalb erlaubter Schutzstufen.
+- Modulfreigabe erweitert nur im freigegebenen Bereich.
 - Modulfreigabe darf keine Owner-/Security-Rechte erzeugen.
 - Kritische globale Admin-Funktionen bleiben getrennt.
 
-## UI-Verhalten
+## Nächster sinnvoller Schritt nach RDAP4A
 
-Wenn Ressource frei ist:
+Empfohlen:
 
-- Button: `Bearbeiten`
-- beim Klick: Edit-Session + Lock erstellen
+```text
+RDAP4B_PERMISSION_LOCK_SCHEMA_API_PLAN
+```
 
-Wenn Ressource gelockt ist:
+Nur Planung, noch keine Produktivmigration.
 
-- Anzeige: `Wird bearbeitet von <Name>`
-- anderer User darf lesend ansehen
-- Bearbeiten gesperrt
-- bei erlaubter Rolle: `Übernahme anfragen/übernehmen`
+RDAP4B sollte konkretisieren:
 
-Wenn Lock abgelaufen ist:
+- Tabellenentwurf für User/Rollen/Permissions/Locks/Audit
+- API-Kontrakte für Locks und Edit-Sessions
+- API-Kontrakte für Agent-Action-Requests
+- Permission-Checks als Backend-Helper-Konzept
+- Dashboard-v2 Client-Struktur für `permissionClient`, `lockClient`, `auditClient`
+- Migrationsstrategie ohne produktive SQLite zu gefährden
 
-- Anzeige: `Bearbeitung vermutlich verlassen`
-- berechtigte User dürfen übernehmen
+## Offene Punkte
 
-Wenn Version veraltet ist:
-
-- Anzeige: `Diese Daten wurden inzwischen geändert. Bitte neu laden.`
-- keine stille Überschreibung
-
-Wenn Agent offline ist:
-
-- Anzeige: `Agent offline - produktives Speichern gesperrt`
-- kein Speichern-Button für produktive Ressourcen
-
-## Noch nicht in RDAP4 umgesetzt
-
-- keine konkrete DB-Tabelle
-- keine Migration
-- keine API-Routen
-- keine React-Komponenten
-- keine WebSocket-Clients
-- kein Agent-Code
-- kein Produktiv-Save
-- kein Lock-Backend
-
-## Nächster sinnvoller Schritt nach RDAP4
-
-DASHUI2 / Frontend-Tech-Entscheidung konkretisieren.
-
-Dabei planen:
-
-- React + Vite final bestätigen
-- Build-/Deploy-Ziel `htdocs/dashboard-v2/`
-- lokale Nutzung unter `127.0.0.1:8080/dashboard-v2`
-- Remote-Nutzung unter `mods.forrestcgn.de`
-- AppShell / Sidebar / Topbar / ModuleTabs
-- Modul-Registry
-- Navigation-Registry
-- API-/WebSocket-/Lock-Clients getrennt planen
-
-Noch keinen produktiven Dashboard-v2-Code ohne separaten `go`.
+- Exakte DB-Speicherung Webserver vs. Stream-PC festlegen.
+- Login-/Session-System separat planen.
+- Welche Rechte Mods automatisch aus Twitch-Mapping bekommen, später festlegen.
+- Welche Module zuerst lockfähig werden, separat priorisieren.
+- Ob `media_manager` wirklich benötigt wird oder `sound_profi` reicht, später entscheiden.

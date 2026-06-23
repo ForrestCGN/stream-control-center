@@ -1,130 +1,53 @@
 # CURRENT STATUS
 
-Stand: RDAP3A-FIX1 / DASHUI7 Stream-PC Verbindung UI-Begriffe korrigiert  
+Stand: RDAP4A_PERMISSION_LOCK_AUDIT_MODEL_DOCS  
 Datum: 2026-06-23
 
-## Aktueller Dashboard-v2-Stand
+## Aktueller Stand
 
-Dashboard-v2 läuft lokal:
+RDAP4A ist ein reiner Doku-/Planungs-Step für das spätere Remote-Dashboard/Modboard.
 
-```text
-http://127.0.0.1:8080/dashboard-v2/
-```
+Dokumentiert wurde:
 
-Altes Dashboard bleibt produktiv:
+- Rollenmodell für Owner/Admin/Lead-Mod/Mod/Sound-Profi/Read-only
+- konkrete Permission-Logik statt reiner Rollenprüfung
+- Schutzstufen für Ressourcen
+- Resource-Key- und Resource-Version-Modell
+- Edit-Session-/Lock-Modell mit Heartbeat, Timeout und Übernahme
+- Audit-Grundmodell
+- Agent-Allowlist- und Sicherheitsprinzipien
+- Verhalten bei Agent-Offline
+- nächster Planungsschritt RDAP4B
 
-```text
-http://127.0.0.1:8080/dashboard/
-```
+## Vorheriger bestätigter Stand
 
-Technische Basis:
+RDAP3A/FIX1 und DASHUI6D wurden erfolgreich live geprüft:
 
-```text
-frontend/dashboard-v2/
-React + Vite
-```
+- Dashboard-v2 ist lokal unter `/dashboard-v2/` erreichbar.
+- Bestehendes Dashboard bleibt unter `/dashboard/` produktiv.
+- Dashboard-v2 Build-Output liegt unter `htdocs/dashboard-v2/`.
+- Deploy-Workflow nimmt `htdocs/dashboard-v2/` mit nach Live.
+- Read-only API `/api/remote-agent/status` läuft.
+- Dashboard-v2 zeigt sichtbar `Stream-PC Verbindung`.
+- Status `offline` ist korrekt, da noch kein produktiver WSS-Agent existiert.
 
-Build-Output:
+## Nicht geändert durch RDAP4A
 
-```text
-htdocs/dashboard-v2/
-```
+- kein Backend-Code
+- kein Frontend-Code
+- keine API-Routen
+- keine DB
+- kein Agent
+- kein WSS
+- keine OBS-/Sound-/Overlay-Steuerung
+- keine produktiven Aktionen
+- kein Node-Neustart nötig
 
-## RDAP3A / DASHUI7
+## Wichtige Leitplanken
 
-RDAP3A ergänzt die erste echte read-only Status-Anbindung für die spätere Verbindung zwischen Remote-Modboard und Stream-PC.
-
-Backend:
-
-```text
-backend/modules/remote_agent.js
-GET /api/remote-agent/status
-GET /api/remote-agent/routes
-```
-
-Die API ist live geprüft und liefert:
-
-```text
-ok: true
-module: remote_agent
-moduleVersion: 0.0.1
-moduleBuild: RDAP3A_DASHUI7_READONLY_STATUS
-readOnly: true
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
-status.connectionState: offline
-```
-
-Der Offline-Status ist korrekt, weil in RDAP3A noch kein produktiver WSS-Dienst existiert.
-
-## DASHUI7 / UI-Begriffe
-
-Der Dashboard-Bereich wird sichtbar nicht mehr als „Remote Agent“ geführt, sondern benutzerfreundlich als:
-
-```text
-Stream-PC Verbindung
-```
-
-Sidebar:
-
-```text
-Live -> Stream-PC
-```
-
-Intern bleiben technische Namen unverändert:
-
-```text
-remote_agent
-/api/remote-agent/status
-frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
-```
-
-## Geänderte Dateien RDAP3A-FIX1
-
-```text
-frontend/dashboard-v2/src/app/moduleRegistry.js
-frontend/dashboard-v2/src/app/navigation.js
-frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
-docs/current/RDAP3A_DASHUI7_REMOTE_AGENT_STATUS.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-```
-
-## Nicht geändert
-
-```text
-backend/modules/remote_agent.js
-frontend/dashboard-v2/src/services/agentClient.js
-frontend/dashboard-v2/src/styles/global.css
-keine produktive SQLite
-kein Agent-Prozess erstellt
-kein produktiver WSS-Endpunkt aktiviert
-kein Reverse Proxy geändert
-keine OBS-Änderung
-keine Sound-Steuerung
-keine Overlay-Steuerung
-keine Media-/Datei-/Shell-Aktion
-keine Schreibfunktionen im Dashboard-v2
-kein Login-System improvisiert
-```
-
-## Nach Einspielen nötig
-
-```text
-Dashboard-v2 neu bauen
-testdeploy.cmd ausführen
-Browser hart neu laden
-```
-
-Node/Backend-Neustart ist für RDAP3A-FIX1 nicht nötig, sofern RDAP3A-Backend bereits läuft, weil dieser Fix nur Frontend-/Doku-Dateien ändert.
-
-## Nächster sinnvoller Schritt
-
-```text
-RDAP3B / Minimaler WSS-Dienst lokal im Testmodus planen
-```
-
-Weiterhin keine produktiven Agent-Aktionen ohne Permission-/Lock-/Audit-Konzept.
+- Keine produktive SQLite ersetzen oder löschen.
+- Keine Schreibfunktionen ohne Permission/Lock/Audit.
+- Keine Agent-Aktionen ohne Allowlist.
+- Keine freie Shell-/Datei-/Prozesssteuerung.
+- Frontend zeigt Rechte nur an; Backend entscheidet.
+- Lokales Dashboard und Remote-Modboard sollen langfristig denselben Lock-Mechanismus nutzen.
