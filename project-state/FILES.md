@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
+Stand: RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -12,8 +12,8 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
+docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -33,6 +33,7 @@ docs/current/RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS.md
 docs/current/RDAP7D_AUTH_STATUS_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS.md
 docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
+docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
@@ -145,10 +146,19 @@ authEnabled: false
 sessionCreationEnabled: false
 ```
 
+## Geplante OAuth-Route
+
+Noch nicht produktiv freigeschaltet:
+
+```text
+GET https://mods.forrestcgn.de/api/remote/auth/twitch/start
+GET https://mods.forrestcgn.de/api/remote/auth/twitch/callback
+```
+
 ## Lokale produktive SQLite
 
 ```text
-D:\Streaming\stramAssets\data\sqlitepp.sqlite
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
 Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
@@ -162,6 +172,9 @@ lokale SQLite
 Stream-PC Backend ausser dokumentiertem read-only remote_agent.js Stand
 Dashboard-v2 Code
 OBS-/Sound-/Overlay-Systeme
+Remote-Modboard Code
+Remote-Modboard Service
+Remote-Modboard DB
 ```
 
 ## Remote-Agent Stand
@@ -172,8 +185,8 @@ moduleVersion: 0.0.3
 moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ```
 
-## Naechste geplante Datei
+## Naechste geplante Datei / naechster Step
 
 ```text
-docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
+RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED
 ```

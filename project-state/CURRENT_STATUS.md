@@ -1,13 +1,13 @@
 # CURRENT STATUS
 
-Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
+Stand: RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
 RDAP7E ist abgeschlossen und laut User nach GitHub/dev gepusht. `git status --short` war leer.
 
-RDAP7F dokumentiert den Chat-Handoff und legt die naechste Chat-Prompt-Datei an. Dieser Step enthaelt keine Code-, DB-, Service-, Auth-, Session-, Cookie-, Agent- oder Remote-Write-Aenderungen.
+RDAP7F Twitch OAuth Dry-Run Plan dokumentiert den spaeteren OAuth-Dry-Run fuer `https://mods.forrestcgn.de`, ohne Login-Aktivierung und ohne Code-/DB-/Service-/Auth-/Session-/Cookie-/Agent-/Remote-Write-Aenderungen.
 
 ## Fertig und bestaetigt
 
@@ -32,6 +32,7 @@ RDAP7C1 Server Workdir Cleanup live bestanden
 RDAP7D Auth Status Deploy Result Docs erstellt
 RDAP7E Server Workdir Cleanup Docs erstellt und nach GitHub/dev gepusht
 RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
+RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 ```
 
 ## Remote-Modboard read-only live
@@ -121,14 +122,41 @@ Backups:             /var/backups/stream-control-center/
 
 `/root` nicht mehr fuer RDAP-Arbeitsordner, Deploy-Clones, Temp-Ordner oder Backups verwenden.
 
+## RDAP7F OAuth-Plan Ergebnis
+
+Geplante spaetere Redirect URL:
+
+```text
+https://mods.forrestcgn.de/api/remote/auth/twitch/callback
+```
+
+Geplante spaetere Sicherheitsflags:
+
+```text
+TWITCH_OAUTH_ENABLED=false
+SESSION_ENABLED=false
+```
+
+RDAP7F hat nur dokumentiert:
+
+```text
+Twitch Developer Console Anforderungen
+Redirect-/Callback-URLs
+ENV-Werte ohne Secrets
+State-/CSRF-Regel
+Fehler-/Stop-Punkte
+Testplan
+Rollback/Disable-Regel
+```
+
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN
+RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED
 ```
 
 Ziel:
 
 ```text
-Twitch-OAuth-Dry-Run planen, ohne Login zu aktivieren.
+ENV-/Server-Vorbereitung fuer Twitch OAuth, weiterhin disabled, ohne Login-Aktivierung.
 ```

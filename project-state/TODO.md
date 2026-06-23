@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
+Stand: RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -36,29 +36,27 @@ Datum: 2026-06-23
 - [x] RDAP7D Auth Status Deploy Result Docs erstellt
 - [x] RDAP7E Server Workdir Cleanup Docs abgeschlossen
 - [x] RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
+- [x] RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 
 ## Noch offen / als naechstes
 
-### RDAP7F Twitch OAuth Dry-Run Plan
+### RDAP7G Twitch OAuth ENV/Server Prep disabled
 
-- [ ] echte Remote-Modboard-Dateien vor Planung pruefen
-- [ ] `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt` zuerst lesen
-- [ ] Twitch Developer Console Anforderungen dokumentieren
-- [ ] Redirect-/Callback-URLs fuer `mods.forrestcgn.de` festlegen
-- [ ] benoetigte ENV-Werte ohne Secrets im Repo dokumentieren
-- [ ] State-/CSRF-Regel planen
-- [ ] Fehler-/Stop-Punkte planen
-- [ ] Testplan fuer spaeteren Dry-Run planen
-- [ ] Rollback/Disable-Regel planen
+- [ ] vor RDAP7G echten GitHub/dev Stand erneut pruefen
+- [ ] `remote-modboard/backend/.env.example` DB_NAME/DB_USER gegen bestaetigten Live-Stand pruefen und ggf. korrigieren
+- [ ] OAuth-/Session-ENV-Werte ohne echte Secrets vorbereiten
+- [ ] Server-ENV nur unter `/etc/stream-control-center/remote-modboard.env` vorbereiten
+- [ ] `TWITCH_OAUTH_ENABLED=false` beibehalten
+- [ ] `SESSION_ENABLED=false` beibehalten
 - [ ] keine Login-Aktivierung
 - [ ] keine Session-Erstellung
 - [ ] keine Cookies setzen
 - [ ] keine DB-Writes
 - [ ] keine Agent-Actions
+- [ ] keine OBS-/Sound-/Overlay-/Command-Steuerung
 
 ### Spaeter
 
-- [ ] RDAP7G Twitch OAuth ENV/Server Prep ohne Login-Aktivierung
 - [ ] RDAP7H OAuth Callback Skeleton read-only/disabled
 - [ ] RDAP7I Session Store Read-only/Validation Layer
 - [ ] RDAP8 Permission Check Middleware Plan

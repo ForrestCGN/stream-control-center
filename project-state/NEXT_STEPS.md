@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
+Stand: RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -13,6 +13,7 @@ RDAP7C Remote Auth Status Deploy/Test live bestanden
 RDAP7C1 Server Workdir Cleanup bestanden
 RDAP7E Server Workdir Cleanup Docs abgeschlossen
 RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
+RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 ```
 
 Remote-Modboard bleibt read-only:
@@ -29,25 +30,24 @@ loggedIn: false
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN
+RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED
 ```
 
 Ziel:
 
 ```text
-Twitch-OAuth-Dry-Run planen, ohne produktiven Login zu aktivieren.
+ENV-/Server-Vorbereitung fuer Twitch OAuth, weiterhin disabled, ohne produktiven Login zu aktivieren.
 ```
 
-RDAP7F soll klaeren:
+RDAP7G soll klaeren/umsetzen, aber erst nach eigenem Scope und go:
 
 ```text
-Twitch Developer Console App/Redirect-URL
-benoetigte ENV-Werte ohne Secrets im Repo
-Callback-/Redirect-Pfade
-State-/CSRF-Konzept
-Fehler-/Stop-Punkte
-Testplan
-Rollback
+.env.example Werte pruefen und ggf. ohne Secrets korrigieren
+Server-ENV-Platzhalter in /etc/stream-control-center/remote-modboard.env vorbereiten
+TWITCH_OAUTH_ENABLED=false setzen
+SESSION_ENABLED=false setzen
+keine Start-/Callback-Route produktiv aktivieren
+Status-/Safety-Ausgabe ggf. nur read-only um OAuth-disabled-Status erweitern
 ```
 
 ## Noch nicht erlaubt
@@ -67,7 +67,6 @@ keine OBS-/Sound-/Overlay-/Command-Steuerung
 ## Danach moeglich, nicht jetzt
 
 ```text
-RDAP7G Twitch OAuth ENV/Server Prep ohne Login-Aktivierung
 RDAP7H OAuth Callback Skeleton read-only/disabled
 RDAP7I Session Store Read-only/Validation Layer
 RDAP8 Permission Check Middleware Plan

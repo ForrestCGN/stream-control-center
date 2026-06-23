@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Stand: RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT  
+Stand: RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN  
 Datum: 2026-06-23
 
 ## Zuerst lesen
@@ -13,17 +13,17 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
+docs/current/RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN.md
 docs/current/RDAP7F_CHAT_HANDOFF_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 ```
 
 ## Aktueller gesicherter Stand
 
 ```text
-RDAP7E_SERVER_WORKDIR_CLEANUP_DOCS
+RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN
 ```
 
-RDAP7E wurde laut User lokal installiert, committed und nach GitHub/dev gepusht. `git status --short` war leer.
+RDAP7F ist ein reiner Plan-/Doku-Step. Es wurden keine Code-, DB-, Service-, Auth-, Session-, Cookie-, Agent- oder Remote-Write-Aenderungen vorgenommen.
 
 ## Kurzstatus
 
@@ -33,6 +33,7 @@ RDAP7B read-only Auth-Status-Endpunkte gebaut
 RDAP7C Live-Deploy/Test bestanden
 RDAP7C1 Server Workdir Cleanup bestanden
 RDAP7E Cleanup-Doku abgeschlossen
+RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 ```
 
 ## Live Remote-Modboard
@@ -81,7 +82,7 @@ StepDone erst nach Einspielen/Deploy/Test.
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP7F_TWITCH_OAUTH_DRY_RUN_PLAN
+RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED
 ```
 
-Nur Plan/Doku. Noch kein Login, keine Cookies, keine Sessions, keine Writes.
+Nur ENV-/Server-Vorbereitung fuer OAuth, weiterhin disabled. Noch kein produktiver Login, keine Cookies, keine Sessions, keine Writes.
