@@ -1,85 +1,54 @@
-# NEXT STEPS
+# NEXT STEPS - stream-control-center
 
-Stand: RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP  
+Stand: RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
 Datum: 2026-06-24
 
-## Sofort naechster Schritt
+## Naechster sinnvoller Schritt
 
 ```text
-RDAP11B_LOCK_AUDIT_READONLY_LOCAL_TEST
+RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
 ```
 
-## Ziel
+## Ziel RDAP12
 
-RDAP11 lokal einspielen und pruefen, ob der read-only Lock-/Audit-Skeleton syntaktisch sauber ist.
+Das reale MariaDB-Schema von `dashboard_locks` und `dashboard_audit_log` mit dem RDAP9/RDAP10/RDAP11-Erwartungsmodell abgleichen.
 
-## Lokal auszufuehren
+RDAP12 soll klaeren:
 
-Nach Installation des ZIP-Steps:
+- welche bestehenden Spalten bereits nutzbar sind
+- welche geplanten Felder gemappt werden koennen
+- welche Felder fehlen
+- ob Erweiterung, Kompatibilitaetslayer oder neues Schema sinnvoll ist
+- welche Migration spaeter noetig waere
+- welche Migration zwingend Backup/Rollback braucht
+- welche Writes danach erst erlaubt werden duerfen
+- wie alte Daten erhalten bleiben
 
-```text
-cd D:\Git\stream-control-center\remote-modboard\backend
-npm run check
-```
+## RDAP12 darf NICHT
 
-Danach im Repo:
+- Login aktivieren
+- OAuth aktivieren
+- Cookies setzen
+- Sessions erstellen
+- Sessions verlaengern
+- DB-Writes ausfuehren
+- Tabellen aendern
+- Migrationen ausfuehren
+- Remote-Writes bauen
+- Agent-Actions aktivieren
+- Secrets ausgeben oder loggen
 
-```text
-cd D:\Git\stream-control-center
-git status --short
-```
+## Spaetere Server-Script-Regel
 
-Wenn sauber:
+Bei jedem Server-Deploy mit Service-Neustart:
 
-```text
-stepdone.cmd "RDAP11 Lock-/Audit read-only Skeleton vorbereitet: Diagnose-Route, keine Writes, kein Login, keine Sessions, keine Agent-Actions"
-```
+- Backup erstellen
+- Syntaxcheck vor Deploy
+- Deploy
+- Syntaxcheck live
+- `systemctl restart`
+- Readiness-Wait/Retry auf Port/Statusroute
+- erst danach API-Tests
+- OAuth/Write-Safety erneut pruefen
 
-## Danach sinnvoll
-
-```text
-RDAP11C_LOCK_AUDIT_READONLY_LIVE_DEPLOY_TEST
-```
-
-Nur mit eigenem Server-Scope.
-
-## RDAP11C muss enthalten
-
-```text
-Backup nach /var/backups/stream-control-center/
-Deploy-/Test-Clone nach /opt/stream-control-center/_deploy_tmp/
-keine Arbeitsordner in /root
-npm install --omit=dev falls noetig
-npm run check
-systemd service scc-remote-modboard.service neu starten
-curl Tests lokal gegen 127.0.0.1:3010
-optional Public-Test gegen https://mods.forrestcgn.de/api/remote/
-```
-
-## Live-Test-Erwartung RDAP11C
-
-```text
-GET /api/remote/status ok
-GET /api/remote/routes enthaelt /api/remote/lock-audit/status
-GET /api/remote/lock-audit/status ok
-GET /api/remote/lock-audit/status?db=1 nur read-only Schema-Diagnose
-GET /api/remote/auth/twitch/start weiterhin HTTP 403
-GET /api/remote/auth/twitch/callback weiterhin HTTP 403
-kein Set-Cookie
-kein Redirect zu Twitch
-keine DB-Writes
-keine Agent-Actions
-```
-
-## Weiterhin nicht als naechstes tun
-
-```text
-kein Login aktivieren
-kein OAuth aktivieren
-keine Sessions erstellen
-keine produktiven Writes bauen
-keine Lock-Writes bauen
-keine Audit-Writes bauen
-keine Agent-Actions aktivieren
-kein moduleBuild-Kosmetikfix ohne eigenen Mini-Scope
-```
+Keine riesigen unsicheren Server-Bloecke, wenn ein kompakter Block oder ein Scriptfile robuster ist.

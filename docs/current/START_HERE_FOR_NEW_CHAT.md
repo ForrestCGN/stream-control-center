@@ -1,161 +1,115 @@
-# START HERE FOR NEW CHAT
+# START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
 
-Stand: RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP  
+Stand: RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
 Datum: 2026-06-24
 
 ## Zuerst lesen
 
-Bitte zuerst diese Dateien lesen, bevor geplant oder gebaut wird:
-
 ```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
+project-state/CHANGELOG.md
 docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md
 docs/current/RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY.md
 docs/current/RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP.md
+docs/current/RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS.md
 ```
 
-## Aktueller gesicherter Stand
+## Aktueller bestaetigter Stand
 
 ```text
-RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP
+RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
 ```
 
-RDAP11 bereitet eine read-only Lock-/Audit-Diagnose technisch vor. Es wurde eine neue read-only Diagnose-Route vorbereitet:
+RDAP11 read-only Lock-/Audit-Diagnose-Skeleton wurde auf dem Webserver deployed und live getestet.
 
-```text
-GET /api/remote/lock-audit/status
-```
-
-Optional mit `db=1` werden nur `INFORMATION_SCHEMA.COLUMNS`-SELECTs ausgefuehrt, um `dashboard_locks` und `dashboard_audit_log` diagnostisch zu pruefen.
-
-RDAP11 aktiviert keine produktiven Schreibfunktionen.
-
-## Kurzstatus
-
-```text
-RDAP6K produktive Auth-DB-Migration auf c3stream_control erfolgreich
-RDAP7B read-only Auth-Status-Endpunkte gebaut
-RDAP7C Live-Deploy/Test bestanden
-RDAP7C1 Server Workdir Cleanup bestanden
-RDAP7E Cleanup-Doku abgeschlossen
-RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
-RDAP7G Twitch OAuth ENV/Server Prep disabled live deployed
-RDAP7H OAuth Callback Skeleton disabled live deployed/getestet
-RDAP7I Session Store Read-only Validation Layer live deployed/getestet
-RDAP8 Permission Check Middleware Plan dokumentiert
-RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
-RDAP8B Permission Resolver Live Deploy/Test dokumentiert
-RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
-RDAP10 Lock-/Audit-Implementierungsplan read-only dokumentiert
-RDAP11 Lock-/Audit read-only Skeleton vorbereitet
-```
-
-## Live Remote-Modboard
-
-Bisher bestaetigter Live-Stand vor RDAP11-Deploy:
-
-```text
-URL: https://mods.forrestcgn.de/api/remote/
-Service: scc-remote-modboard.service
-Listen intern: 127.0.0.1:3010
-Webserver: web.cgn.community
-statusApiVersion live: rdap8a.v1
-readOnly: true
-writeEnabled: false
-authEnabled: false
-loginEnabled: false
-sessionCreationEnabled: false
-productivePermissionEnforcementEnabled: false
-```
-
-Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Eine Anpassung ist nur mit eigenem Mini-Scope erlaubt.
-
-## RDAP11 Inhalt
-
-Geaenderte Backend-Dateien:
-
-```text
-remote-modboard/backend/package.json
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/services/lock-read.service.js
-remote-modboard/backend/src/services/audit-read.service.js
-```
-
-Neue Route:
+Bestaetigt live:
 
 ```text
 GET /api/remote/lock-audit/status
 GET /api/remote/lock-audit/status?db=1
 ```
 
-Weiterhin deaktiviert:
+Wichtig:
 
 ```text
-Login
-OAuth
-Cookies
-Sessions
-DB-Writes
-Remote-Writes
-Lock-Writes
-Audit-Writes
-Agent-Actions
-OBS/Sound/Overlay/Command-Steuerung
+statusApiVersion=rdap11.v1
+readOnly=true
+writeEnabled=false
+databaseWriteEnabled=false
+authEnabled=false
+loginEnabled=false
+agentActionsEnabled=false
+lockAcquireEnabled=false
+auditInsertEnabled=false
 ```
 
-## Server-Ordnerregel
-
-Nicht verwenden:
+OAuth bleibt deaktiviert:
 
 ```text
-/root fuer RDAP-Deploy-Clones, Arbeitsordner, Temp-Ordner oder Backups
+GET /api/remote/auth/twitch/start    -> HTTP 403
+GET /api/remote/auth/twitch/callback -> HTTP 403
 ```
 
-Stattdessen:
+## Webserver Fakten
 
 ```text
-Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
-Runtime-/Temp: /opt/stream-control-center/_runtime_tmp/
-Backups: /var/backups/stream-control-center/
+Webserver: web.cgn.community
+Public Subdomain: mods.forrestcgn.de
+Service: scc-remote-modboard.service
+Intern: 127.0.0.1:3010
+DB-Typ: MariaDB 11.8.6
+DB_NAME: c3stream_control
+DB_USER: c1stream_control
 ```
 
-## Arbeitsweise
+Passwort niemals dokumentieren oder ausgeben.
+
+## Backup RDAP11B
 
 ```text
-GitHub/dev als Single Source of Truth.
-Echte Dateien pruefen, nicht raten.
-Keine Funktionalitaet entfernen.
-Vor Umsetzung Scope nennen und auf go warten.
-Wenn Forrest nach einem Befehlsblock go/weiter sagt, gilt: ausgefuehrt, kein Fehler, naechster Schritt.
-Maximal ein Befehlsblock pro Antwort.
-Vor Befehlen sagen: Wo ausfuehren, was macht der Befehl, wann stoppen, welche Ausgabe schicken.
-Keine langen unnoetigen Ausgaben anfordern.
-Kein git add . verwenden.
-ZIPs mit echten Repo-Pfaden liefern.
-StepDone erst nach Einspielen/Deploy/Test.
+/var/backups/stream-control-center/RDAP11B_LOCK_AUDIT_READONLY_SKELETON_LIVE_DEPLOY_TEST_remote-modboard-backend_20260624_083346.tar.gz
 ```
+
+## Wichtiger Live-Befund
+
+`dashboard_locks` und `dashboard_audit_log` existieren, aber das reale Schema weicht vom RDAP11-Erwartungsmodell ab.
+
+Vor produktiver Lock-/Audit-Schreiblogik muss ein eigener Schema-Kompatibilitaetsplan erstellt werden.
+
+## Server-Script-Regel
+
+Nach `systemctl restart` immer Readiness-Wait/Retry einbauen, bevor `curl`-Tests laufen.
+
+Nicht direkt nach Restart testen.
+
+Grosse Server-Bloecke vermeiden, wenn ein kompakter Block oder ein Scriptfile sicherer ist.
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP11B_LOCK_AUDIT_READONLY_LOCAL_TEST
+RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
 ```
 
-Ziel:
+RDAP12 darf nur planen/dokumentieren, solange kein separater Code-/DB-Scope freigegeben wird.
 
-```text
-RDAP11 lokal einspielen, npm run check ausfuehren, git status pruefen und danach stepdone.cmd.
-```
+RDAP12 darf NICHT:
 
-Danach separat:
-
-```text
-RDAP11C_LOCK_AUDIT_READONLY_LIVE_DEPLOY_TEST
-```
+- Login aktivieren
+- Twitch-OAuth aktivieren
+- Cookies setzen
+- Sessions erstellen
+- Sessions verlaengern
+- last_seen_at aktualisieren
+- produktive DB-Writes bauen oder ausfuehren
+- User-/Rollen-/Gruppen-Schreibrouten bauen
+- Remote-Writes bauen
+- Agent-Actions aktivieren
+- OBS-/Sound-/Overlay-/Command-Steuerung bauen
+- Secrets ins Repo, Frontend, Logs oder Chat bringen
+- bestehende Routen entfernen
+- Funktionalitaet entfernen

@@ -1,120 +1,89 @@
-# CURRENT STATUS
+# CURRENT STATUS - stream-control-center
 
-Stand: RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP  
+Stand: RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
 Datum: 2026-06-24
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP11 bereitet ein read-only Lock-/Audit-Diagnose-Skeleton fuer das Remote-Modboard vor.
+RDAP11C dokumentiert den erfolgreichen Live-Deploy/Test von RDAP11.
 
-Neue Route:
+Remote-Modboard auf Webserver:
+
+```text
+https://mods.forrestcgn.de/api/remote/
+127.0.0.1:3010
+systemd service: scc-remote-modboard.service
+```
+
+RDAP11 Live-Routen:
 
 ```text
 GET /api/remote/lock-audit/status
-```
-
-Optional:
-
-```text
 GET /api/remote/lock-audit/status?db=1
 ```
 
-Ohne `db=1` werden keine DB-Abfragen ausgefuehrt. Mit `db=1` werden nur `INFORMATION_SCHEMA.COLUMNS`-SELECTs ueber die vorhandene read-only DB-Verbindung ausgefuehrt.
-
-RDAP11 aktiviert keine produktiven Schreibfunktionen.
-
-## Geaenderte Dateien
+Bestaetigte Live-Werte:
 
 ```text
-remote-modboard/backend/package.json
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/services/lock-read.service.js
-remote-modboard/backend/src/services/audit-read.service.js
-docs/current/RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP.md
-docs/current/START_HERE_FOR_NEW_CHAT.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
-
-## Sicherheitsstatus
-
-Weiterhin gilt:
-
-```text
+statusApiVersion=rdap11.v1
 readOnly=true
 writeEnabled=false
+databaseWriteEnabled=false
+migrationEnabled=false
 authEnabled=false
 loginEnabled=false
-sessionCreationEnabled=false
-databaseWriteEnabled=false
 agentActionsEnabled=false
-productivePermissionEnforcementEnabled=false
+lockAcquireEnabled=false
+lockHeartbeatEnabled=false
+lockReleaseEnabled=false
+lockForceTakeoverEnabled=false
+auditInsertEnabled=false
+auditUpdateEnabled=false
+productiveAuthorizationEnabled=false
+obsControlEnabled=false
+soundControlEnabled=false
+overlayControlEnabled=false
+commandControlEnabled=false
 ```
 
-Weiterhin verboten / nicht aktiviert:
+OAuth bleibt disabled/read-only:
 
 ```text
-kein Login
-kein Twitch-OAuth
-kein Redirect zu Twitch
-kein OAuth-Code-gegen-Token-Tausch
-keine Cookies
-keine Session-Erstellung
-keine Session-Verlaengerung
-kein last_seen_at Update
-keine produktiven DB-Writes
-keine Remote-Writes
-keine User-/Rollen-/Gruppen-Schreibrouten
-keine Lock-Writes
-keine Audit-Writes
-keine Agent-Actions
-keine OBS-/Sound-/Overlay-/Command-Steuerung
-keine produktive Permission-Erzwingung fuer Writes
-keine Secrets im Repo, Frontend, Log oder Chat
-keine Funktionalitaet entfernen
+GET /api/remote/auth/twitch/start    -> HTTP 403
+GET /api/remote/auth/twitch/callback -> HTTP 403
 ```
 
-## Live-Status
-
-Der zuletzt bestaetigte Live-Stand vor RDAP11-Deploy bleibt RDAP8A/RDAP8B:
+## Backup
 
 ```text
-Remote-Modboard: https://mods.forrestcgn.de/api/remote/
-Interner Service: 127.0.0.1:3010
-systemd service: scc-remote-modboard.service
-statusApiVersion live: rdap8a.v1
-readOnly=true
-writeEnabled=false
-authEnabled=false
-loginEnabled=false
-databaseWriteEnabled=false
-agentActionsEnabled=false
+/var/backups/stream-control-center/RDAP11B_LOCK_AUDIT_READONLY_SKELETON_LIVE_DEPLOY_TEST_remote-modboard-backend_20260624_083346.tar.gz
 ```
 
-RDAP11 ist nach lokalem Einspielen zunaechst lokal zu testen. Live-Deploy ist ein separater Schritt.
+## Schema-Befund
 
-## Naechster sinnvoller Schritt
+`dashboard_locks` existiert, aber reale Spalten weichen vom RDAP11-Erwartungsmodell ab.
 
-```text
-RDAP11B_LOCK_AUDIT_READONLY_LOCAL_TEST
-```
+`dashboard_audit_log` existiert, aber reale Spalten weichen vom RDAP11-Erwartungsmodell ab.
 
-Ziel:
+Vor Writes ist RDAP12 Schema-Kompatibilitaetsplanung Pflicht.
 
-```text
-RDAP11 lokal einspielen
-remote-modboard/backend npm run check ausfuehren
-git status pruefen
-stepdone.cmd erst danach
-```
+## Wichtige Regel aus RDAP11B
 
-Danach separat:
+Nach Server-Restart immer Readiness-Wait/Retry einbauen.
 
-```text
-RDAP11C_LOCK_AUDIT_READONLY_LIVE_DEPLOY_TEST
-```
+Kein sofortiges `curl` direkt nach `systemctl restart`.
+
+## Weiterhin verboten
+
+- kein Login
+- kein Twitch-OAuth
+- keine Cookies
+- keine Sessions
+- keine Session-Verlaengerung
+- kein last_seen_at Update
+- keine produktiven DB-Writes
+- keine User-/Rollen-/Gruppen-Schreibrouten
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine Secrets ins Repo, Frontend, Logs oder Chat

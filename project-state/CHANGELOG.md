@@ -1,67 +1,44 @@
-# CHANGELOG
+# CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP11 / Lock-/Audit read-only Skeleton vorbereitet
+## 2026-06-24 - RDAP11C / Lock-/Audit Live-Test dokumentiert
 
-Status: Code-/Doku-Step vorbereitet, noch lokal zu testen
+Status: Live-Test erfolgreich dokumentiert
 
 Geaendert:
 
-```text
-remote-modboard/backend/package.json
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/services/lock-read.service.js
-remote-modboard/backend/src/services/audit-read.service.js
-docs/current/RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP.md
-docs/current/START_HERE_FOR_NEW_CHAT.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
+- `docs/current/RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS.md`
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+- `project-state/CHANGELOG.md`
 
-Neu:
+Bestaetigt live:
 
-```text
-GET /api/remote/lock-audit/status
-GET /api/remote/lock-audit/status?db=1
-```
+- `GET /api/remote/lock-audit/status` -> HTTP 200
+- `GET /api/remote/lock-audit/status?db=1` -> HTTP 200
+- `GET /api/remote/auth/twitch/start` -> HTTP 403
+- `GET /api/remote/auth/twitch/callback` -> HTTP 403
 
-Sicherheitsrahmen:
+Bestaetigte Safety-Werte:
 
-```text
-readOnly=true
-writeEnabled=false
-databaseWriteEnabled=false
-lockAcquireEnabled=false
-lockHeartbeatEnabled=false
-lockReleaseEnabled=false
-lockForceTakeoverEnabled=false
-auditInsertEnabled=false
-auditUpdateEnabled=false
-agentActionsEnabled=false
-```
+- `readOnly=true`
+- `writeEnabled=false`
+- `databaseWriteEnabled=false`
+- `authEnabled=false`
+- `loginEnabled=false`
+- `agentActionsEnabled=false`
+- `lockAcquireEnabled=false`
+- `auditInsertEnabled=false`
 
-Nicht geaendert / nicht aktiviert:
+Wichtiger Befund:
 
-```text
-kein Login
-kein Twitch-OAuth
-keine Cookies
-keine Sessions
-keine produktiven DB-Writes
-keine Lock-Writes
-keine Audit-Writes
-keine Remote-Writes
-keine Agent-Actions
-keine OBS-/Sound-/Overlay-/Command-Steuerung
-keine Secrets
-```
+- `dashboard_locks` existiert, reales Schema weicht vom Erwartungsmodell ab.
+- `dashboard_audit_log` existiert, reales Schema weicht vom Erwartungsmodell ab.
+- Vor produktiven Writes ist `RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN` Pflicht.
 
-Naechster Schritt:
+Neue Arbeitsregel:
 
-```text
-RDAP11B_LOCK_AUDIT_READONLY_LOCAL_TEST
-```
+- Nach `systemctl restart` immer Readiness-Wait/Retry vor API-Tests.
+- Keine sofortigen `curl`-Tests direkt nach Service-Restart.
