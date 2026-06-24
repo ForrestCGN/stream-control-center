@@ -7,7 +7,7 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap11.v1',
+      statusApiVersion: 'rdap14.v1',
       readOnly: true,
       writeEnabled: false,
       authPrepared: true,
@@ -15,7 +15,8 @@ function registerRoutesRoutes(app, context) {
       sessionCreationEnabled: false,
       sessionStoreReadOnlyValidationPrepared: true,
       permissionReadOnlyResolverPrepared: true,
-      lockAuditReadOnlyDiagnosticPrepared: true,
+      lockAuditDiagnosticPrepared: true,
+      schemaAdapterPrepared: true,
       routes: [
         {
           method: 'GET',
@@ -50,7 +51,12 @@ function registerRoutesRoutes(app, context) {
         {
           method: 'GET',
           path: '/api/remote/lock-audit/status',
-          description: 'RDAP11 read-only Lock-/Audit-Diagnose-Skeleton. Optional db=1 prueft Tabellenstruktur per INFORMATION_SCHEMA SELECT. Keine Lock-Writes, keine Audit-Writes, keine Remote-Writes.'
+          description: 'RDAP14 read-only Lock-/Audit-Diagnose inklusive Schema-Adapter-Status. Optional db=1 prueft INFORMATION_SCHEMA nur lesend.'
+        },
+        {
+          method: 'GET',
+          path: '/api/remote/lock-audit/schema-adapter/status',
+          description: 'RDAP14 read-only Schema-Adapter-Diagnose fuer dashboard_locks/dashboard_audit_log. Optional db=1 prueft INFORMATION_SCHEMA nur lesend.'
         },
         {
           method: 'GET',
@@ -82,8 +88,8 @@ function registerRoutesRoutes(app, context) {
         'OAuth code token exchange',
         'Set-Cookie/session cookie issuance',
         'DB migration',
-        'Lock acquire/heartbeat/release/force-takeover',
-        'Audit insert/update',
+        'lock writes',
+        'audit writes',
         'agent action execution',
         'OBS/Sound/Overlay/Command control',
         'shell/file/process operations'
