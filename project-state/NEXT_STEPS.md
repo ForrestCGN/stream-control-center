@@ -1,59 +1,51 @@
-# NEXT STEPS - stream-control-center
+# NEXT_STEPS - stream-control-center
 
 Stand: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN  
 Datum: 2026-06-24
 
-## Aktuell
+## Aktuell erledigt
 
-`RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN` lokal einspielen, prüfen, `stepdone.cmd`, danach Webserver-Deploy.
+`RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN` ist deployed und remote getestet.
 
-Erwartung nach Deploy:
+Bestaetigt:
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
 statusApiVersion: rdap_admin_users9.v1
 lockHelperPrepared: true
 lockWriteEnabled: false
-lockAcquireEnabled: false
-lockHeartbeatEnabled: false
-lockReleaseEnabled: false
-lockForceTakeoverEnabled: false
+lockDiagnostic.helperPrepared: true
+lockDiagnostic.writeEnabled: false
 writeEnabled: false
 writesStillBlocked: true
 ```
 
-## Nächster empfohlener Step
+## Naechster empfohlener Step
 
 ```text
 RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 ```
 
-Scope klein:
+Scope:
 
-- Backup-/Rollback-Plan fuer kleinsten echten Admin-Write vorbereiten.
-- Noch kein echter Write.
+- Backup-/Rollback-Plan fuer den kleinsten spaeteren Admin-Write erstellen.
+- Noch kein echter User-/Rollen-/Gruppen-/Session-Write.
+- Keine DB-Migration ohne Backup/Rollback/Go.
 - Kein UI-Schreibbutton.
-- Keine DB-Migration ohne separaten Backup/Rollback-Go.
-- Permission, Confirm, Audit und Locking bleiben Pflicht.
+- Permission, Confirm-Write, Audit und Locking muessen in der Planung zusammengefuehrt werden.
 
-## Erst später
+## Erst spaeter
 
-Kleinster echter Admin-Write darf erst separat geplant und gebaut werden, wenn folgende Punkte sauber stehen:
+Kleinster echter Admin-Write darf erst separat gebaut werden, wenn folgende Punkte sauber stehen:
 
 ```text
-Permission-Prüfung
+Permission-Pruefung
 Confirm-Write
 Audit
 Locking
 Backup/Rollback
 klare Owner/Admin-Grenzen
 separates Go
-```
-
-## Geparkt
-
-```text
-RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
 
 ## Webserver-Deploy-Regel

@@ -5,54 +5,17 @@ Projekt: `stream-control-center` / Remote-Modboard
 
 ## Ziel
 
-RDAP9 bereitet einen Locking-Helper fuer spaetere Admin-User-Writes vor, ohne produktive Lock- oder Admin-Writes zu aktivieren.
+RDAP9 bereitet den Lock-Helper fuer spaetere Admin-User-Writes vor, ohne echte Locks zu erzeugen oder produktive Writes zu aktivieren.
 
-## Scope
-
-- Locking-Helper vorbereitet.
-- Keine echten Locks erwerben.
-- Keine Heartbeats schreiben.
-- Keine Locks freigeben.
-- Keine Force-Takeover-Aktion.
-- Keine DB-Migration.
-- Keine UI-Schreibbuttons.
-- Keine User-/Rollen-/Gruppen-/Session-Writes.
-
-## Neue Datei
-
-```text
-remote-modboard/backend/src/services/admin-lock-write.service.js
-```
-
-## Geaenderte Dateien
-
-```text
-remote-modboard/backend/server.js
-remote-modboard/backend/package.json
-remote-modboard/backend/src/services/admin-user-write-foundation.service.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-```
-
-## Diagnose
-
-Die Foundation-Route bleibt read-only:
-
-```text
-GET /api/remote/admin/users/write-foundation-diagnostic
-```
-
-Erwartete Werte nach Deploy:
+## Bestaetigter Remote-Test
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
 statusApiVersion: rdap_admin_users9.v1
 lockHelperPrepared: true
 lockWriteEnabled: false
-lockAcquireEnabled: false
-lockHeartbeatEnabled: false
-lockReleaseEnabled: false
-lockForceTakeoverEnabled: false
+lockDiagnostic.helperPrepared: true
+lockDiagnostic.writeEnabled: false
 writeEnabled: false
 writesStillBlocked: true
 ```
@@ -67,26 +30,23 @@ Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
 DB-Migration
-Audit-Inserts oder Audit-Updates
-Lock acquire/heartbeat/release/force-takeover
 UI-Schreibbuttons
-Agent-/OBS-/Sound-/Overlay-/Command-Actions
+Audit-Writes
+Lock-Writes
+Agent-Actions
+OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
-## Lokale Checks
+## Aktueller Sicherheitsstand
 
-```powershell
-cd D:\Git\stream-control-center
-npm --prefix .\remote-modboard\backend run check
-git status --short
-```
-
-## Webserver-Test nach stepdone/deploy
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.moduleBuild,.statusApiVersion,.adminUsersWriteFoundation.lockHelperPrepared,.adminUsersWriteFoundation.lockWriteEnabled,.adminUsersWriteFoundation.writesStillBlocked'
-
-curl -fsS http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic | jq '.moduleBuild,.statusApiVersion,.lockHelperPrepared,.lockWriteEnabled,.lockDiagnostic.helperPrepared,.lockDiagnostic.lockAcquireEnabled,.writeEnabled,.writesStillBlocked'
+```text
+Permission-Read-Diagnose: vorbereitet
+Confirm-Write-Helper: vorbereitet, Writes deaktiviert
+Audit-Helper: vorbereitet, Writes deaktiviert
+Lock-Helper: vorbereitet, Writes deaktiviert
+Admin-Writes: weiterhin aus
+DB-Migration: keine
+UI-Schreibbuttons: keine
 ```
 
 ## Naechster sinnvoller Step
@@ -95,4 +55,4 @@ curl -fsS http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnost
 RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 ```
 
-Noch kein echter Write. Zuerst Backup/Rollback fuer den kleinsten echten Admin-Write planen.
+Wichtig: RDAP10 ist zuerst nur Backup-/Rollback-/Mini-Write-Planung. Kein echter Admin-Write ohne separaten Plan, Backup/Rollback, Permission, Confirm, Audit, Locking und ausdrueckliches Go.
