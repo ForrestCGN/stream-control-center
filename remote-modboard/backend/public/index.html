@@ -91,8 +91,11 @@
       <div class="top-right">
         <button class="cgn-icon-button cgn-lang" type="button">DE</button>
         <button class="cgn-icon-button cgn-bell" type="button">🔒<em>0</em></button>
-        <button class="cgn-avatar-button" type="button">
-          <span class="cgn-avatar">F</span>
+        <button class="cgn-avatar-button" type="button" id="userMenuButton" aria-haspopup="dialog" aria-expanded="false" title="Mein Profil und Rechte anzeigen">
+          <span class="cgn-avatar" id="topUserAvatar">
+            <img id="topUserAvatarImage" alt="" hidden>
+            <span id="topUserAvatarInitial">F</span>
+          </span>
           <span class="cgn-avatar-copy">
             <strong id="loginStateText">Angemeldet</strong>
             <small id="lastUpdatedText">Noch nicht geladen</small>
@@ -101,6 +104,44 @@
         <button class="secondaryButton small" type="button" id="logoutButton">Ausloggen</button>
       </div>
     </header>
+
+    <aside class="self-profile-panel cgn-card" id="selfProfilePanel" hidden aria-label="Mein Profil">
+      <div class="self-profile-head">
+        <div class="self-profile-avatar" id="selfPanelAvatar">
+          <img id="selfPanelAvatarImage" alt="" hidden>
+          <span id="selfPanelAvatarInitial">F</span>
+        </div>
+        <div>
+          <p class="cgn-eyebrow">Mein Konto</p>
+          <h2 id="selfPanelDisplayName">—</h2>
+          <small id="selfPanelLoginName">—</small>
+        </div>
+        <button class="cgn-icon-button self-profile-close" type="button" id="selfProfileCloseButton" aria-label="Profil schließen">×</button>
+      </div>
+
+      <div class="self-profile-grid">
+        <div class="kv-row"><span>Dashboard-Zugriff</span><strong id="selfPanelAccess">—</strong></div>
+        <div class="kv-row"><span>Access-Grund</span><strong id="selfPanelAccessReason">—</strong></div>
+        <div class="kv-row"><span>User UID</span><strong id="selfPanelUserUid">—</strong></div>
+        <div class="kv-row"><span>Rollen</span><strong id="selfPanelRoles">—</strong></div>
+        <div class="kv-row"><span>Gruppen</span><strong id="selfPanelGroups">—</strong></div>
+        <div class="kv-row"><span>Session</span><strong id="selfPanelSession">—</strong></div>
+        <div class="kv-row"><span>remote.view</span><strong id="selfPanelRemoteView">—</strong></div>
+      </div>
+
+      <div class="self-profile-note">
+        <strong>Nur dein eigenes Konto</strong>
+        <span>User-Verwaltung, Freigaben und Rollenänderungen gehören später in den Admin-Bereich.</span>
+      </div>
+
+      <div class="self-profile-actions">
+        <button class="secondaryButton small" type="button" id="selfProfileAccountButton">Mein Login</button>
+        <button class="secondaryButton small" type="button" id="selfProfileAccessButton">Zugriff</button>
+        <button class="secondaryButton small danger" type="button" id="selfProfileLogoutButton">Ausloggen</button>
+      </div>
+    </aside>
+
+    <div class="self-profile-backdrop" id="selfProfileBackdrop" hidden></div>
 
     <div class="cgn-layout">
       <aside class="cgn-sidebar">

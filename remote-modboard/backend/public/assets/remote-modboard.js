@@ -27,6 +27,8 @@ let refreshTimer = null;
 let refreshCountdown = AUTO_REFRESH_SECONDS;
 let isLoading = false;
 let currentPage = 'overview';
+let latestAuthBody = null;
+let latestPermissionBody = null;
 
 window.addEventListener('scroll', () => {
   document.body.classList.toggle('is-scrolled', window.scrollY > 6);
@@ -38,6 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
   bindOptional('clearErrorsButton', 'click', hideErrors);
   bindOptional('logoutButton', 'click', logout);
   bindOptional('deniedLogoutButton', 'click', logout);
+  bindOptional('userMenuButton', 'click', toggleSelfProfilePanel);
+  bindOptional('selfProfileCloseButton', 'click', closeSelfProfilePanel);
+  bindOptional('selfProfileBackdrop', 'click', closeSelfProfilePanel);
+  bindOptional('selfProfileLogoutButton', 'click', logout);
+  bindOptional('selfProfileAccountButton', 'click', () => { setPage('account'); closeSelfProfilePanel(); });
+  bindOptional('selfProfileAccessButton', 'click', () => { setPage('access'); closeSelfProfilePanel(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSelfProfilePanel(); });
   bindOptional('navToggle', 'click', () => document.body.classList.toggle('nav-collapsed'));
   bindOptional('scrim', 'click', () => document.body.classList.remove('nav-collapsed'));
   startAutoRefresh();
@@ -296,6 +305,9 @@ function renderAuth(authMe, permission, status) {
   const authBody = (authMe && authMe.body) || {};
   const permissionBody = (permission && permission.body) || {};
   const user = authBody.user || null;
+  latestAuthBody = authBody;
+  latestPermissionBody = permissionBody;
+  renderSelfProfile(authBody, permissionBody);
 
   setText('loginStateText', authBody.dashboardAccess ? `${user ? (user.displayName || user.loginName || user.userUid) : 'Twitch-User'}` : 'Nicht freigegeben');
   setValue('authLoggedIn', authBody.loggedIn);
@@ -307,6 +319,110 @@ function renderAuth(authMe, permission, status) {
   setValue('permissionAllowed', permissionBody.allowed);
   setText('permissionReason', permissionBody.reason || authBody.reason || '—');
   void status;
+}
+
+
+function toggleSelfProfilePanel() {
+  const panel = byId('selfProfilePanel');
+  if (!panel || panel.hidden) openSelfProfilePanel();
+  else closeSelfProfilePanel();
+}
+
+function openSelfProfilePanel() {
+  renderSelfProfile(latestAuthBody || {}, latestPermissionBody || {});
+  setHidden('selfProfilePanel', false);
+  setHidden('selfProfileBackdrop', false);
+  document.body.classList.add('self-profile-open');
+  const button = byId('userMenuButton');
+  if (button) button.setAttribute('aria-expanded', 'true');
+}
+
+function closeSelfProfilePanel() {
+  setHidden('selfProfilePanel', true);
+  setHidden('selfProfileBackdrop', true);
+  document.body.classList.remove('self-profile-open');
+  const button = byId('userMenuButton');
+  if (button) button.setAttribute('aria-expanded', 'false');
+}
+
+function renderSelfProfile(authBody, permissionBody) {
+  const body = authBody || {};
+  const permission = permissionBody || {};
+  const user = body.user || null;
+  const displayName = user ? (user.displayName || user.loginName || user.userUid || 'Twitch-User') : 'Nicht angemeldet';
+  const loginName = user && user.loginName ? `@${user.loginName}` : '—';
+  const groups = Array.isArray(body.groups) ? body.groups.map(group => group.groupKey || group.group_key || group).filter(Boolean) : [];
+  const avatarUrl = findAvatarUrl(body, user);
+  const initial = buildInitial(displayName);
+
+  setText('selfPanelDisplayName', displayName);
+  setText('selfPanelLoginName', loginName);
+  setText('selfPanelUserUid', user ? user.userUid : '—');
+  setValue('selfPanelAccess', body.dashboardAccess);
+  setText('selfPanelAccessReason', body.accessReason || '—');
+  setText('selfPanelRoles', formatList(body.roles));
+  setText('selfPanelGroups', formatList(groups));
+  setText('selfPanelSession', body.session ? body.session.reason : '—');
+  setValue('selfPanelRemoteView', permission.allowed);
+  updateAvatar('topUserAvatar', 'topUserAvatarImage', 'topUserAvatarInitial', avatarUrl, initial);
+  updateAvatar('selfPanelAvatar', 'selfPanelAvatarImage', 'selfPanelAvatarInitial', avatarUrl, initial);
+}
+
+function updateAvatar(containerId, imageId, initialId, avatarUrl, initial) {
+  const container = byId(containerId);
+  const image = byId(imageId);
+  const initialNode = byId(initialId);
+  if (initialNode) initialNode.textContent = initial || 'F';
+
+  if (!image || !initialNode) return;
+  const safeUrl = typeof avatarUrl === 'string' && /^https:\/\//i.test(avatarUrl.trim()) ? avatarUrl.trim() : '';
+
+  if (!safeUrl) {
+    image.hidden = true;
+    image.removeAttribute('src');
+    initialNode.hidden = false;
+    if (container) container.classList.remove('has-image');
+    return;
+  }
+
+  image.onload = () => {
+    image.hidden = false;
+    initialNode.hidden = true;
+    if (container) container.classList.add('has-image');
+  };
+  image.onerror = () => {
+    image.hidden = true;
+    image.removeAttribute('src');
+    initialNode.hidden = false;
+    if (container) container.classList.remove('has-image');
+  };
+  image.src = safeUrl;
+}
+
+function findAvatarUrl(authBody, user) {
+  const candidates = [
+    user && user.avatarUrl,
+    user && user.avatar_url,
+    user && user.profileImageUrl,
+    user && user.profile_image_url,
+    user && user.providerAvatarUrl,
+    user && user.provider_avatar_url,
+    authBody && authBody.avatarUrl,
+    authBody && authBody.avatar_url,
+    authBody && authBody.profileImageUrl,
+    authBody && authBody.profile_image_url,
+    authBody && authBody.identity && authBody.identity.avatarUrl,
+    authBody && authBody.identity && authBody.identity.avatar_url,
+    authBody && authBody.identity && authBody.identity.profileImageUrl,
+    authBody && authBody.identity && authBody.identity.profile_image_url
+  ];
+  return candidates.find(value => typeof value === 'string' && value.trim()) || '';
+}
+
+function buildInitial(value) {
+  const text = String(value || 'F').trim();
+  if (!text || text === '—') return 'F';
+  return text.replace(/^@+/, '').slice(0, 1).toUpperCase();
 }
 
 
