@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
 
-Stand: RDAP16_HANDOFF_VISIBLE_NEXT
+Stand: RDAP_UI1_LIVE_CONFIRMED
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -13,22 +13,24 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-docs/current/RDAP16_HANDOFF_VISIBLE_NEXT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_UI1.txt
+docs/current/RDAP_UI1_LIVE_CONFIRMED.md
 ```
 
 ## Aktueller bestätigter Stand
 
 ```text
-RDAP16_HANDOFF_VISIBLE_NEXT
+RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
 ```
 
-RDAP15 wurde abgeschlossen. Danach wurde dieser Handoff vorbereitet, damit der nächste Chat mit sichtbarem Fortschritt starten kann.
+RDAP UI1 wurde live getestet und per `stepdone.cmd` nach GitHub/dev bestätigt.
 
 ## Live-Basis
 
 ```text
-Remote-Modboard public read-only:
+Remote-Modboard public read-only UI:
+https://mods.forrestcgn.de/
+
+Remote-Modboard public read-only API:
 https://mods.forrestcgn.de/api/remote/
 
 Interner Service:
@@ -41,6 +43,7 @@ scc-remote-modboard.service
 ## Bestätigte Live-Funktionen
 
 ```text
+GET /                         -> HTTP 200, x-remote-modboard-ui: readonly
 GET /api/remote/status
 GET /api/remote/routes
 GET /api/remote/auth/me
@@ -58,6 +61,20 @@ GET /api/remote/auth/twitch/start    -> HTTP 403
 GET /api/remote/auth/twitch/callback -> HTTP 403
 ```
 
+## Sichtbarer UI1-Stand
+
+Die erste Remote-Modboard-Seite ist sichtbar und read-only.
+
+Sie zeigt:
+
+- Service-Status
+- Read-only-/Write-Safety
+- Login/OAuth disabled
+- Agent-Actions disabled
+- Routen-Status
+- Lock-/Audit Schema-Adapter Diagnose
+- Hinweisbox: read-only Diagnosemodus
+
 ## Wichtigste Entscheidungen
 
 ### Struktur
@@ -69,6 +86,46 @@ vorhandene Module/Services/Routen erweitern
 ```
 
 Neue Module nur, wenn die Verantwortung wirklich nicht sauber in vorhandene Struktur passt.
+
+### Server-Deploy
+
+Wichtig:
+
+```text
+/opt/stream-control-center ist auf dem Webserver kein Git-Repository.
+```
+
+Produktiver Remote-Modboard-Code:
+
+```text
+/opt/stream-control-center/remote-modboard
+/opt/stream-control-center/remote-modboard/backend
+```
+
+Bewährter Deploy-Weg aus UI1:
+
+```text
+GitHub/dev Clone nach /opt/stream-control-center/_deploy_tmp/
+Backup nach /opt/stream-control-center/_runtime_tmp/
+rsync remote-modboard/ nach /opt/stream-control-center/remote-modboard/
+chown sccremote:sccremote
+node --check
+systemctl restart scc-remote-modboard.service
+Readiness-Wait
+curl Tests
+```
+
+Keine RDAP-Arbeitsordner/Deploy-Clones/Backups in `/root`.
+
+### ISPConfig/Nginx
+
+`mods.forrestcgn.de` ist ein eigener ISPConfig-Web-vHost und proxyt vollständig auf:
+
+```text
+http://127.0.0.1:3010/
+```
+
+Nicht wieder als normale Subdomain unter `forrestcgn.de` anlegen.
 
 ### Server-Scripts
 
@@ -100,15 +157,19 @@ command:twitch:clip
 
 ## Nächster Fokus
 
+Empfohlen:
+
 ```text
-RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
+RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
 ```
 
 Ziel:
 
-Eine erste sichtbare Remote-Modboard-Webseite / UI-Seite bauen, rein read-only.
-
-Keine Login-/OAuth-/Write-/Agent-Aktivierung.
+- Server-Deploy-Ablauf für `remote-modboard` dokumentieren oder als sicheres Script vorbereiten
+- kein Git-Pull im falschen Ordner
+- GitHub/dev -> `_deploy_tmp` -> Backup -> `rsync` nach Live
+- Rechte/Syntaxcheck/Restart/Readiness/API/UI/OAuth-403 Tests
+- danach UI2 read-only Komfort planen
 
 ## Weiterhin verboten
 

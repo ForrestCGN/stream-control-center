@@ -1,5 +1,60 @@
 # CHANGELOG - stream-control-center
 
+## 2026-06-24 - RDAP UI1 / Remote-Modboard erste sichtbare read-only UI live
+
+Status: Live getestet und per `stepdone.cmd` nach GitHub/dev bestätigt
+
+Geändert im UI1-Code-Step:
+
+- `remote-modboard/backend/src/app.js`
+- `remote-modboard/backend/public/index.html`
+- `remote-modboard/backend/public/assets/remote-modboard.css`
+- `remote-modboard/backend/public/assets/remote-modboard.js`
+
+Inhalt:
+
+- Erste sichtbare Remote-Modboard-Webseite gebaut
+- UI läuft statisch im vorhandenen Remote-Modboard-Backend
+- UI zeigt nur vorhandene Diagnose-Daten
+- Service-Status sichtbar
+- Security-/Read-only-Status sichtbar
+- Routenübersicht sichtbar
+- Lock-/Audit-Diagnose sichtbar
+- Hinweisbox read-only Diagnosemodus sichtbar
+
+Live bestätigt:
+
+```text
+GET https://mods.forrestcgn.de/ -> HTTP 200
+Header: x-remote-modboard-ui: readonly
+GET https://mods.forrestcgn.de/api/remote/status -> ok=true
+GET https://mods.forrestcgn.de/api/remote/auth/twitch/start -> HTTP 403
+GET https://mods.forrestcgn.de/api/remote/auth/twitch/callback -> HTTP 403
+SSL/Let's Encrypt -> ok
+```
+
+Server-/Infrastruktur:
+
+- `mods.forrestcgn.de` wurde als eigener ISPConfig-Web-vHost angelegt
+- Nginx/ISPConfig proxyt `mods.forrestcgn.de` vollständig auf `127.0.0.1:3010`
+- Node-Service bleibt `scc-remote-modboard.service`
+- produktiver Code liegt unter `/opt/stream-control-center/remote-modboard`
+- `/opt/stream-control-center` ist kein Git-Repository
+- UI1-Serverdeploy lief über GitHub/dev Clone nach `_deploy_tmp`, Backup nach `_runtime_tmp`, `rsync` nach Live und Service-Restart mit Readiness-Wait
+
+Keine Änderung:
+
+- kein Login aktiviert
+- kein OAuth aktiviert
+- keine Cookies gesetzt
+- keine Sessions erstellt
+- keine DB-Writes
+- keine Migration
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine Secrets
+
 ## 2026-06-24 - RDAP16 / Handoff Visible Next vorbereitet
 
 Status: Doku-/Handoff-Step vorbereitet
@@ -24,10 +79,6 @@ Inhalt:
 - Strukturregel dokumentiert: vorhandene Module nutzen
 - Server-Regel dokumentiert: Restart-Wait/Retry
 - nächster Fokus auf sichtbare UI gelegt
-
-Nächster Schritt:
-
-- `RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE`
 
 Keine Änderung:
 

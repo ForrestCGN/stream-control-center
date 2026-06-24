@@ -1,55 +1,59 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP16_HANDOFF_VISIBLE_NEXT
+Stand: RDAP_UI1_LIVE_CONFIRMED
 Datum: 2026-06-24
 
-## Nächster sinnvoller Schritt
+## Aktueller Abschluss
 
 ```text
 RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
 ```
 
-## Ziel
+ist live abgeschlossen.
 
-Eine erste sichtbare Remote-Modboard-Webseite bauen.
+Bestätigt:
 
-Fokus:
+- Remote-Modboard UI sichtbar unter `https://mods.forrestcgn.de/`
+- eigener ISPConfig-vHost aktiv
+- SSL/Let's Encrypt ok
+- Node-Service intern weiter `127.0.0.1:3010`
+- API read-only erreichbar
+- OAuth Start/Callback weiter HTTP 403
+- keine Login-/Write-/Agent-Aktivierung
+
+## Nächster sinnvoller Schritt
+
+Vor weiteren UI-/Backend-Schritten zuerst den Deploy-Ablauf sauber machen, damit sich das Server-Chaos nicht wiederholt.
+
+Empfohlen:
 
 ```text
-sichtbarer Fortschritt
+RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
 ```
 
-Nicht noch weitere Mini-Konzeptsteps.
+Ziel:
 
-## UI1 soll anzeigen
+- dokumentierter Server-Deploy-Ablauf für `remote-modboard`
+- kein Git-Pull in `/opt/stream-control-center`, weil dort kein Git-Repo liegt
+- GitHub/dev nach `_deploy_tmp` klonen/aktualisieren
+- Backup nach `_runtime_tmp`
+- gezieltes `rsync` nur für `remote-modboard/`
+- Rechte setzen
+- JS-Syntaxcheck
+- `systemctl restart scc-remote-modboard.service`
+- Readiness-Wait
+- API-/UI-/OAuth-403-Tests
+- keine Arbeitsordner/Backups in `/root`
 
-- Service-Status
-- Read-only-/Write-Safety
-- Login/OAuth disabled
-- Agent-Actions disabled
-- Routen-Status
-- Lock-/Audit Schema-Adapter Diagnose
-- Hinweisbox: read-only Diagnosemodus
+Danach erst UI2 planen.
 
-## UI1 darf NICHT
+## Möglicher UI2-Fokus
 
-- Login aktivieren
-- OAuth aktivieren
-- Cookies setzen
-- Sessions erstellen
-- POST/PUT/PATCH/DELETE bauen
-- Agent-Actions auslösen
-- OBS/Sound/Overlay/Command steuern
-- Secrets anzeigen
-- DB-Writes ausführen
+Nur read-only Komfort, kein Login, keine Writes:
 
-## Vor Umsetzung
-
-Im neuen Chat zuerst echte Dateien prüfen:
-
-- vorhandene htdocs/dashboard-v2 Struktur
-- vorhandene remote-modboard Struktur
-- vorhandene Frontend-/Static-Serving-Struktur
-- bestehende CSS/JS Patterns
-
-Dann Scope nennen und auf go warten.
+- Auto-Refresh für Diagnosekarten
+- letzte Aktualisierung sichtbar
+- bessere Fehleranzeige bei API-Ausfall
+- kompakte Routen-/Security-Details
+- keine Steuerbuttons
+- keine POST/PUT/PATCH/DELETE Calls
