@@ -7,6 +7,7 @@ const { registerStatusRoutes } = require('./routes/status.routes');
 const { registerAuthModelRoutes } = require('./routes/auth-model.routes');
 const { registerAuthStatusRoutes } = require('./routes/auth-status.routes');
 const { registerAuthTwitchRoutes } = require('./routes/auth-twitch.routes');
+const { registerLockAuditDiagnosticRoutes } = require('./routes/lock-audit-diagnostic.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 
 function createApp({ config, moduleBuild }) {
@@ -14,24 +15,20 @@ function createApp({ config, moduleBuild }) {
 
   app.disable('x-powered-by');
   app.use(express.json({ limit: '128kb' }));
-
   app.use((req, res, next) => {
     res.setHeader('X-Remote-Modboard-Build', moduleBuild);
     res.setHeader('X-Remote-Modboard-Mode', 'readonly');
     next();
   });
 
-  const context = {
-    config,
-    moduleBuild,
-    safety: buildSafetyBlock()
-  };
+  const context = { config, moduleBuild, safety: buildSafetyBlock() };
 
   registerHealthRoutes(app, context);
   registerStatusRoutes(app, context);
   registerAuthModelRoutes(app, context);
   registerAuthStatusRoutes(app, context);
   registerAuthTwitchRoutes(app, context);
+  registerLockAuditDiagnosticRoutes(app, context);
   registerRoutesRoutes(app, context);
 
   app.use((req, res) => {

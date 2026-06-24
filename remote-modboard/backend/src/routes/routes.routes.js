@@ -7,7 +7,7 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap8a.v1',
+      statusApiVersion: 'rdap11.v1',
       readOnly: true,
       writeEnabled: false,
       authPrepared: true,
@@ -15,6 +15,7 @@ function registerRoutesRoutes(app, context) {
       sessionCreationEnabled: false,
       sessionStoreReadOnlyValidationPrepared: true,
       permissionReadOnlyResolverPrepared: true,
+      lockAuditReadOnlyDiagnosticPrepared: true,
       routes: [
         {
           method: 'GET',
@@ -48,6 +49,11 @@ function registerRoutesRoutes(app, context) {
         },
         {
           method: 'GET',
+          path: '/api/remote/lock-audit/status',
+          description: 'RDAP11 read-only Lock-/Audit-Diagnose-Skeleton. Optional db=1 prueft Tabellenstruktur per INFORMATION_SCHEMA SELECT. Keine Lock-Writes, keine Audit-Writes, keine Remote-Writes.'
+        },
+        {
+          method: 'GET',
           path: '/api/remote/auth/twitch/start',
           description: 'RDAP7H disabled/read-only Twitch OAuth Start Skeleton. Kein Redirect zu Twitch, keine Cookies, keine Sessions.',
           enabled: false,
@@ -76,6 +82,8 @@ function registerRoutesRoutes(app, context) {
         'OAuth code token exchange',
         'Set-Cookie/session cookie issuance',
         'DB migration',
+        'Lock acquire/heartbeat/release/force-takeover',
+        'Audit insert/update',
         'agent action execution',
         'OBS/Sound/Overlay/Command control',
         'shell/file/process operations'
