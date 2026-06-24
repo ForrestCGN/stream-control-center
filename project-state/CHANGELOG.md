@@ -1,57 +1,23 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP UI2 Read-only Komfort live bestätigt
+## 2026-06-24 - RDAP AUTH1 Twitch Login gated vorbereitet
 
-Status: Live getestet und bestätigt
-
-Stand:
-
-```text
-RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
-```
-
-Live-URL:
-
-```text
-https://mods.forrestcgn.de/
-```
-
-Sichtbar bestätigt:
-
-- Service online
-- Auto-Refresh
-- letzte Aktualisierung
-- Schnellstatus
-- Read-only Hinweis
-- Writes disabled
-- OAuth disabled
-- Agent disabled
-
-Geänderte Dateien aus UI2:
-
-- `remote-modboard/backend/public/index.html`
-- `remote-modboard/backend/public/assets/remote-modboard.css`
-- `remote-modboard/backend/public/assets/remote-modboard.js`
+Status: ZIP-Step vorbereitet
 
 Inhalt:
 
-- Auto-Refresh alle 30 Sekunden
-- letzte Aktualisierung sichtbar
-- Countdown bis nächster Auto-Refresh
-- Schnellstatus-Leiste
-- Endpoint-Statuskarte
-- bessere Fehlerbox bei API-Ausfall
-- manueller Refresh bleibt erhalten
+- Twitch OAuth Start/Callback gated vorbereitet
+- OAuth State per HMAC/HttpOnly-Cookie
+- Session-Cookie vorbereitet
+- User/Identity/Session Writes nur bei aktiven Env-Gates
+- `/api/remote/auth/me` erkennt echte Session
+- UI zeigt Loginstatus und Login/Logout
+- Ohne Secrets/Flags bleibt Start/Callback HTTP 403
 
 Keine Änderung:
 
-- kein Login aktiviert
-- kein OAuth aktiviert
-- keine Cookies gesetzt
-- keine Sessions erstellt
-- keine DB-Writes
-- keine Migration
 - keine Remote-Writes
 - keine Agent-Actions
 - keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine Migration
 - keine Secrets

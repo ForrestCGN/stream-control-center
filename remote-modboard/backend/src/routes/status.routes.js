@@ -8,14 +8,17 @@ function registerStatusRoutes(app, context) {
   app.get('/api/remote/status', async (req, res) => {
     const db = await checkDatabaseHealth(context.config, { connect: req.query.db === '1' });
     const publicConfig = buildPublicConfigSummary(context.config);
+    const authEnabled = Boolean(publicConfig.auth.authEnabled);
+    const oauthEnabled = Boolean(publicConfig.auth.twitchOAuth.effectiveEnabled);
+    const sessionsEnabled = Boolean(publicConfig.auth.sessions.effectiveEnabled);
 
     res.json({
       ok: true,
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap8a.v1',
-      readOnly: true,
+      statusApiVersion: 'rdap_auth1.v1',
+      readOnly: !authEnabled,
       writeEnabled: false,
       actionEnabled: false,
       productiveAgentRuntime: false,
@@ -32,16 +35,16 @@ function registerStatusRoutes(app, context) {
       config: publicConfig,
       auth: {
         prepared: true,
-        enabled: false,
-        loginEnabled: false,
+        enabled: authEnabled,
+        loginEnabled: authEnabled,
         twitchOAuth: {
           ...publicConfig.auth.twitchOAuth,
           startRouteSkeletonPresent: true,
           callbackRouteSkeletonPresent: true,
-          startRouteEnabled: false,
-          callbackRouteEnabled: false,
-          redirectToTwitch: false,
-          tokenExchangeEnabled: false
+          startRouteEnabled: oauthEnabled,
+          callbackRouteEnabled: oauthEnabled,
+          redirectToTwitch: oauthEnabled,
+          tokenExchangeEnabled: oauthEnabled
         },
         sessions: {
           ...publicConfig.auth.sessions,
@@ -49,12 +52,12 @@ function registerStatusRoutes(app, context) {
           readOnlyValidationPrepared: true,
           readOnlyValidationEnabled: true,
           readsDashboardSessions: true,
-          createSession: false,
-          setCookie: false,
+          createSession: sessionsEnabled,
+          setCookie: sessionsEnabled,
           refreshSession: false,
           updateLastSeen: false,
-          databaseWriteEnabled: false,
-          effectiveEnabled: false
+          databaseWriteEnabled: Boolean(context.config.auth.sessionWriteEnabled),
+          effectiveEnabled: sessionsEnabled
         },
         permissions: {
           middlewarePlanned: true,
@@ -67,12 +70,11 @@ function registerStatusRoutes(app, context) {
           writesRequirePermissionLockAudit: true
         },
         notes: [
-          'RDAP8A bereitet einen read-only Permission-Resolver fuer Diagnose vor.',
-          'Der Permission-Check aktiviert keinen Login und erlaubt keine produktiven Aktionen.',
-          'dashboard_sessions, Rollen, Gruppen und Permissions werden nur per SELECT gelesen.',
-          'OAuth bleibt effektiv deaktiviert.',
-          'Start und Callback loesen keinen Redirect zu Twitch und keinen Token-Tausch aus.',
-          'Es werden keine Cookies gesetzt, keine Sessions erstellt und keine Session-Zeilen aktualisiert.'
+          'AUTH1 aktiviert nur Twitch-Login und Session, wenn alle Env-Gates und Secrets gesetzt sind.',
+          'OAuth Start/Callback bleiben ohne Gates HTTP 403.',
+          'Auth-DB-Writes sind auf dashboard_users/dashboard_identities/dashboard_sessions begrenzt.',
+          'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.',
+          'last_seen_at wird in AUTH1 nicht aktualisiert.'
         ]
       },
       database: db,

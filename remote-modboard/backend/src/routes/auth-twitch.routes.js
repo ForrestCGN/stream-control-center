@@ -1,24 +1,102 @@
 'use strict';
 
+const {
+  buildTwitchStart,
+  handleTwitchCallback,
+  buildDisabledResponse,
+  buildCookie
+} = require('../services/auth-twitch-oauth.service');
+const {
+  revokeCurrentSession
+} = require('../services/auth-session-write.service');
+
 function registerAuthTwitchRoutes(app, context) {
   app.get('/api/remote/auth/twitch/start', (req, res) => {
-    res.status(403).json(buildDisabledOAuthResponse({
+    const result = buildTwitchStart({ context, req, res });
+
+    if (result.handled && result.redirectUrl) {
+      res.redirect(302, result.redirectUrl);
+      return;
+    }
+
+    res.status(result.status || 403).json(result.body || buildDisabledOAuthResponse({
       context,
       route: '/api/remote/auth/twitch/start',
       action: 'start',
       reason: 'twitch_oauth_start_disabled',
-      message: 'Twitch OAuth Start ist in RDAP7H nur als disabled/read-only Skeleton vorhanden.'
+      message: 'Twitch OAuth Start ist vorbereitet, aber nicht aktiv.'
     }));
   });
 
-  app.get('/api/remote/auth/twitch/callback', (req, res) => {
-    res.status(403).json(buildDisabledOAuthResponse({
-      context,
-      route: '/api/remote/auth/twitch/callback',
-      action: 'callback',
-      reason: 'twitch_oauth_callback_disabled',
-      message: 'Twitch OAuth Callback ist in RDAP7H nur als disabled/read-only Skeleton vorhanden.'
-    }));
+  app.get('/api/remote/auth/twitch/callback', async (req, res) => {
+    try {
+      const result = await handleTwitchCallback({ context, req, res });
+
+      if (result.html) {
+        res.status(result.status || 200).type('html').send(result.html);
+        return;
+      }
+
+      res.status(result.status || 403).json(result.body);
+    } catch (err) {
+      console.error('[remote-auth] twitch_callback_failed', err && err.code ? err.code : err);
+      res.status(500).json({
+        ok: false,
+        service: 'remote-modboard',
+        module: 'remote_auth_twitch',
+        moduleBuild: context.moduleBuild,
+        statusApiVersion: 'rdap_auth1.v1',
+        error: err && err.code ? err.code : 'twitch_callback_failed',
+        authEnabled: Boolean(context.config && context.config.auth && context.config.auth.authEnabled),
+        agentActionsEnabled: false,
+        writeScope: 'auth_session_only'
+      });
+    }
+  });
+
+  app.post('/api/remote/auth/logout', async (req, res) => {
+    try {
+      if (!context.config.auth || context.config.auth.authEnabled !== true) {
+        res.status(403).json(buildDisabledResponse({
+          context,
+          reason: 'auth_disabled',
+          route: '/api/remote/auth/logout',
+          action: 'logout'
+        }));
+        return;
+      }
+
+      const result = await revokeCurrentSession({ config: context.config, req });
+
+      res.setHeader('Set-Cookie', buildCookie(context.config.auth.sessions.cookieName, '', {
+        maxAge: 0,
+        httpOnly: true,
+        secure: context.config.auth.sessions.secureCookie,
+        sameSite: context.config.auth.sessions.sameSite,
+        path: '/'
+      }));
+
+      res.json({
+        ok: true,
+        service: 'remote-modboard',
+        module: 'remote_auth_twitch',
+        moduleBuild: context.moduleBuild,
+        statusApiVersion: 'rdap_auth1.v1',
+        loggedOut: true,
+        result,
+        agentActionsEnabled: false,
+        remoteWritesEnabled: false
+      });
+    } catch (err) {
+      res.status(500).json({
+        ok: false,
+        service: 'remote-modboard',
+        module: 'remote_auth_twitch',
+        moduleBuild: context.moduleBuild,
+        statusApiVersion: 'rdap_auth1.v1',
+        error: err && err.code ? err.code : 'logout_failed'
+      });
+    }
   });
 }
 
@@ -32,26 +110,26 @@ function buildDisabledOAuthResponse({ context, route, action, reason, message })
     service: 'remote-modboard',
     module: 'remote_auth_twitch',
     moduleBuild: context.moduleBuild,
-    statusApiVersion: 'rdap7h.v1',
+    statusApiVersion: 'rdap_auth1.v1',
     route,
     action,
     error: reason,
     message,
-    readOnly: true,
+    readOnly: false,
     writeEnabled: false,
     authPrepared: true,
-    authEnabled: false,
-    loginEnabled: false,
+    authEnabled: Boolean(authConfig.authEnabled),
+    loginEnabled: Boolean(authConfig.loginEnabled),
     oauthPrepared: true,
-    oauthEnabled: false,
+    oauthEnabled: Boolean(twitchOAuth.effectiveEnabled),
     twitchOAuth: {
       prepared: Boolean(twitchOAuth.prepared),
       requestedEnabled: Boolean(twitchOAuth.requestedEnabled),
-      effectiveEnabled: false,
-      startRouteEnabled: false,
-      callbackRouteEnabled: false,
-      redirectToTwitch: false,
-      tokenExchangeEnabled: false,
+      effectiveEnabled: Boolean(twitchOAuth.effectiveEnabled),
+      startRouteEnabled: Boolean(twitchOAuth.effectiveEnabled),
+      callbackRouteEnabled: Boolean(twitchOAuth.effectiveEnabled),
+      redirectToTwitch: Boolean(twitchOAuth.effectiveEnabled),
+      tokenExchangeEnabled: Boolean(twitchOAuth.effectiveEnabled),
       clientIdConfigured: Boolean(twitchOAuth.clientIdConfigured),
       clientSecretConfigured: Boolean(twitchOAuth.clientSecretConfigured),
       redirectUri: twitchOAuth.redirectUri || null,
@@ -59,22 +137,21 @@ function buildDisabledOAuthResponse({ context, route, action, reason, message })
     },
     sessions: {
       requestedEnabled: Boolean(sessions.requestedEnabled),
-      effectiveEnabled: false,
+      writeRequested: Boolean(sessions.writeRequested),
+      effectiveEnabled: Boolean(sessions.effectiveEnabled),
       cookieName: sessions.cookieName || 'scc_remote_session',
       sessionSecretConfigured: Boolean(sessions.sessionSecretConfigured),
       oauthStateSecretConfigured: Boolean(sessions.oauthStateSecretConfigured),
-      createSession: false,
-      setCookie: false
+      createSession: Boolean(authConfig.sessionCreationEnabled),
+      setCookie: Boolean(sessions.effectiveEnabled)
     },
     databaseWriteEnabled: false,
     agentActionsEnabled: false,
     safety: context.safety,
     notes: [
-      'RDAP7H Skeleton antwortet absichtlich mit HTTP 403 disabled.',
-      'Es gibt keinen Redirect zu Twitch.',
-      'Es wird kein OAuth-Code gegen Tokens getauscht.',
-      'Es werden keine Cookies gesetzt und keine Sessions erstellt.',
-      'Es werden keine DB-Writes, Agent-Actions oder Stream-Steuerungen ausgefuehrt.'
+      'AUTH1 ist gated. Ohne Env-Flags und Secrets bleibt OAuth gesperrt.',
+      'Wenn aktiviert, schreibt AUTH1 nur User/Identity/Session fuer Login.',
+      'Remote-Writes, Agent-Actions und Stream-Steuerungen bleiben aus.'
     ]
   };
 }

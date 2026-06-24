@@ -5,95 +5,30 @@ function registerRoutesRoutes(app, context) {
     res.json({
       ok: true,
       service: 'remote-modboard',
-      module: 'remote_node_base',
+      module: 'remote_routes',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap14.v1',
+      statusApiVersion: 'rdap_auth1.v1',
       readOnly: true,
       writeEnabled: false,
-      authPrepared: true,
-      authEnabled: false,
-      sessionCreationEnabled: false,
-      sessionStoreReadOnlyValidationPrepared: true,
-      permissionReadOnlyResolverPrepared: true,
-      lockAuditDiagnosticPrepared: true,
-      schemaAdapterPrepared: true,
+      authEnabled: Boolean(context.config && context.config.auth && context.config.auth.authEnabled),
       routes: [
-        {
-          method: 'GET',
-          path: '/api/remote/health',
-          description: 'Read-only health endpoint. Optional db=1 performs SELECT 1 when ENV and mysql2 are available.'
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/status',
-          description: 'Read-only service status, safety flags, DB config state, OAuth disabled state, session-store read-only validation state, permission diagnostic state and planned agent state.'
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/auth/model',
-          description: 'Read-only Auth-/Rollen-/Gruppen-/Permission-Modell aus MariaDB. Keine Auth-Aktivierung, keine Sessions, keine Writes.'
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/auth/me',
-          description: 'Read-only Auth-Status fuer aktuellen Request. Login ist deaktiviert, daher loggedIn=false. Session wird nur diagnostisch validiert.'
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/auth/session-status',
-          description: 'RDAP7I read-only Session-Store-Validation gegen dashboard_sessions. Keine Session-Erstellung, keine Cookies, keine DB-Writes.'
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/auth/permissions/check',
-          description: 'RDAP8A read-only Permission-Diagnose. Ohne aktiven Login bleibt allowed=false. Keine produktive Autorisierung, keine DB-Writes.'
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/lock-audit/status',
-          description: 'RDAP14 read-only Lock-/Audit-Diagnose inklusive Schema-Adapter-Status. Optional db=1 prueft INFORMATION_SCHEMA nur lesend.'
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/lock-audit/schema-adapter/status',
-          description: 'RDAP14 read-only Schema-Adapter-Diagnose fuer dashboard_locks/dashboard_audit_log. Optional db=1 prueft INFORMATION_SCHEMA nur lesend.'
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/auth/twitch/start',
-          description: 'RDAP7H disabled/read-only Twitch OAuth Start Skeleton. Kein Redirect zu Twitch, keine Cookies, keine Sessions.',
-          enabled: false,
-          productive: false
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/auth/twitch/callback',
-          description: 'RDAP7H disabled/read-only Twitch OAuth Callback Skeleton. Kein Token-Tausch, keine Cookies, keine Sessions, keine DB-Writes.',
-          enabled: false,
-          productive: false
-        },
-        {
-          method: 'GET',
-          path: '/api/remote/routes',
-          description: 'Read-only route overview.'
-        }
+        { method: 'GET', path: '/api/remote/health', description: 'Read-only Healthcheck' },
+        { method: 'GET', path: '/api/remote/status', description: 'Read-only Service-/Security-/Auth-Status' },
+        { method: 'GET', path: '/api/remote/routes', description: 'Read-only Routenuebersicht' },
+        { method: 'GET', path: '/api/remote/auth/model', description: 'Read-only Auth-/Rechte-Modell' },
+        { method: 'GET', path: '/api/remote/auth/me', description: 'Aktueller Login-/Session-Status' },
+        { method: 'GET', path: '/api/remote/auth/session-status', description: 'Read-only Session-Diagnose' },
+        { method: 'GET', path: '/api/remote/auth/permissions/check', description: 'Read-only Permission-Diagnose' },
+        { method: 'GET', path: '/api/remote/auth/twitch/start', description: 'Gated Twitch OAuth Start' },
+        { method: 'GET', path: '/api/remote/auth/twitch/callback', description: 'Gated Twitch OAuth Callback' },
+        { method: 'POST', path: '/api/remote/auth/logout', description: 'Gated Logout nur fuer aktuelle Auth-Session' },
+        { method: 'GET', path: '/api/remote/lock-audit/status', description: 'Read-only Lock-/Audit-Diagnose' },
+        { method: 'GET', path: '/api/remote/lock-audit/schema-adapter/status', description: 'Read-only Schema-Adapter-Diagnose' },
+        { method: 'GET', path: '/', description: 'Remote-Modboard UI' },
+        { method: 'GET', path: '/remote', description: 'Remote-Modboard UI Alias' },
+        { method: 'GET', path: '/modboard', description: 'Remote-Modboard UI Alias' }
       ],
-      disabled: [
-        'POST/PUT/PATCH/DELETE remote writes',
-        'auth/session creation',
-        'productive permission enforcement',
-        'productive Twitch OAuth start activation',
-        'productive Twitch OAuth callback activation',
-        'Redirect to Twitch',
-        'OAuth code token exchange',
-        'Set-Cookie/session cookie issuance',
-        'DB migration',
-        'lock writes',
-        'audit writes',
-        'agent action execution',
-        'OBS/Sound/Overlay/Command control',
-        'shell/file/process operations'
-      ]
+      safety: context.safety
     });
   });
 }

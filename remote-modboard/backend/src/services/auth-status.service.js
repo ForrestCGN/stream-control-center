@@ -4,27 +4,49 @@ const {
   validateSessionReadOnly,
   inspectSessionCookie
 } = require('./auth-session-read.service');
+const {
+  readPermissionContextReadOnly
+} = require('./auth-permission-read.service');
 
 async function buildMeStatus({ context, req }) {
   const sessionValidation = await validateSessionReadOnly({ config: context.config, req });
+  let permissionContext = null;
+
+  if (sessionValidation.valid && sessionValidation.userUid) {
+    try {
+      permissionContext = await readPermissionContextReadOnly({
+        config: context.config,
+        userUid: sessionValidation.userUid,
+        permissionKey: 'remote.view',
+        targetType: 'global',
+        targetKey: '*'
+      });
+    } catch (err) {
+      permissionContext = null;
+    }
+  }
+
+  const user = permissionContext && permissionContext.user && permissionContext.user.exists
+    ? permissionContext.user
+    : null;
 
   return {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_auth_status',
     moduleBuild: context.moduleBuild,
-    statusApiVersion: 'rdap7i.v1',
+    statusApiVersion: 'rdap_auth1.v1',
     readOnly: true,
     writeEnabled: false,
     migrationEnabled: false,
-    authEnabled: false,
-    loginEnabled: false,
-    sessionCreationEnabled: false,
-    loggedIn: false,
-    user: null,
+    authEnabled: Boolean(context.config.auth && context.config.auth.authEnabled),
+    loginEnabled: Boolean(context.config.auth && context.config.auth.loginEnabled),
+    sessionCreationEnabled: Boolean(context.config.auth && context.config.auth.sessionCreationEnabled),
+    loggedIn: Boolean(sessionValidation.valid && user),
+    user,
     identity: null,
-    roles: [],
-    groups: [],
+    roles: permissionContext ? permissionContext.roles : [],
+    groups: permissionContext ? permissionContext.groups : [],
     permissions: [],
     session: {
       checked: true,
@@ -45,10 +67,9 @@ async function buildMeStatus({ context, req }) {
       updatesLastSeen: false
     },
     warnings: [
-      'RDAP7I ist read-only. Dieser Endpunkt aktiviert keinen Login.',
-      'Eine gueltige Session wird nur diagnostisch erkannt, aber noch nicht als Login verwendet.',
-      'Es werden keine Cookies gesetzt, keine Sessions erstellt und keine dashboard_sessions-Zeilen veraendert.',
-      'Das Frontend darf aus diesem Status keine Sicherheitsentscheidung ableiten.'
+      'AUTH1 aktiviert nur Login/Session, wenn die Env-Gates aktiv sind.',
+      'Remote-Writes, Agent-Actions und Stream-Steuerungen bleiben deaktiviert.',
+      'Produktive Rechte muessen spaeter serverseitig erzwungen werden.'
     ]
   };
 }
@@ -62,13 +83,13 @@ async function buildSessionStatus({ context, req }) {
     service: 'remote-modboard',
     module: 'remote_auth_status',
     moduleBuild: context.moduleBuild,
-    statusApiVersion: 'rdap7i.v1',
+    statusApiVersion: 'rdap_auth1.v1',
     readOnly: true,
     writeEnabled: false,
     migrationEnabled: false,
-    authEnabled: false,
-    loginEnabled: false,
-    sessionCreationEnabled: false,
+    authEnabled: Boolean(context.config.auth && context.config.auth.authEnabled),
+    loginEnabled: Boolean(context.config.auth && context.config.auth.loginEnabled),
+    sessionCreationEnabled: Boolean(context.config.auth && context.config.auth.sessionCreationEnabled),
     session: {
       cookiePresent: sessionValidation.cookiePresent,
       cookieNameDetected: sessionValidation.cookieNameDetected,
@@ -89,9 +110,8 @@ async function buildSessionStatus({ context, req }) {
       safety: sessionValidation.safety
     },
     notes: [
-      'RDAP7I liest dashboard_sessions nur per SELECT und nur zur Diagnose/Validierung.',
-      'Es wird keine dashboard_sessions-Zeile erstellt, aktualisiert, verlaengert oder geloescht.',
-      'Es wird kein Set-Cookie gesendet und kein Login aktiviert.',
+      'AUTH1 liest dashboard_sessions per SELECT zur Session-Erkennung.',
+      'last_seen_at wird in AUTH1 nicht aktualisiert.',
       'Session-Cookie-Werte werden nicht ausgegeben; nur ein kurzer SHA-256-Fingerprint wird angezeigt.'
     ]
   };

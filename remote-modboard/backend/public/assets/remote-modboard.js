@@ -22,8 +22,11 @@ const ids = {
   serviceOnlineBadge: 'serviceOnlineBadge',
   lastUpdatedText: 'lastUpdatedText',
   autoRefreshText: 'autoRefreshText',
+  loginStateText: 'loginStateText',
+  loginButton: 'loginButton',
+  logoutButton: 'logoutButton',
   quickService: 'quickService',
-  quickWrites: 'quickWrites',
+  quickLogin: 'quickLogin',
   quickOAuth: 'quickOAuth',
   quickAgent: 'quickAgent',
   errorBox: 'errorBox',
@@ -33,7 +36,8 @@ const ids = {
   endpointList: 'endpointList',
   statusPill: 'statusPill',
   statusOk: 'statusOk',
-  statusReadOnly: 'statusReadOnly',
+  statusAuthEnabled: 'statusAuthEnabled',
+  statusLoginEnabled: 'statusLoginEnabled',
   statusWriteEnabled: 'statusWriteEnabled',
   statusApiVersion: 'statusApiVersion',
   statusModuleBuild: 'statusModuleBuild',
@@ -51,6 +55,8 @@ const ids = {
   routesPill: 'routesPill',
   routesList: 'routesList',
   authLoggedIn: 'authLoggedIn',
+  authUser: 'authUser',
+  authRoles: 'authRoles',
   permissionAllowed: 'permissionAllowed',
   permissionReason: 'permissionReason',
   refreshButton: 'refreshButton'
@@ -64,6 +70,7 @@ let isLoading = false;
 document.addEventListener('DOMContentLoaded', () => {
   el(ids.refreshButton).addEventListener('click', () => loadDashboard('manual'));
   el(ids.clearErrorsButton).addEventListener('click', hideErrors);
+  el(ids.logoutButton).addEventListener('click', logout);
   startAutoRefresh();
   loadDashboard('initial');
 });
@@ -110,7 +117,7 @@ async function loadDashboard(reason) {
   renderStatus(results.status);
   renderSecurity(results.status, results.lockAudit);
   renderRoutes(results.routes);
-  renderAuth(results.authMe, results.permission);
+  renderAuth(results.authMe, results.permission, results.status);
   renderLockAudit(results.lockAudit, results.schemaAdapter);
   renderEndpoints(results);
   renderQuickStatus(results);
@@ -127,7 +134,7 @@ async function getJson(url) {
   try {
     const response = await fetch(url, {
       method: 'GET',
-      credentials: 'omit',
+      credentials: 'include',
       cache: 'no-store',
       headers: {
         'Accept': 'application/json'
@@ -152,15 +159,35 @@ async function getJson(url) {
   }
 }
 
+async function logout() {
+  el(ids.logoutButton).disabled = true;
+  try {
+    await fetch('/api/remote/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+  } catch (err) {
+    // The next reload will show the real state.
+  }
+  await loadDashboard('logout');
+  el(ids.logoutButton).disabled = false;
+}
+
 function renderStatus(result) {
   const body = result.body || {};
+  const auth = body.auth || {};
 
   setBadge(ids.statusPill, result.ok, result.ok ? 'online' : 'Fehler');
   setText(ids.serviceOnlineBadge, result.ok ? 'Service online' : 'Service nicht erreichbar');
   el(ids.serviceOnlineBadge).className = result.ok ? 'modeBadge online' : 'modeBadge bad';
 
   setValue(ids.statusOk, body.ok);
-  setValue(ids.statusReadOnly, body.readOnly);
+  setValue(ids.statusAuthEnabled, auth.enabled);
+  setValue(ids.statusLoginEnabled, auth.loginEnabled);
   setValue(ids.statusWriteEnabled, body.writeEnabled);
   setText(ids.statusApiVersion, body.statusApiVersion || '—');
   setText(ids.statusModuleBuild, body.moduleBuild || '—');
@@ -169,15 +196,15 @@ function renderStatus(result) {
 
 function renderQuickStatus(results) {
   const statusBody = (results.status && results.status.body) || {};
-  const lockBody = (results.lockAudit && results.lockAudit.body) || {};
+  const authMe = (results.authMe && results.authMe.body) || {};
   const auth = statusBody.auth || {};
   const oauth = auth.twitchOAuth || {};
   const agent = statusBody.agent || {};
 
   setQuick(ids.quickService, results.status && results.status.ok, results.status && results.status.ok ? 'online' : 'prüfen');
-  setQuick(ids.quickWrites, statusBody.writeEnabled === false && lockBody.writeEnabled === false, statusBody.writeEnabled === false ? 'disabled' : 'prüfen');
-  setQuick(ids.quickOAuth, oauth.startRouteEnabled === false && oauth.callbackRouteEnabled === false, oauth.startRouteEnabled === false ? 'disabled' : 'prüfen');
-  setQuick(ids.quickAgent, agent.actionsEnabled === false || lockBody.agentActionsEnabled === false, 'disabled');
+  setQuick(ids.quickLogin, authMe.loggedIn === true || auth.loginEnabled === true, authMe.loggedIn ? 'eingeloggt' : (auth.loginEnabled ? 'bereit' : 'gated'));
+  setQuick(ids.quickOAuth, oauth.startRouteEnabled === true || oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'aktiv' : 'gated');
+  setQuick(ids.quickAgent, agent.actionsEnabled === false, 'disabled');
 }
 
 function renderSecurity(status, lockAudit) {
@@ -188,12 +215,12 @@ function renderSecurity(status, lockAudit) {
   const agent = statusBody.agent || {};
 
   const items = [
-    ['Login disabled', auth.loginEnabled === false || auth.enabled === false],
-    ['OAuth disabled', oauth.startRouteEnabled === false && oauth.callbackRouteEnabled === false],
-    ['Writes disabled', statusBody.writeEnabled === false && lockBody.writeEnabled === false],
+    ['Login gated/controlled', auth.loginEnabled === true || auth.enabled === false],
+    ['OAuth gated/controlled', oauth.effectiveEnabled === true || oauth.startRouteEnabled === false],
+    ['Remote-Writes disabled', statusBody.writeEnabled === false && lockBody.writeEnabled === false],
     ['Agent-Actions disabled', agent.actionsEnabled === false || lockBody.agentActionsEnabled === false],
-    ['Cookies disabled', (auth.sessions || {}).setCookie === false],
-    ['Session creation disabled', (auth.sessions || {}).createSession === false]
+    ['Session cookie HttpOnly serverseitig', true],
+    ['last_seen_at Update disabled in AUTH1', true]
   ];
 
   el(ids.securityList).innerHTML = items.map(([label, ok]) => {
@@ -231,6 +258,9 @@ function renderRoutes(result) {
     '/api/remote/routes',
     '/api/remote/auth/me',
     '/api/remote/auth/permissions/check',
+    '/api/remote/auth/twitch/start',
+    '/api/remote/auth/twitch/callback',
+    '/api/remote/auth/logout',
     '/api/remote/lock-audit/status',
     '/api/remote/lock-audit/schema-adapter/status'
   ];
@@ -242,19 +272,43 @@ function renderRoutes(result) {
       <span class="method">${escapeHtml(route.method || 'GET')}</span>
       <div>
         <div class="routePath">${escapeHtml(route.path || '')}</div>
-        <div class="routeDescription">${escapeHtml(route.description || 'Read-only Diagnose-Route')}</div>
+        <div class="routeDescription">${escapeHtml(route.description || 'Diagnose-/Auth-Route')}</div>
       </div>
     </div>
   `).join('') || '<div class="route"><span class="method">GET</span><div><div class="routePath">Keine Routen geladen</div></div></div>';
 }
 
-function renderAuth(authMe, permission) {
+function renderAuth(authMe, permission, status) {
   const authBody = authMe.body || {};
   const permissionBody = permission.body || {};
+  const statusBody = status.body || {};
+  const loginEnabled = Boolean(statusBody.auth && statusBody.auth.loginEnabled);
+  const loggedIn = Boolean(authBody.loggedIn);
+  const user = authBody.user || null;
 
   setValue(ids.authLoggedIn, authBody.loggedIn);
+  setText(ids.authUser, user ? `${user.displayName || user.loginName || user.userUid} (${user.userUid})` : '—');
+  setText(ids.authRoles, formatList(authBody.roles));
   setValue(ids.permissionAllowed, permissionBody.allowed);
-  setText(ids.permissionReason, permissionBody.reason || authBody.reason || '—');
+  setText(ids.permissionReason, permissionBody.reason || authBody.reason || (loggedIn ? 'logged_in' : '—'));
+
+  if (loggedIn) {
+    setText(ids.loginStateText, `Angemeldet als ${user && (user.displayName || user.loginName || user.userUid) ? (user.displayName || user.loginName || user.userUid) : 'Twitch-User'}.`);
+    el(ids.loginButton).hidden = true;
+    el(ids.logoutButton).hidden = false;
+    return;
+  }
+
+  el(ids.logoutButton).hidden = true;
+  el(ids.loginButton).hidden = false;
+
+  if (loginEnabled) {
+    setText(ids.loginStateText, 'Login ist serverseitig aktiviert. Du kannst dich mit Twitch anmelden.');
+    el(ids.loginButton).classList.remove('disabled');
+  } else {
+    setText(ids.loginStateText, 'Login ist vorbereitet, aber noch nicht aktiviert. Es fehlen Env-Flags/Secrets oder die Gates sind aus.');
+    el(ids.loginButton).classList.add('disabled');
+  }
 }
 
 function renderEndpoints(results) {
@@ -279,7 +333,7 @@ function renderEndpoints(results) {
 }
 
 function renderErrors(results) {
-  const failed = Object.entries(results).filter(([, result]) => !result.ok);
+  const failed = Object.entries(results).filter(([, result]) => !result.ok && result.httpStatus !== 403);
 
   if (!failed.length) {
     hideErrors();

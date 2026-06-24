@@ -21,6 +21,39 @@ function loadConfig() {
     `${publicBaseUrl.replace(/\/+$/, '')}/api/remote/auth/twitch/callback`
   );
 
+  const authRequested = readBoolean('AUTH_ENABLED', false);
+  const twitchRequested = readBoolean('TWITCH_OAUTH_ENABLED', false);
+  const sessionRequested = readBoolean('SESSION_ENABLED', false);
+  const sessionWriteRequested = readBoolean('AUTH_SESSION_WRITE_ENABLED', false);
+
+  const twitchClientIdConfigured = isConfiguredSecret('TWITCH_CLIENT_ID');
+  const twitchClientSecretConfigured = isConfiguredSecret('TWITCH_CLIENT_SECRET');
+  const sessionSecretConfigured = isConfiguredSecret('SESSION_SECRET');
+  const oauthStateSecretConfigured = isConfiguredSecret('OAUTH_STATE_SECRET');
+
+  const database = {
+    engine: readString('DB_ENGINE', 'MariaDB 11.8.6'),
+    driver: 'mysql2/promise',
+    host: readString('DB_HOST', ''),
+    port: readPort('DB_PORT', 3306),
+    name: readString('DB_NAME', ''),
+    user: readString('DB_USER', ''),
+    passwordConfigured: Boolean(process.env.DB_PASSWORD),
+    writeEnabled: false,
+    migrationEnabled: false
+  };
+
+  const dbConfigured = Boolean(database.host && database.name && database.user && database.passwordConfigured);
+  const authEffective = authRequested
+    && twitchRequested
+    && sessionRequested
+    && sessionWriteRequested
+    && twitchClientIdConfigured
+    && twitchClientSecretConfigured
+    && sessionSecretConfigured
+    && oauthStateSecretConfigured
+    && dbConfigured;
+
   return {
     service: 'remote-modboard',
     module: 'remote_node_base',
@@ -30,34 +63,36 @@ function loadConfig() {
     envFileExists,
     publicBaseUrl,
     database: {
-      engine: readString('DB_ENGINE', 'MariaDB 11.8.6'),
-      driver: 'mysql2/promise',
-      host: readString('DB_HOST', ''),
-      port: readPort('DB_PORT', 3306),
-      name: readString('DB_NAME', ''),
-      user: readString('DB_USER', ''),
-      passwordConfigured: Boolean(process.env.DB_PASSWORD),
-      writeEnabled: false,
+      ...database,
+      writeEnabled: authEffective,
       migrationEnabled: false
     },
     auth: {
-      authEnabled: false,
-      sessionCreationEnabled: false,
+      authEnabled: authEffective,
+      loginEnabled: authEffective,
+      sessionCreationEnabled: authEffective,
+      sessionWriteEnabled: authEffective,
       twitchOAuth: {
         prepared: true,
-        requestedEnabled: readBoolean('TWITCH_OAUTH_ENABLED', false),
-        effectiveEnabled: false,
-        clientIdConfigured: isConfiguredSecret('TWITCH_CLIENT_ID'),
-        clientSecretConfigured: isConfiguredSecret('TWITCH_CLIENT_SECRET'),
+        requestedEnabled: twitchRequested,
+        effectiveEnabled: authEffective,
+        clientIdConfigured: twitchClientIdConfigured,
+        clientSecretConfigured: twitchClientSecretConfigured,
         redirectUri: twitchRedirectUri,
         scopes: readScopes('TWITCH_OAUTH_SCOPES')
       },
       sessions: {
-        requestedEnabled: readBoolean('SESSION_ENABLED', false),
-        effectiveEnabled: false,
+        requestedEnabled: sessionRequested,
+        writeRequested: sessionWriteRequested,
+        effectiveEnabled: authEffective,
         cookieName: readString('SESSION_COOKIE_NAME', 'scc_remote_session'),
-        sessionSecretConfigured: isConfiguredSecret('SESSION_SECRET'),
-        oauthStateSecretConfigured: isConfiguredSecret('OAUTH_STATE_SECRET')
+        stateCookieName: readString('OAUTH_STATE_COOKIE_NAME', 'scc_remote_oauth_state'),
+        sessionSecretConfigured,
+        oauthStateSecretConfigured,
+        ttlSeconds: readInt('SESSION_TTL_SECONDS', 60 * 60 * 8),
+        stateTtlSeconds: readInt('OAUTH_STATE_TTL_SECONDS', 10 * 60),
+        secureCookie: readBoolean('SESSION_COOKIE_SECURE', true),
+        sameSite: readString('SESSION_COOKIE_SAMESITE', 'Lax')
       }
     },
     paths: {
@@ -77,6 +112,13 @@ function readPort(key, fallback) {
   const raw = process.env[key];
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) return fallback;
+  return parsed;
+}
+
+function readInt(key, fallback) {
+  const raw = process.env[key];
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) return fallback;
   return parsed;
 }
 
@@ -126,16 +168,18 @@ function buildPublicConfigSummary(config) {
       nameConfigured: Boolean(config.database.name),
       userConfigured: Boolean(config.database.user),
       passwordConfigured: config.database.passwordConfigured,
-      writeEnabled: false,
+      writeEnabled: Boolean(config.database.writeEnabled),
       migrationEnabled: false
     },
     auth: {
-      authEnabled: false,
-      sessionCreationEnabled: false,
+      authEnabled: Boolean(config.auth && config.auth.authEnabled),
+      loginEnabled: Boolean(config.auth && config.auth.loginEnabled),
+      sessionCreationEnabled: Boolean(config.auth && config.auth.sessionCreationEnabled),
+      sessionWriteEnabled: Boolean(config.auth && config.auth.sessionWriteEnabled),
       twitchOAuth: {
         prepared: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.prepared),
         requestedEnabled: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.requestedEnabled),
-        effectiveEnabled: false,
+        effectiveEnabled: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.effectiveEnabled),
         clientIdConfigured: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.clientIdConfigured),
         clientSecretConfigured: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.clientSecretConfigured),
         redirectUri: config.auth && config.auth.twitchOAuth ? config.auth.twitchOAuth.redirectUri : null,
@@ -143,10 +187,15 @@ function buildPublicConfigSummary(config) {
       },
       sessions: {
         requestedEnabled: Boolean(config.auth && config.auth.sessions && config.auth.sessions.requestedEnabled),
-        effectiveEnabled: false,
+        writeRequested: Boolean(config.auth && config.auth.sessions && config.auth.sessions.writeRequested),
+        effectiveEnabled: Boolean(config.auth && config.auth.sessions && config.auth.sessions.effectiveEnabled),
         cookieName: config.auth && config.auth.sessions ? config.auth.sessions.cookieName : 'scc_remote_session',
+        stateCookieName: config.auth && config.auth.sessions ? config.auth.sessions.stateCookieName : 'scc_remote_oauth_state',
         sessionSecretConfigured: Boolean(config.auth && config.auth.sessions && config.auth.sessions.sessionSecretConfigured),
-        oauthStateSecretConfigured: Boolean(config.auth && config.auth.sessions && config.auth.sessions.oauthStateSecretConfigured)
+        oauthStateSecretConfigured: Boolean(config.auth && config.auth.sessions && config.auth.sessions.oauthStateSecretConfigured),
+        ttlSeconds: config.auth && config.auth.sessions ? config.auth.sessions.ttlSeconds : null,
+        secureCookie: config.auth && config.auth.sessions ? Boolean(config.auth.sessions.secureCookie) : true,
+        sameSite: config.auth && config.auth.sessions ? config.auth.sessions.sameSite : 'Lax'
       }
     }
   };

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ForrestCGN Remote Modboard</title>
-  <meta name="description" content="ForrestCGN Remote Modboard read-only Diagnosemodus">
+  <meta name="description" content="ForrestCGN Remote Modboard gated Twitch Login und read-only Diagnose">
   <link rel="stylesheet" href="/assets/remote-modboard.css">
 </head>
 <body>
@@ -12,8 +12,8 @@
     <header class="hero">
       <div>
         <p class="eyebrow">ForrestCGN · Remote Modboard</p>
-        <h1>Read-only Diagnose</h1>
-        <p class="heroText">Diese UI zeigt nur vorhandene Status- und Sicherheitsdaten. Es gibt hier keine Steuerung, keinen Login und keine Schreibaktionen.</p>
+        <h1>Remote Dashboard</h1>
+        <p class="heroText">Twitch-Login ist vorbereitet und nur aktiv, wenn die Server-Env bewusst freigeschaltet ist. Bis dahin bleibt alles Diagnose/read-only.</p>
       </div>
       <div class="heroActions" aria-label="Status">
         <div class="modeBadge" id="serviceOnlineBadge">prüfe Service…</div>
@@ -23,8 +23,19 @@
     </header>
 
     <section class="notice">
-      <strong>Read-only Diagnosemodus</strong>
-      <span>Keine Login-/OAuth-Aktivierung · Keine Remote-Writes · Keine Agent-Actions · Keine OBS-/Sound-/Overlay-/Command-Steuerung</span>
+      <strong>Gated Auth-Modus</strong>
+      <span>Twitch-Login nur mit Env-Flags + Secrets · Keine Remote-Writes · Keine Agent-Actions · Keine OBS-/Sound-/Overlay-/Command-Steuerung</span>
+    </section>
+
+    <section class="loginPanel">
+      <div>
+        <h2>Login</h2>
+        <p id="loginStateText">Prüfe Loginstatus…</p>
+      </div>
+      <div class="loginActions">
+        <a class="loginButton" id="loginButton" href="/api/remote/auth/twitch/start">Mit Twitch einloggen</a>
+        <button class="smallButton" type="button" id="logoutButton" hidden>Ausloggen</button>
+      </div>
     </section>
 
     <section class="statusStrip" aria-label="Schnellstatus">
@@ -33,8 +44,8 @@
         <strong id="quickService">—</strong>
       </div>
       <div class="statusTile">
-        <span>Writes</span>
-        <strong id="quickWrites">—</strong>
+        <span>Login</span>
+        <strong id="quickLogin">—</strong>
       </div>
       <div class="statusTile">
         <span>OAuth</span>
@@ -62,7 +73,8 @@
         </div>
         <dl class="kv">
           <div><dt>ok</dt><dd id="statusOk">—</dd></div>
-          <div><dt>readOnly</dt><dd id="statusReadOnly">—</dd></div>
+          <div><dt>authEnabled</dt><dd id="statusAuthEnabled">—</dd></div>
+          <div><dt>loginEnabled</dt><dd id="statusLoginEnabled">—</dd></div>
           <div><dt>writeEnabled</dt><dd id="statusWriteEnabled">—</dd></div>
           <div><dt>statusApiVersion</dt><dd id="statusApiVersion">—</dd></div>
           <div><dt>moduleBuild</dt><dd id="statusModuleBuild">—</dd></div>
@@ -73,12 +85,12 @@
       <article class="card">
         <div class="cardHead">
           <h2>Sicherheit</h2>
-          <span class="pill safe">disabled</span>
+          <span class="pill safe">gated</span>
         </div>
         <ul class="checkList" id="securityList">
-          <li>Login disabled</li>
-          <li>OAuth disabled</li>
-          <li>Writes disabled</li>
+          <li>Login gated</li>
+          <li>OAuth gated</li>
+          <li>Remote-Writes disabled</li>
           <li>Agent-Actions disabled</li>
         </ul>
       </article>
@@ -123,10 +135,12 @@
       <article class="card wide">
         <div class="cardHead">
           <h2>Auth-/Permission Diagnose</h2>
-          <span class="pill safe">read-only</span>
+          <span class="pill safe">serverseitig</span>
         </div>
         <dl class="kv">
           <div><dt>loggedIn</dt><dd id="authLoggedIn">—</dd></div>
+          <div><dt>User</dt><dd id="authUser">—</dd></div>
+          <div><dt>Rollen</dt><dd id="authRoles">—</dd></div>
           <div><dt>permission remote.view</dt><dd id="permissionAllowed">—</dd></div>
           <div><dt>reason</dt><dd id="permissionReason">—</dd></div>
         </dl>
@@ -134,7 +148,7 @@
     </section>
 
     <footer class="footer">
-      <span>UI2 · Read-only Komfort · Auto-Refresh ohne Writes</span>
+      <span>AUTH1 · Twitch-Login gated · Remote-Steuerung bleibt aus</span>
       <button class="refreshButton" type="button" id="refreshButton">Diagnose neu laden</button>
     </footer>
   </main>

@@ -23,13 +23,13 @@ function buildDatabaseReadiness(config) {
     driver: config.database.driver,
     driverAvailable: loaded.driverAvailable,
     configured,
-    writeEnabled: false,
+    writeEnabled: Boolean(config.database.writeEnabled),
     migrationEnabled: false,
     error: configured && loaded.driverAvailable ? null : (loaded.error || 'db_env_not_configured')
   };
 }
 
-async function createReadOnlyConnection(config) {
+async function createConnection(config, { readOnly }) {
   const readiness = buildDatabaseReadiness(config);
 
   if (!readiness.configured) {
@@ -59,13 +59,27 @@ async function createReadOnlyConnection(config) {
   });
 
   try {
-    await connection.query('SET SESSION TRANSACTION READ ONLY');
+    if (readOnly) await connection.query('SET SESSION TRANSACTION READ ONLY');
   } catch (err) {
     await connection.end();
     throw err;
   }
 
   return connection;
+}
+
+async function createReadOnlyConnection(config) {
+  return createConnection(config, { readOnly: true });
+}
+
+async function createWriteConnection(config) {
+  if (!config.database || config.database.writeEnabled !== true) {
+    const err = new Error('db_write_disabled');
+    err.code = 'db_write_disabled';
+    throw err;
+  }
+
+  return createConnection(config, { readOnly: false });
 }
 
 async function withReadOnlyConnection(config, fn) {
@@ -85,6 +99,23 @@ async function withReadOnlyConnection(config, fn) {
   }
 }
 
+async function withWriteConnection(config, fn) {
+  let connection = null;
+
+  try {
+    connection = await createWriteConnection(config);
+    return await fn(connection);
+  } finally {
+    if (connection) {
+      try {
+        await connection.end();
+      } catch (err) {
+        // Ignore close errors after a gated auth write request.
+      }
+    }
+  }
+}
+
 function publicDbError(err) {
   const code = err && err.code ? err.code : 'db_read_failed';
 
@@ -98,6 +129,8 @@ module.exports = {
   loadMysqlDriver,
   buildDatabaseReadiness,
   createReadOnlyConnection,
+  createWriteConnection,
   withReadOnlyConnection,
+  withWriteConnection,
   publicDbError
 };

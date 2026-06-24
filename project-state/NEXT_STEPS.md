@@ -1,49 +1,26 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
+Stand: RDAP_AUTH1_TWITCH_LOGIN_GATED
 Datum: 2026-06-24
 
-## Abgeschlossen
+## Test nach Einspielen
 
-```text
-RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
+Lokal:
+
+```powershell
+cd D:\Git\stream-control-center
+node --check .\remote-modboard\backend\src\services\auth-twitch-oauth.service.js
+node --check .\remote-modboard\backend\src\services\auth-session-write.service.js
+node --check .\remote-modboard\backend\src\routes\auth-twitch.routes.js
+node --check .\remote-modboard\backend\public\assets\remote-modboard.js
 ```
 
-Live bestätigt:
+Webserver nach Deploy ohne Secrets/Flags:
 
-- `https://mods.forrestcgn.de/` lädt die UI
-- Service online sichtbar
-- Auto-Refresh sichtbar
-- letzte Aktualisierung sichtbar
-- Schnellstatus sichtbar
-- Read-only Hinweis sichtbar
-- Writes/OAuth/Agent disabled sichtbar
-
-## Nächster sinnvoller Schritt
-
-Option A:
-
-```text
-RDAP_UI3_READONLY_DETAILS_OR_FILTERS
+```bash
+curl -i https://mods.forrestcgn.de/api/remote/auth/twitch/start
 ```
 
-Möglicher Inhalt:
+Erwartung: HTTP 403, weil Gates noch aus sind.
 
-- read-only Filter/Details für Routen
-- kompakter Diagnosebereich für Lock/Audit/Schema
-- optional einklappbare Karten
-- keine Schreibaktionen
-- keine Login-/OAuth-Aktivierung
-
-Option B:
-
-```text
-RDAP_AUTH_LOGIN_OAUTH_PLAN
-```
-
-Nur Planung, noch keine Aktivierung.
-
-Wichtig:
-
-- Login/OAuth/Auth darf nicht nebenbei aktiviert werden.
-- Auth muss eigener Scope mit Plan, Rechtekonzept, Security-Prüfung und Tests werden.
+Danach Env bewusst setzen und Login separat testen.
