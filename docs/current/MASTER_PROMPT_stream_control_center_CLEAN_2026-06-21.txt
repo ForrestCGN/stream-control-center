@@ -63,26 +63,20 @@ Dashboard live: D:\Streaming\stramAssets\htdocs\dashboard\modules
 Overlays live:  D:\Streaming\stramAssets\htdocs\overlays
 Config live:    D:\Streaming\stramAssets\config
 
-Remote-Modboard / Webserver-Live:
-Public UI:       https://mods.forrestcgn.de/
-Public API:      https://mods.forrestcgn.de/api/remote/
-Interner Service: 127.0.0.1:3010
-Systemd:         scc-remote-modboard.service
+Remote-Modboard / RDAP Webserver:
+Public Domain: https://mods.forrestcgn.de/
+Public API:    https://mods.forrestcgn.de/api/remote/
+Interner Dienst: http://127.0.0.1:3010/
+Systemd-Service: scc-remote-modboard.service
+Produktiver Remote-Modboard-Pfad:
+/opt/stream-control-center/remote-modboard
+/opt/stream-control-center/remote-modboard/backend
 
-Wichtige Webserver-Pfade:
-Remote-Modboard live: /opt/stream-control-center/remote-modboard
-Backend live:         /opt/stream-control-center/remote-modboard/backend
-Deploy-Arbeitsordner: /opt/stream-control-center/_deploy_tmp/
-Runtime-Backups:      /opt/stream-control-center/_runtime_tmp/
-
-Verbindliche Remote-Modboard-Deploy-Wahrheit:
-- /opt/stream-control-center ist auf dem Webserver kein Git-Repository.
-- Niemals `git pull` in /opt/stream-control-center anweisen.
-- Deploy fuer Remote-Modboard laeuft ueber GitHub/dev Clone nach `_deploy_tmp`, Backup nach `_runtime_tmp`, rsync von `remote-modboard/` nach Live, Rechte setzen, JS-Syntaxcheck, Service-Restart und Readiness-/API-/UI-/OAuth-403-Tests.
-- Dafuer bevorzugt `tools/remote-modboard-deploy.sh` bzw. `docs/current/RDAP_DEPLOY_RUNBOOK.md` nutzen.
-- Keine RDAP-Arbeitsordner, Deploy-Clones oder Backups in /root.
-- mods.forrestcgn.de ist ein eigener ISPConfig-Web-vHost und proxyt komplett auf http://127.0.0.1:3010/.
-- mods.forrestcgn.de darf nicht wieder als normale Subdomain unter forrestcgn.de angelegt werden.
+Wichtige RDAP-Regel:
+/opt/stream-control-center ist auf dem Webserver KEIN Git-Repository.
+Dort niemals `git pull` als Deploy-Annahme verwenden.
+Der Webserver-Deploy läuft über GitHub/dev Clone nach `_deploy_tmp`, Backup nach `_runtime_tmp` und gezieltes rsync von `remote-modboard/` nach Live.
+Keine RDAP-Arbeitsordner, Deploy-Clones oder Backups in `/root` ablegen.
 
 Wenn eine benötigte Datei fehlt:
 Nicht improvisieren. Genau diese Datei anfordern.
@@ -234,26 +228,6 @@ ZIP entpacken -> stepdone -> danach testen.
 Sondern:
 ZIP installieren/Test-Deploy -> Node ggf. neu starten -> live testen -> erst bei Erfolg stepdone.
 
-Remote-Modboard/Webserver-Sonderregel:
-Wenn der betroffene Stand `remote-modboard/` betrifft und public unter `mods.forrestcgn.de` getestet werden muss, reicht der lokale Windows-Testdeploy nicht fuer den Webserver.
-Nach lokalem Test und GitHub/dev-Abschluss muss der Webserver den GitHub/dev-Stand ueber den Remote-Modboard-Deploy-Ablauf bekommen:
-
-1. GitHub/dev nach `/opt/stream-control-center/_deploy_tmp/<STEP>_<timestamp>` klonen.
-2. aktuellen Live-Stand nach `/opt/stream-control-center/_runtime_tmp/backup_remote_modboard_<STEP>_<timestamp>` sichern.
-3. nur `remote-modboard/` per rsync nach `/opt/stream-control-center/remote-modboard/` synchronisieren.
-4. `chown -R sccremote:sccremote /opt/stream-control-center/remote-modboard`.
-5. JS-Syntaxcheck ausfuehren.
-6. `systemctl restart scc-remote-modboard.service`.
-7. Readiness-Wait gegen `http://127.0.0.1:3010/api/remote/status`.
-8. Public UI/API testen.
-9. OAuth Start/Callback muessen weiter HTTP 403 liefern.
-
-Dafuer bevorzugt das Script nutzen:
-`tools/remote-modboard-deploy.sh`
-
-Nicht wieder:
-`cd /opt/stream-control-center && git pull`
-
 Wenn ein Workflow-Script fehlschlaegt:
 - Fehlerausgabe pruefen
 - gezielt reparieren
@@ -271,6 +245,75 @@ Wenn der Assistant einen ZIP-Step liefert, muss die Antwort immer direkt enthalt
 6. `stepundo.cmd`-Hinweis für den Fehlerfall.
 
 Die `stepdone.cmd`-Beschreibung darf nicht fehlen. Sie soll kurz festhalten, was getestet und bestätigt wurde und ob produktive Aktionen ausgelöst wurden oder bewusst nicht.
+
+================================================================================
+4A. RDAP / Remote-Modboard Server-Deploy
+================================================================================
+
+Für Remote-Modboard/RDAP auf dem Webserver gilt zusätzlich zum normalen Windows-ZIP-Workflow:
+
+Webserver-Live-Pfade:
+```text
+/opt/stream-control-center/remote-modboard
+/opt/stream-control-center/remote-modboard/backend
+/opt/stream-control-center/_deploy_tmp/
+/opt/stream-control-center/_runtime_tmp/
+```
+
+Wichtig:
+```text
+/opt/stream-control-center ist KEIN Git-Repository.
+```
+
+Deshalb niemals als Deploy-Schritt annehmen:
+```bash
+cd /opt/stream-control-center
+git pull
+```
+
+Standard-Deploy für Remote-Modboard:
+```text
+GitHub/dev -> /opt/stream-control-center/_deploy_tmp/<STEP>_<timestamp>
+Backup Live -> /opt/stream-control-center/_runtime_tmp/backup_remote_modboard_<STEP>_<timestamp>
+rsync remote-modboard/ -> /opt/stream-control-center/remote-modboard/
+chown -R sccremote:sccremote /opt/stream-control-center/remote-modboard
+node --check
+systemctl restart scc-remote-modboard.service
+Readiness-Wait auf http://127.0.0.1:3010/api/remote/status
+lokale API/UI Tests
+public API/UI Tests
+OAuth Start/Callback müssen weiter HTTP 403 sein, solange Auth/OAuth nicht eigener Scope ist
+```
+
+Dafür liegt im Repo:
+```text
+tools/remote-modboard-deploy.sh
+```
+
+Bei Server-Script-/Deploy-Arbeiten:
+- keine Arbeitsordner in `/root`
+- keine Backups in `/root`
+- nach Restart immer Readiness-Wait/Retry vor curl/API-Tests
+- kein großer ungeprüfter Serverblock, wenn er fehleranfällig ist
+- lieber Script-Datei oder kompakte, gut prüfbare Blöcke verwenden
+- keine ISPConfig-generierten vHost-Dateien direkt editieren, außer ausdrücklich read-only prüfen
+
+ISPConfig/Nginx für Remote-Modboard:
+```text
+mods.forrestcgn.de ist ein eigener ISPConfig-Web-vHost.
+Dieser vHost proxyt vollständig auf http://127.0.0.1:3010/
+```
+
+Nicht wieder als normale Subdomain unter `forrestcgn.de` anlegen, sonst liefert `/` wieder die normale Webseite statt der Remote-Modboard-UI.
+
+Solange kein eigener Scope für Login/Auth/OAuth/Writes besteht, bleibt verboten:
+- kein Login aktivieren
+- kein Twitch-OAuth aktivieren
+- keine Cookies setzen
+- keine Sessions erstellen
+- keine produktiven DB-Writes
+- keine Remote-Writes
+- keine Agent-Actions
 
 ================================================================================
 5. TODO-Pflicht / Aufgeschobene Punkte
@@ -1136,12 +1179,11 @@ Dauerhafte Systementscheidungen gelten, bis Forrest sie ausdrücklich ändert:
 
 - GitHub/dev + `D:\Git\stream-control-center` sind die primäre Code-Basis.
 - `D:\Streaming\stramAssets` ist das produktive Live-System.
-- Remote-Modboard public laeuft unter `https://mods.forrestcgn.de/`, intern auf `127.0.0.1:3010` via `scc-remote-modboard.service`.
-- Auf dem Webserver ist `/opt/stream-control-center` kein Git-Repository; produktiver Remote-Modboard-Code liegt unter `/opt/stream-control-center/remote-modboard`.
-- Remote-Modboard-Deploys laufen ueber `tools/remote-modboard-deploy.sh` bzw. das RDAP-Deploy-Runbook, nicht ueber `git pull` im Live-Basisordner.
-- `mods.forrestcgn.de` ist ein eigener ISPConfig-Web-vHost und darf nicht als normale Subdomain unter `forrestcgn.de` haengen.
 - Die produktive SQLite-DB ist `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
 - Diese DB niemals ersetzen, löschen oder neu bauen.
+- Remote-Modboard/RDAP live liegt auf dem Webserver unter `/opt/stream-control-center/remote-modboard`.
+- `/opt/stream-control-center` ist kein Git-Repo; Remote-Modboard Deploys laufen über `_deploy_tmp`, `_runtime_tmp` und `rsync`.
+- `mods.forrestcgn.de` ist ein eigener ISPConfig-Web-vHost und proxyt auf `127.0.0.1:3010`.
 - `twitch_events` ist zentraler Twitch-Event-Provider und effektive Live-State-Wahrheit.
 - Fachmodule abonnieren Twitch-Events über den Communication Bus, nicht direkt bei Twitch.
 - Fehlende Twitch-Events werden in `twitch_events` ergänzt.
@@ -1163,6 +1205,7 @@ Wichtige Modulbereiche:
 - Overlays
 - Security / Userverwaltung / Permissions
 - Dashboard-Cleanup
+- Remote-Modboard / RDAP / mods.forrestcgn.de
 
 Nicht dauerhaft in den Master-Prompt gehören:
 - komplette Logs
@@ -1336,6 +1379,12 @@ D:\Streaming\stramAssets
 Produktive DB:
 D:\Streaming\stramAssets\data\sqlite\app.sqlite
 
+Remote-Modboard / RDAP Webserver:
+/opt/stream-control-center/remote-modboard
+scc-remote-modboard.service
+mods.forrestcgn.de -> 127.0.0.1:3010
+Deploy: GitHub/dev -> _deploy_tmp -> _runtime_tmp Backup -> rsync remote-modboard -> Restart -> Readiness -> Tests
+
 Effektiver Live-State:
 twitch_events / GET /api/twitch/events/stream-state
 
@@ -1352,3 +1401,4 @@ sound_system
 
 Doku-/Projektstand:
 project-state/*.md + docs/current/*.md + docs/modules/*.md
+
