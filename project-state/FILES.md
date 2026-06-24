@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED  
+Stand: RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE  
 Datum: 2026-06-24
 
 ## Zentrale RDAP-Dokumente
@@ -18,6 +18,8 @@ docs/current/RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC.md
 docs/current/RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED.md
 docs/current/RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS.md
 docs/current/RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED.md
+docs/current/RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP_LIVE_CONFIRMED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_NAV_ACCOUNT_CLEANUP.md
 ```
 
 ## Projektstatus-Dateien
@@ -39,7 +41,7 @@ testdeploy.cmd
 tools/remote-modboard-deploy.sh
 ```
 
-Wichtig: Workflow-Tools dürfen in Design-/Frontend-Steps nicht überschrieben werden. `installstep.cmd` ist der allgemeine ZIP-Installer und muss erhalten bleiben.
+Wichtig: Workflow-Tools dürfen in Design-/Frontend-/Doku-Steps nicht überschrieben werden. `installstep.cmd` ist der allgemeine ZIP-Installer und muss erhalten bleiben.
 
 ## Wichtige Remote-Modboard-Code-Dateien
 
@@ -62,11 +64,28 @@ remote-modboard/backend/src/services/lock-read.service.js
 remote-modboard/backend/src/services/audit-read.service.js
 ```
 
-## Frontend/Login-Dateien DESIGN2
+## Frontend/Login-/UX-Dateien
 
 ```text
 remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.css
+remote-modboard/backend/public/assets/remote-modboard.js
+```
+
+Zuletzt geändert im UX-Bereich:
+
+```text
+RDAP_ACCOUNT_PANEL_CLEANUP_V2
+RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
+```
+
+Ziel der Änderung:
+
+```text
+Konto-Panel enttechnisiert.
+Sidebar-Gruppe Benutzer & Rechte entfernt.
+Persönliche Konto-/Rechte-Ansicht oben rechts im Profilbereich.
+Admin-Bereich für Benutzerverwaltung, Rollen/Rechte, Zugriff/Freigaben und Sicherheit.
 ```
 
 ## Bestätigte RDAP11-Route

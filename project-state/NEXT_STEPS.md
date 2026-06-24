@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED  
+Stand: RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE  
 Datum: 2026-06-24
 
 ## Aktuell erledigt
@@ -12,26 +12,48 @@ RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS
 RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
+RDAP_ACCOUNT_PANEL_CLEANUP_V2
+RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
+RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE
 ```
 
-## DESIGN2 Ergebnis
+## Ergebnis Konto-/Navigations-Cleanup
 
-Login-Text und Button sind live geändert:
+Konto-Panel:
 
 ```text
-Melde dich mit Twitch an und öffne dein Modboard.
-Anmelden
+Technische Werte aus normaler Nutzeransicht entfernt.
+Nur noch Avatar, Displayname, Twitch-Login, Rolle und Aktionen sichtbar.
+Profil aktualisieren und Ausloggen bleiben erhalten.
 ```
 
-Optik: noch nicht perfekt, aber für jetzt akzeptiert. Optionaler Feinschliff später.
+Sidebar/Navigation:
+
+```text
+Benutzer & Rechte als eigene Sidebar-Gruppe entfernt.
+Mein Konto / persönliche Rechte liegen oben rechts im Profilbereich.
+Admin-Bereich ist der Ort für Benutzerverwaltung, Rollen/Rechte, Zugriff/Freigaben und Sicherheit.
+```
+
+Nicht geändert:
+
+```text
+Keine Backend-Logik.
+Keine Auth-/Session-/Permission-Logik.
+Keine DB.
+Keine produktiven Writes.
+Keine UI-Schreibbuttons.
+Keine Workflow-Tools.
+```
 
 ## Workflow-Notiz
 
-`installstep.cmd` wurde geprüft und ist wieder der allgemeine ZIP-Installer. Für weitere Chats/Steps gilt zwingend:
+Für weitere Steps gilt zwingend:
 
 ```text
-Keine Workflow-Tools in Design-/Frontend-Steps überschreiben.
+Keine Workflow-Tools in Design-/Frontend-/Doku-Steps überschreiben.
 installstep.cmd, stepdone.cmd, testdeploy.cmd und Deploy-Skripte zuerst prüfen und nur ändern, wenn Forrest es ausdrücklich beauftragt.
+ZIPs mit echten Zielpfaden bauen, keine Patch-Skripte unter tools/steps/*.ps1.
 ```
 
 ## Offene Auffälligkeit
@@ -43,7 +65,7 @@ moduleBuild: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 statusApiVersion: rdap_admin_users9.v1
 ```
 
-Das ist kein DESIGN2-Stopper, sollte aber später separat geprüft werden.
+Das ist kein Frontend-/UX-Stopper, sollte aber später separat geprüft werden.
 
 ## Nächster empfohlener Fach-Step
 
@@ -66,6 +88,10 @@ Scope nur Planung:
 - Read-Back-Prüfung definieren.
 - Fehlerfälle und Abbruchbedingungen dokumentieren.
 
+## Erst nach RDAP12
+
+Ein echter Mini-Write darf erst separat gebaut werden, wenn RDAP12 abgeschlossen ist und Forrest ein weiteres klares `go` gibt.
+
 ## Geparkter optionaler UI-Feinschliff
 
 ```text
@@ -77,10 +103,6 @@ Nur falls gewünscht:
 - Login-Textblock optisch ruhiger machen.
 - Umbruch/Zeilenlänge feiner einstellen.
 - Keine Backend-/OAuth-/DB-/Write-Änderungen.
-
-## Erst nach RDAP12
-
-Ein echter Mini-Write darf erst separat gebaut werden, wenn RDAP12 abgeschlossen ist und Forrest ein weiteres klares `go` gibt.
 
 ## Webserver-Deploy-Regel
 

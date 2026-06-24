@@ -1,7 +1,122 @@
 # CHANGELOG
 
-Stand: RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED  
+Stand: RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE  
 Datum: 2026-06-24
+
+## RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE
+
+Typ: Doku/Projektstatus nach Konto-/Navigations-Cleanup  
+DB: nein  
+Secrets: nein  
+Produktive Writes: nein  
+UI-Schreibbuttons: nein  
+Backend-Code: nein  
+Workflow-Tools: nein
+
+### Ergebnis
+
+- Konto-Panel-Cleanup und Navigations-Cleanup als aktueller bestätigter UX-Stand dokumentiert.
+- Nächster Fachschritt bleibt `RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN`.
+- RDAP12 bleibt reine Planung; noch kein echter Write.
+- Workflow-Regel ergänzt: ZIPs müssen echte Zielpfade enthalten, keine Patch-Skripte unter `tools/steps/*.ps1`.
+
+### Geändert
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+- `project-state/CHANGELOG.md`
+- `docs/current/RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP_LIVE_CONFIRMED.md`
+- `docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_NAV_ACCOUNT_CLEANUP.md`
+
+### Nicht geändert
+
+- Keine Code-Dateien.
+- Keine Backend-Routen.
+- Keine Services.
+- Keine UI-Dateien in diesem Doku-Step.
+- Keine Workflow-Tools.
+- Keine DB-Dateien.
+- Keine SQL-/Migrationsdateien.
+- Keine Secrets.
+- Keine produktiven Writes.
+- Keine UI-Schreibbuttons.
+- Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
+
+---
+
+## RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
+
+Typ: Frontend/UX klein  
+DB: nein  
+Secrets: nein  
+Produktive Writes: nein  
+UI-Schreibbuttons: nein  
+Backend-Code: nein
+
+### Ergebnis
+
+- Sidebar-Gruppe `Benutzer & Rechte` entfernt.
+- Persönlicher Bereich liegt oben rechts im Profil-/Konto-Menü.
+- Admin-Bereich übernimmt Verwaltungsthemen wie Benutzerverwaltung, Rollen/Rechte, Zugriff/Freigaben und Sicherheit.
+- Bestehende Seiten/Diagnosewerte wurden nicht als Backend-Funktionalität entfernt; nur die Navigation wurde bereinigt.
+
+### Geändert
+
+- `remote-modboard/backend/public/index.html`
+- `remote-modboard/backend/public/assets/remote-modboard.js`
+
+### Nicht geändert
+
+- Keine Backend-Routen.
+- Keine OAuth-/Login-Routen.
+- Keine Session-Logik.
+- Keine DB-Dateien.
+- Keine SQL-/Migrationsdateien.
+- Keine Secrets.
+- Keine produktiven Writes.
+- Keine UI-Schreibbuttons.
+- Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
+- Keine Workflow-Tools.
+
+---
+
+## RDAP_ACCOUNT_PANEL_CLEANUP_V2
+
+Typ: Frontend/UX klein  
+DB: nein  
+Secrets: nein  
+Produktive Writes: nein  
+UI-Schreibbuttons: nein  
+Backend-Code: nein
+
+### Ergebnis
+
+- Konto-Panel oben rechts enttechnisiert.
+- Entfernt aus normaler Kontoansicht: Dashboard-Zugriff, Access-Grund, Twitch/User UID, Gruppen, Session, remote.view und Hinweisbox.
+- Sichtbar bleiben: Avatar, Displayname, Twitch-Login, Rolle, Profil aktualisieren und Ausloggen.
+- Spätere eigene interne CGN-User-ID bleibt als Konzept offen; rohe Twitch-UID wird nicht prominent im normalen Konto-Panel angezeigt.
+
+### Geändert
+
+- `remote-modboard/backend/public/index.html`
+- `remote-modboard/backend/public/assets/remote-modboard.js`
+
+### Nicht geändert
+
+- Keine Backend-Routen.
+- Keine OAuth-/Login-Routen.
+- Keine Session-Logik.
+- Keine DB-Dateien.
+- Keine SQL-/Migrationsdateien.
+- Keine Secrets.
+- Keine produktiven Writes.
+- Keine UI-Schreibbuttons.
+- Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
+- Keine Workflow-Tools.
+
+---
 
 ## RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
 
@@ -48,7 +163,7 @@ actionEnabled: false
 productiveAgentRuntime: false
 ```
 
-Hinweis: `statusApiVersion` wurde beim Statuscheck als `rdap_admin_users9.v1` angezeigt, obwohl `moduleBuild` auf `RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED` steht. Das ist für den Frontend-Design-Step kein Stopper, sollte aber später separat geprüft/dokumentiert werden.
+Hinweis: `statusApiVersion` wurde beim Statuscheck als `rdap_admin_users9.v1` angezeigt, obwohl `moduleBuild` auf `RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED` steht. Das ist für Frontend-/Design-/UX-Steps kein Stopper, sollte aber später separat geprüft/dokumentiert werden.
 
 ### Geändert
 
@@ -69,9 +184,6 @@ Hinweis: `statusApiVersion` wurde beim Statuscheck als `rdap_admin_users9.v1` an
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
 
 ---
-
-Stand: RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS  
-Datum: 2026-06-24
 
 ## RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS
 
@@ -123,6 +235,8 @@ Auch mit `confirmWrite=true` bleiben Writes blockiert.
 - Keine UI-Schreibbuttons.
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
 
+---
+
 ## RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 
 Typ: Code klein + Doku  
@@ -150,6 +264,8 @@ UI-Schreibbuttons: nein
 - Keine Secrets.
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
 
+---
+
 ## RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 
 Typ: Doku/Projektstatus  
@@ -163,6 +279,8 @@ Code-Änderung: nein
 
 - Projektstatus-Dateien auf RDAP10-Planstand synchronisiert.
 - RDAP11 als nächster disabled Foundation-Step markiert.
+
+---
 
 ## RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 

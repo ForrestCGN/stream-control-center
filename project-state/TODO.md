@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED  
+Stand: RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE  
 Datum: 2026-06-24
 
 ## RDAP / Remote-Modboard
@@ -14,11 +14,23 @@ Datum: 2026-06-24
 - [x] RDAP11 Webserver-Deploy remote bestätigt.
 - [x] RDAP DESIGN2 Login Text Polish lokal und live bestätigt.
 - [x] `installstep.cmd` nach Zwischenfehler geprüft: allgemeiner ZIP-Installer ist wieder aktiv.
+- [x] RDAP Account Panel Cleanup V2: Konto-Panel enttechnisiert.
+- [x] RDAP Nav Cleanup: Benutzerbereich aus Sidebar entfernt und ins Profil/Admin-Konzept verschoben.
+- [x] RDAP Nav/Account Cleanup dokumentiert.
 - [ ] RDAP12 First-Mini-Write-Scope-Plan erstellen.
 - [ ] Noch keine produktiven Admin-Writes ohne separaten Scope/Go.
 - [ ] Noch keine UI-Schreibbuttons.
 - [ ] Noch keine DB-Migration ohne Backup/Rollback/Go.
 - [ ] Auffälligkeit prüfen: `statusApiVersion` zeigt `rdap_admin_users9.v1`, obwohl `moduleBuild` RDAP11 ist.
+
+## Konto-/Navigation UX
+
+- [x] Normales Konto-Panel von technischen Diagnosewerten befreien.
+- [x] Hinweisbox „Nur dein eigenes Konto“ aus Konto-Panel entfernen.
+- [x] Sidebar-Gruppe „Benutzer & Rechte“ entfernen.
+- [x] Persönliche Konto-/Rechte-Funktion oben rechts im Profilbereich bündeln.
+- [x] Admin-Bereich als Ort für Benutzerverwaltung, Rollen/Rechte, Zugriff/Freigaben und Sicherheit festhalten.
+- [ ] Später eigenes internes CGN-User-ID-Konzept planen, nicht rohe Twitch-UID prominent anzeigen.
 
 ## RDAP12 muss klären
 
@@ -41,7 +53,8 @@ Datum: 2026-06-24
 ## Workflow-Schutz
 
 - [ ] Vor jedem weiteren Step `installstep.cmd`, `stepdone.cmd`, `testdeploy.cmd` und `tools/remote-modboard-deploy.sh` als geschützte Workflow-Tools behandeln.
-- [ ] Design-/Frontend-Steps dürfen Workflow-Tools nicht überschreiben.
+- [ ] Design-/Frontend-/Doku-Steps dürfen Workflow-Tools nicht überschreiben.
+- [ ] ZIPs immer mit echten Zielpfaden bauen; keine Patch-Skripte unter `tools/steps/*.ps1`.
 - [ ] Fehlende Dateien gezielt anfordern; nicht raten.
 
 ## Geparkt: Lokal/LAN

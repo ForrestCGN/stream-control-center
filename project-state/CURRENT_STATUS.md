@@ -3,7 +3,7 @@
 Stand: 2026-06-24  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller bestätigter RDAP-/Design-Status
+## Aktueller bestätigter RDAP-/Design-/UX-Status
 
 Produktiv unter:
 
@@ -11,7 +11,7 @@ Produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller auf dem Webserver bestätigter Backend-/Security-Code-Stand:
+Aktueller bestätigter Backend-/Security-Code-Stand:
 
 ```text
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
@@ -23,16 +23,76 @@ Aktueller bestätigter Frontend/Login-Design-Stand:
 RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
 ```
 
-Browser-Test bestätigt:
+Aktueller bestätigter Konto-/Navigations-UX-Stand:
 
 ```text
-Login-Subtext: Melde dich mit Twitch an und öffne dein Modboard.
-Login-Button: Anmelden
+RDAP_ACCOUNT_PANEL_CLEANUP_V2
+RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
 ```
 
-Optik: Noch nicht perfekt, aber für jetzt akzeptiert. Optionaler Feinschliff später.
+## Live/Browser bestätigt nach NAV-Cleanup
 
-## Remote-Status nach DESIGN2-Deploy
+Bestätigt durch Forrest nach Webserver-Deploy und Browserprüfung:
+
+```text
+Konto-Panel ist enttechnisiert.
+Sidebar-Gruppe „Benutzer & Rechte“ wurde entfernt.
+Persönliche Konto-/Rechte-Ansicht liegt oben rechts im Profilmenü.
+Admin-Bereich enthält die Verwaltungs-/Rechte-/Sicherheitsbereiche.
+```
+
+## Konto-Panel aktueller Sollzustand
+
+Das normale Konto-Panel oben rechts zeigt nur noch nutzerfreundliche Angaben:
+
+```text
+Avatar
+Displayname
+@twitch-login
+Rolle
+Profil aktualisieren
+Ausloggen
+```
+
+Nicht mehr im Konto-Panel anzeigen:
+
+```text
+Dashboard-Zugriff
+Access-Grund
+Twitch/User UID
+leere Gruppen-Zeile
+Session
+remote.view
+Hinweisbox „Nur dein eigenes Konto“
+```
+
+Eine spätere eigene interne CGN-User-ID ist sinnvoll, aber nicht als rohe Twitch-UID. Bis ein echtes internes ID-Konzept existiert, wird im normalen Konto-Panel keine User-ID angezeigt.
+
+## Navigation aktueller Sollzustand
+
+Die persönliche Navigation liegt oben rechts beim Profil/Konto. Die Sidebar soll keine eigene Gruppe „Benutzer & Rechte“ mehr enthalten.
+
+Sidebar-Grundstruktur nach Cleanup:
+
+```text
+System
+  Übersicht
+  Diagnose
+  Routen
+
+Module
+  Module
+
+Admin
+  Benutzerverwaltung
+  Rollen & Rechte
+  Zugriff / Freigaben
+  Sicherheit
+```
+
+Technische Details bleiben in Admin/System/Diagnose sichtbar bzw. geplant, aber nicht im normalen Konto-Panel.
+
+## Remote-Status nach bisherigen RDAP11/DESIGN2-Deploys
 
 Bestätigt per Statusroute:
 
@@ -51,7 +111,7 @@ Auffälligkeit:
 statusApiVersion: rdap_admin_users9.v1
 ```
 
-Hinweis: `statusApiVersion` passt nicht sauber zur RDAP11-Build-Bezeichnung. Für DESIGN2 ist das kein Stopper, weil nur Frontend/Login-Texte geändert wurden. Später separat prüfen.
+Hinweis: `statusApiVersion` passt nicht sauber zur RDAP11-Build-Bezeichnung. Für reine Frontend-/UX-Steps ist das kein Stopper. Später separat prüfen.
 
 ## Aktueller Dokumentations-/Planstand
 
@@ -61,11 +121,14 @@ RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS
 RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
+RDAP_ACCOUNT_PANEL_CLEANUP_V2
+RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
+RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE
 ```
 
 ## Workflow-/Tool-Stand
 
-`installstep.cmd` wurde nach dem Zwischenfehler geprüft und ist lokal wieder der allgemeine ZIP-Installer:
+`installstep.cmd` ist wieder der allgemeine ZIP-Installer:
 
 ```text
 STEP_ZIP=%~1
@@ -77,8 +140,9 @@ testdeploy.cmd wird gestartet
 Wichtig für weitere Steps:
 
 ```text
-Design-/Frontend-Steps dürfen keine Workflow-Tools überschreiben.
-installstep.cmd, stepdone.cmd und Deploy-Skripte nur ändern, wenn Forrest das ausdrücklich beauftragt.
+Design-/Frontend-/Doku-Steps dürfen keine Workflow-Tools überschreiben.
+installstep.cmd, stepdone.cmd, testdeploy.cmd und Deploy-Skripte nur ändern, wenn Forrest das ausdrücklich beauftragt.
+ZIPs müssen echte Zielpfade enthalten; keine Patch-Skripte wie tools/steps/*.ps1.
 ```
 
 ## Sicherheitsstand
@@ -113,7 +177,7 @@ Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
-## Nächster sinnvoller Schritt
+## Nächster sinnvoller Fachschritt
 
 ```text
 RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
