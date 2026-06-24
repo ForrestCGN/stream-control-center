@@ -3,7 +3,7 @@
 Stand: 2026-06-24  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller bestaetigter RDAP-Status
+## Aktueller bestätigter RDAP-Status
 
 Produktiv unter:
 
@@ -11,13 +11,13 @@ Produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Letzter remote bestaetigter Code-Stand:
+Aktueller auf dem Webserver bestätigter Code-Stand:
 
 ```text
 RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
 ```
 
-Remote bestaetigt fuer RDAP9:
+Remote bestätigt:
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
@@ -30,19 +30,14 @@ writeEnabled: false
 writesStillBlocked: true
 ```
 
-## Aktueller Doku-/Plan-Stand
-
-Der reine Plan-Step ist vorhanden:
+## Aktueller Dokumentations-/Planstand
 
 ```text
 RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
-```
-
-Dieser Sync-Step aktualisiert die Projektstatus-Dateien auf:
-
-```text
 RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 ```
+
+RDAP10 ist ein reiner Plan-/Doku-Step. RDAP10B synchronisiert nur die Projektstatus-Dateien auf diesen Stand.
 
 ## Sicherheitsstand
 
@@ -51,7 +46,6 @@ Permission-Read-Diagnose: vorbereitet
 Confirm-Write-Helper: vorbereitet, Writes deaktiviert
 Audit-Helper: vorbereitet, Writes deaktiviert
 Lock-Helper: vorbereitet, Writes deaktiviert
-Backup-/Rollback-/Mini-Write-Plan: dokumentiert
 Admin-Writes: weiterhin aus
 DB-Migration: keine
 UI-Schreibbuttons: keine
@@ -70,10 +64,10 @@ Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
-## Naechster sinnvoller Schritt
+## Nächster sinnvoller Schritt
 
 ```text
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 ```
 
-Nur Code-Foundation weiterhin disabled. Noch kein echter produktiver Write, kein UI-Schreibbutton, keine DB-Migration.
+Nur Foundation/Struktur mit weiterhin deaktivierten Writes. Noch kein produktiver User-/Rollen-/Gruppen-/Session-Write.

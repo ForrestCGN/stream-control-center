@@ -11,9 +11,9 @@ Dieser reine Doku-/Projektstatus-Step synchronisiert die Projektstatus-Dateien n
 RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 ```
 
-GitHub/dev enthaelt bereits die RDAP10-Plan-Datei, aber mehrere `project-state` Dateien standen noch auf RDAP9 bzw. markierten RDAP10 als offen. Dieser Step korrigiert nur diesen Projektstatus.
+GitHub/dev enthält bereits die RDAP10-Plan-Datei, aber mehrere `project-state` Dateien standen noch auf RDAP9 bzw. markierten RDAP10 als offen. Dieser Step korrigiert nur diesen Projektstatus.
 
-## Geaendert
+## Geändert
 
 ```text
 docs/current/RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC.md
@@ -24,7 +24,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Nicht geaendert
+## Nicht geändert
 
 ```text
 Keine Code-Dateien
@@ -42,7 +42,7 @@ Keine OBS-/Sound-/Overlay-/Command-Steuerung
 
 ## Ergebnis
 
-Nach diesem Sync ist RDAP10 dokumentarisch abgeschlossen und der naechste empfohlene Schritt ist:
+Nach diesem Sync ist RDAP10 dokumentarisch abgeschlossen und der nächste empfohlene Schritt ist:
 
 ```text
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
@@ -50,13 +50,13 @@ RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 
 RDAP11 darf weiterhin keine produktiven User-/Rollen-/Gruppen-/Session-Writes aktivieren und keine UI-Schreibbuttons bauen.
 
-## Test/Pruefung
+## Test/Prüfung
 
-Da dieser Step nur Markdown-/Projektstatus-Dateien aendert:
+Da dieser Step nur Markdown-/Projektstatus-Dateien ändert:
 
 ```powershell
 cd D:\Git\stream-control-center
 git status
 ```
 
-Kein Node-Neustart, kein Webserver-Service-Restart und kein Port-3010-Test noetig.
+Kein Node-Neustart, kein Webserver-Service-Restart und kein Port-3010-Test nötig.

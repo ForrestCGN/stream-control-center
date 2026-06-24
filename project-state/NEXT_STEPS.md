@@ -7,36 +7,13 @@ Datum: 2026-06-24
 
 ```text
 RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
-```
-
-ist deployed und remote getestet.
-
-Remote bestaetigt:
-
-```text
-moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
-statusApiVersion: rdap_admin_users9.v1
-lockHelperPrepared: true
-lockWriteEnabled: false
-lockDiagnostic.helperPrepared: true
-lockDiagnostic.writeEnabled: false
-writeEnabled: false
-writesStillBlocked: true
-```
-
-Der Doku-/Plan-Step ist vorhanden:
-
-```text
 RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
-```
-
-Projektstatus-Dateien wurden mit diesem Sync auf den RDAP10-Plan-Stand gebracht:
-
-```text
 RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 ```
 
-## Naechster empfohlener Step
+RDAP9 ist deployed und remote bestätigt. RDAP10 dokumentiert Backup-/Rollback-/Mini-Write-Planung. RDAP10B synchronisiert die Projektstatus-Dateien.
+
+## Nächster empfohlener Step
 
 ```text
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
@@ -44,20 +21,19 @@ RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 
 Scope:
 
-- Write-Foundation technisch weiter vorbereiten.
-- Weiterhin default/produktiv disabled.
-- Noch kein echter User-/Rollen-/Gruppen-/Session-Write.
-- Keine UI-Schreibbuttons.
+- Foundation für den kleinsten späteren Admin-Write vorbereiten.
+- Writes bleiben deaktiviert.
+- Kein echter User-/Rollen-/Gruppen-/Session-Write.
 - Keine DB-Migration.
-- Permission, Confirm-Write, Audit, Locking und Backup-/Rollback-Regel zusammenfuehren.
-- Diagnose/Status darf zeigen, dass Writes blockiert bleiben.
+- Keine UI-Schreibbuttons.
+- Permission, Confirm-Write, Audit, Locking, Backup/Rollback und Rollback-Hinweise müssen sichtbar zusammengeführt werden.
 
-## Erst spaeter
+## Erst später
 
-Ein echter produktiver Mini-Write darf erst separat gebaut werden, wenn folgende Punkte sauber stehen:
+Kleinster echter Admin-Write darf erst separat gebaut werden, wenn folgende Punkte sauber stehen:
 
 ```text
-Permission-Pruefung
+Permission-Prüfung
 Confirm-Write
 Audit
 Locking
@@ -68,4 +44,28 @@ separates Go
 
 ## Webserver-Deploy-Regel
 
-`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen. Immer frischer Clone in `_deploy_tmp`.
+`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen.
+
+Immer frischer Clone in `_deploy_tmp`:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf STEP_NAME
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
+cd STEP_NAME
+sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+```
+
+Nach Service-Restart immer Readiness abwarten:
+
+```bash
+sudo systemctl restart scc-remote-modboard.service
+
+for i in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
+    echo "ready_after=${i}s"
+    break
+  fi
+  sleep 1
+done
+```
