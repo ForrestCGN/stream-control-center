@@ -1,19 +1,17 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 Datum: 2026-06-24
 
 ## Aktueller bestätigter Arbeitsstand
 
 RDAP UI1 ist live abgeschlossen und auf GitHub/dev bestätigt.
 
-Zusätzlich vorbereitet:
+Zusätzlich ist der Remote-Modboard-Serverdeploy jetzt live getestet und bestätigt:
 
 ```text
-RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 ```
-
-Dieser Step dokumentiert und standardisiert den Server-Deploy des Remote-Modboards.
 
 ## Bestätigte Live-Basis
 
@@ -41,9 +39,50 @@ Header: x-remote-modboard-ui: readonly
 SSL/Let's Encrypt: ok
 ```
 
-## Server-/Deploy-Erkenntnis
+## Server-Deploy bestätigt
 
-Wichtig für weitere RDAP-Arbeiten:
+Standard-Deploy-Script:
+
+```text
+tools/remote-modboard-deploy.sh
+```
+
+Live-Test-Aufruf:
+
+```bash
+sudo bash tools/remote-modboard-deploy.sh RDAP_DEPLOY_RUNBOOK_SCRIPT_TEST dev
+```
+
+Bestätigtes Ergebnis:
+
+```text
+[ok] Remote-Modboard Deploy fertig
+```
+
+Bestätigte Punkte:
+
+```text
+Clone nach _deploy_tmp: ok
+Backup nach _runtime_tmp: ok
+rsync nach Live: ok
+Rechte setzen: ok
+JS-Syntaxcheck: ok
+Service-Restart: ok
+Readiness-Wait: ok
+Lokale API: ok
+Lokale UI: ok
+Public UI: HTTP 200
+Public API: ok
+OAuth start/callback: beide HTTP 403
+```
+
+Der kurze Curl-Fehler direkt nach Restart ist erwartetes Verhalten, weil der Readiness-Loop danach erfolgreich war:
+
+```text
+ready_after=2s
+```
+
+## Server-/Deploy-Wahrheit
 
 ```text
 /opt/stream-control-center ist auf dem Webserver kein Git-Repository.
@@ -56,13 +95,7 @@ Produktiver Remote-Modboard-Code:
 /opt/stream-control-center/remote-modboard/backend
 ```
 
-Standard-Deploy ab diesem Stand:
-
-```text
-tools/remote-modboard-deploy.sh
-```
-
-Deploy-Ablauf:
+Standard-Deploy-Ablauf ab jetzt:
 
 ```text
 GitHub/dev Clone nach /opt/stream-control-center/_deploy_tmp/
@@ -74,6 +107,8 @@ systemctl restart scc-remote-modboard.service
 Readiness-Wait
 API/UI/OAuth-403 Tests
 ```
+
+Keine RDAP-Arbeitsordner/Deploy-Clones/Backups in `/root`.
 
 ## ISPConfig/Nginx
 
@@ -108,6 +143,14 @@ agentActionsEnabled=false
 lockAcquireEnabled=false
 auditInsertEnabled=false
 ```
+
+## Nächster sinnvoller Fokus
+
+```text
+RDAP_UI2_READONLY_COMFORT
+```
+
+Nur read-only Komfort, keine produktive Steuerung.
 
 ## Weiterhin verboten
 

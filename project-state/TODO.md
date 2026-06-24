@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 Datum: 2026-06-24
 
 ## Erledigt
@@ -28,11 +28,14 @@ Datum: 2026-06-24
 - [x] RDAP Deploy-Runbook oder Server-Deploy-Script für Remote-Modboard erstellt/dokumentiert
 - [x] Festhalten: `/opt/stream-control-center` ist kein Git-Repo
 - [x] Festhalten: Deploy läuft über GitHub/dev Clone nach `_deploy_tmp` und `rsync` nach `remote-modboard`
+- [x] RDAP Deploy-Script live getestet
+- [x] RDAP Deploy-Script Readiness-Wait bestätigt
+- [x] RDAP Deploy-Script OAuth-403-Safety bestätigt
 
 ## Als nächstes
 
-- [ ] RDAP Deploy-Script einmal live testen
-- [ ] Danach UI2 read-only Komfort planen
+- [ ] RDAP_UI2_READONLY_COMFORT planen und umsetzen
+- [ ] UI2 nach Live-Deploy mit `tools/remote-modboard-deploy.sh` testen
 
 ## Dauerhafte Verbote bis eigener Scope
 

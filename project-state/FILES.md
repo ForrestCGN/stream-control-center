@@ -1,6 +1,6 @@
 # FILES - stream-control-center
 
-Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 Datum: 2026-06-24
 
 ## RDAP Deploy relevante Dateien

@@ -1,39 +1,22 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 Datum: 2026-06-24
 
 ## Aktueller Abschluss
 
 ```text
-RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
+RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 ```
 
-ist live abgeschlossen.
+ist abgeschlossen.
 
-```text
-RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
-```
+Bestätigt:
 
-bereitet den festen Remote-Modboard-Serverdeploy vor.
-
-## Nächster sinnvoller Schritt
-
-Den Deploy-Runbook-/Script-Step einmal testen und bestätigen.
-
-Testziel:
-
-```text
-tools/remote-modboard-deploy.sh
-```
-
-auf dem Webserver mit einem harmlosen Deploy aus GitHub/dev laufen lassen.
-
-Erwartung:
-
+- `tools/remote-modboard-deploy.sh` live auf dem Webserver getestet
 - Clone nach `_deploy_tmp`
 - Backup nach `_runtime_tmp`
-- rsync nach `/opt/stream-control-center/remote-modboard`
+- `rsync` nach `/opt/stream-control-center/remote-modboard`
 - Rechte gesetzt
 - JS-Syntaxcheck ok
 - Service restart ok
@@ -42,19 +25,32 @@ Erwartung:
 - Public API ok
 - OAuth Start/Callback bleiben HTTP 403
 
-Danach:
+## Nächster sinnvoller Schritt
 
 ```text
-UI2 read-only Komfort planen
+RDAP_UI2_READONLY_COMFORT
 ```
 
-## Möglicher UI2-Fokus
+Ziel:
 
-Nur read-only Komfort, kein Login, keine Writes:
-
+- erste UI bleibt read-only
 - Auto-Refresh für Diagnosekarten
 - letzte Aktualisierung sichtbar
 - bessere Fehleranzeige bei API-Ausfall
-- kompakte Routen-/Security-Details
+- kompaktere Routen-/Security-Details
 - keine Steuerbuttons
 - keine POST/PUT/PATCH/DELETE Calls
+- kein Login
+- kein OAuth
+- keine Cookies
+- keine Sessions
+- keine Writes
+- keine Agent-Actions
+
+## Danach
+
+Erst nach UI2 erneut prüfen:
+
+- ob Login/Auth/OAuth separat geplant werden soll
+- ob Lock-/Audit-UI nur read-only sichtbar gemacht wird
+- ob User-/Rollenplanung als eigener großer Scope gestartet wird

@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
 
-Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -20,16 +20,12 @@ docs/current/RDAP_DEPLOY_RUNBOOK.md
 ## Aktueller bestätigter Stand
 
 ```text
-RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
+RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 ```
 
 RDAP UI1 wurde live getestet und per `stepdone.cmd` nach GitHub/dev bestätigt.
 
-Aktueller Arbeitsfokus:
-
-```text
-RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
-```
+Das Remote-Modboard-Deploy-Script wurde ebenfalls live getestet und bestätigt.
 
 ## Live-Basis
 
@@ -68,19 +64,25 @@ GET /api/remote/auth/twitch/start    -> HTTP 403
 GET /api/remote/auth/twitch/callback -> HTTP 403
 ```
 
-## Sichtbarer UI1-Stand
+## Deploy-Script bestätigt
 
-Die erste Remote-Modboard-Seite ist sichtbar und read-only.
+Standard-Deploy-Script:
 
-Sie zeigt:
+```text
+tools/remote-modboard-deploy.sh
+```
 
-- Service-Status
-- Read-only-/Write-Safety
-- Login/OAuth disabled
-- Agent-Actions disabled
-- Routen-Status
-- Lock-/Audit Schema-Adapter Diagnose
-- Hinweisbox: read-only Diagnosemodus
+Live-Test erfolgreich:
+
+```text
+[ok] Remote-Modboard Deploy fertig
+```
+
+Bestätigt:
+
+```text
+GitHub/dev -> _deploy_tmp -> Backup _runtime_tmp -> rsync remote-modboard -> chown -> node --check -> restart -> readiness -> local/public tests -> OAuth 403
+```
 
 ## Wichtigste Entscheidungen
 
@@ -174,13 +176,23 @@ command:twitch:clip
 Empfohlen:
 
 ```text
-RDAP_DEPLOY_SCRIPT_LIVE_TEST
+RDAP_UI2_READONLY_COMFORT
 ```
 
 Ziel:
 
-- `tools/remote-modboard-deploy.sh` einmal auf dem Webserver testen
-- danach erst UI2 read-only Komfort planen
+- Auto-Refresh für Diagnosekarten
+- letzte Aktualisierung sichtbar
+- bessere Fehleranzeige bei API-Ausfall
+- kompaktere Routen-/Security-Details
+- keine Steuerbuttons
+- keine POST/PUT/PATCH/DELETE Calls
+- kein Login
+- kein OAuth
+- keine Cookies
+- keine Sessions
+- keine Writes
+- keine Agent-Actions
 
 ## Weiterhin verboten
 

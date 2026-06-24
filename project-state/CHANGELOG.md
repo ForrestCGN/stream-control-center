@@ -1,5 +1,58 @@
 # CHANGELOG - stream-control-center
 
+## 2026-06-24 - RDAP Deploy-Script live getestet
+
+Status: Live getestet und bestätigt
+
+Getestet:
+
+- `tools/remote-modboard-deploy.sh`
+
+Aufruf:
+
+```bash
+sudo bash tools/remote-modboard-deploy.sh RDAP_DEPLOY_RUNBOOK_SCRIPT_TEST dev
+```
+
+Ergebnis:
+
+```text
+[ok] Remote-Modboard Deploy fertig
+```
+
+Bestätigt:
+
+- GitHub/dev Clone nach `_deploy_tmp`
+- Backup nach `_runtime_tmp`
+- `rsync` nach `/opt/stream-control-center/remote-modboard`
+- Rechte setzen auf `sccremote:sccremote`
+- JS-Syntaxcheck
+- Restart `scc-remote-modboard.service`
+- Readiness-Wait
+- lokale API
+- lokale UI
+- Public UI HTTP 200
+- Public API ok
+- OAuth Start/Callback bleiben HTTP 403
+
+Hinweis:
+
+- Der erste Curl nach Restart kann fehlschlagen.
+- Der Readiness-Loop hat danach korrekt gewartet und `ready_after=2s` erreicht.
+
+Keine Änderung:
+
+- kein Login aktiviert
+- kein OAuth aktiviert
+- keine Cookies gesetzt
+- keine Sessions erstellt
+- keine DB-Writes
+- keine Migration
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine Secrets
+
 ## 2026-06-24 - RDAP Deploy Runbook / Remote-Modboard Serverdeploy standardisiert
 
 Status: Script-/Doku-Step vorbereitet

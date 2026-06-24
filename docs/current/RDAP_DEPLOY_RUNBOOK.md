@@ -1,6 +1,6 @@
 # RDAP Deploy Runbook - Remote-Modboard
 
-Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
 Datum: 2026-06-24
 
 ## Zweck
@@ -82,26 +82,74 @@ Das Script macht:
 11. Public UI/API werden getestet.
 12. OAuth Start/Callback müssen weiter HTTP 403 liefern.
 
+## Live-Test bestätigt
+
+Der Live-Test des Deploy-Scripts wurde am 2026-06-24 erfolgreich ausgeführt.
+
+Aufruf:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf RDAP_DEPLOY_RUNBOOK_SCRIPT_TEST
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_DEPLOY_RUNBOOK_SCRIPT_TEST
+cd RDAP_DEPLOY_RUNBOOK_SCRIPT_TEST
+sudo bash tools/remote-modboard-deploy.sh RDAP_DEPLOY_RUNBOOK_SCRIPT_TEST dev
+```
+
+Bestätigtes Ergebnis:
+
+```text
+[ok] Remote-Modboard Deploy fertig
+```
+
+Bestätigte Details:
+
+```text
+Clone nach _deploy_tmp: ok
+Backup nach _runtime_tmp: ok
+rsync nach Live: ok
+Rechte setzen: ok
+JS-Syntaxcheck: ok
+Service-Restart: ok
+Readiness-Wait: ok
+Lokale API: ok
+Lokale UI: ok
+Public UI: HTTP 200
+Public API: ok
+OAuth start/callback: beide HTTP 403
+```
+
+Der erste Readiness-Curl unmittelbar nach dem Restart darf fehlschlagen, solange der Loop danach erfolgreich wird:
+
+```text
+curl: (7) Failed to connect ...
+ready_after=2s
+```
+
+Das ist erwartetes Verhalten beim Neustart.
+
+Bestätigte Backup-/Deploy-Pfade aus dem Test:
+
+```text
+Backup:
+/opt/stream-control-center/_runtime_tmp/backup_remote_modboard_RDAP_DEPLOY_RUNBOOK_SCRIPT_TEST_20260624_121241
+
+Deploy-Clone:
+/opt/stream-control-center/_deploy_tmp/RDAP_DEPLOY_RUNBOOK_SCRIPT_TEST_20260624_121241
+```
+
 ## Nutzung
 
-Auf dem Webserver:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-```
-
-Falls das Script noch nicht auf dem Server liegt, zuerst GitHub/dev klonen oder die Datei aus dem Repo an einen Arbeitsort kopieren.
-
-Empfohlener Aufruf aus einem frischen Clone:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_DEPLOY_RUNBOOK_SCRIPT
-cd RDAP_DEPLOY_RUNBOOK_SCRIPT
-sudo bash tools/remote-modboard-deploy.sh RDAP_DEPLOY_RUNBOOK_SCRIPT dev
-```
-
 Für spätere Steps:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git <STEP_NAME>
+cd <STEP_NAME>
+sudo bash tools/remote-modboard-deploy.sh <STEP_NAME> dev
+```
+
+Beispiel:
 
 ```bash
 sudo bash tools/remote-modboard-deploy.sh RDAP_UI2_READONLY_COMFORT dev
