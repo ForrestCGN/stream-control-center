@@ -1,112 +1,108 @@
 # CHANGELOG
 
-Stand: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+Stand: RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS  
 Datum: 2026-06-24
 
-## RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+## RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS
 
-Typ: Code klein + Doku/Projektstatus
-DB: nein
-Secrets: nein
-Produktive Writes: nein
-UI-Schreibbuttons: nein
-DB-Migration: nein
+Typ: Doku/Projektstatus nach Webserver-Deploy  
+DB: nein  
+Secrets: nein  
+Produktive Writes: nein  
+UI-Schreibbuttons: nein  
+Code-Änderung: nein
 
-### Geaendert
+### Remote bestätigt
 
-- `remote-modboard/backend/server.js` setzt `MODULE_BUILD` auf `RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED`.
-- `remote-modboard/backend/src/app.js` registriert die neue read-only Mini-Write-Foundation-Route.
-- `remote-modboard/backend/src/routes/admin-mini-write-foundation.routes.js` ergaenzt.
-- `remote-modboard/backend/src/services/admin-mini-write-foundation.service.js` ergaenzt.
-- `remote-modboard/backend/src/routes/routes.routes.js` ergaenzt RDAP11 in der Routenuebersicht.
-- `remote-modboard/backend/package.json` ergaenzt Syntax-Check fuer RDAP11-Dateien.
-- `docs/current/RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED.md` ergaenzt.
-- `project-state/CURRENT_STATUS.md` auf RDAP11-Stand aktualisiert.
-- `project-state/NEXT_STEPS.md` auf RDAP12 Scope-Plan aktualisiert.
-- `project-state/TODO.md` um RDAP11/RDAP12 Punkte ergaenzt.
-- `project-state/FILES.md` um RDAP11-Dateien ergaenzt.
-- `project-state/CHANGELOG.md` um diesen Step ergaenzt.
+```text
+moduleBuild: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+foundationBuild: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+statusApiVersion: rdap_admin_users11.v1
+miniWriteFoundationPrepared: true
+writeEnabled: false
+writesStillBlocked: true
+```
 
-### Ergebnis
-
-- Neue read-only Diagnose-Route:
+### Bestätigte Route
 
 ```text
 GET /api/remote/admin/users/mini-write-foundation-diagnostic
 ```
 
-- Foundation-Kette sichtbar vorbereitet:
+Auch mit `confirmWrite=true` bleiben Writes blockiert.
 
-```text
-Permission -> Confirm-Write -> Audit-Draft -> Lock-Draft -> Backup-Plan -> Rollback-Plan
-```
+### Geändert
 
-- Auch bei `confirmWrite=true` bleiben Writes blockiert.
+- `docs/current/RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS.md` ergänzt.
+- `project-state/CURRENT_STATUS.md` auf RDAP11 remote bestätigt aktualisiert.
+- `project-state/NEXT_STEPS.md` auf RDAP12 Scope-Plan aktualisiert.
+- `project-state/TODO.md` RDAP11 erledigt und RDAP12 offen markiert.
+- `project-state/FILES.md` um RDAP11-Dokument und Mini-Write-Foundation-Dateien ergänzt.
+- `project-state/CHANGELOG.md` um diesen Deploy-Doku-Step ergänzt.
 
-### Nicht geaendert
+### Nicht geändert
 
-- Keine produktiven Admin-Writes.
-- Keine User-Freigabe/Sperre.
+- Keine Code-Dateien.
+- Keine Backend-Routen.
+- Keine Services.
+- Keine UI-Dateien.
+- Keine DB-Dateien.
+- Keine SQL-/Migrationsdateien.
+- Keine Secrets.
+- Keine produktiven Writes.
+- Keine UI-Schreibbuttons.
+- Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
+
+## RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+
+Typ: Code klein + Doku  
+DB: nein  
+Secrets: nein  
+Produktive Writes: nein  
+UI-Schreibbuttons: nein
+
+### Ergebnis
+
+- Mini-Write-Foundation vorbereitet.
+- Diagnose-Route ergänzt.
+- Permission, Confirm-Write, Audit, Locking und Backup/Rollback sichtbar zusammengeführt.
+- Writes bleiben deaktiviert.
+- Confirm-Write kann akzeptiert werden, blockiert aber weiterhin produktive Writes.
+
+### Nicht geändert
+
+- Keine User-Writes.
 - Keine Rollen-Writes.
 - Keine Gruppen-Writes.
 - Keine Session-Widerrufe.
 - Keine DB-Migration.
 - Keine SQL-Dateien.
 - Keine Secrets.
-- Keine UI-Schreibbuttons.
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
 
 ## RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 
-Typ: Doku/Projektstatus
-DB: nein
-Secrets: nein
-Produktive Writes: nein
-UI-Schreibbuttons: nein
-Code-Aenderung: nein
+Typ: Doku/Projektstatus  
+DB: nein  
+Secrets: nein  
+Produktive Writes: nein  
+UI-Schreibbuttons: nein  
+Code-Änderung: nein
 
-### Geaendert
+### Ergebnis
 
-- `docs/current/RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC.md` ergaenzt.
-- `project-state/CURRENT_STATUS.md` auf RDAP10/RDAP10B-Planstand synchronisiert.
-- `project-state/NEXT_STEPS.md` auf naechsten Step RDAP11 disabled Foundation aktualisiert.
-- `project-state/TODO.md` RDAP10 erledigt und RDAP11 offen markiert.
-- `project-state/FILES.md` um RDAP10/RDAP10B-Dokumente ergaenzt.
-- `project-state/CHANGELOG.md` um diesen Doku-/Sync-Step ergaenzt.
+- Projektstatus-Dateien auf RDAP10-Planstand synchronisiert.
+- RDAP11 als nächster disabled Foundation-Step markiert.
 
 ## RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 
-Typ: Doku/Plan
-DB: nein
-Secrets: nein
-Produktive Writes: nein
+Typ: Doku/Plan  
+DB: nein  
+Secrets: nein  
+Produktive Writes: nein  
 UI-Schreibbuttons: nein
 
 ### Ergebnis
 
 - Backup-/Rollback-/Mini-Write-Plan dokumentiert.
-- Permission, Confirm-Write, Audit und Locking als Pflichtkette fuer spaetere Admin-Writes festgehalten.
-- Noch kein echter User-/Rollen-/Gruppen-/Session-Write.
-- Noch keine DB-Migration.
-- Noch kein UI-Schreibbutton.
-
-## RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
-
-Typ: Code klein + Doku
-DB: nein
-Secrets: nein
-Produktive Writes: nein
-UI-Schreibbuttons: nein
-
-### Remote bestaetigt
-
-```text
-moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
-statusApiVersion: rdap_admin_users9.v1
-lockHelperPrepared: true
-lockWriteEnabled: false
-lockDiagnostic.helperPrepared: true
-lockDiagnostic.writeEnabled: false
-writeEnabled: false
-writesStillBlocked: true
-```
+- Permission, Confirm-Write, Audit und Locking als Pflichtkette für spätere Admin-Writes festgehalten.

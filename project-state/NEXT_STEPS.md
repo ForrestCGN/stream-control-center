@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+Stand: RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS  
 Datum: 2026-06-24
 
 ## Aktuell erledigt
@@ -12,35 +12,49 @@ RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 ```
 
-RDAP9 ist deployed und remote bestaetigt. RDAP10 dokumentiert Backup-/Rollback-/Mini-Write-Planung. RDAP10B synchronisiert die Projektstatus-Dateien. RDAP11 baut eine disabled Mini-Write-Foundation ohne produktive Writes.
+RDAP11 ist deployed und remote bestätigt.
 
-## Naechster empfohlener Step
+Bestätigt:
+
+```text
+statusApiVersion: rdap_admin_users11.v1
+miniWriteFoundationPrepared: true
+writeEnabled: false
+writesStillBlocked: true
+```
+
+Die Diagnose-Route ist erreichbar:
+
+```text
+GET /api/remote/admin/users/mini-write-foundation-diagnostic
+```
+
+Auch mit `confirmWrite=true` bleiben Writes blockiert.
+
+## Nächster empfohlener Step
 
 ```text
 RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
 ```
 
-Scope:
+Scope nur Planung:
 
-- Kleinsten echten Admin-Write auswaehlen.
-- Noch keine Umsetzung.
-- Betroffene Tabellen/Datensaetze bestimmen.
-- DB-Backup und Rollback-Befehl konkret planen.
-- Permission, Confirm-Write, Audit, Locking und Read-Back-Pruefung konkret festlegen.
-- Separates Go fuer die spaetere Umsetzung verlangen.
+- Kleinsten möglichen späteren Admin-Write auswählen.
+- Noch keinen produktiven Write bauen.
+- Noch keine UI-Schreibbuttons.
+- Noch keine DB-Migration ohne Backup/Rollback/Go.
+- Exakten Datenpfad klären: Welche Tabelle, welcher Datensatz, welches Feld.
+- Backup- und Rollback-Befehl konkret dokumentieren.
+- Permission-Grenze definieren.
+- Confirm-Write-Anforderung definieren.
+- Audit-Payload definieren.
+- Lock-Scope definieren.
+- Read-Back-Prüfung definieren.
+- Fehlerfälle und Abbruchbedingungen dokumentieren.
 
-## Weiterhin verboten bis separater Admin-Write-Step kommt
+## Erst danach
 
-```text
-User freigeben/sperren
-Rollen vergeben/entziehen
-Gruppen/Freigaben setzen/entfernen
-Sessions widerrufen
-DB-Migration
-UI-Schreibbuttons
-Agent-Actions
-OBS-/Sound-/Overlay-/Command-Steuerung
-```
+Ein echter Mini-Write darf erst separat gebaut werden, wenn RDAP12 abgeschlossen ist und Forrest ein weiteres klares `go` gibt.
 
 ## Webserver-Deploy-Regel
 
