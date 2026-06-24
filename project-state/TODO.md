@@ -1,14 +1,17 @@
 # TODO - stream-control-center
 
-Stand: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC  
+Stand: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC_LIVE_CONFIRMED  
 Datum: 2026-06-24
 
 ## RDAP / Remote-Modboard
 
 - [x] RDAP12 First-Mini-Write-Scope-Plan erstellt.
 - [x] RDAP13 Admin-Notiz-Table/Disabled-Route-Plan erstellt.
+- [x] RDAP14 Admin-Notiz-Table-Diagnose gebaut.
 - [x] RDAP14 Admin-Notiz-Table-Diagnose live bestätigt.
-- [x] RDAP14B Routenuebersicht für `adminUserAdminNoteDiagnostic` synchronisieren.
+- [x] RDAP14B Routenübersicht für `adminUserAdminNoteDiagnostic` synchronisiert.
+- [x] RDAP14B Webserver-Deploy live bestätigt.
+- [x] Admin-Notiz-Diagnose bestätigt: Tabelle fehlt, Migration erforderlich.
 - [ ] RDAP15 Admin-Notiz-Tabellen-Migration planen.
 - [ ] Noch keine echte DB-Migration ohne separates Go.
 - [ ] Noch keinen Admin-Notiz-Write bauen.

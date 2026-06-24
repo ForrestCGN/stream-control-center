@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC  
+Stand: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC_LIVE_CONFIRMED  
 Datum: 2026-06-24
 
 ## Zentrale RDAP-Dokumente
@@ -14,6 +14,8 @@ docs/current/RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN.md
 docs/current/RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN.md
 docs/current/RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC.md
 docs/current/RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC.md
+docs/current/RDAP_ADMIN_USERS14B_ROUTE_LIST_SYNC_LIVE_CONFIRMED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP14B_ROUTE_LIST_SYNC.md
 ```
 
 ## Projektstatus-Dateien
@@ -41,6 +43,14 @@ remote-modboard/backend/src/services/admin-user-admin-note-diagnostic.service.js
 remote-modboard/backend/src/routes/admin-users.routes.js
 ```
 
+## Live bestätigte Routen
+
+```text
+GET /api/remote/status
+GET /api/remote/routes
+GET /api/remote/admin/users/admin-note-diagnostic
+```
+
 ## Workflow-Tools geschützt
 
 ```text
@@ -50,7 +60,7 @@ testdeploy.cmd
 tools/remote-modboard-deploy.sh
 ```
 
-Diese Dateien wurden in RDAP14B nicht geändert.
+Diese Dateien wurden in RDAP14B und diesem Doku-Step nicht geändert.
 
 ## Keine Secrets / keine DB
 
