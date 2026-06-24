@@ -1,5 +1,48 @@
 # CHANGELOG
 
+## 2026-06-24 - RDAP9 / Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
+
+Status: Doku-/Plan-Step vorbereitet
+
+Geaendert:
+
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`
+- `docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+- `project-state/CHANGELOG.md`
+
+Dokumentiert:
+
+- Lock-Pflicht fuer spaetere bearbeitbare Ressourcen wie Texte, Configs, Media-Zuordnungen, Commands, Channel-Point-Mappings, Overlay-Layouts, Rollen-/Gruppen-/User-Verwaltung und Agent-Allowlist.
+- Audit-Pflicht fuer spaetere produktive Writes, Lock-Overrides, Permission-/Rollen-Aenderungen, Confirm-pflichtige Aktionen und Agent-Actions.
+- Nutzungskonzept fuer `dashboard_locks` mit Resource-Typ, Resource-Key, Lock-ID, Owner, Heartbeat, Timeout, Freigabe und Owner/Admin-Uebernahme.
+- Nutzungskonzept fuer `dashboard_audit_log` mit Actor, Action, Resource, Permission-Ergebnis, Lock-Ergebnis, Confirm-Status, Erfolg/Fehler und sicheren Zusammenfassungen.
+- Confirm-/Safety-Regeln fuer riskante Aktionen.
+- Zusammenspiel von Login, Session, Permission, Lock, Version-Schutz, Confirm und Audit.
+- Regel: Audit speichert keine Secrets, keine Tokens, keine Cookies, keine Passwoerter und keine ungefilterten Rohdaten.
+- Naechster sinnvoller Schritt: `RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY`.
+
+Nicht geaendert:
+
+- kein Backend-Code
+- kein produktiver Login
+- keine Twitch-OAuth-Secrets ins Repo
+- kein Redirect zu Twitch
+- kein OAuth-Code-gegen-Token-Tausch
+- kein Cookie gesetzt
+- keine Session erstellt/verlaengert
+- kein `last_seen_at` Update
+- keine DB-Writes
+- keine User-/Rollen-/Gruppen-Schreibroute
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine produktive Permission-Erzwingung fuer Writes
+- kein `moduleBuild`-Kosmetik-Fix in `remote-modboard/backend/server.js`
+
 ## 2026-06-24 - RDAP8B / Permission Resolver Live Deploy/Test dokumentiert
 
 Status: live deployed, getestet und dokumentiert
@@ -143,41 +186,3 @@ Status: live deployed und dokumentiert
 Dokumentiert:
 
 - RDAP7I ist nach GitHub/dev gepusht.
-- RDAP7I ist auf `web.cgn.community` live deployed.
-- `scc-remote-modboard.service` laeuft auf `127.0.0.1:3010`.
-- `GET /api/remote/status` meldet `statusApiVersion=rdap7i.v1`.
-- `dashboard_sessions` wird nur read-only per SELECT diagnostisch/validierend gelesen.
-- `/api/remote/auth/session-status` meldet ohne Cookie `reason=no_session_cookie`.
-- `/api/remote/auth/me` meldet ohne Cookie `loggedIn=false`.
-- Twitch OAuth Start/Callback bleiben HTTP 403 disabled.
-- Kein Redirect, kein Token-Tausch, kein Set-Cookie, keine Session-Erstellung, keine DB-Writes, keine Agent-Actions.
-- Backup: `/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz`.
-
-## 2026-06-23 - DASHUI6C / Übergabe für neuen Chat vorbereitet
-
-Status: dokumentiert
-
-Geändert:
-
-- `docs/current/START_HERE_FOR_NEW_CHAT.md` aktualisiert
-- `docs/current/NEW_CHAT_PROMPT_DASHUI7_READONLY_AGENT_STATUS.md` neu erstellt
-- Projektstatus aktualisiert
-
-Dokumentiert:
-
-- Dashboard-v2 läuft lokal unter `/dashboard-v2/`
-- Altes Dashboard bleibt produktiv unter `/dashboard/`
-- React/Vite unter `frontend/dashboard-v2/`
-- Build-Output unter `htdocs/dashboard-v2/`
-- Backend Static Route `/dashboard-v2` erledigt
-- WF1 Git-Workflow erledigt
-- Designbasis V13 verbindlich
-- nächster Schritt: DASHUI7 / Remote Agent Status read-only planen
-
-Nicht geändert:
-
-- kein Code
-- kein Backend
-- keine DB
-- keine OBS-Änderung
-- kein Node-Neustart nötig

@@ -1,11 +1,11 @@
 # NEXT STEPS
 
-Stand: RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
 Datum: 2026-06-24
 
 ## Aktueller Stand
 
-Fertig, nach GitHub/dev gepusht, live deployed und getestet:
+Fertig, nach Einspielung dieses Doku-Steps zu bestaetigen:
 
 ```text
 RDAP7B Auth Read-only Status Endpoints gebaut
@@ -20,6 +20,7 @@ RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 RDAP8 Permission Check Middleware Plan dokumentiert
 RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 RDAP8B Permission Resolver Live Deploy/Test dokumentiert
+RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
 ```
 
 Remote-Modboard bleibt read-only:
@@ -59,24 +60,24 @@ keine Agent-Actions
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
+RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY
 ```
 
 Ziel:
 
 ```text
-Lock-/Audit-Konzept fuer spaetere produktive Remote-Writes planen.
+Auf Basis von RDAP9 einen konkreten Implementierungsplan fuer Lock-/Audit-Helper, API-Routen, Tabellenpruefung und read-only Diagnose vorbereiten.
 ```
 
-RDAP9 darf klaeren/planen, aber erst nach eigenem Scope und ausdruecklichem go:
+RDAP10 darf erst nach eigenem Scope und ausdruecklichem go:
 
 ```text
-bestehende Tabellen dashboard_locks und dashboard_audit_log pruefen
-bestehende RDAP-Dokus/DB-Migrationen pruefen
-Lock-Regeln fuer spaetere Bearbeitungsbereiche planen
-Audit-Regeln fuer spaetere produktive Aktionen planen
-Confirm/Safety-Regeln fuer riskante Aktionen planen
-Permission + Lock + Audit Zusammenspiel definieren
+echte Remote-Modboard-Dateien erneut pruefen
+bestehende DB-Migrationsdokus und Tabellenstruktur erneut pruefen
+konkrete Lock-Helper-/Audit-Helper-Struktur planen
+konkrete API-Routen fuer spaetere Locks/Audit planen
+Transaktions-/Fehlerfall-Konzept planen
+read-only Diagnose-Endpunkte planen, falls sinnvoll
 keine produktiven Writes bauen
 keine User-/Rollen-/Gruppen-Schreibrouten bauen
 keine Agent-Actions aktivieren
@@ -107,8 +108,9 @@ keine produktive Permission-Erzwingung fuer Writes
 ## Danach moeglich, nicht jetzt
 
 ```text
-RDAP10 Agent-Handshake/Allowlist-Plan
-RDAP11 Login/OAuth Aktivierungsplan nur nach Security-Freigabe
+RDAP11 Agent-Handshake/Allowlist-Plan
+RDAP12 Login/OAuth Aktivierungsplan nur nach Security-Freigabe
+RDAP13 erste geschuetzte Schreibroute nur nach Login + Permission + Lock + Audit + Confirm + Backup/Rollback
 ```
 
 ## Arbeitsregel

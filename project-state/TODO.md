@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
 Datum: 2026-06-24
 
 ## Erledigt
@@ -45,17 +45,20 @@ Datum: 2026-06-24
 - [x] RDAP8 Permission Check Middleware Plan dokumentiert
 - [x] RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 - [x] RDAP8B Permission Resolver Live Deploy/Test dokumentiert
+- [x] RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
 
 ## Noch offen / als naechstes
 
-### RDAP9 Lock-/Audit-Konzept fuer spaetere Writes
+### RDAP10 Lock-/Audit-Implementierungsplan read-only
 
 - [ ] echte Remote-Modboard-Dateien und RDAP-Dokus erneut pruefen
-- [ ] vorhandene Tabellen `dashboard_locks` und `dashboard_audit_log` aus RDAP6C beruecksichtigen
-- [ ] Lock-Konzept fuer spaetere Bearbeitungsbereiche planen
-- [ ] Audit-Konzept fuer spaetere produktive Dashboard-/Mod-/Admin-Aktionen planen
-- [ ] Confirm-/Safety-Regeln fuer riskante Aktionen definieren
-- [ ] Zusammenspiel Permission + Lock + Audit + Confirm planen
+- [ ] vorhandene Tabellen `dashboard_locks` und `dashboard_audit_log` aus RDAP6C/RDAP6K gegen echten Stand pruefen
+- [ ] konkrete Lock-Helper-Struktur planen
+- [ ] konkrete Audit-Helper-Struktur planen
+- [ ] konkrete API-Routen fuer spaetere Lock-/Audit-Funktionen planen
+- [ ] Transaktions-/Fehlerfall-Konzept fuer MariaDB planen
+- [ ] Confirm-/Safety-Parameter standardisieren
+- [ ] read-only Diagnose fuer Locks/Audit nur planen oder separat freigeben
 - [ ] keine produktiven Writes bauen
 - [ ] keine Agent-Actions aktivieren
 - [ ] keine OBS-/Sound-/Overlay-/Command-Steuerung bauen
@@ -65,10 +68,11 @@ Datum: 2026-06-24
 
 - [ ] Server-ENV nach RDAP7G/RDAP7H/RDAP7I/RDAP8A Deploy manuell pruefen/ergaenzen, aber `TWITCH_OAUTH_ENABLED=false` und `SESSION_ENABLED=false` beibehalten
 - [ ] Alte RDAP6J-Backup-Referenz unter `/root` bleibt historisch dokumentiert; neue Backups duerfen nicht mehr nach `/root`
-- [ ] Kosmetik spaeter: `moduleBuild` in `remote-modboard/backend/server.js` auf aktuellen RDAP-Stand anheben, aber nur mit eigenem Mini-Scope.
+- [ ] Kosmetik spaeter: `moduleBuild` in `remote-modboard/backend/server.js` auf aktuellen RDAP-Stand anheben, aber nur mit eigenem Mini-Scope
 - [ ] Produktive Permission-Erzwingung erst nach aktivem Login, Lock-/Audit-Konzept und separatem Go
 - [ ] User-/Rollen-/Gruppen-Schreibrouten erst nach separatem Sicherheits-Scope
 - [ ] Agent-Handshake/Allowlist-Plan separat vorbereiten
+- [ ] Erste produktive Remote-Write-Route nur mit Login + Permission + Lock + Audit + Confirm + Backup/Rollback + ausdruecklichem Go
 
 ## Dauerhaft beachten
 

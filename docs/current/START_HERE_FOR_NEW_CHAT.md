@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Stand: RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -13,19 +13,20 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
+project-state/CHANGELOG.md
 docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
 docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP9.txt
+docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md
 ```
 
 ## Aktueller gesicherter Stand
 
 ```text
-RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
 ```
 
-RDAP8A wurde lokal vorbereitet, nach GitHub/dev uebernommen, auf `web.cgn.community` live deployed und getestet. RDAP8B dokumentiert diesen Live-Test.
+RDAP9 dokumentiert das Lock-/Audit-/Confirm-/Permission-Konzept fuer spaetere produktive Remote-Modboard-Writes. Es ist ein reiner Doku-/Planungsstand.
 
 ## Kurzstatus
 
@@ -42,6 +43,7 @@ RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 RDAP8 Permission Check Middleware Plan dokumentiert
 RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 RDAP8B Permission Resolver Live Deploy/Test dokumentiert
+RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
 ```
 
 ## Live Remote-Modboard
@@ -58,9 +60,11 @@ authEnabled: false
 loginEnabled: false
 sessionCreationEnabled: false
 productivePermissionEnforcementEnabled: false
+databaseWriteEnabled: false
+agentActionsEnabled: false
 ```
 
-Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Relevant fuer RDAP8B ist `statusApiVersion=rdap8a.v1`. Eine Anpassung des `moduleBuild` ist spaeter nur mit eigenem Mini-Scope erlaubt.
+Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Relevant fuer RDAP8B/RDAP9 ist `statusApiVersion=rdap8a.v1`. Eine Anpassung des `moduleBuild` ist spaeter nur mit eigenem Mini-Scope erlaubt.
 
 ## RDAP8B bestaetigter Live-Test
 
@@ -114,6 +118,23 @@ kein Redirect zu Twitch
 kein OAuth-Code-gegen-Token-Tausch
 ```
 
+## RDAP9 Inhalt
+
+RDAP9 klaert fuer spaetere Writes:
+
+```text
+welche Schreibbereiche Locks brauchen
+welche Aktionen Audit brauchen
+wie dashboard_locks genutzt werden soll
+wie dashboard_audit_log genutzt werden soll
+wie Permission + Lock + Audit + Confirm zusammenspielen
+wie Lock-Heartbeat/Timeout/Owner-Admin-Override aussehen soll
+wie Audit ohne Secrets und ohne sensible Rohdaten gespeichert werden soll
+welche spaeteren API-Writes erst nach Login + Permission + Lock + Audit erlaubt werden duerfen
+```
+
+RDAP9 hat keine produktive Funktion aktiviert.
+
 ## Server-Ordnerregel
 
 Nicht mehr verwenden:
@@ -126,8 +147,8 @@ Stattdessen:
 
 ```text
 Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
-Runtime-/Temp:       /opt/stream-control-center/_runtime_tmp/
-Backups:             /var/backups/stream-control-center/
+Runtime-/Temp: /opt/stream-control-center/_runtime_tmp/
+Backups: /var/backups/stream-control-center/
 ```
 
 ## Arbeitsweise
@@ -148,7 +169,7 @@ StepDone erst nach Einspielen/Deploy/Test.
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
+RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY
 ```
 
 Nur planen/vorbereiten. Noch keine produktiven Writes, keine Agent-Actions, kein Login ohne eigenen Scope und ausdrueckliches go.

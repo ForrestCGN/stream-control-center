@@ -1,15 +1,15 @@
 # CURRENT STATUS
 
-Stand: RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
 Datum: 2026-06-24
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP8A ist nach GitHub/dev uebernommen, auf `web.cgn.community` live deployed, der Service wurde neu gestartet und die read-only Permission-Diagnose wurde erfolgreich getestet.
+RDAP9 dokumentiert das Lock-/Audit-/Confirm-/Permission-Konzept fuer spaetere produktive Remote-Modboard-Writes.
 
-RDAP8B dokumentiert diesen Live-Deploy/Test.
+RDAP9 ist ein reiner Doku-/Planungsstand. Es wurde kein Backend-Code geaendert, kein Login aktiviert, kein OAuth aktiviert, kein Cookie gesetzt, keine Session erstellt, keine Session verlaengert, kein `last_seen_at` Update gebaut, keine DB-Schreibaktion ausgefuehrt, keine Remote-Write-Route gebaut und keine Agent-Action aktiviert.
 
-Das Remote-Modboard laeuft weiterhin produktiv read-only. Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Session-Erstellung, keine Session-Verlaengerung, kein `last_seen_at` Update, keine DB-Writes, keine Remote-Writes und keine Agent-Actions.
+Das Remote-Modboard laeuft weiterhin produktiv read-only.
 
 ## Fertig und bestaetigt
 
@@ -41,6 +41,7 @@ RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 RDAP8 Permission Check Middleware Plan dokumentiert
 RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 RDAP8B Permission Resolver Live Deploy/Test dokumentiert
+RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
 ```
 
 ## RDAP8A/RDAP8B live bestaetigt
@@ -79,15 +80,6 @@ permissions.checkRouteEnabled=true
 permissions.productiveAuthorizationEnabled=false
 database.writeEnabled=false
 agent.actionsEnabled=false
-```
-
-Routes:
-
-```text
-GET /api/remote/routes
-statusApiVersion=rdap8a.v1
-permissionReadOnlyResolverPrepared=true
-GET /api/remote/auth/permissions/check vorhanden
 ```
 
 Permission-Check ohne Cookie:
@@ -131,6 +123,20 @@ statusApiVersion live: rdap8a.v1
 ```
 
 Hinweis: `moduleBuild` ist noch der alte server.js-Buildname. Das ist kosmetisch und soll nur mit eigenem Mini-Scope angepasst werden.
+
+## RDAP9 Konzept zusammengefasst
+
+RDAP9 legt fuer spaetere produktive Writes fest:
+
+```text
+Backend entscheidet Rechte, Frontend ist nur Anzeige.
+Produktive Writes brauchen spaeter mindestens Login + Session + Permission + Audit.
+Bearbeitbare Ressourcen brauchen zusaetzlich Lock + Heartbeat + Timeout.
+Riskante Aktionen brauchen zusaetzlich Confirm/Safety.
+Owner/Admin-Lock-Uebernahmen brauchen Grund + Confirm + Audit.
+Audit speichert keine Secrets, keine Tokens, keine Cookies und keine sensiblen Rohdaten.
+Version-/Lost-Update-Schutz soll Locks ergaenzen.
+```
 
 ## Bestaetigter Sicherheitsstatus bleibt
 
@@ -176,25 +182,3 @@ DB-Typ: MariaDB 11.8.6
 ```
 
 Passwort wird nicht dokumentiert und darf nicht ins Repo, Frontend oder Chat.
-
-## Server-Ordnerregel ab RDAP7C1
-
-```text
-Deploy-/Test-Clones: /opt/stream-control-center/_deploy_tmp/
-Runtime-/Temp:       /opt/stream-control-center/_runtime_tmp/
-Backups:             /var/backups/stream-control-center/
-```
-
-`/root` nicht mehr fuer RDAP-Arbeitsordner, Deploy-Clones, Temp-Ordner oder Backups verwenden.
-
-## Naechster sinnvoller Schritt
-
-```text
-RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
-```
-
-Ziel:
-
-```text
-Lock-/Audit-Konzept fuer spaetere produktive Remote-Writes planen. Noch keine produktiven Writes bauen.
-```
