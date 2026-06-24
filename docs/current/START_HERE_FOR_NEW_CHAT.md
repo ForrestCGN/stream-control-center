@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
+Stand: RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY  
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -18,15 +18,18 @@ docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
 docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
 docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md
+docs/current/RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY.md
 ```
 
 ## Aktueller gesicherter Stand
 
 ```text
-RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
+RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY
 ```
 
-RDAP9 dokumentiert das Lock-/Audit-/Confirm-/Permission-Konzept fuer spaetere produktive Remote-Modboard-Writes. Es ist ein reiner Doku-/Planungsstand.
+RDAP10 dokumentiert den konkreten Implementierungsplan fuer Lock-/Audit-Helper, Safety-/Confirm-Gates, Permission-Zusammenspiel, read-only Diagnose-Routen, Transaktions-/Fehlerfall-Konzept und spaetere Reihenfolge.
+
+RDAP10 ist ein reiner Doku-/Planungsstand.
 
 ## Kurzstatus
 
@@ -44,6 +47,7 @@ RDAP8 Permission Check Middleware Plan dokumentiert
 RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 RDAP8B Permission Resolver Live Deploy/Test dokumentiert
 RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
+RDAP10 Lock-/Audit-Implementierungsplan read-only dokumentiert
 ```
 
 ## Live Remote-Modboard
@@ -64,7 +68,7 @@ databaseWriteEnabled: false
 agentActionsEnabled: false
 ```
 
-Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Relevant fuer RDAP8B/RDAP9 ist `statusApiVersion=rdap8a.v1`. Eine Anpassung des `moduleBuild` ist spaeter nur mit eigenem Mini-Scope erlaubt.
+Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Relevant fuer RDAP8B/RDAP9/RDAP10 ist `statusApiVersion=rdap8a.v1`. Eine Anpassung des `moduleBuild` ist spaeter nur mit eigenem Mini-Scope erlaubt.
 
 ## RDAP8B bestaetigter Live-Test
 
@@ -135,6 +139,25 @@ welche spaeteren API-Writes erst nach Login + Permission + Lock + Audit erlaubt 
 
 RDAP9 hat keine produktive Funktion aktiviert.
 
+## RDAP10 Inhalt
+
+RDAP10 legt den konkreten Implementierungsplan fest:
+
+```text
+geplante Lock-/Audit-Service-Struktur
+geplante read-only Diagnose-Routen
+Permission-Gate-Reihenfolge
+Confirm-/Safety-Gate-Regeln
+Request-/Correlation-ID-Konzept
+MariaDB-Transaktions-/Fehlerfall-Konzept
+Version-/Lost-Update-Schutz
+Testplan fuer spaetere read-only Diagnose
+Backup-/Rollback-Regeln
+empfohlene Folge ab RDAP11
+```
+
+RDAP10 hat keine produktive Funktion aktiviert.
+
 ## Server-Ordnerregel
 
 Nicht mehr verwenden:
@@ -169,7 +192,7 @@ StepDone erst nach Einspielen/Deploy/Test.
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY
+RDAP11_LOCK_AUDIT_READONLY_DIAGNOSTIC
 ```
 
-Nur planen/vorbereiten. Noch keine produktiven Writes, keine Agent-Actions, kein Login ohne eigenen Scope und ausdrueckliches go.
+Nur read-only Diagnose planen und danach separat bauen. Noch keine produktiven Writes, keine Agent-Actions, kein Login, keine Cookies und keine Sessions ohne eigenen Scope und ausdrueckliches go.

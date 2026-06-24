@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
+Stand: RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY  
 Datum: 2026-06-24
 
 ## Aktueller Stand
@@ -21,6 +21,7 @@ RDAP8 Permission Check Middleware Plan dokumentiert
 RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 RDAP8B Permission Resolver Live Deploy/Test dokumentiert
 RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
+RDAP10 Lock-/Audit-Implementierungsplan read-only dokumentiert
 ```
 
 Remote-Modboard bleibt read-only:
@@ -48,7 +49,7 @@ RDAP8A/RDAP8B bestaetigt:
 ```text
 GET /api/remote/status -> statusApiVersion=rdap8a.v1
 GET /api/remote/routes -> /api/remote/auth/permissions/check vorhanden
-GET /api/remote/auth/permissions/check?permission=remote.view -> allowed=false, reason=auth_disabled_or_not_logged_in
+GET /api/remote/auth/permissions/check?permission=remote.view -> allowed=false, reason auth_disabled_or_not_logged_in
 GET /api/remote/auth/twitch/start -> HTTP 403
 GET /api/remote/auth/twitch/callback -> HTTP 403
 kein Redirect
@@ -60,24 +61,22 @@ keine Agent-Actions
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY
+RDAP11_LOCK_AUDIT_READONLY_DIAGNOSTIC
 ```
 
 Ziel:
 
 ```text
-Auf Basis von RDAP9 einen konkreten Implementierungsplan fuer Lock-/Audit-Helper, API-Routen, Tabellenpruefung und read-only Diagnose vorbereiten.
+Nur read-only Diagnose-Routen fuer Locks/Audit/Write-Safety planen und danach separat bauen.
 ```
 
-RDAP10 darf erst nach eigenem Scope und ausdruecklichem go:
+RDAP11 darf erst nach eigenem Scope und ausdruecklichem go:
 
 ```text
 echte Remote-Modboard-Dateien erneut pruefen
-bestehende DB-Migrationsdokus und Tabellenstruktur erneut pruefen
-konkrete Lock-Helper-/Audit-Helper-Struktur planen
-konkrete API-Routen fuer spaetere Locks/Audit planen
-Transaktions-/Fehlerfall-Konzept planen
-read-only Diagnose-Endpunkte planen, falls sinnvoll
+bestehende RDAP-Dokus/DB-Migrationen erneut pruefen
+bestehende Routenstruktur erneut pruefen
+read-only Diagnose-Routen fuer Locks/Audit/Write-Safety bauen
 keine produktiven Writes bauen
 keine User-/Rollen-/Gruppen-Schreibrouten bauen
 keine Agent-Actions aktivieren
@@ -108,11 +107,17 @@ keine produktive Permission-Erzwingung fuer Writes
 ## Danach moeglich, nicht jetzt
 
 ```text
-RDAP11 Agent-Handshake/Allowlist-Plan
-RDAP12 Login/OAuth Aktivierungsplan nur nach Security-Freigabe
-RDAP13 erste geschuetzte Schreibroute nur nach Login + Permission + Lock + Audit + Confirm + Backup/Rollback
+RDAP12_LOCK_AUDIT_SCHEMA_VALIDATE_READONLY
+RDAP13_SESSION_LOGIN_ENABLE_PLAN
+RDAP14 Login/OAuth Aktivierungsplan nur nach Security-Freigabe
+RDAP15 erste geschuetzte Write-Route als blockierter Dry-Run
+RDAP16 erste produktive Write-Route nur nach Login + Permission + Lock + Audit + Confirm + Backup/Rollback
 ```
 
 ## Arbeitsregel
 
-Nur EIN Arbeitsort pro Schritt. Keine Server-/PowerShell-/DB-Schritte mischen. Keine RDAP-Arbeitsordner mehr in `/root`.
+Nur EIN Arbeitsort pro Schritt.
+
+Keine Server-/PowerShell-/DB-Schritte mischen.
+
+Keine RDAP-Arbeitsordner mehr in `/root`.

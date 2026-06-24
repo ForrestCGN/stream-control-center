@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
+Stand: RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY  
 Datum: 2026-06-24
 
 ## Erledigt
@@ -46,23 +46,27 @@ Datum: 2026-06-24
 - [x] RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 - [x] RDAP8B Permission Resolver Live Deploy/Test dokumentiert
 - [x] RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
+- [x] RDAP10 Lock-/Audit-Implementierungsplan read-only dokumentiert
 
 ## Noch offen / als naechstes
 
-### RDAP10 Lock-/Audit-Implementierungsplan read-only
+### RDAP11 Lock-/Audit read-only Diagnose
 
 - [ ] echte Remote-Modboard-Dateien und RDAP-Dokus erneut pruefen
 - [ ] vorhandene Tabellen `dashboard_locks` und `dashboard_audit_log` aus RDAP6C/RDAP6K gegen echten Stand pruefen
-- [ ] konkrete Lock-Helper-Struktur planen
-- [ ] konkrete Audit-Helper-Struktur planen
-- [ ] konkrete API-Routen fuer spaetere Lock-/Audit-Funktionen planen
-- [ ] Transaktions-/Fehlerfall-Konzept fuer MariaDB planen
-- [ ] Confirm-/Safety-Parameter standardisieren
-- [ ] read-only Diagnose fuer Locks/Audit nur planen oder separat freigeben
-- [ ] keine produktiven Writes bauen
-- [ ] keine Agent-Actions aktivieren
-- [ ] keine OBS-/Sound-/Overlay-/Command-Steuerung bauen
-- [ ] kein Login-/Cookie-/Session-Erstellung aktivieren
+- [ ] vorhandene Routenstruktur erneut pruefen
+- [ ] read-only Diagnose-Route fuer Locks planen/bauen
+- [ ] read-only Diagnose-Route fuer Audit planen/bauen
+- [ ] read-only Diagnose-Route fuer Write-Safety planen/bauen
+- [ ] sicherstellen: `readOnly=true`
+- [ ] sicherstellen: `writeEnabled=false`
+- [ ] sicherstellen: `databaseWriteEnabled=false`
+- [ ] sicherstellen: `agentActionsEnabled=false`
+- [ ] sicherstellen: keine produktiven Writes
+- [ ] sicherstellen: keine Agent-Actions
+- [ ] sicherstellen: kein Login
+- [ ] sicherstellen: keine Cookies
+- [ ] sicherstellen: keine Sessions
 
 ### Spaeter
 

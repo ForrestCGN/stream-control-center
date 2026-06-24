@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
+Stand: RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY  
 Datum: 2026-06-24
 
 ## Wichtigste Dateien zuerst
@@ -21,6 +21,7 @@ docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
 docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
 docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md
+docs/current/RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY.md
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -50,6 +51,7 @@ docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
 docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
 docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md
+docs/current/RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY.md
 ```
 
 ## Remote-Modboard Paket im Repo
@@ -111,6 +113,20 @@ Reiner Konzept-/Doku-Step, kein Backend-Code:
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
+
+## RDAP10 geaenderte Dateien
+
+Reiner Implementierungsplan-/Doku-Step, kein Backend-Code:
+
+```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

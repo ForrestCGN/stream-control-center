@@ -1,13 +1,15 @@
 # CURRENT STATUS
 
-Stand: RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES  
+Stand: RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY  
 Datum: 2026-06-24
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP9 dokumentiert das Lock-/Audit-/Confirm-/Permission-Konzept fuer spaetere produktive Remote-Modboard-Writes.
+RDAP10 dokumentiert den konkreten read-only Implementierungsplan fuer spaetere Lock-/Audit-Funktionen im Remote-Modboard.
 
-RDAP9 ist ein reiner Doku-/Planungsstand. Es wurde kein Backend-Code geaendert, kein Login aktiviert, kein OAuth aktiviert, kein Cookie gesetzt, keine Session erstellt, keine Session verlaengert, kein `last_seen_at` Update gebaut, keine DB-Schreibaktion ausgefuehrt, keine Remote-Write-Route gebaut und keine Agent-Action aktiviert.
+RDAP10 ist ein reiner Doku-/Planungsstand.
+
+Es wurde kein Backend-Code geaendert, kein Login aktiviert, kein OAuth aktiviert, kein Cookie gesetzt, keine Session erstellt, keine Session verlaengert, kein `last_seen_at` Update gebaut, keine DB-Schreibaktion ausgefuehrt, keine Remote-Write-Route gebaut und keine Agent-Action aktiviert.
 
 Das Remote-Modboard laeuft weiterhin produktiv read-only.
 
@@ -42,6 +44,7 @@ RDAP8 Permission Check Middleware Plan dokumentiert
 RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 RDAP8B Permission Resolver Live Deploy/Test dokumentiert
 RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
+RDAP10 Lock-/Audit-Implementierungsplan read-only dokumentiert
 ```
 
 ## RDAP8A/RDAP8B live bestaetigt
@@ -67,8 +70,7 @@ Listen intern: 127.0.0.1:3010
 Status:
 
 ```text
-GET /api/remote/status
-ok=true
+GET /api/remote/status ok=true
 statusApiVersion=rdap8a.v1
 readOnly=true
 writeEnabled=false
@@ -138,6 +140,25 @@ Audit speichert keine Secrets, keine Tokens, keine Cookies und keine sensiblen R
 Version-/Lost-Update-Schutz soll Locks ergaenzen.
 ```
 
+## RDAP10 Implementierungsplan zusammengefasst
+
+RDAP10 legt fest:
+
+```text
+geplante Lock-/Audit-Service-Struktur
+geplante read-only Diagnose-Routen
+Permission-Gate-Reihenfolge
+Confirm-/Safety-Gate-Regeln
+Request-/Correlation-ID-Konzept
+MariaDB-Transaktions-/Fehlerfall-Konzept
+Version-/Lost-Update-Schutz
+Testplan fuer spaetere read-only Diagnose
+Backup-/Rollback-Regeln
+empfohlene Folge ab RDAP11
+```
+
+RDAP10 bleibt reiner Doku-/Plan-Step.
+
 ## Bestaetigter Sicherheitsstatus bleibt
 
 ```text
@@ -182,3 +203,19 @@ DB-Typ: MariaDB 11.8.6
 ```
 
 Passwort wird nicht dokumentiert und darf nicht ins Repo, Frontend oder Chat.
+
+## Naechster sinnvoller Schritt
+
+```text
+RDAP11_LOCK_AUDIT_READONLY_DIAGNOSTIC
+```
+
+Ziel:
+
+```text
+Nur read-only Diagnose-Routen fuer Locks/Audit/Write-Safety vorbereiten.
+Noch keine produktiven Writes.
+Noch kein Login.
+Noch keine Sessions.
+Noch keine Agent-Actions.
+```
