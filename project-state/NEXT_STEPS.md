@@ -1,33 +1,43 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION  
+Stand: RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED  
 Datum: 2026-06-24
 
-## Sofort: RDAP6 einspielen
+## Sofort: RDAP7 einspielen
 
 1. ZIP lokal einspielen:
 
 ```powershell
 cd D:\Git\stream-control-center
 
-.\installstep.cmd "$env:USERPROFILE\Downloads\RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION.zip" "RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION: Confirm-/Audit-/Locking-Foundation read-only vorbereitet, keine produktiven Writes"
+.\installstep.cmd "$env:USERPROFILE\Downloads\RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED.zip" "RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED: Confirm-Write-Helper vorbereitet, produktive Admin-Writes bleiben deaktiviert"
 ```
 
 2. Lokale Checks:
 
 ```powershell
+node --check .\remote-modboard\backend\server.js
+node --check .\remote-modboard\backend\src\services\admin-confirm-write.service.js
 node --check .\remote-modboard\backend\src\services\admin-user-write-foundation.service.js
-node --check .\remote-modboard\backend\src\routes\admin-users.routes.js
 node --check .\remote-modboard\backend\src\routes\routes.routes.js
+node --check .\remote-modboard\backend\src\routes\status.routes.js
 node -e "JSON.parse(require('fs').readFileSync('.\remote-modboard\backend\package.json','utf8')); console.log('package.json ok')"
 
 git status
 ```
 
+Optional im Backend-Ordner:
+
+```powershell
+cd .\remote-modboard\backend
+npm run check
+cd ..\..
+```
+
 3. Wenn sauber:
 
 ```powershell
-.\stepdone.cmd "RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION abgeschlossen: Confirm-/Audit-/Locking-Foundation read-only vorbereitet; keine User-/Rollen-/Gruppen-/Session-Writes, keine DB-Migration, keine UI-Schreibbuttons"
+.\stepdone.cmd "RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED abgeschlossen: Confirm-Write-Helper vorbereitet; produktive Admin-Writes bleiben deaktiviert; keine User-/Rollen-/Gruppen-/Session-Writes, keine DB-Migration, keine UI-Schreibbuttons"
 ```
 
 ## Danach Webserver-Deploy
@@ -37,13 +47,13 @@ Erst nach `stepdone.cmd`:
 ```bash
 cd /opt/stream-control-center/_deploy_tmp
 
-rm -rf RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+rm -rf RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
 
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
 
-cd RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+cd RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
 
-sudo bash tools/remote-modboard-deploy.sh RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION dev
+sudo bash tools/remote-modboard-deploy.sh RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED dev
 ```
 
 Restart + Readiness:
@@ -64,34 +74,50 @@ Server-Test:
 
 ```bash
 curl -i http://127.0.0.1:3010/api/remote/status
-curl -fsS http://127.0.0.1:3010/api/remote/routes | grep -i "write-foundation"
-curl -i http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic
+curl -fsS http://127.0.0.1:3010/api/remote/routes | grep -i "confirm"
+curl -fsS http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic | jq '.moduleBuild,.statusApiVersion,.confirmWriteHelperPrepared,.confirmWriteHelperExecutesWrites,.writesStillBlocked,.confirmWriteDiagnostic.examples.missingConfirm.reason,.confirmWriteDiagnostic.examples.confirmWriteTrue.reason'
 ```
 
 Erwartung:
 
 ```text
-HTTP 200
-readOnly: true
-writeEnabled: false
+RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
+rdap_admin_users7.v1
+confirmWriteHelperPrepared: true
+confirmWriteHelperExecutesWrites: false
 writesStillBlocked: true
-confirmWriteRequired: true
-auditRequired: true
-lockingRequired: true
+confirm_write_required
+confirm_write_accepted_but_writes_disabled
 ```
 
 ## Danach empfohlen
 
 ```text
-RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
+RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED
 ```
 
 Scope klein:
 
-- Confirm-Write-Helfer vorbereiten.
-- Produktive Writes weiter blockiert lassen.
-- Audit-/Locking-Pflicht weiter vorbereiten.
+- Audit-Helper vorbereiten.
+- Produktive Audit-/Admin-Writes weiter blockiert lassen.
+- Keine DB-Migration ohne Backup/Rollback/Go.
 - Keine echten User-/Rollen-/Gruppen-Writes.
+
+## UI/Navi-Cleanup separat planen
+
+Sidebar spaeter logisch bereinigen:
+
+```text
+System
+Module
+Admin
+  - Benutzer
+  - Rollen & Rechte
+  - Zugriff
+  - Sicherheit
+```
+
+Nicht in RDAP7 enthalten.
 
 ## Geparkt
 
@@ -99,12 +125,12 @@ Scope klein:
 RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
 
-Ziel später:
+Ziel spaeter:
 
 - Online + Lokal/LAN-Betrieb.
 - ForrestCGN und EngelCGN lokal im LAN.
-- Lokaler Login ebenfalls über Twitch.
-- Erst weiterführen, wenn Web-Dashboard stabiler ist.
+- Lokaler Login ebenfalls ueber Twitch.
+- Erst weiterfuehren, wenn Web-Dashboard stabiler ist.
 
 ## Webserver-Deploy-Regel
 

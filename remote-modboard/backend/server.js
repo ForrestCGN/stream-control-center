@@ -3,14 +3,14 @@
 const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 
-const MODULE_BUILD = 'RDAP_META1_BUILD_HEADER_CLEANUP';
+const MODULE_BUILD = 'RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED';
 
 async function main() {
   const config = loadConfig();
   const app = createApp({ config, moduleBuild: MODULE_BUILD });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] ${MODULE_BUILD} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] meta-cleanup=true read-only-ui=true remoteWrites=false agentActions=false');
+    console.log('[remote-modboard] confirm-write-helper=prepared-disabled read-only-ui=true remoteWrites=false agentActions=false');
   });
 
   process.on('SIGTERM', () => shutdown(server, 'SIGTERM'));

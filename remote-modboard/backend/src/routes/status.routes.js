@@ -17,7 +17,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_meta1.v1',
+      statusApiVersion: 'rdap_admin_users7.v1',
       readOnly: !authEnabled,
       writeEnabled: false,
       actionEnabled: false,
@@ -75,6 +75,7 @@ function registerStatusRoutes(app, context) {
           readOnlyResolverPrepared: true,
           diagnosticCheckRoutePrepared: true,
           adminUsersPermissionDiagnosticPrepared: true,
+          adminUsersConfirmWriteHelperPrepared: true,
           checkRouteEnabled: true,
           productiveAuthorizationEnabled: false,
           backendMustDecideRights: true,
@@ -82,12 +83,23 @@ function registerStatusRoutes(app, context) {
           writesRequirePermissionLockAudit: true
         },
         notes: [
-          'META1 bereinigt Build-/Header-Metadaten, damit neue Steps nicht mehr als RDAP_AUTH2 erscheinen.',
+          'RDAP_ADMIN_USERS7 bereitet einen Confirm-Write-Helper vor, aber produktive Admin-Writes bleiben deaktiviert.',
           'Twitch Login und Session-Handling bleiben aktiv und unveraendert.',
           'RDAP5 Admin-User-Permission-Diagnose bleibt read-only verfuegbar.',
+          'RDAP6 Write-Foundation-Diagnose bleibt read-only verfuegbar.',
           'Login-Daten, Twitch-Tokens oder Sessionwerte duerfen nicht im Frontend oder in Links weitergereicht werden.',
           'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.'
         ]
+      },
+      adminUsersWriteFoundation: {
+        routePrepared: true,
+        confirmWriteHelperPrepared: true,
+        confirmWriteHelperEnabledForRealWrites: false,
+        productiveWritesEnabled: false,
+        writesStillBlocked: true,
+        auditRequiredForFutureWrites: true,
+        lockingRequiredForFutureWrites: true,
+        backupRequiredBeforeFutureWrites: true
       },
       database: db,
       agent: {
@@ -101,6 +113,7 @@ function registerStatusRoutes(app, context) {
         active: false,
         diagnosticReadOnlyResolverPrepared: true,
         adminUsersPermissionDiagnosticPrepared: true,
+        adminUsersConfirmWriteHelperPrepared: true,
         plannedModel: 'RDAP5C3 roles-and-groups-separated',
         rolesAreSeparateFromGroups: true,
         soundProfiIsRole: false,
