@@ -1,17 +1,19 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_UI1_LIVE_CONFIRMED
+Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
 Datum: 2026-06-24
 
 ## Aktueller bestätigter Arbeitsstand
 
-RDAP UI1 ist live abgeschlossen und auf GitHub/dev per `stepdone.cmd` bestätigt.
+RDAP UI1 ist live abgeschlossen und auf GitHub/dev bestätigt.
 
-Bestätigter Step:
+Zusätzlich vorbereitet:
 
 ```text
-RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
+RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
 ```
+
+Dieser Step dokumentiert und standardisiert den Server-Deploy des Remote-Modboards.
 
 ## Bestätigte Live-Basis
 
@@ -39,28 +41,49 @@ Header: x-remote-modboard-ui: readonly
 SSL/Let's Encrypt: ok
 ```
 
-Die erste sichtbare Remote-Modboard-Seite zeigt read-only Diagnoseinformationen:
+## Server-/Deploy-Erkenntnis
 
-- Service-Status
-- Sicherheitsstatus
-- Login/OAuth disabled
-- Writes disabled
-- Agent-Actions disabled
-- Routenübersicht
-- Lock-/Audit-Diagnose
-
-## Bestätigte Diagnose-Routen
+Wichtig für weitere RDAP-Arbeiten:
 
 ```text
-GET /api/remote/status
-GET /api/remote/routes
-GET /api/remote/auth/me
-GET /api/remote/auth/permissions/check?permission=remote.view
-GET /api/remote/lock-audit/status
-GET /api/remote/lock-audit/status?db=1
-GET /api/remote/lock-audit/schema-adapter/status
-GET /api/remote/lock-audit/schema-adapter/status?db=1
+/opt/stream-control-center ist auf dem Webserver kein Git-Repository.
 ```
+
+Produktiver Remote-Modboard-Code:
+
+```text
+/opt/stream-control-center/remote-modboard
+/opt/stream-control-center/remote-modboard/backend
+```
+
+Standard-Deploy ab diesem Stand:
+
+```text
+tools/remote-modboard-deploy.sh
+```
+
+Deploy-Ablauf:
+
+```text
+GitHub/dev Clone nach /opt/stream-control-center/_deploy_tmp/
+Backup nach /opt/stream-control-center/_runtime_tmp/
+rsync remote-modboard/ nach /opt/stream-control-center/remote-modboard/
+chown sccremote:sccremote
+node --check
+systemctl restart scc-remote-modboard.service
+Readiness-Wait
+API/UI/OAuth-403 Tests
+```
+
+## ISPConfig/Nginx
+
+`mods.forrestcgn.de` ist als eigener ISPConfig-Web-vHost angelegt und proxyt vollständig auf:
+
+```text
+http://127.0.0.1:3010/
+```
+
+Nicht wieder als normale Subdomain unter `forrestcgn.de` anlegen.
 
 ## OAuth bleibt deaktiviert
 
@@ -85,43 +108,6 @@ agentActionsEnabled=false
 lockAcquireEnabled=false
 auditInsertEnabled=false
 ```
-
-UI1 hat keine produktive Steuerung aktiviert.
-
-## Server-/Deploy-Erkenntnis
-
-Wichtig für weitere RDAP-Arbeiten:
-
-```text
-/opt/stream-control-center ist auf dem Webserver kein Git-Repository.
-```
-
-Der produktive Remote-Modboard-Code liegt unter:
-
-```text
-/opt/stream-control-center/remote-modboard
-/opt/stream-control-center/remote-modboard/backend
-```
-
-Der Deploy für UI1 lief über:
-
-```text
-GitHub/dev Clone nach /opt/stream-control-center/_deploy_tmp/
-Backup nach /opt/stream-control-center/_runtime_tmp/
-rsync nach /opt/stream-control-center/remote-modboard/
-systemctl restart scc-remote-modboard.service
-Readiness-Wait vor Tests
-```
-
-## ISPConfig/Nginx
-
-`mods.forrestcgn.de` wurde als eigener ISPConfig-Web-vHost angelegt und proxyt vollständig auf:
-
-```text
-http://127.0.0.1:3010/
-```
-
-Dadurch zeigt `https://mods.forrestcgn.de/` direkt die Node-UI.
 
 ## Weiterhin verboten
 

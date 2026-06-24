@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
 
-Stand: RDAP_UI1_LIVE_CONFIRMED
+Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -14,6 +14,7 @@ project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
 docs/current/RDAP_UI1_LIVE_CONFIRMED.md
+docs/current/RDAP_DEPLOY_RUNBOOK.md
 ```
 
 ## Aktueller bestätigter Stand
@@ -23,6 +24,12 @@ RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
 ```
 
 RDAP UI1 wurde live getestet und per `stepdone.cmd` nach GitHub/dev bestätigt.
+
+Aktueller Arbeitsfokus:
+
+```text
+RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+```
 
 ## Live-Basis
 
@@ -102,7 +109,13 @@ Produktiver Remote-Modboard-Code:
 /opt/stream-control-center/remote-modboard/backend
 ```
 
-Bewährter Deploy-Weg aus UI1:
+Standard-Deploy-Script:
+
+```text
+tools/remote-modboard-deploy.sh
+```
+
+Deploy-Ablauf:
 
 ```text
 GitHub/dev Clone nach /opt/stream-control-center/_deploy_tmp/
@@ -113,6 +126,7 @@ node --check
 systemctl restart scc-remote-modboard.service
 Readiness-Wait
 curl Tests
+OAuth 403 Safety-Check
 ```
 
 Keine RDAP-Arbeitsordner/Deploy-Clones/Backups in `/root`.
@@ -160,16 +174,13 @@ command:twitch:clip
 Empfohlen:
 
 ```text
-RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
+RDAP_DEPLOY_SCRIPT_LIVE_TEST
 ```
 
 Ziel:
 
-- Server-Deploy-Ablauf für `remote-modboard` dokumentieren oder als sicheres Script vorbereiten
-- kein Git-Pull im falschen Ordner
-- GitHub/dev -> `_deploy_tmp` -> Backup -> `rsync` nach Live
-- Rechte/Syntaxcheck/Restart/Readiness/API/UI/OAuth-403 Tests
-- danach UI2 read-only Komfort planen
+- `tools/remote-modboard-deploy.sh` einmal auf dem Webserver testen
+- danach erst UI2 read-only Komfort planen
 
 ## Weiterhin verboten
 

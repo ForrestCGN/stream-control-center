@@ -1,5 +1,48 @@
 # CHANGELOG - stream-control-center
 
+## 2026-06-24 - RDAP Deploy Runbook / Remote-Modboard Serverdeploy standardisiert
+
+Status: Script-/Doku-Step vorbereitet
+
+Geändert:
+
+- `tools/remote-modboard-deploy.sh`
+- `docs/current/RDAP_DEPLOY_RUNBOOK.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+- `project-state/CHANGELOG.md`
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`
+
+Inhalt:
+
+- Server-Deploy-Ablauf für Remote-Modboard festgelegt
+- kein `git pull` in `/opt/stream-control-center`
+- GitHub/dev Clone nach `_deploy_tmp`
+- Backup nach `_runtime_tmp`
+- `rsync` nur von `remote-modboard/` nach Live
+- Rechte setzen auf `sccremote:sccremote`
+- JS-Syntaxcheck
+- Restart von `scc-remote-modboard.service`
+- Readiness-Wait
+- lokale/public API- und UI-Tests
+- OAuth Start/Callback Safety-Test auf HTTP 403
+- Rollback-Hinweise dokumentiert
+
+Keine Änderung:
+
+- kein Login aktiviert
+- kein OAuth aktiviert
+- keine Cookies gesetzt
+- keine Sessions erstellt
+- keine DB-Writes
+- keine Migration
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine Secrets
+
 ## 2026-06-24 - RDAP UI1 / Remote-Modboard erste sichtbare read-only UI live
 
 Status: Live getestet und per `stepdone.cmd` nach GitHub/dev bestätigt
@@ -54,39 +97,3 @@ Keine Änderung:
 - keine Agent-Actions
 - keine OBS-/Sound-/Overlay-/Command-Steuerung
 - keine Secrets
-
-## 2026-06-24 - RDAP16 / Handoff Visible Next vorbereitet
-
-Status: Doku-/Handoff-Step vorbereitet
-
-Geändert:
-
-- `docs/current/RDAP16_HANDOFF_VISIBLE_NEXT.md`
-- `docs/current/NEXT_CHAT_PROMPT_RDAP_UI1.txt`
-- `docs/current/START_HERE_FOR_NEW_CHAT.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/FILES.md`
-- `project-state/CHANGELOG.md`
-
-Inhalt:
-
-- RDAP15 Abschluss konsolidiert
-- Live-Basis Remote-Modboard dokumentiert
-- Read-only Diagnose-Routen dokumentiert
-- OAuth disabled dokumentiert
-- Strukturregel dokumentiert: vorhandene Module nutzen
-- Server-Regel dokumentiert: Restart-Wait/Retry
-- nächster Fokus auf sichtbare UI gelegt
-
-Keine Änderung:
-
-- kein Backend-Code
-- keine DB-Änderung
-- keine Migration
-- kein Login
-- kein OAuth
-- keine Sessions
-- keine Writes
-- keine Agent-Actions

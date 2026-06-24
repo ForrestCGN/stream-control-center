@@ -1,7 +1,14 @@
 # FILES - stream-control-center
 
-Stand: RDAP_UI1_LIVE_CONFIRMED
+Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
 Datum: 2026-06-24
+
+## RDAP Deploy relevante Dateien
+
+```text
+tools/remote-modboard-deploy.sh
+docs/current/RDAP_DEPLOY_RUNBOOK.md
+```
 
 ## RDAP UI1 relevante Dateien
 
@@ -43,9 +50,8 @@ remote-modboard/backend/src/security/safety.js
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
-docs/current/RDAP16_HANDOFF_VISIBLE_NEXT.md
 docs/current/RDAP_UI1_LIVE_CONFIRMED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_UI1.txt
+docs/current/RDAP_DEPLOY_RUNBOOK.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -94,4 +100,4 @@ Nginx/ISPConfig proxyt den vHost vollständig auf:
 http://127.0.0.1:3010/
 ```
 
-Die alte normale Subdomain unter `forrestcgn.de` darf nicht wieder als normale Subdomain angelegt werden, sonst liefert `/` wieder die normale Webseite statt der Remote-Modboard-UI.
+Die alte normale Subdomain unter `forrestcgn.de` darf nicht wieder als normale Subdomain angelegt werden.

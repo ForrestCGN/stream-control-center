@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_UI1_LIVE_CONFIRMED
+Stand: RDAP_DEPLOY_RUNBOOK_OR_SCRIPT
 Datum: 2026-06-24
 
 ## Erledigt
@@ -25,12 +25,13 @@ Datum: 2026-06-24
 - [x] RDAP_UI1 live unter `https://mods.forrestcgn.de/` sichtbar getestet
 - [x] RDAP_UI1 SSL/Let's Encrypt für `mods.forrestcgn.de` bestätigt
 - [x] RDAP_UI1 OAuth Start/Callback bleiben HTTP 403
+- [x] RDAP Deploy-Runbook oder Server-Deploy-Script für Remote-Modboard erstellt/dokumentiert
+- [x] Festhalten: `/opt/stream-control-center` ist kein Git-Repo
+- [x] Festhalten: Deploy läuft über GitHub/dev Clone nach `_deploy_tmp` und `rsync` nach `remote-modboard`
 
 ## Als nächstes
 
-- [ ] RDAP Deploy-Runbook oder Server-Deploy-Script für Remote-Modboard erstellen/dokumentieren
-- [ ] Festhalten: `/opt/stream-control-center` ist kein Git-Repo
-- [ ] Festhalten: Deploy läuft über GitHub/dev Clone nach `_deploy_tmp` und `rsync` nach `remote-modboard`
+- [ ] RDAP Deploy-Script einmal live testen
 - [ ] Danach UI2 read-only Komfort planen
 
 ## Dauerhafte Verbote bis eigener Scope
