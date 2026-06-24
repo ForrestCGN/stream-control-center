@@ -23,7 +23,7 @@ const pageTitles = {
   diagnostics: 'Diagnose',
   routes: 'Routen',
   account: 'Mein Login',
-  permissions: 'Rechte-Diagnose',
+  permissions: 'Rechte',
   modules: 'Module'
 };
 
@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('refreshButton').addEventListener('click', () => loadDashboard('manual'));
   byId('clearErrorsButton').addEventListener('click', hideErrors);
   byId('logoutButton').addEventListener('click', logout);
+  byId('deniedLogoutButton').addEventListener('click', logout);
   startAutoRefresh();
   loadDashboard('initial');
 });
@@ -84,10 +85,8 @@ function startAutoRefresh() {
 }
 
 function stopAutoRefresh() {
-  if (refreshTimer) {
-    window.clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
+  if (refreshTimer) window.clearInterval(refreshTimer);
+  refreshTimer = null;
 }
 
 async function loadDashboard(reason) {
@@ -95,7 +94,8 @@ async function loadDashboard(reason) {
   isLoading = true;
   refreshCountdown = AUTO_REFRESH_SECONDS;
   updateAutoRefreshText('lädt…');
-  byId('refreshButton').disabled = true;
+  const refreshButton = byId('refreshButton');
+  if (refreshButton) refreshButton.disabled = true;
 
   const entries = await Promise.all(Object.entries(endpoints).map(async ([key, url]) => {
     const result = await getJson(url);
@@ -104,7 +104,7 @@ async function loadDashboard(reason) {
 
   const results = Object.fromEntries(entries);
 
-  renderAuthGate(results.authMe, results.status);
+  renderScenes(results.authMe, results.status);
   renderStatus(results.status);
   renderSecurity(results.status, results.lockAudit);
   renderRoutes(results.routes);
@@ -114,10 +114,10 @@ async function loadDashboard(reason) {
   renderQuickStatus(results);
   renderErrors(results);
 
-  byId('lastUpdatedText').textContent = `Aktualisiert: ${new Date().toLocaleString('de-DE')} · ${reason || 'load'}`;
+  setText('lastUpdatedText', `Aktualisiert: ${new Date().toLocaleString('de-DE')} · ${reason || 'load'}`);
 
   isLoading = false;
-  byId('refreshButton').disabled = false;
+  if (refreshButton) refreshButton.disabled = false;
   updateAutoRefreshText();
 }
 
@@ -149,7 +149,6 @@ async function getJson(url) {
 }
 
 async function logout() {
-  byId('logoutButton').disabled = true;
   try {
     await fetch('/api/remote/auth/logout', {
       method: 'POST',
@@ -158,28 +157,29 @@ async function logout() {
       headers: { 'Accept': 'application/json' }
     });
   } catch (err) {}
-  await loadDashboard('logout');
-  byId('logoutButton').disabled = false;
+  window.location.href = '/';
 }
 
-function renderAuthGate(authMe, status) {
+function renderScenes(authMe, status) {
   const authBody = authMe.body || {};
   const statusBody = status.body || {};
   const authEnabled = Boolean(statusBody.auth && statusBody.auth.loginEnabled);
   const loggedIn = Boolean(authBody.loggedIn);
+  const allowed = Boolean(authBody.dashboardAccess);
+  const user = authBody.user || null;
 
-  byId('authGate').hidden = loggedIn || !authEnabled;
-  byId('dashboardContent').hidden = authEnabled && !loggedIn;
+  byId('loginScene').hidden = authEnabled ? loggedIn : true;
+  byId('deniedScene').hidden = !(authEnabled && loggedIn && !allowed);
+  byId('dashboardScene').hidden = authEnabled ? !allowed : false;
 
-  if (!authEnabled) {
-    byId('dashboardContent').hidden = false;
+  if (loggedIn && !allowed) {
+    setText('deniedUserText', `${user ? (user.displayName || user.loginName || user.userUid) : 'Dieser Twitch-Account'} ist angemeldet, aber noch nicht freigeschaltet. Grund: ${authBody.accessReason || 'not_allowed'}.`);
   }
 }
 
 function renderStatus(result) {
   const body = result.body || {};
   const auth = body.auth || {};
-
   setBadge('statusPill', result.ok, result.ok ? 'online' : 'Fehler');
   setValue('statusOk', body.ok);
   setValue('statusAuthEnabled', auth.enabled);
@@ -196,7 +196,7 @@ function renderQuickStatus(results) {
   const agent = statusBody.agent || {};
 
   setQuick('quickService', results.status && results.status.ok, results.status && results.status.ok ? 'online' : 'prüfen');
-  setQuick('quickLogin', authMe.loggedIn === true || auth.loginEnabled === true, authMe.loggedIn ? 'eingeloggt' : (auth.loginEnabled ? 'bereit' : 'gated'));
+  setQuick('quickLogin', authMe.dashboardAccess === true, authMe.dashboardAccess ? 'freigegeben' : (authMe.loggedIn ? 'gesperrt' : 'Login'));
   setQuick('quickOAuth', oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'aktiv' : 'gated');
   setQuick('quickAgent', agent.actionsEnabled === false, 'disabled');
 }
@@ -204,17 +204,14 @@ function renderQuickStatus(results) {
 function renderSecurity(status, lockAudit) {
   const statusBody = status.body || {};
   const lockBody = lockAudit.body || {};
-  const auth = statusBody.auth || {};
-  const oauth = auth.twitchOAuth || {};
   const agent = statusBody.agent || {};
-
   const items = [
-    ['Login aktiv/gated kontrolliert', auth.loginEnabled === true || auth.enabled === false],
-    ['OAuth aktiv/gated kontrolliert', oauth.effectiveEnabled === true || oauth.startRouteEnabled === false],
+    ['Dashboard-Zugriff serverseitig geprüft', true],
+    ['Login-Gate aktiv', true],
+    ['Access-Denied für nicht freigeschaltete User', true],
     ['Remote-Writes disabled', statusBody.writeEnabled === false && lockBody.writeEnabled === false],
     ['Agent-Actions disabled', agent.actionsEnabled === false || lockBody.agentActionsEnabled === false],
-    ['OBS/Sound/Overlay/Commands disabled', true],
-    ['last_seen_at Update disabled in AUTH1', true]
+    ['OBS/Sound/Overlay/Commands disabled', true]
   ];
 
   byId('securityList').innerHTML = items.map(([label, ok]) => {
@@ -229,7 +226,6 @@ function renderLockAudit(lockAudit, schemaAdapter) {
   const schemaBody = schemaAdapter.body || body;
   const locks = body.locks || {};
   const audit = body.audit || {};
-
   setBadge('lockAuditPill', lockAudit.ok, lockAudit.ok ? 'read-only ok' : 'prüfen');
   setValue('schemaAdapterPrepared', schemaBody.schemaAdapterPrepared);
   setValue('locksRead', getNested(locks, ['adapter', 'compatibleForRead']));
@@ -244,7 +240,6 @@ function renderLockAudit(lockAudit, schemaAdapter) {
 function renderRoutes(result) {
   const routes = (result.body && Array.isArray(result.body.routes)) ? result.body.routes : [];
   setBadge('routesPill', result.ok, result.ok ? `${routes.length} Routen` : 'Fehler');
-
   byId('routesList').innerHTML = routes.map(route => `
     <div class="route">
       <span class="method">${escapeHtml(route.method || 'GET')}</span>
@@ -259,48 +254,29 @@ function renderRoutes(result) {
 function renderAuth(authMe, permission, status) {
   const authBody = authMe.body || {};
   const permissionBody = permission.body || {};
-  const statusBody = status.body || {};
-  const loginEnabled = Boolean(statusBody.auth && statusBody.auth.loginEnabled);
-  const loggedIn = Boolean(authBody.loggedIn);
   const user = authBody.user || null;
 
+  setText('loginStateText', authBody.dashboardAccess ? `Angemeldet als ${user ? (user.displayName || user.loginName || user.userUid) : 'Twitch-User'}` : 'Nicht freigegeben');
   setValue('authLoggedIn', authBody.loggedIn);
+  setValue('dashboardAccess', authBody.dashboardAccess);
+  setText('accessReason', authBody.accessReason || '—');
   setText('authUser', user ? `${user.displayName || user.loginName || user.userUid} (${user.userUid})` : '—');
   setText('authRoles', formatList(authBody.roles));
   setText('authSessionReason', authBody.session ? authBody.session.reason : '—');
   setValue('permissionAllowed', permissionBody.allowed);
-  setText('permissionReason', permissionBody.reason || authBody.reason || (loggedIn ? 'logged_in' : '—'));
-
-  if (loggedIn) {
-    byId('loginStateText').textContent = `Angemeldet als ${user && (user.displayName || user.loginName || user.userUid) ? (user.displayName || user.loginName || user.userUid) : 'Twitch-User'}`;
-    byId('loginButton').hidden = true;
-    byId('logoutButton').hidden = false;
-    return;
-  }
-
-  byId('logoutButton').hidden = true;
-  byId('loginButton').hidden = false;
-  byId('loginStateText').textContent = loginEnabled ? 'Nicht angemeldet' : 'Login nicht aktiv';
+  setText('permissionReason', permissionBody.reason || authBody.reason || '—');
 }
 
 function renderEndpoints(results) {
   const values = Object.entries(results);
   const okCount = values.filter(([, result]) => result.ok).length;
-
   setBadge('endpointPill', okCount === values.length, `${okCount}/${values.length} ok`);
-
   byId('endpointList').innerHTML = values.map(([key, result]) => {
     const label = endpointLabels[key] || key;
     const status = result.httpStatus || 'fetch';
     const cls = result.ok ? 'endpoint ok' : 'endpoint bad';
     const detail = result.error || (result.body && result.body.error) || (result.ok ? 'ok' : 'prüfen');
-    return `
-      <div class="${cls}">
-        <span>${escapeHtml(label)}</span>
-        <strong>HTTP ${escapeHtml(status)}</strong>
-        <small>${escapeHtml(detail)}</small>
-      </div>
-    `;
+    return `<div class="${cls}"><span>${escapeHtml(label)}</span><strong>HTTP ${escapeHtml(status)}</strong><small>${escapeHtml(detail)}</small></div>`;
   }).join('');
 }
 
@@ -310,12 +286,11 @@ function renderErrors(results) {
     hideErrors();
     return;
   }
-
-  byId('errorText').textContent = failed.map(([key, result]) => {
+  setText('errorText', failed.map(([key, result]) => {
     const label = endpointLabels[key] || key;
     const detail = result.error || (result.body && result.body.error) || `HTTP ${result.httpStatus || 0}`;
     return `${label}: ${detail}`;
-  }).join(' · ');
+  }).join(' · '));
   byId('errorBox').hidden = false;
 }
 
@@ -324,29 +299,35 @@ function hideErrors() {
 }
 
 function updateAutoRefreshText(override) {
-  byId('autoRefreshText').textContent = override || `Auto-Refresh in ${refreshCountdown}s`;
+  const node = byId('autoRefreshText');
+  if (node) node.textContent = override || `Auto-Refresh in ${refreshCountdown}s`;
 }
 
 function setBadge(id, ok, text) {
   const node = byId(id);
+  if (!node) return;
   node.textContent = text;
   node.className = ok ? 'pill ok' : 'pill bad';
 }
 
 function setQuick(id, ok, text) {
   const node = byId(id);
+  if (!node) return;
   node.textContent = text;
   node.className = ok ? 'quickGood' : 'quickBad';
 }
 
 function setValue(id, value) {
   const node = byId(id);
+  if (!node) return;
   node.textContent = formatValue(value);
   node.className = value === true ? 'valueTrue' : value === false ? 'valueFalse' : 'valueNeutral';
 }
 
 function setText(id, value) {
-  byId(id).textContent = value == null || value === '' ? '—' : String(value);
+  const node = byId(id);
+  if (!node) return;
+  node.textContent = value == null || value === '' ? '—' : String(value);
 }
 
 function formatValue(value) {

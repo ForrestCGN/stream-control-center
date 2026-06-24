@@ -67,6 +67,12 @@ function loadConfig() {
       writeEnabled: authEffective,
       migrationEnabled: false
     },
+    dashboardAccess: {
+      // First practical gate: explicit env allowlist, with ForrestCGN as safe initial owner default for this project.
+      allowedLogins: readList('DASHBOARD_ALLOWED_LOGINS', ['forrestcgn']),
+      allowedUserUids: readList('DASHBOARD_ALLOWED_USER_UIDS', []),
+      defaultRole: readString('DASHBOARD_DEFAULT_ROLE', 'owner')
+    },
     auth: {
       authEnabled: authEffective,
       loginEnabled: authEffective,
@@ -106,6 +112,15 @@ function readString(key, fallback) {
   const value = process.env[key];
   if (typeof value !== 'string' || value.trim() === '') return fallback;
   return value.trim();
+}
+
+function readList(key, fallback) {
+  const raw = process.env[key];
+  if (typeof raw !== 'string' || raw.trim() === '') return fallback;
+  return raw
+    .split(/[\s,;]+/)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function readPort(key, fallback) {
@@ -170,6 +185,13 @@ function buildPublicConfigSummary(config) {
       passwordConfigured: config.database.passwordConfigured,
       writeEnabled: Boolean(config.database.writeEnabled),
       migrationEnabled: false
+    },
+    dashboardAccess: {
+      allowlistConfigured: Boolean(config.dashboardAccess && (
+        (Array.isArray(config.dashboardAccess.allowedLogins) && config.dashboardAccess.allowedLogins.length > 0)
+        || (Array.isArray(config.dashboardAccess.allowedUserUids) && config.dashboardAccess.allowedUserUids.length > 0)
+      )),
+      defaultRole: config.dashboardAccess ? config.dashboardAccess.defaultRole : 'owner'
     },
     auth: {
       authEnabled: Boolean(config.auth && config.auth.authEnabled),

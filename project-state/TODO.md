@@ -1,18 +1,19 @@
 # TODO - stream-control-center
 
-Stand: RDAP_DASHBOARD1_PROTECTED_SHELL
+Stand: RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
 Datum: 2026-06-24
 
 ## Aktuell
 
-- [ ] Dashboard1 lokal einspielen
-- [ ] JS Syntax prüfen
-- [ ] stepdone ausführen
-- [ ] Webserver Deploy ausführen
-- [ ] Browser prüfen: Login-Gate/Shell/Sidebar/Useranzeige
-- [ ] Weiterhin prüfen: keine Remote-Writes/Agent-Actions sichtbar
+- [ ] Dashboard2 lokal einspielen
+- [ ] Syntaxchecks
+- [ ] stepdone
+- [ ] Webserver Deploy
+- [ ] Browser-Test Login/Dashboard
+- [ ] Access-Denied mit nicht freigegebenem Account später testen
 
 ## Danach
 
-- [ ] Dashboard2 Modulnavigation planen
-- [ ] Permissions1 Rollen-/Rechteansicht planen
+- [ ] Rollen-/Rechte-UI für Allowed User bauen
+- [ ] Modboard-Modulstruktur ausbauen
+- [ ] Später echte Actions nur mit Permission/Lock/Audit

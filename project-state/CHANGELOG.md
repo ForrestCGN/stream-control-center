@@ -1,19 +1,10 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP Dashboard1 Protected Shell vorbereitet
+## 2026-06-24 - RDAP Dashboard2 Auth-Gate und CGN Design vorbereitet
 
-Stand:
-
-```text
-RDAP_DASHBOARD1_PROTECTED_SHELL
-```
-
-Inhalt:
-
-- erste geschützte Dashboard-Shell
-- Sidebar Navigation
-- Topbar mit User/Loginstatus
-- Login-Gate
-- read-only Diagnose-Seiten
-- Module-read-only Platzhalter
-- keine Steueraktionen
+- Login-Seite für nicht eingeloggte Nutzer
+- Access-Denied für eingeloggte, aber nicht freigegebene Nutzer
+- Dashboard nur bei `dashboardAccess=true`
+- Backend `/auth/me` erweitert um Dashboard-Zugriff
+- CGN-/Neon-Galaxy-Designrichtung verbessert
+- keine Remote-Writes/Agent-Actions

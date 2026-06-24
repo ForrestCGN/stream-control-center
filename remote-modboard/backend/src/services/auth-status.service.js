@@ -30,12 +30,15 @@ async function buildMeStatus({ context, req }) {
     ? permissionContext.user
     : null;
 
+  const access = buildDashboardAccess(context.config, user, sessionValidation);
+  const roles = mergeRoles(permissionContext ? permissionContext.roles : [], access.roles);
+
   return {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_auth_status',
     moduleBuild: context.moduleBuild,
-    statusApiVersion: 'rdap_auth1.v1',
+    statusApiVersion: 'rdap_dashboard2.v1',
     readOnly: true,
     writeEnabled: false,
     migrationEnabled: false,
@@ -43,11 +46,13 @@ async function buildMeStatus({ context, req }) {
     loginEnabled: Boolean(context.config.auth && context.config.auth.loginEnabled),
     sessionCreationEnabled: Boolean(context.config.auth && context.config.auth.sessionCreationEnabled),
     loggedIn: Boolean(sessionValidation.valid && user),
+    dashboardAccess: access.allowed,
+    accessReason: access.reason,
     user,
     identity: null,
-    roles: permissionContext ? permissionContext.roles : [],
+    roles,
     groups: permissionContext ? permissionContext.groups : [],
-    permissions: [],
+    permissions: access.allowed ? ['remote.dashboard.view'] : [],
     session: {
       checked: true,
       cookiePresent: sessionValidation.cookiePresent,
@@ -67,9 +72,9 @@ async function buildMeStatus({ context, req }) {
       updatesLastSeen: false
     },
     warnings: [
-      'AUTH1 aktiviert nur Login/Session, wenn die Env-Gates aktiv sind.',
-      'Remote-Writes, Agent-Actions und Stream-Steuerungen bleiben deaktiviert.',
-      'Produktive Rechte muessen spaeter serverseitig erzwungen werden.'
+      'DASHBOARD2 entscheidet Dashboard-Zugriff serverseitig anhand der Allowlist.',
+      'Frontend zeigt nur an. Spaetere produktive Actions brauchen serverseitige Permission-Middleware.',
+      'Remote-Writes, Agent-Actions und Stream-Steuerungen bleiben deaktiviert.'
     ]
   };
 }
@@ -83,7 +88,7 @@ async function buildSessionStatus({ context, req }) {
     service: 'remote-modboard',
     module: 'remote_auth_status',
     moduleBuild: context.moduleBuild,
-    statusApiVersion: 'rdap_auth1.v1',
+    statusApiVersion: 'rdap_dashboard2.v1',
     readOnly: true,
     writeEnabled: false,
     migrationEnabled: false,
@@ -110,11 +115,57 @@ async function buildSessionStatus({ context, req }) {
       safety: sessionValidation.safety
     },
     notes: [
-      'AUTH1 liest dashboard_sessions per SELECT zur Session-Erkennung.',
-      'last_seen_at wird in AUTH1 nicht aktualisiert.',
+      'DASHBOARD2 liest dashboard_sessions per SELECT zur Session-Erkennung.',
+      'last_seen_at wird weiterhin nicht aktualisiert.',
       'Session-Cookie-Werte werden nicht ausgegeben; nur ein kurzer SHA-256-Fingerprint wird angezeigt.'
     ]
   };
+}
+
+function buildDashboardAccess(config, user, sessionValidation) {
+  if (!sessionValidation.valid || !user) {
+    return {
+      allowed: false,
+      reason: 'not_logged_in',
+      roles: []
+    };
+  }
+
+  const login = String(user.loginName || '').trim().toLowerCase();
+  const display = String(user.displayName || '').trim().toLowerCase();
+  const userUid = String(user.userUid || '').trim().toLowerCase();
+  const access = config.dashboardAccess || {};
+  const allowedLogins = Array.isArray(access.allowedLogins) ? access.allowedLogins : [];
+  const allowedUserUids = Array.isArray(access.allowedUserUids) ? access.allowedUserUids : [];
+
+  if (allowedUserUids.includes(userUid)) {
+    return {
+      allowed: true,
+      reason: 'allowed_user_uid',
+      roles: [access.defaultRole || 'owner']
+    };
+  }
+
+  if (allowedLogins.includes(login) || allowedLogins.includes(display)) {
+    return {
+      allowed: true,
+      reason: 'allowed_login',
+      roles: [access.defaultRole || 'owner']
+    };
+  }
+
+  return {
+    allowed: false,
+    reason: 'not_allowed',
+    roles: []
+  };
+}
+
+function mergeRoles(existing, additional) {
+  return [...new Set([
+    ...(Array.isArray(existing) ? existing : []),
+    ...(Array.isArray(additional) ? additional : [])
+  ].filter(Boolean))];
 }
 
 module.exports = {

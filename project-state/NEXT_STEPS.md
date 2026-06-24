@@ -1,20 +1,22 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_DASHBOARD1_PROTECTED_SHELL
+Stand: RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
 Datum: 2026-06-24
 
-## Nach Einspielen testen
+## Test nach Einspielen
 
 Lokal:
 
 ```powershell
+node --check .\remote-modboard\backend\src\services\config.service.js
+node --check .\remote-modboard\backend\src\services\auth-status.service.js
 node --check .\remote-modboard\backend\public\assets\remote-modboard.js
 ```
 
 Webserver:
 
 ```bash
-curl -fsS https://mods.forrestcgn.de/api/remote/status | jq '.auth.enabled,.auth.loginEnabled'
+curl -fsS https://mods.forrestcgn.de/api/remote/auth/me | jq '.loggedIn,.dashboardAccess,.accessReason,.roles'
 ```
 
 Browser:
@@ -25,20 +27,18 @@ https://mods.forrestcgn.de/
 
 Erwartung:
 
-- ohne Login: Login-Gate
-- mit Login: Dashboard-Shell mit Sidebar
-- User oben rechts sichtbar
-- Seitenumschaltung ohne Reload
-- keine Steueraktionen sichtbar
+- ohne Login: Login-Seite
+- ForrestCGN: Dashboard
+- nicht freigegebener User: Access-Denied
 
 ## Danach
 
 ```text
-RDAP_DASHBOARD2_MODULE_NAVIGATION
+RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI
 ```
 
 oder
 
 ```text
-RDAP_PERMISSIONS1_READONLY_ROLE_VIEW
+RDAP_DASHBOARD3_MODULE_LAYOUT
 ```

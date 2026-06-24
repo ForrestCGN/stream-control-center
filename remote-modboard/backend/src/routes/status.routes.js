@@ -17,7 +17,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_auth1.v1',
+      statusApiVersion: 'rdap_dashboard2.v1',
       readOnly: !authEnabled,
       writeEnabled: false,
       actionEnabled: false,
@@ -33,6 +33,7 @@ function registerStatusRoutes(app, context) {
         pid: process.pid
       },
       config: publicConfig,
+      dashboardAccess: publicConfig.dashboardAccess,
       auth: {
         prepared: true,
         enabled: authEnabled,

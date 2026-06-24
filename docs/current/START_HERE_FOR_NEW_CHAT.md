@@ -1,26 +1,29 @@
-# START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
+# START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard
 
-Stand: RDAP_DASHBOARD1_PROTECTED_SHELL
+Stand: RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
 Datum: 2026-06-24
 
 ## Aktueller Fokus
 
 ```text
-RDAP_DASHBOARD1_PROTECTED_SHELL
+RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
 ```
 
-## Voraussetzungen
+## Flow
 
-AUTH1 Twitch Login ist live bestätigt.
+```text
+Nicht eingeloggt -> Login-Seite
+Eingeloggt, aber nicht freigegeben -> Access-Denied
+Eingeloggt und freigegeben -> Dashboard
+```
 
-## Inhalt Dashboard1
+## Env-Allowlist
 
-- geschützte Dashboard-Shell
-- Sidebar Navigation
-- Topbar mit User
-- Login-Gate
-- read-only Seiten
-- keine Steueraktionen
+```text
+DASHBOARD_ALLOWED_LOGINS=forrestcgn
+DASHBOARD_ALLOWED_USER_UIDS=
+DASHBOARD_DEFAULT_ROLE=owner
+```
 
 ## Weiterhin verboten
 

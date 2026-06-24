@@ -1,27 +1,33 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_DASHBOARD1_PROTECTED_SHELL
+Stand: RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
 Datum: 2026-06-24
 
 ## Aktueller Stand
 
 ```text
-RDAP_DASHBOARD1_PROTECTED_SHELL
+RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
 ```
 
 ## Inhalt
 
-Das Remote-Modboard bekommt eine erste geschützte Dashboard-Oberfläche:
+Dashboard2 ergänzt:
 
-- Sidebar/Navigation
-- Topbar mit Loginstatus
-- Login-Gate
-- read-only Seitenstruktur
-- Diagnose/Status/Routen/Auth-Ansichten
+- Login-Seite ohne Dashboard, wenn nicht angemeldet
+- Access-Denied-Seite, wenn angemeldet aber nicht freigegeben
+- Dashboard nur bei `dashboardAccess=true`
+- Serverentscheidung über `/api/remote/auth/me`
+- CGN-/Neon-Galaxy-Designrichtung stärker umgesetzt
 
-## Voraussetzung
+## Zugang
 
-AUTH1 Twitch Login ist live bestätigt.
+Initial erlaubt:
+
+```text
+forrestcgn
+```
+
+Später sollen Mods/Spezialrollen sauber über Rollen/Rechte folgen.
 
 ## Weiterhin deaktiviert
 
