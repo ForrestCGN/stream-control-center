@@ -1,80 +1,83 @@
-# CURRENT STATUS - stream-control-center
+# CURRENT_STATUS
 
-Stand: RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
-Datum: 2026-06-24
+Stand: 2026-06-24  
+Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller bestaetigter RDAP-/Remote-Modboard-Stand
+## Aktueller RDAP-Status
 
-Remote-Modboard/Auth:
-
-- `mods.forrestcgn.de` laeuft.
-- Twitch Login funktioniert live.
-- Dashboard-Zugriff wird serverseitig geprueft.
-- ForrestCGN kann sich anmelden und das Dashboard nutzen.
-- EngelCGN kann nach Allowlist-Erweiterung mittesten und ist als User sichtbar.
-- Avatar oben rechts wird angezeigt.
-- Profilpanel oben rechts ist vorhanden.
-- `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
-- Login-/Denied-Layout ist zentriert.
-- Dashboard-Karten/Grid-Abstaende sind nach V13-Fix sauberer.
-- Topbar-Ausloggen wurde entfernt; Logout bleibt im Profilpanel.
-- Profilpanel ist auf die Self-Service-Aktionen `Profil aktualisieren` und `Ausloggen` reduziert.
-- Admin -> User & Rollen zeigt eine read-only Uebersicht bekannter Dashboard-User, Rollen, Gruppen, Permissions und Sessions.
-
-## Aktueller Arbeitsstand
-
-`RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC` ist der naechste einzuspielende/abzuschliessende Step.
-
-Gebaut:
-
-- neue read-only Diagnose-Route `GET /api/remote/admin/users/permission-diagnostic`,
-- neuer Service `admin-user-permission-read.service.js`,
-- neue Route-Datei `admin-users.routes.js`,
-- Registrierung in `app.js`,
-- Eintrag in `/api/remote/routes`,
-- Doku/Projektstatus aktualisiert.
-
-## Zweck RDAP5
-
-RDAP5 prueft serverseitig diagnostisch:
-
-- gueltige Session,
-- Dashboard-Zugriff,
-- Actor-Rollen,
-- Actor-Gruppen,
-- Owner/Admin-Erkennung,
-- Sound-Profi als Gruppe/Freigabe,
-- `remote.admin.users.read`,
-- `remote.admin.users.write` als rein diagnostische Auswertung.
-
-## Weiterhin deaktiviert
-
-- Remote-Writes ausserhalb Auth-/Session-/Self-Profil-Scope
-- Agent-Actions
-- OBS-Steuerung
-- Sound-Steuerung
-- Overlay-Steuerung
-- Command-Steuerung
-- Admin-Userverwaltung mit produktiven Writes
-- Rollen-/Freigabe-Writes
-- Gruppen-Writes
-- Session-Widerrufe
-- UI-Schreibbuttons
-- DB-Migrationen
-
-`canWriteAdminUsers` bleibt in RDAP5 immer `false`.
-
-## Wichtige offene Sicherheitsaufgabe
-
-- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt.
-- Nach Rotation Service neu starten und Browser-Login erneut pruefen.
-
-## Naechster sinnvoller Block
-
-Nach Abschluss dieses Steps:
+Remote-Modboard läuft produktiv unter:
 
 ```text
-RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+https://mods.forrestcgn.de/
 ```
 
-Ziel: Confirm-/Audit-/Locking-Foundation technisch vorbereiten, weiterhin ohne grosse User-/Rollen-Writes.
+Aktueller relevanter Stand:
+
+```text
+RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC: deployed und getestet
+RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN: geplant/dokumentiert
+```
+
+## Bestätigt
+
+- Twitch Login ist live.
+- Dashboard-Zugriff wird serverseitig geprüft.
+- ForrestCGN wird als `owner` erkannt.
+- ForrestCGN ist `isOwner:true` und `isAdmin:true`.
+- Admin -> User & Rollen ist read-only sichtbar.
+- RDAP5 Permission-Diagnose ist aktiv:
+  - Route: `/api/remote/admin/users/permission-diagnostic`
+  - ohne Session: `401` korrekt
+  - mit ForrestCGN Session: `ok:true`, `loggedIn:true`, `canReadAdminUsers:true`
+  - `canWriteAdminUsers:false`
+  - keine produktiven Writes
+- Profilpanel oben rechts ist Self-Service:
+  - `Profil aktualisieren`
+  - `Ausloggen`
+- Topbar hat keinen doppelten Ausloggen-Button mehr.
+- Dashboard-v2/V13-Look ist portiert.
+- Login-/Denied-Seite ist zentriert.
+- Grid-/Spacing ist korrigiert.
+
+## Neue Zielentscheidung
+
+Forrest möchte:
+
+```text
+Online über mods.forrestcgn.de arbeiten
+und zusätzlich lokal im Heimnetz arbeiten können.
+EngelCGN soll lokal im LAN ebenfalls arbeiten können.
+Lokaler Login soll ebenfalls über Twitch laufen.
+```
+
+Dazu wurde dokumentiert:
+
+```text
+docs/current/RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN.md
+```
+
+## Workflow-Regel
+
+Korrekte Reihenfolge:
+
+```text
+GitHub/dev + Docs prüfen
+Plan nennen
+auf go warten
+ZIP bauen
+installstep lokal
+lokale Checks/Syntax/git status
+stepdone lokal
+erst danach Webserver-Deploy aus frischem GitHub/dev-Clone
+Service restart
+Readiness
+Server-/Browser-Test
+```
+
+`stepdone.cmd` bedeutet nicht, dass der Webserver aktualisiert wurde.
+
+## Offene technische Auffälligkeiten
+
+- `moduleBuild`/Header zeigt teils noch `RDAP_AUTH2_CENTRAL_LOGIN_READY`, obwohl neuere Routen aktiv sind.
+- Owner/Admin-Fallback funktioniert, Reason-Ausgaben sollten später verständlicher werden.
+- Lokal/LAN-Betrieb mit Twitch-Login ist noch Planung, nicht umgesetzt.

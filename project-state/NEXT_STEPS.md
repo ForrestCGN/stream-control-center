@@ -1,74 +1,86 @@
-# NEXT STEPS - stream-control-center
+# NEXT_STEPS
 
-Stand: RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
-Datum: 2026-06-24
+Stand: 2026-06-24  
+Projekt: `stream-control-center` / Remote-Modboard
 
-## Sofort
+## Priorität A: Lokal/LAN-Betrieb planen
 
-1. `RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC.zip` lokal einspielen.
-2. Lokalen Service/Remote-Modboard falls noetig neu starten.
-3. Route pruefen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:3010/api/remote/admin/users/permission-diagnostic" |
-  ConvertTo-Json -Depth 10
-```
-
-Ohne Browser-Session im PowerShell-Kontext ist `401` erwartbar.
-
-4. `git status` pruefen.
-5. Wenn sauber: `stepdone.cmd` ausfuehren.
-6. Danach Webserver-Deploy aus GitHub/dev.
-7. Remote pruefen:
+Nächster sinnvoller Local-Mode-Step:
 
 ```text
-https://mods.forrestcgn.de/api/remote/admin/users/permission-diagnostic
+RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
 
-## Danach empfohlen
+Ziele:
 
-### 1. Secrets rotieren
+- lokale Env-Strategie planen
+- lokales Startscript planen
+- LAN-Zugriff vorbereiten
+- Twitch-Login lokal weiter vorbereiten
+- ForrestCGN und EngelCGN als echte Twitch-Identitäten berücksichtigen
+- lokale DB-Strategie vorbereiten
+- keine Secrets ins Repo
+- keine DB-Migration
+- keine produktiven Writes
 
-Falls noch nicht erledigt:
+## Priorität B: Admin-Userverwaltung fortsetzen
 
-```bash
-openssl rand -base64 48
-openssl rand -base64 48
-nano /etc/stream-control-center/remote-modboard.env
-systemctl restart scc-remote-modboard.service
-```
-
-Danach Login erneut testen.
-
-### 2. Confirm-/Audit-/Locking-Foundation planen/bauen
-
-Naechster Step:
+Nächster Admin-Step:
 
 ```text
 RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
 ```
 
-Scope weiterhin klein:
+Ziele:
 
-- Confirm-Write-Helfer vorbereiten,
-- Audit-Write-Ziel technisch pruefen,
-- Locking-Foundation pruefen,
-- keine grossen User-/Rollen-Writes,
-- keine UI-Schreibbuttons ohne eigenen Step.
+- Confirm-Write-Pattern vorbereiten
+- Audit-Pflicht vorbereiten
+- Locking-Grundlage vorbereiten
+- weiterhin keine produktiven User-/Rollen-/Gruppen-Writes
 
-### 3. Spätere Admin-Writes nur mit eigenem Scope
+## Priorität C: Build-/Header-Cleanup
 
-Fuer echte User-/Rollenverwaltung spaeter noetig:
+Empfohlener Cleanup-Step:
 
-- serverseitige Owner/Admin-Permission-Middleware,
-- Confirm-Write,
-- Audit-Log,
-- Locking,
-- Backup/Rollback-Plan,
-- klare Trennung Self-Profil vs. Admin-Verwaltung.
+```text
+RDAP_META1_BUILD_HEADER_CLEANUP
+```
 
-## Webserver-Deploy-Regel
+Ziele:
 
-Erst nach lokalem `installstep.cmd`, Tests und `stepdone.cmd`.
+- veraltete Build-Anzeige `RDAP_AUTH2_CENTRAL_LOGIN_READY` bereinigen
+- Status-/Header-Metadaten zentralisieren
+- Tests weniger verwirrend machen
 
-`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen.
+## Nicht als nächstes bauen
+
+Noch nicht:
+
+- echte User-Freigabe/Sperre
+- Rollen-/Gruppenvergabe
+- Session-Widerruf
+- DB-Migration
+- Agent-Actions
+- OBS-/Sound-/Overlay-/Command-Steuerung
+- lokaler Fake-Admin-Bypass
+
+## Test-/Deploy-Regel
+
+Lokal:
+
+```text
+installstep.cmd
+node --check
+git status
+stepdone.cmd
+```
+
+Webserver erst danach:
+
+```text
+frischer GitHub/dev-Clone in _deploy_tmp/<STEP_NAME>
+remote-modboard-deploy.sh <STEP_NAME> dev
+systemctl restart
+Readiness
+curl/browser tests
+```

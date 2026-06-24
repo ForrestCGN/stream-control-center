@@ -1,124 +1,111 @@
 # RDAP Current Handoff - 2026-06-24
 
-## Wichtig zuerst lesen
+Projekt: `stream-control-center` / Remote-Modboard  
+Public URL: `https://mods.forrestcgn.de/`  
+Service: `scc-remote-modboard.service`  
+Branch: `dev`
 
-Single Source of Truth:
+## Aktueller Stand
 
-```text
-GitHub/dev: ForrestCGN/stream-control-center
-Lokales Repo: D:\Git\stream-control-center
-Live-Ziel lokal: D:\Streaming\stramAssets
-Webserver: /opt/stream-control-center
-Remote-Modboard: /opt/stream-control-center/remote-modboard
-Public URL: https://mods.forrestcgn.de/
-Service: scc-remote-modboard.service
-```
-
-## Aktueller bestaetigter Bereich
-
-Remote-Modboard / RDAP ist live unter `mods.forrestcgn.de`.
-
-Aktuell vorhanden:
-
-- Twitch Login live aktiv.
-- Dashboard-Zugriff wird serverseitig geprueft.
-- ForrestCGN und EngelCGN sind als Test-User sichtbar.
-- Dashboard-v2/V13-Look ist als echte Basis portiert.
+- `mods.forrestcgn.de` läuft.
+- Twitch Login ist live.
+- Dashboard-Zugriff wird serverseitig geprüft.
+- ForrestCGN und EngelCGN sind sichtbar.
+- Dashboard-v2/V13-Look ist portiert.
 - Login-/Denied-Seite ist zentriert.
-- Status-Karten/Grid-Abstaende sind korrigiert.
-- Avatar/Name oben rechts sichtbar.
-- Self-Profilpanel oben rechts vorhanden.
+- Grid-/Spacing ist korrigiert.
+- Avatar oben rechts wird angezeigt.
+- Profilpanel oben rechts ist Self-Service.
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
+- Profilpanel zeigt nur noch `Profil aktualisieren` und `Ausloggen`.
+- Admin -> User & Rollen ist read-only sichtbar.
 - Topbar hat keinen doppelten Ausloggen-Button mehr.
-- Profilpanel ist auf `Profil aktualisieren` und `Ausloggen` reduziert.
-- Admin -> User & Rollen zeigt eine read-only Uebersicht vorhandener User/Rollen/Gruppen/Sessions.
-- RDAP_ADMIN_USERS2/3/4 haben Admin-Userverwaltung, Write-Foundation sowie Backup-/Permission-/Confirm-/Audit-/Locking-Grundregeln geplant.
-- RDAP_ADMIN_USERS5 ergaenzt eine reine Admin-User-Permission-Diagnose.
+- RDAP5 Admin-User-Permission-Diagnose ist serverseitig getestet:
+  - ohne Browser-Session: `401 Unauthorized` korrekt
+  - mit ForrestCGN Browser-Session: `ok:true`, `loggedIn:true`, `roles:["owner"]`, `isOwner:true`, `isAdmin:true`, `canReadAdminUsers:true`, `canWriteAdminUsers:false`
+  - keine User-/Rollen-/Gruppen-/Session-Writes
+  - keine DB-Migration
+- Lokaler/LAN-Betrieb soll künftig berücksichtigt werden:
+  - Online weiter über `mods.forrestcgn.de`
+  - zusätzlich lokales Modboard im Heimnetz
+  - EngelCGN soll im LAN arbeiten können
+  - lokaler Login soll ebenfalls über Twitch erfolgen
 
-## Zuletzt gebaut
+## Wichtige aktuelle Doku-Dateien
 
 ```text
-RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
-```
-
-Aenderungen:
-
-```text
-remote-modboard/backend/src/services/admin-user-permission-read.service.js
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
 docs/current/RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC.md
-docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
+docs/current/RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN.md
 ```
 
-## Neue Diagnose-Route
+## Korrekte Arbeitsweise
+
+1. GitHub/dev und Dokus prüfen.
+2. Plan nennen.
+3. Auf Forrests `go` warten.
+4. ZIP mit echten Zielpfaden bauen.
+5. Forrest lädt ZIP in Downloads.
+6. Lokal `installstep.cmd` ausführen.
+7. Lokale Checks/Syntax/git status.
+8. Bei Erfolg `stepdone.cmd`.
+9. Erst danach Webserver-Deploy aus frischem GitHub/dev-Clone.
+10. Service-Restart.
+11. Readiness-Loop auf `127.0.0.1:3010/api/remote/status`.
+12. Erst danach Server-/Browser-Tests.
+
+Wichtig:
+
+- `stepdone.cmd` ist lokaler Commit/Push nach GitHub/dev.
+- `stepdone.cmd` bedeutet nicht Webserver-Deploy.
+- Lokale Windows-Tests dürfen nicht fälschlich Port `3010` voraussetzen.
+- `/opt/stream-control-center` ist kein Git-Repository.
+- Webserver-Deploy immer über `_deploy_tmp/<STEP_NAME>` aus frischem Clone.
+
+## Nächste sinnvolle Schritte
+
+### Lokal/LAN
 
 ```text
-GET /api/remote/admin/users/permission-diagnostic
+RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
 
-Zweck:
+Ziel:
 
-- aktuelle Session read-only pruefen,
-- Actor-Rollen/Gruppen diagnostisch ausgeben,
-- Owner/Admin/Sound-Profi diagnostisch erkennen,
-- `remote.admin.users.read` und `remote.admin.users.write` read-only bewerten,
-- produktive Writes weiterhin blockieren.
+- lokale Env-Strategie planen
+- lokales Startscript planen
+- LAN-Erreichbarkeit sauber vorbereiten
+- Twitch-Login lokal weiter planen
+- keine Secrets ins Repo
 
-## Wichtige Sicherheitsregeln
+### Admin-Userverwaltung
 
-Bis eigener Scope geplant/gebaut ist, bleiben verboten:
-
-- keine Remote-Writes ausserhalb freigegebener Auth-/Self-Profil-Funktion,
-- keine Agent-Actions,
-- keine OBS-Steuerung,
-- keine Sound-Steuerung,
-- keine Overlay-Steuerung,
-- keine Command-Steuerung,
-- keine DB-Migration ohne Backup/Rollback/Go,
-- keine Secrets ins Repo/Frontend/Chat/Logs,
-- keine User-/Rollen-Writes ohne eigene Admin-Permission/Confirm/Audit/Locking.
-
-RDAP_ADMIN_USERS5 baut keine User-/Rollen-/Gruppen-/Session-Writes und keine UI-Schreibbuttons.
-
-## Webserver-Deploy-Muster
-
-`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen.
-
-Richtig:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+```text
+RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
 ```
 
-Nach Restart immer Readiness abwarten:
+Ziel:
 
-```bash
-systemctl restart scc-remote-modboard.service
+- Confirm-Write-Grundlage
+- Audit-Write-Grundlage
+- Locking-Grundlage
+- noch keine produktiven User-/Rollen-Writes
 
-for i in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
-    echo "ready_after=${i}s"
-    break
-  fi
-  sleep 1
-done
+### Cleanup
+
+```text
+RDAP_META1_BUILD_HEADER_CLEANUP
 ```
 
-## Naechste sinnvolle Schritte
+Ziel:
 
-1. RDAP_ADMIN_USERS5 lokal einspielen, testen und `stepdone.cmd` ausfuehren.
-2. Danach Webserver-Deploy aus GitHub/dev.
-3. Diagnose-Route lokal und remote pruefen.
-4. Danach planen: `RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION`.
-5. Secrets rotieren, falls noch nicht erledigt: `SESSION_SECRET`, `OAUTH_STATE_SECRET`.
+- veraltetes `moduleBuild`/Header `RDAP_AUTH2_CENTRAL_LOGIN_READY` bereinigen oder zentralisieren
+- Statusausgaben sollen aktuelle Steps weniger verwirrend anzeigen
+
+## Offene Hinweise
+
+- RDAP5 funktioniert, aber `moduleBuild`/Header zeigt weiterhin `RDAP_AUTH2_CENTRAL_LOGIN_READY`.
+- Owner/Admin-Fallback funktioniert diagnostisch; Reason-Ausgaben könnten später verständlicher werden.
+- Lokal/LAN mit Twitch-Login ist geplant, aber noch nicht gebaut.
