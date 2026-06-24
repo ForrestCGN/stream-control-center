@@ -1,14 +1,20 @@
 # FILES - stream-control-center
 
-Stand: RDAP_DESIGN1B_LAYOUT_FIX
+Stand: RDAP_DESIGN1C_TRUE_V13_PORT / RDAP_DESIGN1C_DOCS_FINALIZE
 Datum: 2026-06-24
 
-## In diesem Step geändert
+## Design1C geänderte Dateien
 
 ```text
 remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.css
-docs/current/RDAP_DESIGN1B_LAYOUT_FIX.md
+remote-modboard/backend/public/assets/remote-modboard.js
+```
+
+## Doku dieses Abschluss-Steps
+
+```text
+docs/current/RDAP_DESIGN1C_TRUE_V13_PORT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -16,10 +22,17 @@ project-state/CHANGELOG.md
 project-state/FILES.md
 ```
 
-## Nicht geändert, aber relevant
+## Wichtige RDAP-Frontend-Dateien
 
 ```text
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.css
 remote-modboard/backend/public/assets/remote-modboard.js
+```
+
+## Relevante Auth-/Backend-Dateien
+
+```text
 remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/src/routes/status.routes.js
@@ -45,6 +58,16 @@ Wichtig: Diese Datei liegt im Repo/Clone. Nicht als fester Serverpfad `/opt/stre
 ```
 
 Diese Datei enthält produktive Secrets und darf nicht ins Repo.
+
+Wichtige Env-Werte:
+
+```text
+DASHBOARD_ALLOWED_LOGINS=forrestcgn,engelcgn
+SESSION_SECRET=...
+OAUTH_STATE_SECRET=...
+```
+
+Secrets niemals in Chat, Repo, Frontend oder Logs posten.
 
 ## Webserver
 
