@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_UI2_READONLY_COMFORT
+Stand: RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
 Datum: 2026-06-24
 
 ## Erledigt
@@ -12,20 +12,23 @@ Datum: 2026-06-24
 - [x] RDAP Deploy-Runbook oder Server-Deploy-Script für Remote-Modboard erstellt/dokumentiert
 - [x] RDAP Deploy-Script live getestet
 - [x] RDAP Deploy-Script OAuth-403-Safety bestätigt
+- [x] RDAP_UI2_READONLY_COMFORT lokal vorbereitet
+- [x] RDAP_UI2_READONLY_COMFORT mit `tools/remote-modboard-deploy.sh` auf Webserver deployt
+- [x] UI2 im Browser unter `https://mods.forrestcgn.de/` geprüft
+- [x] UI2: Auto-Refresh, letzte Aktualisierung, Schnellstatus und Read-only Hinweis sichtbar bestätigt
+- [x] UI2 Live-Test dokumentiert
 
-## Aktuell
+## Als nächstes
 
-- [ ] RDAP_UI2_READONLY_COMFORT lokal installieren/testdeploy
-- [ ] RDAP_UI2_READONLY_COMFORT mit `tools/remote-modboard-deploy.sh` auf Webserver deployen
-- [ ] UI2 im Browser unter `https://mods.forrestcgn.de/` prüfen
-- [ ] OAuth Start/Callback weiter HTTP 403 prüfen
-- [ ] UI2 Live-Test dokumentieren
+- [ ] RDAP_UI3_READONLY_DETAILS_OR_FILTERS planen
+- [ ] Alternativ: RDAP_AUTH_LOGIN_OAUTH_PLAN separat planen, aber nicht aktivieren
 
 ## Später
 
-- [ ] UI3 read-only Details/Filter planen
 - [ ] Auth/Login/OAuth separat planen, aber erst mit eigenem Scope
 - [ ] Remote-Writes/Agent-Actions separat planen, aber erst mit eigenem Scope
+- [ ] Rollen-/Rechtekonzept für Mods/Admins/Owner weiter planen
+- [ ] Audit-Logging für spätere produktive Aktionen einplanen
 
 ## Dauerhafte Verbote bis eigener Scope
 

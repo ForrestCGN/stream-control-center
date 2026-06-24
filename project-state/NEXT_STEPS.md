@@ -1,60 +1,49 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_UI2_READONLY_COMFORT
+Stand: RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
 Datum: 2026-06-24
 
-## Aktueller Schritt
-
-```text
-RDAP_UI2_READONLY_COMFORT
-```
-
-## Test nach Einspielen
-
-Lokal/Windows nach `installstep.cmd`:
-
-```powershell
-cd D:\Git\stream-control-center
-node --check .\remote-modboard\backend\public\assets\remote-modboard.js
-```
-
-Danach Webserver-Deploy mit dem bestätigten Script:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP_UI2_READONLY_COMFORT
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_UI2_READONLY_COMFORT
-cd RDAP_UI2_READONLY_COMFORT
-sudo bash tools/remote-modboard-deploy.sh RDAP_UI2_READONLY_COMFORT dev
-```
-
-Dann im Browser prüfen:
-
-```text
-https://mods.forrestcgn.de/
-```
-
-Erwartung:
-
-- UI zeigt weiterhin read-only Diagnose
-- Auto-Refresh-Zähler sichtbar
-- letzte Aktualisierung sichtbar
-- Schnellstatus sichtbar
-- Endpoint-Status sichtbar
-- manueller Refresh funktioniert
-- OAuth Start/Callback bleiben HTTP 403
-
-## Danach
-
-Wenn UI2 live bestätigt ist:
+## Abgeschlossen
 
 ```text
 RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
 ```
 
-dokumentieren und danach erst nächsten Scope planen.
+Live bestätigt:
 
-Möglicher nächster Scope danach:
+- `https://mods.forrestcgn.de/` lädt die UI
+- Service online sichtbar
+- Auto-Refresh sichtbar
+- letzte Aktualisierung sichtbar
+- Schnellstatus sichtbar
+- Read-only Hinweis sichtbar
+- Writes/OAuth/Agent disabled sichtbar
 
-- UI3 read-only Details/Filter
-- oder Auth/Login-Konzept separat planen, aber noch nicht aktivieren
+## Nächster sinnvoller Schritt
+
+Option A:
+
+```text
+RDAP_UI3_READONLY_DETAILS_OR_FILTERS
+```
+
+Möglicher Inhalt:
+
+- read-only Filter/Details für Routen
+- kompakter Diagnosebereich für Lock/Audit/Schema
+- optional einklappbare Karten
+- keine Schreibaktionen
+- keine Login-/OAuth-Aktivierung
+
+Option B:
+
+```text
+RDAP_AUTH_LOGIN_OAUTH_PLAN
+```
+
+Nur Planung, noch keine Aktivierung.
+
+Wichtig:
+
+- Login/OAuth/Auth darf nicht nebenbei aktiviert werden.
+- Auth muss eigener Scope mit Plan, Rechtekonzept, Security-Prüfung und Tests werden.

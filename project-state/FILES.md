@@ -1,6 +1,6 @@
 # FILES - stream-control-center
 
-Stand: RDAP_UI2_READONLY_COMFORT
+Stand: RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
 Datum: 2026-06-24
 
 ## RDAP UI2 relevante Dateien
@@ -9,6 +9,7 @@ Datum: 2026-06-24
 remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.css
 remote-modboard/backend/public/assets/remote-modboard.js
+docs/current/RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED.md
 ```
 
 ## RDAP Deploy relevante Dateien
@@ -25,6 +26,7 @@ docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/RDAP_UI1_LIVE_CONFIRMED.md
 docs/current/RDAP_DEPLOY_RUNBOOK.md
+docs/current/RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

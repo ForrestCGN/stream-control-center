@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
 
-Stand: RDAP_UI2_READONLY_COMFORT
+Stand: RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -15,33 +15,31 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 docs/current/RDAP_UI1_LIVE_CONFIRMED.md
 docs/current/RDAP_DEPLOY_RUNBOOK.md
+docs/current/RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED.md
 ```
 
-## Aktueller Stand
+## Aktueller bestätigter Stand
 
 ```text
-RDAP_UI2_READONLY_COMFORT
+RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
 ```
 
-UI2 ist ein reiner Frontend-Komfort-Step für die bestehende read-only Remote-Modboard-Seite.
-
-## Betroffene Dateien
+## Live sichtbar bestätigt
 
 ```text
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/public/assets/remote-modboard.js
+https://mods.forrestcgn.de/
 ```
 
-## Inhalt
+Sichtbar bestätigt:
 
-- Auto-Refresh alle 30 Sekunden
+- Service online
+- Auto-Refresh sichtbar
 - letzte Aktualisierung sichtbar
-- Countdown bis nächster Auto-Refresh
-- Schnellstatus-Leiste
-- Endpoint-Statuskarte
-- bessere Fehlerbox bei API-Ausfall
-- manueller Refresh bleibt erhalten
+- Schnellstatus sichtbar
+- Read-only Hinweis sichtbar
+- Writes disabled
+- OAuth disabled
+- Agent disabled
 
 ## Live-Basis
 
@@ -67,11 +65,28 @@ Standard-Deploy-Script:
 tools/remote-modboard-deploy.sh
 ```
 
-Webserver-Deploy:
+Deploy-Wahrheit:
 
-```bash
-sudo bash tools/remote-modboard-deploy.sh RDAP_UI2_READONLY_COMFORT dev
+```text
+/opt/stream-control-center ist kein Git-Repository.
+GitHub/dev -> _deploy_tmp -> _runtime_tmp Backup -> rsync remote-modboard -> Restart -> Readiness -> Tests
 ```
+
+## Nächster Fokus
+
+Option A:
+
+```text
+RDAP_UI3_READONLY_DETAILS_OR_FILTERS
+```
+
+Option B:
+
+```text
+RDAP_AUTH_LOGIN_OAUTH_PLAN
+```
+
+Nur planen, noch nicht aktivieren.
 
 ## Weiterhin verboten
 
