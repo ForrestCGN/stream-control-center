@@ -1,9 +1,17 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_DESIGN1C_TRUE_V13_PORT / RDAP_DESIGN1C_DOCS_FINALIZE
+Stand: RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC
 Datum: 2026-06-24
 
-## Sofort prüfen
+## Sofort
+
+1. Auth4-Doku-Finalisierung lokal einspielen.
+2. `stepdone.cmd` für Doku ausführen.
+3. Kein Webserver-Deploy nötig, da nur Doku.
+
+## Danach empfohlen
+
+### 1. Secrets rotieren
 
 Falls noch nicht erledigt:
 
@@ -14,76 +22,39 @@ nano /etc/stream-control-center/remote-modboard.env
 systemctl restart scc-remote-modboard.service
 ```
 
-Danach Readiness:
+Danach Login erneut testen.
 
-```bash
-for i in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
-    echo "ready_after=${i}s"
-    break
-  fi
-  sleep 1
-done
-```
+### 2. Admin User Read-only Übersicht
 
-## EngelCGN Testzugriff
-
-Wenn EngelCGN testen soll, in `/etc/stream-control-center/remote-modboard.env` prüfen/setzen:
-
-```env
-DASHBOARD_ALLOWED_LOGINS=forrestcgn,engelcgn
-```
-
-Danach Service neu starten und Browser-Test durchführen.
-
-## Nächste geplante Arbeit
-
-### RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI
-
-Ziel:
-
-- aktuelle `.env`-Allowlist sichtbar machen bzw. in Richtung verwaltbarer Rechte überführen
-- User-/Rollen-/Rechte-Übersicht planen
-- Owner/Streamer/Mods/Sound-Profi sauber unterscheiden
-- Access-Denied verständlich halten
-- keine produktiven Remote-Actions aktivieren
-
-Betroffene Bereiche voraussichtlich:
+Nächster geplanter Step:
 
 ```text
-remote-modboard/backend/src/services/auth-*.js
-remote-modboard/backend/src/routes/auth-*.js
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/public/assets/remote-modboard.js
-docs/modules/remote-modboard-auth.md
-project-state/*.md
+RDAP_ADMIN_USERS1_READONLY_OVERVIEW
 ```
 
-Vor Umsetzung zuerst echten Dateistand prüfen und auf GO warten.
+Scope:
 
-## Später
+- Admin-Bereich bekommt User-/Rollenübersicht.
+- Nur read-only.
+- Anzeige vorhandener User, Rollen, Gruppen, Sessions.
+- Keine Freigabe ändern.
+- Keine Rollen schreiben.
+- Keine User sperren/löschen.
 
-### Zentraler Login / gemeinsame DB-Session-Schicht
+### 3. Spätere Admin-Writes nur mit eigenem Scope
 
-Zielarchitektur:
+Für echte User-/Rollenverwaltung später nötig:
 
-```text
-forrestcgn.de/login
-oder
-mods.forrestcgn.de/login
-↓
-gleiche serverseitige Auth-/Session-Schicht
-gleiche DB-Wahrheit für dashboard_users/dashboard_identities/dashboard_sessions
-↓
-mods.forrestcgn.de prüft Session + Rechte
-```
+- serverseitige Owner/Admin-Permission-Middleware
+- Confirm-Write
+- Audit-Log
+- Locking
+- Backup/Rollback-Plan
+- klare Trennung Self-Profil vs. Admin-Verwaltung
 
-Keine Login-Daten/Tokens im Frontend oder in URLs weiterreichen. Nur kurzlebige Redirect-/ReturnTo-Flows und serverseitige Sessionprüfung.
+## Webserver-Deploy-Regel
 
-## Webserver-Deploy-Regel bleibt verbindlich
-
-Erst nach lokalem `installstep.cmd`, Test und `stepdone.cmd`.
+Erst nach lokalem `installstep.cmd`, Tests und `stepdone.cmd`.
 
 Auf dem Webserver immer frisch klonen:
 
@@ -100,3 +71,5 @@ Nicht verwenden:
 ```text
 /opt/stream-control-center/tools/remote-modboard-deploy.sh
 ```
+
+`/opt/stream-control-center` ist kein Git-Repository.

@@ -1,46 +1,37 @@
 # FILES - stream-control-center
 
-Stand: RDAP_DESIGN1C_TRUE_V13_PORT / RDAP_DESIGN1C_DOCS_FINALIZE
+Stand: RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC
 Datum: 2026-06-24
 
-## Design1C geänderte Dateien
+## In diesem Doku-Step geändert
 
 ```text
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/public/assets/remote-modboard.js
-```
-
-## Doku dieses Abschluss-Steps
-
-```text
-docs/current/RDAP_DESIGN1C_TRUE_V13_PORT.md
+docs/current/RDAP_AUTH4_CURRENT_STATE_2026-06-24.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
-project-state/CHANGELOG.md
 project-state/FILES.md
+project-state/CHANGELOG.md
 ```
 
-## Wichtige RDAP-Frontend-Dateien
+## Relevante Auth4-Dateien
 
 ```text
+remote-modboard/backend/src/services/auth-profile-sync.service.js
+remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.css
 remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/public/assets/remote-modboard.css
 ```
 
-## Relevante Auth-/Backend-Dateien
+## Relevante Auth3-Dateien
 
 ```text
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/services/auth-status.service.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/auth-twitch.routes.js
-remote-modboard/backend/src/services/auth-twitch-oauth.service.js
 remote-modboard/backend/src/services/auth-session-write.service.js
-remote-modboard/backend/src/services/auth-session-read.service.js
-remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/services/auth-permission-read.service.js
+remote-modboard/backend/src/services/auth-status.service.js
+db/rdap_auth3/sql/001_rdap_auth3_avatar_columns.sql
 ```
 
 ## Relevante RDAP-Deploy-Datei
@@ -59,15 +50,17 @@ Wichtig: Diese Datei liegt im Repo/Clone. Nicht als fester Serverpfad `/opt/stre
 
 Diese Datei enthält produktive Secrets und darf nicht ins Repo.
 
-Wichtige Env-Werte:
+Aktuelle DB-Variablennamen:
 
 ```text
-DASHBOARD_ALLOWED_LOGINS=forrestcgn,engelcgn
-SESSION_SECRET=...
-OAUTH_STATE_SECRET=...
+DB_HOST
+DB_PORT
+DB_NAME
+DB_USER
+DB_PASSWORD
 ```
 
-Secrets niemals in Chat, Repo, Frontend oder Logs posten.
+Nicht `MYSQL_*`.
 
 ## Webserver
 

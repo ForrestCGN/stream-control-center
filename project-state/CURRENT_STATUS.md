@@ -1,6 +1,6 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_DESIGN1C_TRUE_V13_PORT / RDAP_DESIGN1C_DOCS_FINALIZE
+Stand: RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC
 Datum: 2026-06-24
 
 ## Aktueller bestätigter Stand
@@ -9,64 +9,47 @@ Remote-Modboard/Auth:
 
 - `mods.forrestcgn.de` läuft.
 - Twitch Login funktioniert live.
-- ForrestCGN konnte sich im Browser anmelden.
-- Auth/OAuth/Sessions sind aktiv.
-- EngelCGN soll zum Testen freigeschaltet werden bzw. ist über `DASHBOARD_ALLOWED_LOGINS=forrestcgn,engelcgn` freischaltbar.
-- Workflow-Fix ist auf GitHub/dev dokumentiert.
+- Dashboard-Zugriff wird serverseitig geprüft.
+- ForrestCGN kann sich anmelden und das Dashboard nutzen.
+- EngelCGN kann nach Allowlist-Erweiterung mittesten.
+- Avatar oben rechts wird angezeigt.
+- Profilpanel oben rechts ist vorhanden.
+- `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
+- Login-/Denied-Layout ist zentriert.
+- Dashboard-Karten/Grid-Abstände sind nach V13-Fix sauberer.
 
-## Designstand
+## Aktueller Arbeitsstand
 
-`RDAP_DESIGN1C_TRUE_V13_PORT` ist der bestätigte Designstand.
+`RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC` ist bestätigt.
 
-Der vorherige Stand `RDAP_DESIGN1B_LAYOUT_FIX` war noch nicht ausreichend 1:1 zur gewünschten Designbasis. `RDAP_DESIGN1C_TRUE_V13_PORT` ist der gültige V13-Port und ersetzt die vorherigen Design-Zwischenstände als neue Basis.
+Funktional vorhanden:
 
-Bestätigte Richtung:
-
-```text
-DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE
-CGN-/Neon-Galaxy
-V13-Topbar
-V13-Sidebar/Accordion
-V13-Card-/Chip-Struktur
-```
-
-## Design1C betroffene Dateien
-
-```text
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/public/assets/remote-modboard.js
-```
-
-## Bewusst nicht geändert
-
-- Backend/Auth/DB/Routen
-- Remote-Writes
-- Agent-Actions
-- OBS/Sound/Overlay/Command-Steuerung
-- Migration
-
-## Sofort offen
-
-- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt.
-- Nach Rotation Service neu starten.
-- Browser ggf. erneut einloggen.
-- EngelCGN-Zugriff prüfen, falls sie testen soll.
-
-## Nächster sinnvoller Schritt
-
-`RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI`
-
-Ziel:
-
-- Owner/Streamer/Mods/Sound-Profi sichtbar und später verwaltbar machen.
-- Weg von reiner `.env`-Allowlist als Bedienlösung.
-- Zentrale Login-/Session-/DB-Wahrheit weiter vorbereiten.
-- Noch keine produktiven Remote-Actions aktivieren.
+- Twitch-Avatar wird beim Login gespeichert, wenn DB-Spalten vorhanden sind.
+- DB-Spalten für Avatar wurden produktiv angelegt:
+  - `dashboard_users.profile_image_url`
+  - `dashboard_identities.provider_profile_image_url`
+- `/api/remote/auth/me` liefert Avatar-/Profilbilddaten.
+- Im Self-Profilpanel gibt es `Profil aktualisieren`.
+- Der Sync aktualisiert nur den aktuell eingeloggten User.
 
 ## Weiterhin deaktiviert
 
-- Remote-Writes
+- Remote-Writes außerhalb Auth-/Session-/Self-Profil-Scope
 - Agent-Actions
-- OBS/Sound/Overlay/Command-Steuerung
-- Migration
+- OBS-Steuerung
+- Sound-Steuerung
+- Overlay-Steuerung
+- Command-Steuerung
+- Admin-Userverwaltung
+- Rollen-/Freigabe-Writes
+
+## Wichtige offene Sicherheitsaufgabe
+
+- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt.
+- Nach Rotation Service neu starten und Browser-Login erneut prüfen.
+
+## Nächster sinnvoller Block
+
+`RDAP_ADMIN_USERS1_READONLY_OVERVIEW`
+
+Ziel: Admin-Bereich für User-/Rollenübersicht zunächst read-only vorbereiten. Noch keine Rollen schreiben, keine Freigaben ändern.

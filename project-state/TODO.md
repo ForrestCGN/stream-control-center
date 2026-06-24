@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_DESIGN1C_TRUE_V13_PORT / RDAP_DESIGN1C_DOCS_FINALIZE
+Stand: RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC
 Datum: 2026-06-24
 
 ## Erledigt
@@ -8,43 +8,44 @@ Datum: 2026-06-24
 - [x] Remote-Modboard auf `mods.forrestcgn.de` live
 - [x] Twitch OAuth Start aktiviert
 - [x] Twitch Login live erfolgreich
-- [x] Browser zeigte `Angemeldet als ForrestCGN`
 - [x] Auth/OAuth/Sessions aktiv
+- [x] Dashboard Access-Gate aktiv
+- [x] ForrestCGN freigeschaltet
+- [x] EngelCGN kann per Allowlist zum Testen freigeschaltet werden
 - [x] RDAP-Webserver-Deploy-Arbeitsweise korrigiert und dokumentiert
-- [x] Ersten RDAP-Designstand gebaut
-- [x] Layoutproblem aus erstem Designstand erkannt: Navigation zu groß / falsche Content-Wirkung
-- [x] `RDAP_DESIGN1B_LAYOUT_FIX` vorbereitet
-- [x] `RDAP_DESIGN1C_TRUE_V13_PORT` als echter Dashboard-v2/V13-Port gebaut und von Forrest als fertiger Designstand bestätigt
-- [x] `RDAP_DESIGN1C_DOCS_FINALIZE` vorbereitet, um Design1C sauber zu dokumentieren
+- [x] Dashboard-v2/V13-Designbasis portiert
+- [x] Login-/Denied-Seite zentriert
+- [x] Grid-/Spacing-Fehler korrigiert
+- [x] Self-Profilpanel oben rechts eingebaut
+- [x] Twitch-Avatar-Spalten in DB angelegt
+- [x] Avatar oben rechts sichtbar
+- [x] Self-Service `Profil aktualisieren` eingebaut und bestätigt
 
-## Sofort offen
+## Offen
 
+- [ ] `RDAP_AUTH4_DOCS_FINALIZE` lokal einspielen und per `stepdone.cmd` abschließen
 - [ ] `SESSION_SECRET` rotieren, falls noch nicht erledigt
 - [ ] `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt
-- [ ] Service nach Rotation neu starten
-- [ ] Browser-Login nach Rotation prüfen
-- [ ] EngelCGN-Zugriff prüfen, wenn sie testen soll
+- [ ] Browser-Login nach Secret-Rotation prüfen
 
-## Design offen
+## Nächste Planung
 
-- [ ] Künftige RDAP-UI-Erweiterungen auf `RDAP_DESIGN1C_TRUE_V13_PORT` aufbauen
-- [ ] Nicht wieder auf ältere Design1/Design1B-Zwischenstände zurückfallen
-- [ ] Designbasis `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE` als aktuelle RDAP-Designrichtung beibehalten
+- [ ] `RDAP_ADMIN_USERS1_READONLY_OVERVIEW` planen/bauen
+- [ ] Admin-Bereich für User-/Rollenübersicht read-only vorbereiten
+- [ ] Trennung beachten: Self-Funktionen oben rechts, Admin-Verwaltung unter Admin
 
-## Auth/Access offen
+## Später mit eigenem Write-Scope
 
-- [ ] Zentralen Hauptseiten-Login als Zielarchitektur weiter planen
-- [ ] Login-Einstieg über `forrestcgn.de` und `mods.forrestcgn.de` ermöglichen
-- [ ] Gemeinsame zentrale Auth-/Session-Schicht vorbereiten
-- [ ] Gemeinsame serverseitige DB-Wahrheit für User/Identities/Sessions nutzen
-- [ ] `mods.forrestcgn.de` soll später Login übernehmen/pruefen können
-- [ ] Access-Denied sauber halten
-- [ ] Rollen/Rechte für Owner/Streamer/Mods/Sound-Profi planen
-- [ ] `RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI` planen/bauen
+- [ ] User freigeben/sperren
+- [ ] Rollen vergeben/entziehen
+- [ ] Sound-Profi setzen/entfernen
+- [ ] Sessions widerrufen
+- [ ] Audit-Verlauf für Adminaktionen
+- [ ] Locks/Confirm/Audit für alle Admin-Writes
 
 ## Weiterhin verboten bis eigener Scope
 
-- [ ] Keine Remote-Writes
+- [ ] Keine Remote-Writes außerhalb freigegebener Auth-/Self-Profil-Funktion
 - [ ] Keine Agent-Actions
 - [ ] Keine OBS-Steuerung
 - [ ] Keine Sound-Steuerung
