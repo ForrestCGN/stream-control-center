@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN  
+Stand: RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN  
 Datum: 2026-06-24
 
 ## Zentrale RDAP-Dokumente
@@ -13,6 +13,7 @@ docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
 docs/current/RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP.md
 docs/current/RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN.md
 docs/current/RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN.md
+docs/current/RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN.md
 docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_RDAP9_2026-06-24.md
 ```
 
@@ -25,6 +26,7 @@ remote-modboard/backend/src/app.js
 remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/routes/admin-users.routes.js
 remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
 remote-modboard/backend/src/services/admin-user-permission-read.service.js
 remote-modboard/backend/src/services/admin-confirm-write.service.js
 remote-modboard/backend/src/services/admin-audit-write.service.js
@@ -40,4 +42,13 @@ remote-modboard/backend/src/services/audit-read.service.js
 tools/remote-modboard-deploy.sh
 ```
 
-Keine Secrets, keine `.env`, keine DB-Dateien ins Repo.
+## Nicht ins Repo
+
+```text
+Keine Secrets
+Keine .env
+Keine DB-Dateien
+Keine Backups
+Keine ZIP-/7z-Archive
+Keine Tokens
+```
