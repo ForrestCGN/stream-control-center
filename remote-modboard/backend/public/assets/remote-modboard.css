@@ -619,3 +619,255 @@ body.nav-collapsed .cgn-sidebar{opacity:0;pointer-events:none;transform:translat
 .admin-user-row{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(84px,.45fr) minmax(120px,.7fr) minmax(150px,.8fr);gap:10px;align-items:center;padding:10px;border-radius:15px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06)}
 .admin-user-row strong,.admin-user-row small{display:block}.admin-user-row small{color:var(--muted);font-size:12px;margin-top:2px}.admin-user-row span{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.admin-user-row--empty{grid-template-columns:90px minmax(0,1fr)}
 @media(max-width:900px){.admin-user-row{grid-template-columns:1fr}.admin-user-row span{white-space:normal}}
+
+/* RDAP_DESIGN1_REAL_CGN_LOGIN_CLEANUP: sauberer CGN Login ohne technische Statusboxen */
+.loginScene{
+  position:relative;
+  display:grid;
+  place-items:center;
+  min-height:100vh;
+  padding:32px;
+  overflow:hidden;
+}
+.loginScene:before,
+.loginScene:after{
+  content:"";
+  position:fixed;
+  z-index:-3;
+  pointer-events:none;
+  border-radius:999px;
+  filter:blur(22px);
+  opacity:.58;
+}
+.loginScene:before{
+  width:520px;
+  height:680px;
+  left:-150px;
+  top:16%;
+  background:
+    radial-gradient(ellipse at 45% 50%,rgba(191,67,255,.42),transparent 62%),
+    radial-gradient(ellipse at 70% 38%,rgba(98,65,255,.22),transparent 64%);
+  transform:rotate(-13deg);
+}
+.loginScene:after{
+  width:560px;
+  height:720px;
+  right:-160px;
+  bottom:1%;
+  background:
+    radial-gradient(ellipse at 48% 44%,rgba(27,216,255,.34),transparent 62%),
+    radial-gradient(ellipse at 28% 70%,rgba(59,130,255,.18),transparent 66%);
+  transform:rotate(18deg);
+}
+.loginScene .dot-grid{
+  display:none;
+}
+.loginScene ~ .dashboardScene .dot-grid{
+  display:block;
+}
+body:has(.loginScene:not([hidden])) .dot-grid{
+  display:none;
+}
+body:has(.loginScene:not([hidden])) .stars{
+  opacity:.12;
+  background-size:62px 62px;
+}
+body:has(.loginScene:not([hidden])) .cgn-galaxy{
+  background:
+    radial-gradient(circle at 51% 22%,rgba(74,92,255,.24),transparent 34%),
+    radial-gradient(circle at 15% 61%,rgba(155,77,255,.16),transparent 34%),
+    radial-gradient(circle at 84% 61%,rgba(27,216,255,.13),transparent 36%),
+    linear-gradient(135deg,#030614 0%,#080d2a 42%,#08184a 72%,#030512 100%);
+}
+body:has(.loginScene:not([hidden])) .bg-wash-a{
+  opacity:.36;
+  filter:blur(66px);
+}
+body:has(.loginScene:not([hidden])) .bg-wash-b{
+  opacity:.30;
+  filter:blur(72px);
+}
+.login-wrap{
+  width:min(860px,100%);
+  margin:auto;
+}
+.login-card.login-card--welcome{
+  position:relative;
+  isolation:isolate;
+  width:100%;
+  min-height:520px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:54px clamp(28px,6vw,88px);
+  border-radius:34px;
+  border:1px solid rgba(128,150,255,.62);
+  background:
+    radial-gradient(circle at 50% 0%,rgba(75,104,255,.20),transparent 34%),
+    linear-gradient(145deg,rgba(31,27,67,.78),rgba(5,12,34,.80) 58%,rgba(8,19,50,.78));
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.035),
+    0 24px 90px rgba(0,0,0,.46),
+    0 0 44px rgba(27,216,255,.15),
+    0 0 58px rgba(155,77,255,.16),
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 0 70px rgba(59,130,255,.08);
+  backdrop-filter:blur(22px);
+}
+.login-card.login-card--welcome:before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  z-index:-1;
+  border-radius:inherit;
+  padding:1px;
+  background:linear-gradient(135deg,rgba(255,119,255,.82),rgba(27,216,255,.82));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  opacity:.78;
+}
+.login-card.login-card--welcome:after{
+  content:"";
+  position:absolute;
+  left:18%;
+  right:18%;
+  top:-2px;
+  height:2px;
+  border-radius:99px;
+  background:linear-gradient(90deg,transparent,rgba(155,77,255,.88),rgba(27,216,255,.88),transparent);
+  box-shadow:0 0 28px rgba(27,216,255,.38);
+}
+.login-mark{
+  width:70px;
+  height:70px;
+  display:grid;
+  place-items:center;
+  margin:0 0 22px;
+  border-radius:24px;
+  background:radial-gradient(circle,rgba(27,216,255,.18),transparent 62%);
+  filter:drop-shadow(0 0 18px rgba(27,216,255,.42));
+}
+.login-mark span{
+  width:42px;
+  height:42px;
+  display:block;
+  border-radius:10px 10px 14px 14px;
+  border:6px solid transparent;
+  border-top-color:var(--cyan);
+  border-left-color:var(--cyan);
+  border-right-color:var(--purple);
+  transform:rotate(45deg);
+  box-shadow:0 0 18px rgba(27,216,255,.28),inset 0 0 12px rgba(155,77,255,.20);
+}
+.login-card.login-card--welcome .cgn-eyebrow{
+  margin:0 0 18px;
+  color:rgba(232,237,255,.82);
+  font-size:13px;
+  line-height:1.2;
+  letter-spacing:.18em;
+  text-shadow:0 0 18px rgba(27,216,255,.14);
+}
+.login-card.login-card--welcome h1{
+  margin:0;
+  font-size:clamp(48px,6.6vw,86px);
+  line-height:.98;
+  letter-spacing:-.065em;
+  color:#fff;
+  text-shadow:0 16px 40px rgba(0,0,0,.34);
+}
+.login-card.login-card--welcome h1:after{
+  content:"";
+  display:block;
+  width:120px;
+  height:2px;
+  margin:28px auto 0;
+  border-radius:99px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);
+  box-shadow:0 0 18px rgba(27,216,255,.48);
+}
+.login-card.login-card--welcome p:not(.cgn-eyebrow){
+  margin:26px auto 28px;
+  max-width:620px;
+  color:rgba(221,228,255,.84);
+  font-size:clamp(18px,1.65vw,23px);
+  line-height:1.48;
+}
+.login-card.login-card--welcome .twitch-login{
+  width:min(580px,100%);
+  min-height:74px;
+  height:auto;
+  margin:0;
+  padding:0 30px;
+  gap:18px;
+  border:1px solid rgba(213,170,255,.56);
+  border-radius:17px;
+  background:
+    linear-gradient(135deg,rgba(196,58,255,.95),rgba(105,55,236,.96) 52%,rgba(94,55,255,.93));
+  color:#fff;
+  font-size:clamp(20px,2vw,28px);
+  font-weight:950;
+  letter-spacing:-.025em;
+  text-decoration:none;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.05),
+    0 16px 42px rgba(97,44,255,.30),
+    0 0 34px rgba(190,63,255,.25),
+    inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+.login-card.login-card--welcome .twitch-login:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,255,255,.78);
+  filter:saturate(1.08);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.08),
+    0 20px 52px rgba(97,44,255,.38),
+    0 0 48px rgba(190,63,255,.36),
+    inset 0 1px 0 rgba(255,255,255,.28);
+}
+.twitch-icon{
+  width:32px;
+  height:32px;
+  flex:0 0 32px;
+  display:grid;
+  place-items:center;
+}
+.twitch-icon svg{
+  width:32px;
+  height:32px;
+  fill:currentColor;
+  filter:drop-shadow(0 0 10px rgba(255,255,255,.18));
+}
+.login-safe-note{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-top:28px;
+  color:rgba(213,221,255,.70);
+  font-size:clamp(14px,1.25vw,17px);
+}
+.login-safe-note span{
+  color:rgba(172,191,255,.88);
+  filter:drop-shadow(0 0 8px rgba(27,216,255,.25));
+}
+@media(max-width:820px){
+  .loginScene{padding:18px}
+  .login-wrap{width:100%}
+  .login-card.login-card--welcome{
+    min-height:auto;
+    padding:40px 22px;
+    border-radius:28px;
+  }
+  .login-mark{width:56px;height:56px;margin-bottom:18px}
+  .login-mark span{width:34px;height:34px;border-width:5px}
+  .login-card.login-card--welcome .cgn-eyebrow{font-size:11px;letter-spacing:.13em}
+  .login-card.login-card--welcome h1{font-size:clamp(44px,13vw,62px)}
+  .login-card.login-card--welcome p:not(.cgn-eyebrow){font-size:17px}
+  .login-card.login-card--welcome .twitch-login{min-height:62px;font-size:19px;padding:0 20px}
+  .twitch-icon,.twitch-icon svg{width:28px;height:28px}
+}
+

@@ -18,27 +18,27 @@
 
   <section class="loginScene" id="loginScene">
     <main class="login-wrap">
-      <section class="login-card cgn-card">
+      <section class="login-card cgn-card login-card--welcome">
+        <div class="login-mark" aria-hidden="true">
+          <span></span>
+        </div>
         <p class="cgn-eyebrow">ForrestCGN Remote Modboard</p>
-        <h1>Mit Twitch anmelden</h1>
+        <h1>Willkommen</h1>
         <p>
-          Twitch bestätigt nur, wer du bist. Was du im Modboard darfst,
-          entscheidet die serverseitige Rollen- und Rechteverwaltung.
+          Melde dich mit deinem Twitch-Account an,<br>
+          um auf dein Modboard zuzugreifen.
         </p>
         <a class="twitch-login" id="loginStartLink" href="/api/remote/auth/login/start">
-          <span>▣</span>
-          Einloggen
+          <span class="twitch-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M5 3h15v10.5l-4.2 4.2h-3.4L9.7 20.4H7v-2.7H3V7.2L5 3Zm2 2v10.6h4v2.1l2.1-2.1h3.7L18 14.4V5H7Zm4.2 3.1h1.8v5.1h-1.8V8.1Zm4.7 0h1.8v5.1h-1.8V8.1Z"/>
+            </svg>
+          </span>
+          Mit Twitch anmelden
         </a>
-        <div class="login-hints">
-          <div class="cgn-toast">
-            <strong>Zentrale Login-Schicht vorbereitet</strong>
-            <span>Später kann der Einstieg über forrestcgn.de oder direkt über mods.forrestcgn.de laufen.</span>
-          </div>
-          <div class="login-state">
-            <span class="cgn-chip cgn-chip--ok">Twitch OAuth</span>
-            <span class="cgn-chip cgn-chip--warn">Freigabe nötig</span>
-            <span class="cgn-chip cgn-chip--info">Keine Remote-Writes</span>
-          </div>
+        <div class="login-safe-note">
+          <span aria-hidden="true">🔒</span>
+          Sicher anmelden und direkt loslegen
         </div>
       </section>
     </main>

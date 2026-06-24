@@ -1,65 +1,54 @@
 @echo off
-setlocal EnableExtensions EnableDelayedExpansion
-cd /d "%~dp0"
+setlocal EnableExtensions
 
-set "STEP_ZIP=%~1"
-set "STEP_DESC=%~2"
+set "STEP=RDAP_DESIGN1_REAL_CGN_LOGIN_CLEANUP"
+set "REPO=D:\Git\stream-control-center"
+set "SRC=%~dp0remote-modboard"
+set "DST=%REPO%\remote-modboard"
 
-if "%STEP_DESC%"=="" set "STEP_DESC=Test-Deploy"
-
-if "%STEP_ZIP%"=="" (
-  echo.
-  echo ============================================================
-  echo [installstep] Keine ZIP angegeben. Suche neueste ZIP im Downloads-Ordner.
-  echo ============================================================
-  for /f "usebackq delims=" %%Z in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$d=Join-Path $env:USERPROFILE 'Downloads'; if(Test-Path $d){ Get-ChildItem -LiteralPath $d -Filter '*.zip' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName }"`) do set "STEP_ZIP=%%Z"
-  if "!STEP_ZIP!"=="" (
-    echo [error] Keine ZIP im Downloads-Ordner gefunden.
-    echo Nutzung: .\installstep.cmd "%%USERPROFILE%%\Downloads\DATEI.zip" "Beschreibung"
-    exit /b 1
-  )
-  echo Gefundene ZIP: !STEP_ZIP!
-  choice /C JN /M "Diese ZIP installieren und Test-Deploy starten? J/N"
-  if errorlevel 2 (
-    echo Abgebrochen.
-    exit /b 0
-  )
-)
-
-if not exist "%STEP_ZIP%" (
-  echo [error] ZIP nicht gefunden: %STEP_ZIP%
+if not exist "%REPO%\.git" (
+  echo [error] Repo nicht gefunden: %REPO%
+  echo [hint] Bitte im Script den REPO-Pfad pruefen.
   exit /b 1
 )
 
-if not exist ".git" (
-  echo [error] Dieses Script muss im Repo-Root ausgefuehrt werden: D:\Git\stream-control-center
+if not exist "%SRC%\backend\public\index.html" (
+  echo [error] Step-Dateien fehlen im entpackten ZIP: %SRC%
   exit /b 1
 )
 
-echo.
-echo ============================================================
-echo [installstep] ZIP pruefen und ins Repo entpacken
-echo ============================================================
-echo ZIP: %STEP_ZIP%
-echo Ziel: %CD%
-echo.
+if not exist "%DST%\backend\public\index.html" (
+  echo [error] Ziel-Datei nicht gefunden: %DST%\backend\public\index.html
+  exit /b 1
+)
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ErrorActionPreference='Stop';" ^
-  "$zip=$env:STEP_ZIP; $repo=(Get-Location).Path;" ^
-  "Add-Type -AssemblyName System.IO.Compression.FileSystem;" ^
-  "$archive=[System.IO.Compression.ZipFile]::OpenRead($zip);" ^
-  "try {" ^
-  "  $bad=$archive.Entries | Where-Object { $_.FullName -match '(^|/)(\.git/|node_modules/|data/|secrets/)' -or $_.FullName -match '(^|/)\.env($|\.)' -or $_.FullName -match '\.sqlite3?$|\.db$|\.zip$|\.7z$|\.bak$|\.old$|\.tmp$|\.temp$' -or $_.FullName -match '(^|/).*\.ps1$' -and $_.FullName -match 'apply|patch' -or $_.FullName -match '\.\.' };" ^
-  "  if($bad){ Write-Host '[error] Blockierte/unsichere ZIP-Eintraege:' -ForegroundColor Red; $bad | Select-Object -ExpandProperty FullName; exit 10 }" ^
-  "} finally { $archive.Dispose() }" ^
-  "Expand-Archive -LiteralPath $zip -DestinationPath $repo -Force;" ^
-  "Write-Host '[ok] ZIP wurde ins Repo entpackt.'"
+for /f "tokens=1-4 delims=.:-/ " %%a in ("%date%-%time%") do set "STAMP=%%c%%b%%a_%%d"
+set "BACKUP=%REPO%\_handoff\backups\%STEP%_%STAMP%"
+mkdir "%BACKUP%\remote-modboard\backend\public\assets" >nul 2>nul
+
+copy /Y "%DST%\backend\public\index.html" "%BACKUP%\remote-modboard\backend\public\index.html" >nul
+copy /Y "%DST%\backend\public\assets\remote-modboard.css" "%BACKUP%\remote-modboard\backend\public\assets\remote-modboard.css" >nul
+
+copy /Y "%SRC%\backend\public\index.html" "%DST%\backend\public\index.html" >nul
+if errorlevel 1 exit /b 1
+copy /Y "%SRC%\backend\public\assets\remote-modboard.css" "%DST%\backend\public\assets\remote-modboard.css" >nul
 if errorlevel 1 exit /b 1
 
+cd /d "%REPO%"
+
 echo.
 echo ============================================================
-echo [installstep] Starte Test-Deploy ohne GitHub-Push
+echo [ok] %STEP% eingespielt
 echo ============================================================
-call "%~dp0testdeploy.cmd" "%STEP_DESC%"
-exit /b %ERRORLEVEL%
+echo Backup:
+echo %BACKUP%
+echo.
+echo Geaenderte Dateien:
+git status --short -- remote-modboard/backend/public/index.html remote-modboard/backend/public/assets/remote-modboard.css
+echo.
+echo Diff-Kurzuebersicht:
+git diff --stat -- remote-modboard/backend/public/index.html remote-modboard/backend/public/assets/remote-modboard.css
+echo.
+echo Naechster Schritt: lokal im Browser pruefen. Bei Erfolg stepdone.cmd ausfuehren.
+
+endlocal
