@@ -1,15 +1,15 @@
 # CURRENT STATUS
 
-Stand: RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC
+Stand: RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
 Datum: 2026-06-24
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP8 wurde als reiner Plan-/Doku-Step vorbereitet und nach GitHub/dev uebernommen.
+RDAP8A ist nach GitHub/dev uebernommen, auf `web.cgn.community` live deployed, der Service wurde neu gestartet und die read-only Permission-Diagnose wurde erfolgreich getestet.
 
-RDAP8A bereitet jetzt einen read-only Permission-Resolver fuer das Remote-Modboard vor. Der Resolver dient nur der Diagnose und als Grundlage fuer spaetere serverseitige Permission-Middleware. Produktive Autorisierung bleibt deaktiviert.
+RDAP8B dokumentiert diesen Live-Deploy/Test.
 
-Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Session-Erstellung, keine Session-Verlaengerung, kein `last_seen_at` Update, keine DB-Writes, keine Remote-Writes und keine Agent-Actions.
+Das Remote-Modboard laeuft weiterhin produktiv read-only. Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Session-Erstellung, keine Session-Verlaengerung, kein `last_seen_at` Update, keine DB-Writes, keine Remote-Writes und keine Agent-Actions.
 
 ## Fertig und bestaetigt
 
@@ -39,55 +39,84 @@ RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
 RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 RDAP8 Permission Check Middleware Plan dokumentiert
+RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
+RDAP8B Permission Resolver Live Deploy/Test dokumentiert
 ```
 
-## RDAP8A vorbereitet
+## RDAP8A/RDAP8B live bestaetigt
 
-Neu/angepasst:
+Deploy:
 
 ```text
-remote-modboard/backend/src/security/permissions.js
-remote-modboard/backend/src/services/auth-permission-read.service.js
-remote-modboard/backend/src/routes/auth-status.routes.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/package.json
-remote-modboard/backend/README.md
-docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
+Deploy-Clone: /opt/stream-control-center/_deploy_tmp/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_20260624_080242
+Live-Ziel: /opt/stream-control-center/remote-modboard/backend
+Service: scc-remote-modboard.service
+Backup: /var/backups/stream-control-center/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_remote-modboard-backend_20260624_080242.tar.gz
 ```
 
-Neue Diagnose-Route:
+Syntax/Service:
 
 ```text
-GET /api/remote/auth/permissions/check?permission=remote.view
+npm install --omit=dev erfolgreich
+npm run check erfolgreich
+scc-remote-modboard.service active
+Listen intern: 127.0.0.1:3010
 ```
 
-Optionale Target-Parameter:
+Status:
 
 ```text
-targetType
-targetKey
-```
-
-Erwartetes Verhalten ohne Cookie:
-
-```text
+GET /api/remote/status
 ok=true
 statusApiVersion=rdap8a.v1
 readOnly=true
 writeEnabled=false
-authEnabled=false
-loginEnabled=false
-loggedIn=false
-allowed=false
-reason=auth_disabled_or_not_logged_in
+auth.enabled=false
+auth.loginEnabled=false
+permissions.readOnlyResolverPrepared=true
+permissions.diagnosticCheckRoutePrepared=true
+permissions.checkRouteEnabled=true
+permissions.productiveAuthorizationEnabled=false
+database.writeEnabled=false
+agent.actionsEnabled=false
 ```
 
-Bei diagnostisch gueltiger Session darf der Resolver read-only Rollen/Gruppen/Permissions lesen, bleibt aber produktiv gesperrt:
+Routes:
 
 ```text
+GET /api/remote/routes
+statusApiVersion=rdap8a.v1
+permissionReadOnlyResolverPrepared=true
+GET /api/remote/auth/permissions/check vorhanden
+```
+
+Permission-Check ohne Cookie:
+
+```text
+GET /api/remote/auth/permissions/check?permission=remote.view
+ok=true
+statusApiVersion=rdap8a.v1
 allowed=false
-reason=auth_disabled_readonly_permission_denied
+reason=auth_disabled_or_not_logged_in
+session.reason=no_session_cookie
+session.createsSession=false
+session.setsCookie=false
+session.updatesLastSeen=false
+diagnostics.contextLookupPerformed=false
+diagnostics.permissionEvaluationPerformed=false
+```
+
+OAuth Start/Callback bleiben disabled:
+
+```text
+GET /api/remote/auth/twitch/start -> HTTP 403
+GET /api/remote/auth/twitch/callback -> HTTP 403
+kein Redirect
+kein Set-Cookie
+kein Token-Tausch
+keine Session-Erstellung
+keine DB-Writes
+keine Agent-Actions
 ```
 
 ## Remote-Modboard read-only live
@@ -98,7 +127,7 @@ Subdomain/API: https://mods.forrestcgn.de/api/remote/
 Service: scc-remote-modboard.service
 Listen intern: 127.0.0.1:3010
 moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
-statusApiVersion live vor RDAP8A-Deploy: rdap7i.v1
+statusApiVersion live: rdap8a.v1
 ```
 
 Hinweis: `moduleBuild` ist noch der alte server.js-Buildname. Das ist kosmetisch und soll nur mit eigenem Mini-Scope angepasst werden.
@@ -123,6 +152,7 @@ sessionCreationEnabled: false
 sessionCookieWriteEnabled: false
 databaseWriteEnabled: false
 agentActionsEnabled: false
+productivePermissionEnforcementEnabled: false
 secretsInFrontend: false
 secretsLogged: false
 ```
@@ -134,9 +164,8 @@ secretsLogged: false
 /var/backups/stream-control-center/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_remote-modboard-backend_20260623_213951.tar.gz
 /var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_222938.tar.gz
 /var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz
+/var/backups/stream-control-center/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_remote-modboard-backend_20260624_080242.tar.gz
 ```
-
-Hinweis: `20260623_223314` ist das bestaetigte RDAP7I-Live-Deploy-Backup.
 
 ## Webserver-DB
 
@@ -158,14 +187,14 @@ Backups:             /var/backups/stream-control-center/
 
 `/root` nicht mehr fuer RDAP-Arbeitsordner, Deploy-Clones, Temp-Ordner oder Backups verwenden.
 
-## Naechster sinnvoller Schritt nach Einspielen
+## Naechster sinnvoller Schritt
 
 ```text
-RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
 ```
 
 Ziel:
 
 ```text
-RDAP8A auf dem Webserver deployen, scc-remote-modboard.service neu starten, Live-Routen testen und Ergebnis dokumentieren.
+Lock-/Audit-Konzept fuer spaetere produktive Remote-Writes planen. Noch keine produktiven Writes bauen.
 ```

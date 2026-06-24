@@ -1,7 +1,7 @@
 # START HERE FOR NEW CHAT
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
-Datum: 2026-06-23
+Stand: RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+Datum: 2026-06-24
 
 ## Zuerst lesen
 
@@ -13,22 +13,19 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
-docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
-docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
-docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
+docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
+docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
+docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP9.txt
 ```
 
 ## Aktueller gesicherter Stand
 
 ```text
-RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
+RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
 ```
 
-RDAP7I ist lokal eingebaut, nach GitHub/dev gepusht, live auf `web.cgn.community` deployed und getestet.
-
-RDAP7I bereitet den Session-Store-/Validation-Layer read-only vor. `dashboard_sessions` wird nur per SELECT diagnostisch/validierend gelesen. Es werden weiterhin keine Sessions erstellt, keine Cookies gesetzt, kein Login aktiviert, keine Sessions verlaengert, kein `last_seen_at` aktualisiert und keine DB-Writes ausgefuehrt.
+RDAP8A wurde lokal vorbereitet, nach GitHub/dev uebernommen, auf `web.cgn.community` live deployed und getestet. RDAP8B dokumentiert diesen Live-Test.
 
 ## Kurzstatus
 
@@ -42,6 +39,9 @@ RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled live deployed
 RDAP7H OAuth Callback Skeleton disabled live deployed/getestet
 RDAP7I Session Store Read-only Validation Layer live deployed/getestet
+RDAP8 Permission Check Middleware Plan dokumentiert
+RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
+RDAP8B Permission Resolver Live Deploy/Test dokumentiert
 ```
 
 ## Live Remote-Modboard
@@ -51,15 +51,40 @@ URL: https://mods.forrestcgn.de/api/remote/
 Service: scc-remote-modboard.service
 Listen intern: 127.0.0.1:3010
 Webserver: web.cgn.community
-statusApiVersion live: rdap7i.v1
+statusApiVersion live: rdap8a.v1
 readOnly: true
 writeEnabled: false
 authEnabled: false
 loginEnabled: false
 sessionCreationEnabled: false
+productivePermissionEnforcementEnabled: false
 ```
 
-Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Relevant fuer RDAP7I ist `statusApiVersion=rdap7i.v1`. Eine Anpassung des `moduleBuild` ist spaeter nur mit eigenem Mini-Scope erlaubt.
+Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Relevant fuer RDAP8B ist `statusApiVersion=rdap8a.v1`. Eine Anpassung des `moduleBuild` ist spaeter nur mit eigenem Mini-Scope erlaubt.
+
+## RDAP8B bestaetigter Live-Test
+
+```text
+npm install --omit=dev erfolgreich
+npm run check erfolgreich
+scc-remote-modboard.service active
+GET /api/remote/status -> statusApiVersion rdap8a.v1
+GET /api/remote/routes -> /api/remote/auth/permissions/check vorhanden
+GET /api/remote/auth/permissions/check?permission=remote.view -> allowed=false, reason auth_disabled_or_not_logged_in
+GET /api/remote/auth/twitch/start -> HTTP 403
+GET /api/remote/auth/twitch/callback -> HTTP 403
+kein Redirect
+kein Set-Cookie
+keine Session-Erstellung
+keine DB-Writes
+keine Agent-Actions
+```
+
+RDAP8B Backup auf Webserver:
+
+```text
+/var/backups/stream-control-center/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_remote-modboard-backend_20260624_080242.tar.gz
+```
 
 ## Bestaetigter Sicherheitsrahmen
 
@@ -74,44 +99,19 @@ callbackRouteEnabled: false
 redirectToTwitch: false
 tokenExchangeEnabled: false
 sessions.effectiveEnabled: false
-sessions.storePrepared: true
-sessions.readOnlyValidationPrepared: true
-sessions.readOnlyValidationEnabled: true
-sessions.readsDashboardSessions: true
 sessions.createSession: false
 sessions.setCookie: false
 sessions.refreshSession: false
 sessions.updateLastSeen: false
 databaseWriteEnabled: false
 agentActionsEnabled: false
+productivePermissionEnforcementEnabled: false
 keine Cookies
 keine Session-Erstellung
 keine DB-Writes
 keine Agent-Actions
 kein Redirect zu Twitch
 kein OAuth-Code-gegen-Token-Tausch
-```
-
-## Bestaetigter Live-Test RDAP7I
-
-```text
-npm run check erfolgreich
-scc-remote-modboard.service active/running
-GET /api/remote/status -> statusApiVersion rdap7i.v1
-GET /api/remote/auth/session-status ohne Cookie -> reason no_session_cookie
-GET /api/remote/auth/me ohne Cookie -> loggedIn false
-GET /api/remote/auth/twitch/start -> HTTP 403
-GET /api/remote/auth/twitch/callback -> HTTP 403
-kein Set-Cookie
-kein Redirect
-keine DB-Writes
-keine Agent-Actions
-```
-
-RDAP7I Backup auf Webserver:
-
-```text
-/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz
 ```
 
 ## Server-Ordnerregel
@@ -148,7 +148,7 @@ StepDone erst nach Einspielen/Deploy/Test.
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN
+RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
 ```
 
 Nur planen/vorbereiten. Noch keine produktiven Writes, keine Agent-Actions, kein Login ohne eigenen Scope und ausdrueckliches go.

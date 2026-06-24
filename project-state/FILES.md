@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC
+Stand: RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
 Datum: 2026-06-24
 
 ## Wichtigste Dateien zuerst
@@ -19,7 +19,8 @@ docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
-docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
+docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP9.txt
 ```
 
 ## Aktuelle RDAP-Dateien im Repo
@@ -47,8 +48,8 @@ docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
-docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
-docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
+docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP9.txt
 ```
 
 ## Remote-Modboard Paket im Repo
@@ -76,32 +77,7 @@ remote-modboard/backend/src/security/permissions.js
 remote-modboard/backend/src/security/safety.js
 ```
 
-## RDAP7I geaenderte Remote-Modboard-Dateien
-
-```text
-remote-modboard/backend/package.json
-remote-modboard/backend/src/routes/auth-status.routes.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/services/auth-session-read.service.js
-remote-modboard/backend/src/services/auth-status.service.js
-remote-modboard/backend/README.md
-```
-
-## RDAP8 geaenderte Dateien
-
-Reiner Plan-/Doku-Step, kein Backend-Code:
-
-```text
-docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
-
-## RDAP8A geaenderte Dateien
+## RDAP8A geaenderte Code-Dateien
 
 ```text
 remote-modboard/backend/package.json
@@ -111,7 +87,16 @@ remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/services/auth-permission-read.service.js
 remote-modboard/backend/src/security/permissions.js
-docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
+```
+
+## RDAP8B geaenderte Dateien
+
+Reiner Live-Test-/Doku-Step, kein Backend-Code:
+
+```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP9.txt
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -141,6 +126,15 @@ Nicht mehr fuer RDAP-Deploy/Temp/Backup nutzen:
 /root
 ```
 
+## RDAP8B Live-Deploy
+
+```text
+Deploy-Clone: /opt/stream-control-center/_deploy_tmp/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_20260624_080242
+Backup: /var/backups/stream-control-center/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_remote-modboard-backend_20260624_080242.tar.gz
+Service: scc-remote-modboard.service
+statusApiVersion live: rdap8a.v1
+```
+
 ## Webserver-DB
 
 ```text
@@ -154,17 +148,7 @@ Charset: utf8mb4
 
 Passwort nicht dokumentieren.
 
-## Produktive RDAP6K-Migration
-
-Vorheriges Backup:
-
-```text
-/root/rdap6j_backup_20260623_152934/c3stream_control_before_rdap6_migration.sql
-```
-
-Hinweis: Historischer Pfad aus RDAP6J. Ab RDAP7C1 keine neuen RDAP-Backups mehr nach `/root`.
-
-Produktiv angelegte Tabellen in `c3stream_control`:
+## Produktiv angelegte Tabellen in `c3stream_control`
 
 ```text
 schema_migrations
@@ -182,30 +166,33 @@ dashboard_locks
 dashboard_audit_log
 ```
 
-## Bestaetigte API-Routen vor RDAP8A
+## Bestaetigte API-Routen nach RDAP8B
 
 ```text
+GET https://mods.forrestcgn.de/api/remote/health
+GET https://mods.forrestcgn.de/api/remote/status
+GET https://mods.forrestcgn.de/api/remote/routes
 GET https://mods.forrestcgn.de/api/remote/auth/model
 GET https://mods.forrestcgn.de/api/remote/auth/me
 GET https://mods.forrestcgn.de/api/remote/auth/session-status
+GET https://mods.forrestcgn.de/api/remote/auth/permissions/check?permission=remote.view
 GET https://mods.forrestcgn.de/api/remote/auth/twitch/start
 GET https://mods.forrestcgn.de/api/remote/auth/twitch/callback
-schema.ready: true
+```
+
+Bestaetigt:
+
+```text
+statusApiVersion live: rdap8a.v1
 readOnly: true
 writeEnabled: false
 authEnabled: false
 loginEnabled: false
 sessionCreationEnabled: false
 sessionCookieWriteEnabled: false
+productivePermissionEnforcementEnabled: false
 oauthStartRouteEnabled: false
 oauthCallbackRouteEnabled: false
-statusApiVersion live vor RDAP8A: rdap7i.v1
-```
-
-## Neue RDAP8A API-Route nach Deploy
-
-```text
-GET https://mods.forrestcgn.de/api/remote/auth/permissions/check?permission=remote.view
 ```
 
 ## Webserver-Backups
@@ -215,9 +202,8 @@ GET https://mods.forrestcgn.de/api/remote/auth/permissions/check?permission=remo
 /var/backups/stream-control-center/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_remote-modboard-backend_20260623_213951.tar.gz
 /var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_222938.tar.gz
 /var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz
+/var/backups/stream-control-center/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_remote-modboard-backend_20260624_080242.tar.gz
 ```
-
-Hinweis: `20260623_223314` ist das bestaetigte RDAP7I-Live-Deploy-Backup.
 
 ## Lokale produktive SQLite
 
@@ -254,5 +240,5 @@ moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ## Naechste geplante Datei / naechster Scope
 
 ```text
-RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
 ```

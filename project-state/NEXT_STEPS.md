@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC
+Stand: RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
 Datum: 2026-06-24
 
 ## Aktueller Stand
@@ -17,13 +17,9 @@ RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
 RDAP7I Session Store Read-only Validation Layer live deployed/getestet
-```
-
-Vorbereitet:
-
-```text
 RDAP8 Permission Check Middleware Plan dokumentiert
 RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
+RDAP8B Permission Resolver Live Deploy/Test dokumentiert
 ```
 
 Remote-Modboard bleibt read-only:
@@ -43,48 +39,51 @@ redirectToTwitch: false
 tokenExchangeEnabled: false
 databaseWriteEnabled: false
 agentActionsEnabled: false
+productivePermissionEnforcementEnabled: false
 ```
 
-RDAP8A liefert neu:
+RDAP8A/RDAP8B bestaetigt:
 
 ```text
-GET /api/remote/auth/permissions/check?permission=remote.view
-```
-
-Die Route ist nur Diagnose. Ohne aktiven Login bleibt:
-
-```text
-allowed=false
+GET /api/remote/status -> statusApiVersion=rdap8a.v1
+GET /api/remote/routes -> /api/remote/auth/permissions/check vorhanden
+GET /api/remote/auth/permissions/check?permission=remote.view -> allowed=false, reason=auth_disabled_or_not_logged_in
+GET /api/remote/auth/twitch/start -> HTTP 403
+GET /api/remote/auth/twitch/callback -> HTTP 403
+kein Redirect
+kein Set-Cookie
+keine DB-Writes
+keine Agent-Actions
 ```
 
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
+RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES
 ```
 
 Ziel:
 
 ```text
-RDAP8A auf dem Webserver deployen, Node-Service neu starten, read-only Permission-Diagnose testen und Ergebnis dokumentieren.
+Lock-/Audit-Konzept fuer spaetere produktive Remote-Writes planen.
 ```
 
-RDAP8B darf klaeren/umsetzen, aber erst nach eigenem Scope und ausdruecklichem go:
+RDAP9 darf klaeren/planen, aber erst nach eigenem Scope und ausdruecklichem go:
 
 ```text
-Deploy aus GitHub/dev auf Webserver
-Backup nach /var/backups/stream-control-center/
-Deploy-Clone nach /opt/stream-control-center/_deploy_tmp/
-scc-remote-modboard.service neu starten
-npm run check auf Webserver pruefen
-GET /api/remote/status pruefen
-GET /api/remote/routes pruefen
-GET /api/remote/auth/permissions/check?permission=remote.view pruefen
-OAuth Start/Callback bleiben HTTP 403 pruefen
-kein Set-Cookie pruefen
-kein Redirect pruefen
-keine DB-Writes/Agent-Actions
-Testergebnis dokumentieren
+bestehende Tabellen dashboard_locks und dashboard_audit_log pruefen
+bestehende RDAP-Dokus/DB-Migrationen pruefen
+Lock-Regeln fuer spaetere Bearbeitungsbereiche planen
+Audit-Regeln fuer spaetere produktive Aktionen planen
+Confirm/Safety-Regeln fuer riskante Aktionen planen
+Permission + Lock + Audit Zusammenspiel definieren
+keine produktiven Writes bauen
+keine User-/Rollen-/Gruppen-Schreibrouten bauen
+keine Agent-Actions aktivieren
+keine OBS-/Sound-/Overlay-/Command-Steuerung bauen
+kein Login aktivieren
+keine Cookies setzen
+keine Sessions erstellen
 ```
 
 ## Noch nicht erlaubt
@@ -108,8 +107,8 @@ keine produktive Permission-Erzwingung fuer Writes
 ## Danach moeglich, nicht jetzt
 
 ```text
-RDAP9 Lock-/Audit-Konzept fuer spaetere Writes
 RDAP10 Agent-Handshake/Allowlist-Plan
+RDAP11 Login/OAuth Aktivierungsplan nur nach Security-Freigabe
 ```
 
 ## Arbeitsregel
