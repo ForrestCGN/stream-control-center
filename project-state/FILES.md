@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN  
+Stand: RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC  
 Datum: 2026-06-24
 
 ## Zentrale RDAP-Dokumente
@@ -14,6 +14,7 @@ docs/current/RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP.md
 docs/current/RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN.md
 docs/current/RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN.md
 docs/current/RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN.md
+docs/current/RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC.md
 docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_RDAP9_2026-06-24.md
 ```
 
@@ -42,13 +43,4 @@ remote-modboard/backend/src/services/audit-read.service.js
 tools/remote-modboard-deploy.sh
 ```
 
-## Nicht ins Repo
-
-```text
-Keine Secrets
-Keine .env
-Keine DB-Dateien
-Keine Backups
-Keine ZIP-/7z-Archive
-Keine Tokens
-```
+Keine Secrets, keine `.env`, keine DB-Dateien ins Repo.

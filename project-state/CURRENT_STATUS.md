@@ -3,7 +3,7 @@
 Stand: 2026-06-24  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller RDAP-Status
+## Aktueller bestaetigter RDAP-Status
 
 Produktiv unter:
 
@@ -11,13 +11,13 @@ Produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller Plan-/Doku-Stand nach Einspielen dieses Steps:
+Letzter remote bestaetigter Code-Stand:
 
 ```text
-RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
+RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
 ```
 
-## Vorher remote bestaetigt
+Remote bestaetigt fuer RDAP9:
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
@@ -28,6 +28,20 @@ lockDiagnostic.helperPrepared: true
 lockDiagnostic.writeEnabled: false
 writeEnabled: false
 writesStillBlocked: true
+```
+
+## Aktueller Doku-/Plan-Stand
+
+Der reine Plan-Step ist vorhanden:
+
+```text
+RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
+```
+
+Dieser Sync-Step aktualisiert die Projektstatus-Dateien auf:
+
+```text
+RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 ```
 
 ## Sicherheitsstand
@@ -62,4 +76,4 @@ OBS-/Sound-/Overlay-/Command-Steuerung
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 ```
 
-Nur Foundation/Diagnose weiterhin disabled. Noch kein echter produktiver Admin-Write.
+Nur Code-Foundation weiterhin disabled. Noch kein echter produktiver Write, kein UI-Schreibbutton, keine DB-Migration.
