@@ -3,7 +3,7 @@
 const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 
-const MODULE_BUILD = 'RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS';
+const MODULE_BUILD = 'RDAP_AUTH2_CENTRAL_LOGIN_READY';
 
 async function main() {
   const config = loadConfig();
@@ -11,7 +11,7 @@ async function main() {
 
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] ${MODULE_BUILD} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] read-only=true writeEnabled=false authEnabled=false sessionCreationEnabled=false agentActionsEnabled=false');
+    console.log('[remote-modboard] central-auth-ready=true read-only-ui=true remoteWrites=false agentActions=false');
   });
 
   process.on('SIGTERM', () => shutdown(server, 'SIGTERM'));

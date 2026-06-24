@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_HANDOFF_AUTH_DASHBOARD2_STOCKT
+Stand: RDAP_WORKFLOW_MASTERPROMPT_FIX
 Datum: 2026-06-24
 
 ## Erledigt
@@ -13,6 +13,7 @@ Datum: 2026-06-24
 - [x] Twitch Login live erfolgreich
 - [x] Browser zeigte `Angemeldet als ForrestCGN`
 - [x] Auth/OAuth/Sessions aktiv
+- [x] RDAP-Webserver-Deploy-Arbeitsweise korrigiert und dokumentiert: frischer GitHub/dev-Clone nach `_deploy_tmp`, kein fester `/opt/stream-control-center/tools/...`-Pfad
 
 ## Sofort offen
 
@@ -31,7 +32,10 @@ Datum: 2026-06-24
 ## Auth/Access offen
 
 - [ ] Zentralen Hauptseiten-Login als Zielarchitektur planen
-- [ ] `mods.forrestcgn.de` soll später Login übernehmen können
+- [ ] Login-Einstieg über `forrestcgn.de` und `mods.forrestcgn.de` ermöglichen
+- [ ] Gemeinsame zentrale Auth-/Session-Schicht vorbereiten
+- [ ] Gemeinsame serverseitige DB-Wahrheit für User/Identities/Sessions nutzen
+- [ ] `mods.forrestcgn.de` soll später Login übernehmen/pruefen können
 - [ ] Access-Denied sauber halten
 - [ ] Rollen/Rechte für Owner/Streamer/Mods/Sound-Profi planen
 
@@ -45,3 +49,4 @@ Datum: 2026-06-24
 - [ ] Keine Command-Steuerung
 - [ ] Keine Migration ohne Backup/Rollback/Go
 - [ ] Keine Secrets ins Repo/Frontend/Chat/Logs
+- [ ] Keine Funktionalität entfernen

@@ -1,6 +1,6 @@
 # RDAP Handoff - Auth live, Dashboard2 stockt
 
-Stand: RDAP_HANDOFF_AUTH_DASHBOARD2_STOCKT
+Stand: RDAP_WORKFLOW_MASTERPROMPT_FIX
 Datum: 2026-06-24
 
 ## Kurzfassung
@@ -8,12 +8,31 @@ Datum: 2026-06-24
 Der Remote-Modboard/Auth-Teil ist deutlich weiter:
 
 - `mods.forrestcgn.de` läuft
-- Remote-Modboard Deploy-Script funktioniert
+- Remote-Modboard Deploy-Script funktioniert im Repo unter `tools/remote-modboard-deploy.sh`
 - Twitch Login funktioniert live
 - Browser zeigte: `Angemeldet als ForrestCGN`
 - Auth/OAuth/Sessions sind aktiv
 - Dashboard1/2 wurden gebaut, aber Design entspricht noch nicht dem geplanten CGN-/Vision-UI-/Neon-Galaxy-Ziel
-- Der aktuelle Chat stockt; neuer Chat soll sauber mit Bestandsaufnahme starten
+
+Zusätzlich wurde die verbindliche RDAP-Arbeitsweise korrigiert und dokumentiert.
+
+## Wichtig: korrigierter Webserver-Deploy
+
+`/opt/stream-control-center` ist kein Git-Repo. Deshalb nicht verwenden:
+
+```bash
+/opt/stream-control-center/tools/remote-modboard-deploy.sh
+```
+
+Korrekt ist immer ein frischer Clone nach `_deploy_tmp`:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf STEP_NAME
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
+cd STEP_NAME
+sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+```
 
 ## Bestätigter Auth-Stand
 
@@ -66,14 +85,15 @@ Dashboard2 hat funktional begonnen:
 - Dashboard nur bei Freigabe
 - stärkere CGN-Optik versucht
 
-Aber: Es ist laut Forrest **noch nicht das geplante Design**.
+Aber: Es ist laut Forrest noch nicht das geplante Design.
 
-Nicht weiter frei CSS/HTML „aus dem Kopf“ bauen. Stattdessen echte Designbasis nehmen:
+Nicht weiter frei CSS/HTML bauen. Stattdessen echte Designbasis nehmen:
 
 - `dashboard-v2`
 - Vision-UI-/Neon-Galaxy-Ziel
 - `_overlay-start-v2-neon-galaxy.html`
 - vorhandene CGN-Dashboard-/Overlay-Design-Dateien im Repo
+- hochgeladene Design-Test-Basis `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip` als optische Referenz, wenn im Chat verfügbar
 
 ## Fachliche Login-Zielidee
 
@@ -83,9 +103,10 @@ Ziel:
 
 ```text
 Hauptseite/Login zentral
--> User loggt sich auf Hauptseite / zentralem Auth-Bereich ein
+oder Login-Einstieg direkt über mods.forrestcgn.de
+-> beide nutzen dieselbe zentrale Auth-/Session-Schicht
 -> zentrale Session in DB
--> Cookie/Session kann von mods.forrestcgn.de übernommen/geprüft werden
+-> mods.forrestcgn.de übernimmt/prueft Session serverseitig
 -> Modboard zeigt Dashboard nur für berechtigte Mods/Streamer/Owner
 ```
 
@@ -123,11 +144,11 @@ Weiterhin nicht aktivieren:
 - Migration ohne eigenes Go
 - Secrets im Repo/Frontend/Chat/Logs
 
-## Nächster sinnvoller Start im neuen Chat
+## Nächster sinnvoller Start
 
 Nicht weiter am aktuellen Dashboard2-Design herumprobieren.
 
-Neuer Chat soll:
+Nächster Chat / nächster Step soll:
 
 1. GitHub/dev prüfen
 2. aktuelle Dateien aus Repo als Wahrheit nehmen
@@ -135,4 +156,4 @@ Neuer Chat soll:
 4. Secrets-Rotation als offen prüfen
 5. Designbasis im Repo finden/prüfen
 6. erst dann `RDAP_DESIGN1_REAL_CGN_BASE` planen
-7. danach `RDAP_AUTH2_CENTRAL_LOGIN_READY` planen
+7. danach `RDAP_AUTH2_CENTRAL_LOGIN_READY` bzw. zentrale Auth-Schicht weiterführen, falls noch nicht sauber abgeschlossen

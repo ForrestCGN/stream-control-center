@@ -16,9 +16,9 @@
         <div class="brandBadge">CGN</div>
         <p class="eyebrow">ForrestCGN · Remote Modboard</p>
         <h1>Willkommen im Modboard</h1>
-        <p class="lead">Bitte melde dich mit Twitch an. Das Dashboard wird nur für freigeschaltete Mods und Streamer angezeigt.</p>
-        <a class="primaryButton" href="/api/remote/auth/twitch/start">Mit Twitch einloggen</a>
-        <p class="tinyHint">Keine Remote-Writes · Keine Agent-Actions · Keine OBS-/Sound-/Overlay-/Command-Steuerung</p>
+        <p class="lead">Bitte melde dich an. Später kann der Einstieg über forrestcgn.de oder direkt über mods.forrestcgn.de laufen; die Session wird zentral geprüft.</p>
+        <a class="primaryButton" id="loginStartLink" href="/api/remote/auth/login/start">Einloggen</a>
+        <p class="tinyHint">Zentrale Auth vorbereitet · Keine Remote-Writes · Keine Agent-Actions · Keine OBS-/Sound-/Overlay-/Command-Steuerung</p>
       </div>
     </section>
 
@@ -98,7 +98,7 @@
 
         <section class="notice compact">
           <strong>Modboard geschützt</strong>
-          <span>Nur freigeschaltete User · read-only Diagnose · keine Remote-Writes · keine Agent-Actions</span>
+          <span>Zentrale Login-Schicht vorbereitet · Nur freigeschaltete User · read-only Diagnose · keine Remote-Writes · keine Agent-Actions</span>
         </section>
 
         <section class="statusStrip">
@@ -137,7 +137,7 @@
                 <h2>Aus der Diagnose wird jetzt Schritt für Schritt ein echtes Modboard.</h2>
               </div>
               <div class="infoGrid">
-                <div><strong>Dashboard-Struktur</strong><p>Module sauber gruppieren, mit zentraler Navigation.</p></div>
+                <div><strong>Zentraler Login</strong><p>forrestcgn.de und mods.forrestcgn.de sollen dieselbe Session-/User-Wahrheit nutzen.</p></div>
                 <div><strong>Rollen & Rechte</strong><p>Owner, Mods und Spezialrollen wie Sound-Profi sichtbar machen.</p></div>
                 <div><strong>Actions später</strong><p>Steueraktionen erst mit Permission, Locking und Audit.</p></div>
               </div>
@@ -180,7 +180,7 @@
 
         <section class="page" data-page-panel="account">
           <article class="card wide">
-            <div class="cardHead"><h2>Mein Login</h2><span class="pill safe">Twitch</span></div>
+            <div class="cardHead"><h2>Mein Login</h2><span class="pill safe">Session</span></div>
             <dl class="kv">
               <div><dt>loggedIn</dt><dd id="authLoggedIn">—</dd></div>
               <div><dt>dashboardAccess</dt><dd id="dashboardAccess">—</dd></div>
@@ -198,7 +198,7 @@
             <dl class="kv">
               <div><dt>permission remote.view</dt><dd id="permissionAllowed">—</dd></div>
               <div><dt>reason</dt><dd id="permissionReason">—</dd></div>
-              <div><dt>Hinweis</dt><dd>Dashboard-Zugriff kommt jetzt serverseitig aus `/auth/me`; produktive Actions brauchen später eigene Middleware.</dd></div>
+              <div><dt>Hinweis</dt><dd>Dashboard-Zugriff kommt serverseitig aus `/auth/me`; produktive Actions brauchen später eigene Middleware.</dd></div>
             </dl>
           </article>
         </section>

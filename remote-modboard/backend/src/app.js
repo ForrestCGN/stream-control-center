@@ -7,6 +7,7 @@ const { registerHealthRoutes } = require('./routes/health.routes');
 const { registerStatusRoutes } = require('./routes/status.routes');
 const { registerAuthModelRoutes } = require('./routes/auth-model.routes');
 const { registerAuthStatusRoutes } = require('./routes/auth-status.routes');
+const { registerAuthLoginRoutes } = require('./routes/auth-login.routes');
 const { registerAuthTwitchRoutes } = require('./routes/auth-twitch.routes');
 const { registerLockAuditDiagnosticRoutes } = require('./routes/lock-audit-diagnostic.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
@@ -28,6 +29,7 @@ function createApp({ config, moduleBuild }) {
   registerStatusRoutes(app, context);
   registerAuthModelRoutes(app, context);
   registerAuthStatusRoutes(app, context);
+  registerAuthLoginRoutes(app, context);
   registerAuthTwitchRoutes(app, context);
   registerLockAuditDiagnosticRoutes(app, context);
   registerRoutesRoutes(app, context);

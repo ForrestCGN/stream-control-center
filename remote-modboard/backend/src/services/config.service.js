@@ -16,6 +16,10 @@ function loadConfig() {
   const host = readString('REMOTE_MODBOARD_HOST', '127.0.0.1');
   const port = readPort('REMOTE_MODBOARD_PORT', 3010);
   const publicBaseUrl = readString('REMOTE_PUBLIC_BASE_URL', 'https://mods.forrestcgn.de');
+  const centralAuthBaseUrl = readString('CENTRAL_AUTH_BASE_URL', 'https://forrestcgn.de');
+  const centralAuthLoginPath = readString('CENTRAL_AUTH_LOGIN_PATH', '/login');
+  const centralAuthLogoutPath = readString('CENTRAL_AUTH_LOGOUT_PATH', '/logout');
+  const centralAuthMode = readString('CENTRAL_AUTH_MODE', 'local_twitch_fallback');
   const twitchRedirectUri = readString(
     'TWITCH_REDIRECT_URI',
     `${publicBaseUrl.replace(/\/+$/, '')}/api/remote/auth/twitch/callback`
@@ -54,6 +58,20 @@ function loadConfig() {
     && oauthStateSecretConfigured
     && dbConfigured;
 
+  const localTwitchStartPath = '/api/remote/auth/twitch/start';
+  const loginEntryPath = '/api/remote/auth/login/start';
+  const returnToDefault = publicBaseUrl.replace(/\/+$/, '/') || 'https://mods.forrestcgn.de/';
+  const centralAuthLoginUrl = buildCentralAuthUrl({
+    baseUrl: centralAuthBaseUrl,
+    pathName: centralAuthLoginPath,
+    returnTo: returnToDefault
+  });
+  const centralAuthLogoutUrl = buildCentralAuthUrl({
+    baseUrl: centralAuthBaseUrl,
+    pathName: centralAuthLogoutPath,
+    returnTo: returnToDefault
+  });
+
   return {
     service: 'remote-modboard',
     module: 'remote_node_base',
@@ -62,13 +80,32 @@ function loadConfig() {
     envPath,
     envFileExists,
     publicBaseUrl,
+    centralAuth: {
+      prepared: true,
+      mode: centralAuthMode,
+      baseUrl: centralAuthBaseUrl,
+      loginPath: centralAuthLoginPath,
+      logoutPath: centralAuthLogoutPath,
+      loginEntryPath,
+      localTwitchStartPath,
+      loginUrl: centralAuthMode === 'central' ? centralAuthLoginUrl : localTwitchStartPath,
+      centralLoginUrl: centralAuthLoginUrl,
+      centralLogoutUrl: centralAuthLogoutUrl,
+      sharedDatabasePlanned: true,
+      sharedCookieDomainPlanned: '.forrestcgn.de',
+      sessionTables: ['dashboard_users', 'dashboard_identities', 'dashboard_sessions'],
+      notes: [
+        'RDAP_AUTH2 bereitet mehrere Login-Einstiegspunkte vor: forrestcgn.de und mods.forrestcgn.de.',
+        'Aktuell bleibt local_twitch_fallback Standard, damit der funktionierende Modboard-Login erhalten bleibt.',
+        'Spaeter kann CENTRAL_AUTH_MODE=central auf zentrale Login-URL umschalten.'
+      ]
+    },
     database: {
       ...database,
       writeEnabled: authEffective,
       migrationEnabled: false
     },
     dashboardAccess: {
-      // First practical gate: explicit env allowlist, with ForrestCGN as safe initial owner default for this project.
       allowedLogins: readList('DASHBOARD_ALLOWED_LOGINS', ['forrestcgn']),
       allowedUserUids: readList('DASHBOARD_ALLOWED_USER_UIDS', []),
       defaultRole: readString('DASHBOARD_DEFAULT_ROLE', 'owner')
@@ -78,6 +115,7 @@ function loadConfig() {
       loginEnabled: authEffective,
       sessionCreationEnabled: authEffective,
       sessionWriteEnabled: authEffective,
+      loginEntryPath,
       twitchOAuth: {
         prepared: true,
         requestedEnabled: twitchRequested,
@@ -98,7 +136,8 @@ function loadConfig() {
         ttlSeconds: readInt('SESSION_TTL_SECONDS', 60 * 60 * 8),
         stateTtlSeconds: readInt('OAUTH_STATE_TTL_SECONDS', 10 * 60),
         secureCookie: readBoolean('SESSION_COOKIE_SECURE', true),
-        sameSite: readString('SESSION_COOKIE_SAMESITE', 'Lax')
+        sameSite: readString('SESSION_COOKIE_SAMESITE', 'Lax'),
+        sharedCookieDomainPlanned: '.forrestcgn.de'
       }
     },
     paths: {
@@ -106,6 +145,16 @@ function loadConfig() {
       appRoot: path.resolve(__dirname, '..', '..')
     }
   };
+}
+
+function buildCentralAuthUrl({ baseUrl, pathName, returnTo }) {
+  try {
+    const url = new URL(pathName, baseUrl.replace(/\/+$/, '/') || 'https://forrestcgn.de/');
+    if (returnTo) url.searchParams.set('returnTo', returnTo);
+    return url.toString();
+  } catch (err) {
+    return 'https://forrestcgn.de/login?returnTo=https%3A%2F%2Fmods.forrestcgn.de%2F';
+  }
 }
 
 function readString(key, fallback) {
@@ -174,6 +223,19 @@ function buildPublicConfigSummary(config) {
     port: config.port,
     envFileExists: config.envFileExists,
     envPathHint: config.envPath,
+    centralAuth: {
+      prepared: Boolean(config.centralAuth && config.centralAuth.prepared),
+      mode: config.centralAuth ? config.centralAuth.mode : 'local_twitch_fallback',
+      baseUrl: config.centralAuth ? config.centralAuth.baseUrl : 'https://forrestcgn.de',
+      loginEntryPath: config.centralAuth ? config.centralAuth.loginEntryPath : '/api/remote/auth/login/start',
+      localTwitchStartPath: config.centralAuth ? config.centralAuth.localTwitchStartPath : '/api/remote/auth/twitch/start',
+      loginUrl: config.centralAuth ? config.centralAuth.loginUrl : '/api/remote/auth/twitch/start',
+      centralLoginUrl: config.centralAuth ? config.centralAuth.centralLoginUrl : 'https://forrestcgn.de/login?returnTo=https%3A%2F%2Fmods.forrestcgn.de%2F',
+      centralLogoutUrl: config.centralAuth ? config.centralAuth.centralLogoutUrl : 'https://forrestcgn.de/logout?returnTo=https%3A%2F%2Fmods.forrestcgn.de%2F',
+      sharedDatabasePlanned: Boolean(config.centralAuth && config.centralAuth.sharedDatabasePlanned),
+      sharedCookieDomainPlanned: config.centralAuth ? config.centralAuth.sharedCookieDomainPlanned : '.forrestcgn.de',
+      sessionTables: config.centralAuth ? config.centralAuth.sessionTables : ['dashboard_users', 'dashboard_identities', 'dashboard_sessions']
+    },
     database: {
       engine: config.database.engine,
       driver: config.database.driver,
@@ -198,6 +260,7 @@ function buildPublicConfigSummary(config) {
       loginEnabled: Boolean(config.auth && config.auth.loginEnabled),
       sessionCreationEnabled: Boolean(config.auth && config.auth.sessionCreationEnabled),
       sessionWriteEnabled: Boolean(config.auth && config.auth.sessionWriteEnabled),
+      loginEntryPath: config.auth ? config.auth.loginEntryPath : '/api/remote/auth/login/start',
       twitchOAuth: {
         prepared: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.prepared),
         requestedEnabled: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.requestedEnabled),
@@ -217,7 +280,8 @@ function buildPublicConfigSummary(config) {
         oauthStateSecretConfigured: Boolean(config.auth && config.auth.sessions && config.auth.sessions.oauthStateSecretConfigured),
         ttlSeconds: config.auth && config.auth.sessions ? config.auth.sessions.ttlSeconds : null,
         secureCookie: config.auth && config.auth.sessions ? Boolean(config.auth.sessions.secureCookie) : true,
-        sameSite: config.auth && config.auth.sessions ? config.auth.sessions.sameSite : 'Lax'
+        sameSite: config.auth && config.auth.sessions ? config.auth.sessions.sameSite : 'Lax',
+        sharedCookieDomainPlanned: config.auth && config.auth.sessions ? config.auth.sessions.sharedCookieDomainPlanned : '.forrestcgn.de'
       }
     }
   };

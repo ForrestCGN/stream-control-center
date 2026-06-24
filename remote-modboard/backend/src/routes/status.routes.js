@@ -17,7 +17,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_dashboard2.v1',
+      statusApiVersion: 'rdap_auth2.v1',
       readOnly: !authEnabled,
       writeEnabled: false,
       actionEnabled: false,
@@ -34,10 +34,20 @@ function registerStatusRoutes(app, context) {
       },
       config: publicConfig,
       dashboardAccess: publicConfig.dashboardAccess,
+      centralAuth: {
+        ...publicConfig.centralAuth,
+        entryRoutePrepared: true,
+        directModboardLoginAllowed: true,
+        mainSiteLoginAllowed: true,
+        sharedDatabaseIsTarget: true,
+        noLoginDataInFrontend: true,
+        noTokensInLinks: true
+      },
       auth: {
         prepared: true,
         enabled: authEnabled,
         loginEnabled: authEnabled,
+        loginEntryPath: publicConfig.auth.loginEntryPath,
         twitchOAuth: {
           ...publicConfig.auth.twitchOAuth,
           startRouteSkeletonPresent: true,
@@ -71,11 +81,11 @@ function registerStatusRoutes(app, context) {
           writesRequirePermissionLockAudit: true
         },
         notes: [
-          'AUTH1 aktiviert nur Twitch-Login und Session, wenn alle Env-Gates und Secrets gesetzt sind.',
-          'OAuth Start/Callback bleiben ohne Gates HTTP 403.',
-          'Auth-DB-Writes sind auf dashboard_users/dashboard_identities/dashboard_sessions begrenzt.',
-          'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.',
-          'last_seen_at wird in AUTH1 nicht aktualisiert.'
+          'AUTH2 bereitet eine zentrale Login-Schicht mit mehreren Einstiegspunkten vor.',
+          'forrestcgn.de und mods.forrestcgn.de sollen spaeter dieselben User-/Identity-/Session-Tabellen nutzen.',
+          'Der aktive Standard bleibt local_twitch_fallback, damit der funktionierende Modboard-Login erhalten bleibt.',
+          'Login-Daten, Twitch-Tokens oder Sessionwerte duerfen nicht im Frontend oder in Links weitergereicht werden.',
+          'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.'
         ]
       },
       database: db,

@@ -4,6 +4,7 @@ const endpoints = {
   status: '/api/remote/status',
   routes: '/api/remote/routes',
   authMe: '/api/remote/auth/me',
+  loginPlan: '/api/remote/auth/login/plan',
   permission: '/api/remote/auth/permissions/check?permission=remote.view',
   lockAudit: '/api/remote/lock-audit/status?db=1',
   schemaAdapter: '/api/remote/lock-audit/schema-adapter/status?db=1'
@@ -13,6 +14,7 @@ const endpointLabels = {
   status: 'Status',
   routes: 'Routen',
   authMe: 'Auth/me',
+  loginPlan: 'Login-Plan',
   permission: 'Permission remote.view',
   lockAudit: 'Lock-/Audit',
   schemaAdapter: 'Schema-Adapter'
@@ -104,9 +106,9 @@ async function loadDashboard(reason) {
 
   const results = Object.fromEntries(entries);
 
-  renderScenes(results.authMe, results.status);
+  renderScenes(results.authMe, results.status, results.loginPlan);
   renderStatus(results.status);
-  renderSecurity(results.status, results.lockAudit);
+  renderSecurity(results.status, results.lockAudit, results.loginPlan);
   renderRoutes(results.routes);
   renderAuth(results.authMe, results.permission, results.status);
   renderLockAudit(results.lockAudit, results.schemaAdapter);
@@ -160,13 +162,21 @@ async function logout() {
   window.location.href = '/';
 }
 
-function renderScenes(authMe, status) {
+function renderScenes(authMe, status, loginPlan) {
   const authBody = authMe.body || {};
   const statusBody = status.body || {};
+  const loginBody = loginPlan && loginPlan.body ? loginPlan.body : {};
   const authEnabled = Boolean(statusBody.auth && statusBody.auth.loginEnabled);
   const loggedIn = Boolean(authBody.loggedIn);
   const allowed = Boolean(authBody.dashboardAccess);
   const user = authBody.user || null;
+  const loginStartLink = byId('loginStartLink');
+
+  if (loginStartLink) {
+    loginStartLink.href = loginBody.centralAuth && loginBody.centralAuth.loginEntryPath
+      ? loginBody.centralAuth.loginEntryPath
+      : '/api/remote/auth/login/start';
+  }
 
   byId('loginScene').hidden = authEnabled ? loggedIn : true;
   byId('deniedScene').hidden = !(authEnabled && loggedIn && !allowed);
@@ -201,11 +211,14 @@ function renderQuickStatus(results) {
   setQuick('quickAgent', agent.actionsEnabled === false, 'disabled');
 }
 
-function renderSecurity(status, lockAudit) {
+function renderSecurity(status, lockAudit, loginPlan) {
   const statusBody = status.body || {};
   const lockBody = lockAudit.body || {};
+  const loginBody = loginPlan && loginPlan.body ? loginPlan.body : {};
   const agent = statusBody.agent || {};
   const items = [
+    ['Zentrale Login-Schicht vorbereitet', Boolean(loginBody.centralAuth && loginBody.centralAuth.prepared)],
+    ['Gemeinsame DB-Session-Wahrheit geplant', Boolean(loginBody.centralAuth && loginBody.centralAuth.sharedDatabasePlanned)],
     ['Dashboard-Zugriff serverseitig geprüft', true],
     ['Login-Gate aktiv', true],
     ['Access-Denied für nicht freigeschaltete User', true],
@@ -265,6 +278,7 @@ function renderAuth(authMe, permission, status) {
   setText('authSessionReason', authBody.session ? authBody.session.reason : '—');
   setValue('permissionAllowed', permissionBody.allowed);
   setText('permissionReason', permissionBody.reason || authBody.reason || '—');
+  void status;
 }
 
 function renderEndpoints(results) {
