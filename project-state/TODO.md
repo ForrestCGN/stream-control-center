@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN  
+Stand: RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN  
 Datum: 2026-06-24
 
 ## RDAP / Remote-Modboard
@@ -17,41 +17,33 @@ Datum: 2026-06-24
 - [x] RDAP Nav Cleanup: Benutzerbereich aus Sidebar entfernt und ins Profil/Admin-Konzept verschoben.
 - [x] RDAP Nav/Account Cleanup dokumentiert.
 - [x] RDAP12 First-Mini-Write-Scope-Plan erstellt.
-- [ ] RDAP13 Admin-Note-Table/Disabled-Route-Plan erstellen.
+- [x] RDAP13 Admin-Note-Table/Disabled-Route-Plan erstellt.
+- [ ] RDAP14 Admin-Note-Table Disabled Diagnostic vorbereiten.
 - [ ] Noch keine produktiven Admin-Writes ohne separaten Scope/Go.
 - [ ] Noch keine UI-Schreibbuttons.
 - [ ] Noch keine DB-Migration ohne Backup/Rollback/Go.
 - [ ] Auffälligkeit prüfen: `statusApiVersion` zeigt evtl. `rdap_admin_users9.v1`, obwohl `moduleBuild` RDAP11 ist.
 
-## RDAP12 Entscheidung
+## RDAP14 muss klären/bauen
+
+- [ ] Echten Ziel-DB-Typ auf Server prüfen, nicht raten.
+- [ ] SQL-Migrationsdatei für `dashboard_user_admin_notes` vorbereiten, nicht ausführen.
+- [ ] Read-only/disabled Diagnose-Route für Admin-Notiz-Write vorbereiten.
+- [ ] Route muss `productiveWritesEnabled:false` und `writesStillBlocked:true` melden.
+- [ ] Keine UI-Schreibbuttons.
+- [ ] Keine produktiven Notiz-Writes.
+
+## Admin-Notiz späterer Write
 
 - [x] Kleinsten späteren Write ausgewählt: Admin-Notiz zu User setzen/aktualisieren.
-- [x] Rollen-/Freigabe-/Session-/Permission-Write als erster Write ausgeschlossen.
-- [x] Eigene Tabelle `dashboard_user_admin_notes` als sauberer Zielpfad geplant.
+- [x] Eigene Tabelle `dashboard_user_admin_notes` geplant.
 - [x] Permission `admin.users.note.write` geplant.
 - [x] Confirm-Write-Anforderung geplant.
 - [x] Audit-Payload geplant.
 - [x] Lock-Scope `admin:user-note:<target_user_uid>` geplant.
 - [x] Read-Back-Prüfung geplant.
 - [x] Fehlerfälle/Abbruchbedingungen dokumentiert.
-
-## RDAP13 muss klären
-
-- [ ] Echten Ziel-DB-Typ auf Server prüfen, nicht raten.
-- [ ] Backup-Befehl mit echter Server-Env/Config finalisieren.
-- [ ] Rollback für neue Tabelle und einzelnen Notiz-Write finalisieren.
-- [ ] Migration für `dashboard_user_admin_notes` separat vorbereiten, disabled/planbar.
-- [ ] Read-only Diagnose für Notiz-Tabelle planen/bauen.
-- [ ] Keine produktiven Notiz-Writes in RDAP13.
-
-## Konto-/Navigation UX
-
-- [x] Normales Konto-Panel von technischen Diagnosewerten befreien.
-- [x] Hinweisbox „Nur dein eigenes Konto“ aus Konto-Panel entfernen.
-- [x] Sidebar-Gruppe „Benutzer & Rechte“ entfernen.
-- [x] Persönliche Konto-/Rechte-Funktion oben rechts im Profilbereich bündeln.
-- [x] Admin-Bereich als Ort für Benutzerverwaltung, Rollen/Rechte, Zugriff/Freigaben und Sicherheit festhalten.
-- [ ] Später eigenes internes CGN-User-ID-Konzept planen, nicht rohe Twitch-UID prominent anzeigen.
+- [ ] Echter Write-Endpunkt erst nach RDAP14/weiterem Go.
 
 ## Workflow-Schutz
 

@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN  
+Stand: RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN  
 Datum: 2026-06-24
 
 ## Zentrale RDAP-Dokumente
@@ -18,6 +18,7 @@ docs/current/RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED.md
 docs/current/RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP_LIVE_CONFIRMED.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_NAV_ACCOUNT_CLEANUP.md
 docs/current/RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN.md
+docs/current/RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN.md
 ```
 
 ## Projektstatus-Dateien
@@ -68,7 +69,7 @@ remote-modboard/backend/src/services/audit-read.service.js
 db/rdap6c/sql/001_rdap6c_schema_migration.sql
 ```
 
-RDAP12 plant zusätzlich, aber erstellt noch nicht:
+RDAP13 plant zusätzlich, aber erstellt noch nicht:
 
 ```text
 dashboard_user_admin_notes
@@ -82,19 +83,14 @@ remote-modboard/backend/public/assets/remote-modboard.css
 remote-modboard/backend/public/assets/remote-modboard.js
 ```
 
-## Bestätigte RDAP11-Route
-
-```text
-GET /api/remote/admin/users/mini-write-foundation-diagnostic
-```
-
-## Geplante spätere RDAP12/RDAP13-Aktion
+## Geplante Admin-Notiz-Aktion
 
 ```text
 action: admin.users.note.set
 permission: admin.users.note.write
 lock: admin:user-note:<target_user_uid>
 table: dashboard_user_admin_notes
+planned diagnostic: GET /api/remote/admin/users/note-write-plan-diagnostic
 ```
 
 ## Deploy

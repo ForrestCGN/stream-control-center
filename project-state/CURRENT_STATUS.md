@@ -30,72 +30,29 @@ Aktueller Planstand:
 
 ```text
 RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
+RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
 ```
 
-## RDAP12 Ergebnis
+## RDAP13 Ergebnis
 
-RDAP12 ist nur Planung. Es wurde kein echter Write gebaut.
+RDAP13 ist nur Planung/Vorbereitung. Es wurde kein echter Write gebaut und keine DB-Migration ausgeführt.
 
-Geplanter erster späterer Mini-Write:
+Geplanter erster späterer Mini-Write bleibt:
 
 ```text
 Admin-Notiz zu einem Dashboard-User setzen/aktualisieren
 ```
 
-Wichtiges Ergebnis der Prüfung:
+RDAP13 konkretisiert dafür:
 
 ```text
-Kein Rollen-/Freigabe-/Session-/Permission-Write als erster Schreibtest.
-Keine Änderung an dashboard_users.status als erster Write.
-Admin-Notiz soll in eine eigene Tabelle dashboard_user_admin_notes.
-```
-
-Grund: Im bekannten RDAP6C-Schema hat `dashboard_users` kein Notizfeld. Deshalb muss die Notiz sauber separat geplant werden und darf nicht in vorhandene Security-Felder gequetscht werden.
-
-## Konto-/Navigation aktueller Sollzustand
-
-Konto-Panel oben rechts:
-
-```text
-Avatar
-Displayname
-@twitch-login
-Rolle
-Profil aktualisieren
-Ausloggen
-```
-
-Sidebar ohne eigene Gruppe `Benutzer & Rechte`:
-
-```text
-System
-  Übersicht
-  Diagnose
-  Routen
-
-Module
-  Module
-
-Admin
-  Benutzerverwaltung
-  Rollen & Rechte
-  Zugriff / Freigaben
-  Sicherheit
-```
-
-## Sicherheitsstand
-
-```text
-Permission-Read-Diagnose: vorbereitet
-Confirm-Write-Helper: vorbereitet, Writes deaktiviert
-Audit-Helper: vorbereitet, Writes deaktiviert
-Lock-Helper: vorbereitet, Writes deaktiviert
-Mini-Write-Foundation: vorbereitet, Writes deaktiviert
-Admin-Writes: weiterhin aus
-DB-Migration: keine in RDAP12
-UI-Schreibbuttons: keine in RDAP12
-Agent-Actions: aus
-OBS-/Sound-/Overlay-/Command-Steuerung: aus
+table: dashboard_user_admin_notes
+action: admin.users.note.set
+permission: admin.users.note.write
+lock: admin:user-note:<target_user_uid>
+confirmWrite: Pflicht
+Audit: Pflicht im späteren Write
+Read-Back: Pflicht im späteren Write
 ```
 
 ## Weiterhin nicht aktiv
@@ -106,6 +63,7 @@ Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
 DB-Migration
+SQL-Ausführung
 Audit-Inserts oder Audit-Updates
 Lock acquire/heartbeat/release/force-takeover
 Backup-Ausführung
@@ -116,20 +74,10 @@ OBS-/Sound-/Overlay-/Command-Steuerung
 Admin-Notiz-Write
 ```
 
-## Workflow-/Tool-Stand
-
-`installstep.cmd` ist der allgemeine ZIP-Installer. Für weitere Steps gilt:
-
-```text
-Design-/Frontend-/Doku-Steps dürfen keine Workflow-Tools überschreiben.
-installstep.cmd, stepdone.cmd, testdeploy.cmd und Deploy-Skripte nur ändern, wenn Forrest das ausdrücklich beauftragt.
-ZIPs müssen echte Zielpfade enthalten; keine Patch-Skripte wie tools/steps/*.ps1.
-```
-
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
+RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
 ```
 
-Nur mit weiterem ausdrücklichem Go. Noch keinen produktiven Write bauen.
+Nur nach weiterem ausdrücklichem Go. RDAP14 darf höchstens SQL-Datei + read-only/disabled Diagnose vorbereiten. Noch keine produktiven Writes.

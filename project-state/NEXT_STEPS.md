@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN  
+Stand: RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN  
 Datum: 2026-06-24
 
 ## Aktuell erledigt
@@ -16,17 +16,43 @@ RDAP_ACCOUNT_PANEL_CLEANUP_V2
 RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
 RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE
 RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
+RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
 ```
 
-## RDAP12 Ergebnis
+## RDAP13 Ergebnis
 
-Der erste spätere echte Admin-Write wurde bewusst auf einen harmlosen Scope begrenzt:
+RDAP13 konkretisiert den späteren ersten echten Write, baut ihn aber noch nicht.
+
+Geplanter späterer Write:
 
 ```text
-Admin-Notiz zu einem Dashboard-User setzen/aktualisieren
+Admin-Notiz zu User setzen/aktualisieren
 ```
 
-Nicht als erster Write:
+Geplanter Datenpfad:
+
+```text
+dashboard_user_admin_notes.note_text
+```
+
+## Nächster empfohlener Fach-Step
+
+```text
+RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
+```
+
+Maximaler Scope für RDAP14:
+
+```text
+- SQL-Migrationsdatei für dashboard_user_admin_notes vorbereiten, nicht ausführen
+- read-only/disabled Diagnose-Route vorbereiten
+- Status sichtbar machen: table planned/prepared, writes disabled
+- keine UI-Schreibbuttons
+- keine produktiven Writes
+- keine echte Migration ohne Backup/Rollback/Go
+```
+
+## Noch nicht erlaubt
 
 ```text
 User freigeben/sperren
@@ -35,56 +61,34 @@ Gruppen ändern
 Sessions widerrufen
 Permissions ändern
 dashboard_users.status ändern
+Admin-Notiz produktiv schreiben
+DB-Migration ausführen
 ```
 
-## Nächster empfohlener Fach-Step
+## Webserver-Deploy-Regel
 
-```text
-RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
+`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen.
+
+Immer frischer Clone in `_deploy_tmp`:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf STEP_NAME
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
+cd STEP_NAME
+sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
 ```
 
-RDAP13 darf nur vorbereitet/disabled planen oder bauen, nicht produktiv schreiben.
+Nach Service-Restart immer Readiness abwarten:
 
-## RDAP13 Mindestscope
+```bash
+sudo systemctl restart scc-remote-modboard.service
 
-```text
-- Prüfen, ob dashboard_user_admin_notes bereits existiert.
-- Falls nein: Migration separat planen, nicht blind ausführen.
-- Read-only Diagnose für die spätere Notiz-Tabelle vorbereiten.
-- Noch keine Notiz schreiben.
-- Noch keine UI-Schreibbuttons.
-- Backup-/Rollback-Befehl konkret am echten Server/DB-Typ prüfen.
-```
-
-## Erst nach RDAP13/RDAP14
-
-Ein echter Admin-Notiz-Write darf erst gebaut werden, wenn separat erledigt ist:
-
-```text
-Backup vorhanden
-Rollback getestet/geplant
-Permission admin.users.note.write serverseitig geprüft
-confirmWrite Pflicht
-Lock-Scope admin:user-note:<target_user_uid>
-Audit-Payload definiert
-Read-Back-Prüfung definiert
-Forrest gibt erneut ausdrücklich go
-```
-
-## Offene Auffälligkeit
-
-```text
-statusApiVersion kann noch rdap_admin_users9.v1 anzeigen, obwohl moduleBuild RDAP11 ist.
-```
-
-Für RDAP12 kein Stopper, weil nur Doku/Plan.
-
-## Workflow-Regeln
-
-```text
-Keine Workflow-Tools in Design-/Frontend-/Doku-Steps überschreiben.
-ZIPs mit echten Zielpfaden bauen.
-Keine Patch-Skripte unter tools/steps/*.ps1.
-Nicht im Webserver-Verzeichnis git pull empfehlen.
-Webserver-Deploy immer aus frischem GitHub/dev-Clone.
+for i in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
+    echo "ready_after=${i}s"
+    break
+  fi
+  sleep 1
+done
 ```
