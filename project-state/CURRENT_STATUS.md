@@ -1,6 +1,6 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_WORKFLOW_MASTERPROMPT_FIX
+Stand: RDAP_DESIGN1_REAL_CGN_BASE
 Datum: 2026-06-24
 
 ## Aktueller bestätigter Stand
@@ -12,35 +12,41 @@ Remote-Modboard/Auth:
 - Twitch Login funktioniert live
 - ForrestCGN konnte sich im Browser anmelden
 - Auth/OAuth/Sessions aktiv
+- RDAP-Webserver-Deploy-Arbeitsweise ist dokumentiert: frischer GitHub/dev-Clone nach `_deploy_tmp`, kein fester `/opt/stream-control-center/tools/...`-Pfad
 
-## Workflow-Korrektur bestätigt/dokumentiert
+## Neuer Arbeitsstand
 
-Der Webserver-Deploy darf nicht über einen festen Pfad `/opt/stream-control-center/tools/remote-modboard-deploy.sh` beschrieben werden.
+`RDAP_DESIGN1_REAL_CGN_BASE` wurde als Design-ZIP vorbereitet.
 
-`/opt/stream-control-center` ist kein Git-Repo.
+Geändert:
 
-Korrektes Muster:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+```text
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.css
 ```
 
-## Aktueller offener Punkt
+Ziel:
 
-Dashboard2/Auth-Gate/Design wurde begonnen, aber Forrest bewertet das Design als nicht passend zum geplanten CGN-/Vision-UI-/Neon-Galaxy-Dashboard.
+- Remote-Modboard optisch auf CGN-/Vision-UI-/Neon-Galaxy-Designbasis bringen
+- Design-Test v13 als echte Vorlage nutzen
+- bestehende Auth-/Login-/Diagnose-Funktion erhalten
 
-Nicht weiter frei Design bauen. Für den nächsten Design-Step echte Projektdateien/Designbasis aus GitHub/dev prüfen.
+Nicht geändert:
+
+- keine Backend-/Auth-Routen
+- keine DB
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS/Sound/Overlay/Command-Steuerung
 
 ## Sofort offen
 
-- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, da sie im Chat sichtbar waren
-- Nach Rotation Service neu starten
-- Browser ggf. erneut einloggen
-- Dann Design/Frontend sauber auf echter Basis neu planen
+- ZIP lokal mit `installstep.cmd` einspielen
+- lokal/live prüfen
+- erst danach `stepdone.cmd`
+- danach Webserver-Deploy aus frischem GitHub/dev-Clone
+- Browser-Test auf `https://mods.forrestcgn.de/`
+- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt
 
 ## Weiterhin deaktiviert
 

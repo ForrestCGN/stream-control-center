@@ -1,5 +1,32 @@
 # CHANGELOG - stream-control-center
 
+## 2026-06-24 - RDAP_DESIGN1_REAL_CGN_BASE
+
+Stand:
+
+```text
+RDAP_DESIGN1_REAL_CGN_BASE
+```
+
+Zusammenfassung:
+
+- Remote-Modboard-Frontend optisch auf echte CGN-/Vision-UI-/Neon-Galaxy-Basis gebracht
+- Design-Test v13 als Vorlage genutzt
+- Login-Seite, Dashboard-Topbar, Sidebar-Accordion, Cards und Statusflächen neu gestaltet
+- Nur Frontend-Dateien geändert:
+  - `remote-modboard/backend/public/index.html`
+  - `remote-modboard/backend/public/assets/remote-modboard.css`
+- Bestehendes `remote-modboard.js` bleibt unverändert und nutzt weiter die vorhandenen Auth-/Status-/Diagnose-Routen
+- Keine Backend-/Auth-/DB-/Action-Logik geändert
+- Keine Remote-Writes, Agent-Actions, OBS-/Sound-/Overlay-/Command-Steuerung aktiviert
+
+Offen:
+
+- lokal einspielen/testen
+- `stepdone.cmd` erst nach erfolgreichem Test
+- danach Webserver-Deploy aus frischem GitHub/dev-Clone
+- Browser-Sichtprüfung auf `https://mods.forrestcgn.de/`
+
 ## 2026-06-24 - RDAP_WORKFLOW_MASTERPROMPT_FIX
 
 Stand:

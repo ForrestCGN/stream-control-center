@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_WORKFLOW_MASTERPROMPT_FIX
+Stand: RDAP_DESIGN1_REAL_CGN_BASE
 Datum: 2026-06-24
 
 ## Erledigt
@@ -14,6 +14,7 @@ Datum: 2026-06-24
 - [x] Browser zeigte `Angemeldet als ForrestCGN`
 - [x] Auth/OAuth/Sessions aktiv
 - [x] RDAP-Webserver-Deploy-Arbeitsweise korrigiert und dokumentiert: frischer GitHub/dev-Clone nach `_deploy_tmp`, kein fester `/opt/stream-control-center/tools/...`-Pfad
+- [x] Echte CGN-/Vision-UI-/Neon-Galaxy-Designbasis aus Design-Test v13 geprüft und für RDAP_DESIGN1 verwendet
 
 ## Sofort offen
 
@@ -21,13 +22,14 @@ Datum: 2026-06-24
 - [ ] `OAUTH_STATE_SECRET` rotieren
 - [ ] Service nach Rotation neu starten
 - [ ] Browser-Login nach Rotation prüfen
-- [ ] Aktuellen Dashboard2-Stand im Repo prüfen
+- [ ] `RDAP_DESIGN1_REAL_CGN_BASE` lokal einspielen und testen
+- [ ] `RDAP_DESIGN1_REAL_CGN_BASE` nach erfolgreichem `stepdone.cmd` auf Webserver deployen
+- [ ] Browser-Test auf `https://mods.forrestcgn.de/`
 
 ## Design offen
 
-- [ ] Echte CGN-/Vision-UI-/Neon-Galaxy-Designbasis aus Repo finden
-- [ ] Nicht weiter frei CSS/HTML improvisieren
-- [ ] `RDAP_DESIGN1_REAL_CGN_BASE` planen/bauen
+- [ ] Nach Server-Deploy prüfen: Login-Seite, Access-Denied, Dashboard, Mobile/kleines Fenster
+- [ ] Optische Feinkorrekturen erst nach Screenshot/konkreter Rückmeldung
 
 ## Auth/Access offen
 

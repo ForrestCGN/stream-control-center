@@ -8,22 +8,28 @@
   <link rel="stylesheet" href="/assets/remote-modboard.css">
 </head>
 <body>
+  <div class="cgnGalaxy" aria-hidden="true">
+    <div class="bgWash bgWashA"></div>
+    <div class="bgWash bgWashB"></div>
+    <div class="bgCore"></div>
+    <div class="stars"></div>
+    <div class="dotGrid"></div>
+  </div>
+
   <main class="appShell">
     <section class="loginScene" id="loginScene">
-      <div class="orb orbOne"></div>
-      <div class="orb orbTwo"></div>
-      <div class="loginCard">
+      <div class="loginCard neonPanel">
         <div class="brandBadge">CGN</div>
         <p class="eyebrow">ForrestCGN · Remote Modboard</p>
         <h1>Willkommen im Modboard</h1>
-        <p class="lead">Bitte melde dich an. Später kann der Einstieg über forrestcgn.de oder direkt über mods.forrestcgn.de laufen; die Session wird zentral geprüft.</p>
+        <p class="lead">Bitte melde dich an. Der Einstieg kann später über forrestcgn.de oder direkt über mods.forrestcgn.de laufen; die Session wird zentral und serverseitig geprüft.</p>
         <a class="primaryButton" id="loginStartLink" href="/api/remote/auth/login/start">Einloggen</a>
         <p class="tinyHint">Zentrale Auth vorbereitet · Keine Remote-Writes · Keine Agent-Actions · Keine OBS-/Sound-/Overlay-/Command-Steuerung</p>
       </div>
     </section>
 
     <section class="deniedScene" id="deniedScene" hidden>
-      <div class="loginCard denied">
+      <div class="loginCard denied neonPanel">
         <div class="brandBadge warning">!</div>
         <p class="eyebrow">Zugriff nicht freigeschaltet</p>
         <h1>Du bist angemeldet, aber noch nicht fürs Modboard freigegeben.</h1>
@@ -33,193 +39,204 @@
     </section>
 
     <section class="dashboardScene" id="dashboardScene" hidden>
-      <aside class="sidebar">
-        <div class="brandBlock">
+      <header class="topbar">
+        <div class="topLeft">
           <div class="brandMark">CGN</div>
-          <div>
-            <p class="eyebrow">ForrestCGN</p>
-            <strong>Modboard</strong>
+          <div class="cgnBreadcrumb">
+            <span>Remote Modboard</span>
+            <strong><span id="pageTitle">Übersicht</span></strong>
           </div>
         </div>
 
-        <nav class="navGroups">
-          <section class="navGroup isOpen">
-            <button class="navGroupButton" type="button" data-nav-toggle="system">
-              <span>System</span><span class="navArrow">›</span>
-            </button>
-            <div class="navItems" data-nav-group="system">
-              <button class="navItem active" type="button" data-page="overview">Übersicht</button>
-              <button class="navItem" type="button" data-page="diagnostics">Diagnose</button>
-              <button class="navItem" type="button" data-page="routes">Routen</button>
-            </div>
-          </section>
-
-          <section class="navGroup isOpen">
-            <button class="navGroupButton" type="button" data-nav-toggle="auth">
-              <span>Benutzer & Rechte</span><span class="navArrow">›</span>
-            </button>
-            <div class="navItems" data-nav-group="auth">
-              <button class="navItem" type="button" data-page="account">Mein Login</button>
-              <button class="navItem" type="button" data-page="permissions">Rechte</button>
-            </div>
-          </section>
-
-          <section class="navGroup isOpen">
-            <button class="navGroupButton" type="button" data-nav-toggle="modules">
-              <span>Module</span><span class="navArrow">›</span>
-            </button>
-            <div class="navItems" data-nav-group="modules">
-              <button class="navItem locked" type="button" data-page="modules">Module</button>
-            </div>
-          </section>
-        </nav>
-
-        <div class="sidebarFooter">
-          <span>Dashboard2</span>
-          <small>CGN Design · geschützt</small>
+        <div class="topCenter">
+          <span class="cgnChip" id="quickService">Service</span>
+          <span class="cgnChip" id="quickLogin">Login</span>
+          <span class="cgnChip" id="quickOAuth">OAuth</span>
+          <span class="cgnChip" id="quickAgent">Agent</span>
         </div>
-      </aside>
 
-      <section class="mainArea">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Remote Modboard</p>
-            <h1 id="pageTitle">Übersicht</h1>
+        <div class="userBox">
+          <div class="userAvatar">F</div>
+          <div class="userText">
+            <span id="loginStateText">Angemeldet</span>
+            <small id="lastUpdatedText">Noch nicht geladen</small>
           </div>
-          <div class="userBox">
-            <div class="userAvatar">F</div>
-            <div class="userText">
-              <span id="loginStateText">Angemeldet</span>
-              <small id="lastUpdatedText">Noch nicht geladen</small>
+          <button class="secondaryButton small" type="button" id="logoutButton">Ausloggen</button>
+        </div>
+      </header>
+
+      <div class="layoutShell">
+        <aside class="sidebar">
+          <div class="sidebarHead">
+            <strong>Navigation</strong>
+            <span>RDAP · geschützt · read-only</span>
+          </div>
+
+          <nav class="navGroups">
+            <section class="navGroup isOpen">
+              <button class="navGroupButton" type="button" data-nav-toggle="system">
+                <span class="navIcon">◆</span><b>System</b><span class="navArrow">⌄</span>
+              </button>
+              <div class="navItems" data-nav-group="system">
+                <button class="navItem active" type="button" data-page="overview">Übersicht</button>
+                <button class="navItem" type="button" data-page="diagnostics">Diagnose</button>
+                <button class="navItem" type="button" data-page="routes">Routen</button>
+              </div>
+            </section>
+
+            <section class="navGroup isOpen">
+              <button class="navGroupButton" type="button" data-nav-toggle="auth">
+                <span class="navIcon">✦</span><b>Benutzer & Rechte</b><span class="navArrow">⌄</span>
+              </button>
+              <div class="navItems" data-nav-group="auth">
+                <button class="navItem" type="button" data-page="account">Mein Login</button>
+                <button class="navItem" type="button" data-page="permissions">Rechte</button>
+              </div>
+            </section>
+
+            <section class="navGroup isOpen">
+              <button class="navGroupButton" type="button" data-nav-toggle="modules">
+                <span class="navIcon">◇</span><b>Module</b><span class="navArrow">⌄</span>
+              </button>
+              <div class="navItems" data-nav-group="modules">
+                <button class="navItem locked" type="button" data-page="modules">Module</button>
+              </div>
+            </section>
+          </nav>
+
+          <div class="sidebarFooter">
+            <span>CGN Design</span>
+            <strong>Neon Galaxy · v13-Basis</strong>
+          </div>
+        </aside>
+
+        <section class="mainArea">
+          <section class="pageHeader neonPanel">
+            <div>
+              <p class="eyebrow">Dashboard v2 · Remote-Modboard</p>
+              <h1>Geschütztes Modboard mit zentraler Login-Vorbereitung.</h1>
+              <p>Ruhiger Galaxy-Hintergrund, feste Topbar, Accordion-Navigation und kompakte Diagnosekarten. Steueraktionen bleiben deaktiviert.</p>
             </div>
-            <button class="secondaryButton small" type="button" id="logoutButton">Ausloggen</button>
-          </div>
-        </header>
+          </section>
 
-        <section class="notice compact">
-          <strong>Modboard geschützt</strong>
-          <span>Zentrale Login-Schicht vorbereitet · Nur freigeschaltete User · read-only Diagnose · keine Remote-Writes · keine Agent-Actions</span>
-        </section>
+          <section class="notice compact">
+            <strong>Modboard geschützt</strong>
+            <span>Zentrale Login-Schicht vorbereitet · Nur freigeschaltete User · read-only Diagnose · keine Remote-Writes · keine Agent-Actions</span>
+          </section>
 
-        <section class="statusStrip">
-          <div class="statusTile"><span>Service</span><strong id="quickService">—</strong></div>
-          <div class="statusTile"><span>Login</span><strong id="quickLogin">—</strong></div>
-          <div class="statusTile"><span>OAuth</span><strong id="quickOAuth">—</strong></div>
-          <div class="statusTile"><span>Agent</span><strong id="quickAgent">—</strong></div>
-        </section>
+          <section class="errorBox" id="errorBox" hidden>
+            <div><strong>Diagnose-Hinweis</strong><p id="errorText">—</p></div>
+            <button class="secondaryButton small" type="button" id="clearErrorsButton">Ausblenden</button>
+          </section>
 
-        <section class="errorBox" id="errorBox" hidden>
-          <div><strong>Diagnose-Hinweis</strong><p id="errorText">—</p></div>
-          <button class="secondaryButton small" type="button" id="clearErrorsButton">Ausblenden</button>
-        </section>
+          <section class="page activePage" data-page-panel="overview">
+            <div class="grid">
+              <article class="card metricCard">
+                <div class="cardHead"><h2>Service-Status</h2><span class="pill" id="statusPill">lädt</span></div>
+                <dl class="kv">
+                  <div><dt>ok</dt><dd id="statusOk">—</dd></div>
+                  <div><dt>authEnabled</dt><dd id="statusAuthEnabled">—</dd></div>
+                  <div><dt>loginEnabled</dt><dd id="statusLoginEnabled">—</dd></div>
+                  <div><dt>writeEnabled</dt><dd id="statusWriteEnabled">—</dd></div>
+                  <div><dt>moduleBuild</dt><dd id="statusModuleBuild">—</dd></div>
+                </dl>
+              </article>
 
-        <section class="page activePage" data-page-panel="overview">
-          <div class="grid">
-            <article class="card">
-              <div class="cardHead"><h2>Service-Status</h2><span class="pill" id="statusPill">lädt</span></div>
+              <article class="card metricCard">
+                <div class="cardHead"><h2>Safety</h2><span class="pill safe">geschützt</span></div>
+                <ul class="checkList" id="securityList"><li>Login wird geprüft</li></ul>
+              </article>
+
+              <article class="card wide heroCard">
+                <div>
+                  <p class="eyebrow">Nächste Ausbaustufe</p>
+                  <h2>Aus der Diagnose wird Schritt für Schritt ein echtes Modboard.</h2>
+                </div>
+                <div class="infoGrid">
+                  <div><strong>Zentraler Login</strong><p>forrestcgn.de und mods.forrestcgn.de sollen dieselbe serverseitige Session-/User-Wahrheit nutzen.</p></div>
+                  <div><strong>Rollen & Rechte</strong><p>Owner, Mods und Spezialrollen wie Sound-Profi sichtbar machen.</p></div>
+                  <div><strong>Actions später</strong><p>Steueraktionen erst mit Permission, Locking und Audit.</p></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="page" data-page-panel="diagnostics">
+            <div class="grid">
+              <article class="card wide">
+                <div class="cardHead"><h2>Endpoint-Status</h2><span class="pill" id="endpointPill">lädt</span></div>
+                <div class="endpointGrid" id="endpointList"></div>
+              </article>
+              <article class="card wide">
+                <div class="cardHead"><h2>Lock-/Audit Diagnose</h2><span class="pill" id="lockAuditPill">lädt</span></div>
+                <div class="twoCols">
+                  <dl class="kv">
+                    <div><dt>schemaAdapterPrepared</dt><dd id="schemaAdapterPrepared">—</dd></div>
+                    <div><dt>locks read</dt><dd id="locksRead">—</dd></div>
+                    <div><dt>locks write</dt><dd id="locksWrite">—</dd></div>
+                    <div><dt>locks missing</dt><dd id="locksMissing">—</dd></div>
+                  </dl>
+                  <dl class="kv">
+                    <div><dt>audit read</dt><dd id="auditRead">—</dd></div>
+                    <div><dt>audit write</dt><dd id="auditWrite">—</dd></div>
+                    <div><dt>lockAcquireEnabled</dt><dd id="lockAcquireEnabled">—</dd></div>
+                    <div><dt>auditInsertEnabled</dt><dd id="auditInsertEnabled">—</dd></div>
+                  </dl>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="page" data-page-panel="routes">
+            <article class="card wide">
+              <div class="cardHead"><h2>Routen</h2><span class="pill" id="routesPill">lädt</span></div>
+              <div class="routes" id="routesList"></div>
+            </article>
+          </section>
+
+          <section class="page" data-page-panel="account">
+            <article class="card wide">
+              <div class="cardHead"><h2>Mein Login</h2><span class="pill safe">Session</span></div>
               <dl class="kv">
-                <div><dt>ok</dt><dd id="statusOk">—</dd></div>
-                <div><dt>authEnabled</dt><dd id="statusAuthEnabled">—</dd></div>
-                <div><dt>loginEnabled</dt><dd id="statusLoginEnabled">—</dd></div>
-                <div><dt>writeEnabled</dt><dd id="statusWriteEnabled">—</dd></div>
-                <div><dt>moduleBuild</dt><dd id="statusModuleBuild">—</dd></div>
+                <div><dt>loggedIn</dt><dd id="authLoggedIn">—</dd></div>
+                <div><dt>dashboardAccess</dt><dd id="dashboardAccess">—</dd></div>
+                <div><dt>accessReason</dt><dd id="accessReason">—</dd></div>
+                <div><dt>User</dt><dd id="authUser">—</dd></div>
+                <div><dt>Rollen</dt><dd id="authRoles">—</dd></div>
+                <div><dt>Session</dt><dd id="authSessionReason">—</dd></div>
               </dl>
             </article>
+          </section>
 
-            <article class="card">
-              <div class="cardHead"><h2>Safety</h2><span class="pill safe">geschützt</span></div>
-              <ul class="checkList" id="securityList"><li>Login wird geprüft</li></ul>
-            </article>
-
-            <article class="card wide heroCard">
-              <div>
-                <p class="eyebrow">Nächste Ausbaustufe</p>
-                <h2>Aus der Diagnose wird jetzt Schritt für Schritt ein echtes Modboard.</h2>
-              </div>
-              <div class="infoGrid">
-                <div><strong>Zentraler Login</strong><p>forrestcgn.de und mods.forrestcgn.de sollen dieselbe Session-/User-Wahrheit nutzen.</p></div>
-                <div><strong>Rollen & Rechte</strong><p>Owner, Mods und Spezialrollen wie Sound-Profi sichtbar machen.</p></div>
-                <div><strong>Actions später</strong><p>Steueraktionen erst mit Permission, Locking und Audit.</p></div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section class="page" data-page-panel="diagnostics">
-          <div class="grid">
+          <section class="page" data-page-panel="permissions">
             <article class="card wide">
-              <div class="cardHead"><h2>Endpoint-Status</h2><span class="pill" id="endpointPill">lädt</span></div>
-              <div class="endpointGrid" id="endpointList"></div>
+              <div class="cardHead"><h2>Rechte</h2><span class="pill safe">serverseitig geplant</span></div>
+              <dl class="kv">
+                <div><dt>permission remote.view</dt><dd id="permissionAllowed">—</dd></div>
+                <div><dt>reason</dt><dd id="permissionReason">—</dd></div>
+                <div><dt>Hinweis</dt><dd>Dashboard-Zugriff kommt serverseitig aus `/auth/me`; produktive Actions brauchen später eigene Middleware.</dd></div>
+              </dl>
             </article>
+          </section>
+
+          <section class="page" data-page-panel="modules">
             <article class="card wide">
-              <div class="cardHead"><h2>Lock-/Audit Diagnose</h2><span class="pill" id="lockAuditPill">lädt</span></div>
-              <div class="twoCols">
-                <dl class="kv">
-                  <div><dt>schemaAdapterPrepared</dt><dd id="schemaAdapterPrepared">—</dd></div>
-                  <div><dt>locks read</dt><dd id="locksRead">—</dd></div>
-                  <div><dt>locks write</dt><dd id="locksWrite">—</dd></div>
-                  <div><dt>locks missing</dt><dd id="locksMissing">—</dd></div>
-                </dl>
-                <dl class="kv">
-                  <div><dt>audit read</dt><dd id="auditRead">—</dd></div>
-                  <div><dt>audit write</dt><dd id="auditWrite">—</dd></div>
-                  <div><dt>lockAcquireEnabled</dt><dd id="lockAcquireEnabled">—</dd></div>
-                  <div><dt>auditInsertEnabled</dt><dd id="auditInsertEnabled">—</dd></div>
-                </dl>
+              <div class="cardHead"><h2>Module</h2><span class="pill warn">read-only Platzhalter</span></div>
+              <div class="infoGrid modules">
+                <div><strong>OBS</strong><p>Noch keine Steuerung.</p></div>
+                <div><strong>Sound</strong><p>Noch keine Steuerung.</p></div>
+                <div><strong>Overlays</strong><p>Noch keine Steuerung.</p></div>
+                <div><strong>Commands</strong><p>Noch keine Steuerung.</p></div>
               </div>
             </article>
-          </div>
-        </section>
+          </section>
 
-        <section class="page" data-page-panel="routes">
-          <article class="card wide">
-            <div class="cardHead"><h2>Routen</h2><span class="pill" id="routesPill">lädt</span></div>
-            <div class="routes" id="routesList"></div>
-          </article>
+          <footer class="footer">
+            <span id="autoRefreshText">Auto-Refresh: —</span>
+            <button class="secondaryButton" type="button" id="refreshButton">Neu laden</button>
+          </footer>
         </section>
-
-        <section class="page" data-page-panel="account">
-          <article class="card wide">
-            <div class="cardHead"><h2>Mein Login</h2><span class="pill safe">Session</span></div>
-            <dl class="kv">
-              <div><dt>loggedIn</dt><dd id="authLoggedIn">—</dd></div>
-              <div><dt>dashboardAccess</dt><dd id="dashboardAccess">—</dd></div>
-              <div><dt>accessReason</dt><dd id="accessReason">—</dd></div>
-              <div><dt>User</dt><dd id="authUser">—</dd></div>
-              <div><dt>Rollen</dt><dd id="authRoles">—</dd></div>
-              <div><dt>Session</dt><dd id="authSessionReason">—</dd></div>
-            </dl>
-          </article>
-        </section>
-
-        <section class="page" data-page-panel="permissions">
-          <article class="card wide">
-            <div class="cardHead"><h2>Rechte</h2><span class="pill safe">serverseitig geplant</span></div>
-            <dl class="kv">
-              <div><dt>permission remote.view</dt><dd id="permissionAllowed">—</dd></div>
-              <div><dt>reason</dt><dd id="permissionReason">—</dd></div>
-              <div><dt>Hinweis</dt><dd>Dashboard-Zugriff kommt serverseitig aus `/auth/me`; produktive Actions brauchen später eigene Middleware.</dd></div>
-            </dl>
-          </article>
-        </section>
-
-        <section class="page" data-page-panel="modules">
-          <article class="card wide">
-            <div class="cardHead"><h2>Module</h2><span class="pill warn">read-only Platzhalter</span></div>
-            <div class="infoGrid modules">
-              <div><strong>OBS</strong><p>Noch keine Steuerung.</p></div>
-              <div><strong>Sound</strong><p>Noch keine Steuerung.</p></div>
-              <div><strong>Overlays</strong><p>Noch keine Steuerung.</p></div>
-              <div><strong>Commands</strong><p>Noch keine Steuerung.</p></div>
-            </div>
-          </article>
-        </section>
-
-        <footer class="footer">
-          <span id="autoRefreshText">Auto-Refresh: —</span>
-          <button class="secondaryButton" type="button" id="refreshButton">Neu laden</button>
-        </footer>
-      </section>
+      </div>
     </section>
   </main>
 

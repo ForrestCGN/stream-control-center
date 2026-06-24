@@ -1,66 +1,75 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_WORKFLOW_MASTERPROMPT_FIX
+Stand: RDAP_DESIGN1_REAL_CGN_BASE
 Datum: 2026-06-24
 
-## Im neuen Chat zuerst
+## Reihenfolge
 
-1. GitHub/dev als Source of Truth prüfen
-2. `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt` lesen
-3. `docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md` lesen
-4. `docs/current/START_HERE_FOR_NEW_CHAT.md` lesen
-5. aktuellen Auth-/Dashboard-Stand anhand Repo-Dateien prüfen
-6. nicht raten, keine losen Patches
-7. echte Designbasis suchen/prüfen
+1. ZIP lokal einspielen:
 
-## Sofort prüfen
-
-Secrets rotieren:
-
-```bash
-openssl rand -base64 48
-openssl rand -base64 48
-nano /etc/stream-control-center/remote-modboard.env
-systemctl restart scc-remote-modboard.service
+```powershell
+cd D:\Git\stream-control-center
+.\installstep.cmd "$env:USERPROFILE\Downloads\RDAP_DESIGN1_REAL_CGN_BASE.zip" "RDAP Design1 echte CGN-Neon-Galaxy-Basis eingebaut"
 ```
 
-## Webserver-Deploy-Regel
+2. Lokal prüfen:
 
-Erst nach lokalem `installstep.cmd`, Test und `stepdone.cmd`.
+```powershell
+Test-Path .\remote-modboard\backend\public\index.html
+Test-Path .\remote-modboard\backend\public\assets\remote-modboard.css
+node --check .\remote-modboard\backend\public\assets\remote-modboard.js
+```
 
-Auf dem Webserver immer frisch klonen:
+3. Browser lokal/live prüfen, falls testdeploy den Stand nach Live kopiert hat.
+
+4. Bei Erfolg:
+
+```powershell
+.\stepdone.cmd "RDAP_DESIGN1 echte CGN-/Neon-Galaxy-Designbasis eingebaut: Remote-Modboard Frontend optisch erneuert, Auth/Login/Diagnose bleiben erhalten, keine Remote-Writes/Agent-Actions"
+```
+
+5. Erst danach Webserver-Deploy:
 
 ```bash
 cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+rm -rf RDAP_DESIGN1_REAL_CGN_BASE
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_DESIGN1_REAL_CGN_BASE
+cd RDAP_DESIGN1_REAL_CGN_BASE
+sudo bash tools/remote-modboard-deploy.sh RDAP_DESIGN1_REAL_CGN_BASE dev
 ```
 
-## Nächste geplante Steps
+## Danach testen
 
-### RDAP_DESIGN1_REAL_CGN_BASE
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.ok,.moduleBuild,.auth.enabled,.auth.loginEnabled,.writeEnabled'
+curl -fsSI https://mods.forrestcgn.de/ | head
+curl -fsS https://mods.forrestcgn.de/api/remote/status | jq '.ok,.auth.enabled,.auth.loginEnabled,.writeEnabled'
+```
 
-Ziel:
+Browser:
 
-- echtes CGN-/Vision-UI-/Neon-Galaxy-Design
-- Designbasis aus bestehenden Repo-/Projektdateien übernehmen
-- keine weiteren frei erfundenen CSS-Versuche
+```text
+https://mods.forrestcgn.de/
+```
 
-### RDAP_AUTH2_CENTRAL_LOGIN_READY
+## Danach nächste mögliche Steps
 
-Ziel:
+### RDAP_AUTH2_CENTRAL_LOGIN_READY prüfen/fortführen
 
-- Modboard-Login als Übergang dokumentieren
-- späteren Hauptseiten-/Zentral-Login vorbereiten
-- Return-To/Redirect-Konzept
-- gemeinsame Session-/Cookie-Strategie für `forrestcgn.de` und `mods.forrestcgn.de`
-- gemeinsame serverseitige DB-Wahrheit für User/Identities/Sessions
+Falls noch nicht sauber live getestet:
+
+- neutraler Login-Einstieg prüfen
+- `/api/remote/auth/login/plan` prüfen
+- zentrale DB-Session-Zielarchitektur weiter vorbereiten
 
 ### RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI
 
-Ziel:
-
 - Owner/Streamer/Mods/Sound-Profi sichtbar und verwaltbar planen
 - noch keine produktiven Actions
+
+## Weiterhin offen
+
+- `SESSION_SECRET` rotieren
+- `OAUTH_STATE_SECRET` rotieren
+- Service nach Rotation neu starten
+- Browser-Login nach Rotation prüfen
