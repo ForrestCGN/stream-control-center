@@ -1,12 +1,16 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP13 / Lock-/Audit Schema-Adapter read-only Plan dokumentiert
+## 2026-06-24 - RDAP14 / Lock-/Audit Schema-Adapter read-only Skeleton vorbereitet
 
-Status: Doku-/Plan-Step vorbereitet
+Status: Code-/Doku-Step vorbereitet
 
 Geaendert:
 
-- `docs/current/RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN.md`
+- `remote-modboard/backend/src/services/lock-read.service.js`
+- `remote-modboard/backend/src/services/audit-read.service.js`
+- `remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js`
+- `remote-modboard/backend/src/routes/routes.routes.js`
+- `docs/current/RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON.md`
 - `docs/current/START_HERE_FOR_NEW_CHAT.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
@@ -14,22 +18,24 @@ Geaendert:
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
 
-Inhalt:
+Bewusste Strukturentscheidung:
 
-- internes Lock-Modell geplant
-- internes Audit-Modell geplant
-- Mapping reales Schema -> internes Modell dokumentiert
-- fehlende Felder dokumentiert
-- Write-Block-Regeln dokumentiert
-- naechster Schritt RDAP14 Schema-Adapter read-only Skeleton vorbereitet
+- keine neue Route-Datei
+- keine neuen Adapter-Service-Dateien
+- Adapter-Logik in vorhandene Lock-/Audit-Services integriert
+- Route in vorhandenes Lock-/Audit-Diagnose-Modul integriert
+
+Neu:
+
+- `GET /api/remote/lock-audit/schema-adapter/status`
+- `GET /api/remote/lock-audit/schema-adapter/status?db=1`
 
 Keine Aenderung:
 
-- kein Backend-Code
-- keine DB-Aenderung
-- keine Migration
 - kein Login
 - kein OAuth
 - keine Sessions
-- keine Writes
+- keine DB-Writes
+- keine Migration
+- keine Remote-Writes
 - keine Agent-Actions

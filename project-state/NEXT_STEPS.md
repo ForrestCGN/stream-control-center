@@ -1,41 +1,47 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN
+Stand: RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON
 Datum: 2026-06-24
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON
+RDAP14B_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_DEPLOY_TEST
 ```
 
-## Ziel RDAP14
+## Ziel RDAP14B
 
-Read-only Adapter-Skeleton fuer das reale Lock-/Audit-Schema bauen.
+RDAP14 auf dem Webserver deployen und read-only testen.
 
-RDAP14 soll vorbereiten:
+## Tests live
 
-- `lock-schema-adapter` read-only
-- `audit-schema-adapter` read-only
-- Diagnose-Route fuer Mapping/Kompatibilitaet
-- keine Writes
-- keine Migration
-- keine Login-/OAuth-Aktivierung
+Nach Deploy und Service-Restart mit Readiness-Wait:
 
-## RDAP14 darf NICHT
+```text
+GET /api/remote/status
+GET /api/remote/routes
+GET /api/remote/lock-audit/status
+GET /api/remote/lock-audit/status?db=1
+GET /api/remote/lock-audit/schema-adapter/status
+GET /api/remote/lock-audit/schema-adapter/status?db=1
+GET /api/remote/auth/twitch/start -> 403
+GET /api/remote/auth/twitch/callback -> 403
+```
 
-- Login aktivieren
-- OAuth aktivieren
-- Cookies setzen
-- Sessions erstellen
-- Sessions verlaengern
-- DB-Writes ausfuehren
-- Migrationen ausfuehren
-- Tabellen aendern
-- Remote-Writes bauen
-- Agent-Actions aktivieren
-- Secrets ausgeben oder loggen
+## Muss weiter gelten
 
-## Pflicht fuer spaetere Server-Tests
+```text
+readOnly=true
+writeEnabled=false
+databaseWriteEnabled=false
+migrationEnabled=false
+authEnabled=false
+loginEnabled=false
+agentActionsEnabled=false
+lockAcquireEnabled=false
+auditInsertEnabled=false
+```
 
-Nach Service-Restart Readiness-Wait/Retry einbauen, bevor API-Tests laufen.
+## Server-Regel
+
+Nach `systemctl restart` immer Readiness-Wait/Retry vor API-Tests.
