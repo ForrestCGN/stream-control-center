@@ -1,41 +1,23 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP14 / Lock-/Audit Schema-Adapter read-only Skeleton vorbereitet
+## 2026-06-24 - TOOLS1 / stepdone remote-modboard Support
 
-Status: Code-/Doku-Step vorbereitet
+Status: Tooling-Step vorbereitet
 
 Geaendert:
 
-- `remote-modboard/backend/src/services/lock-read.service.js`
-- `remote-modboard/backend/src/services/audit-read.service.js`
-- `remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js`
-- `remote-modboard/backend/src/routes/routes.routes.js`
-- `docs/current/RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON.md`
-- `docs/current/START_HERE_FOR_NEW_CHAT.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/FILES.md`
+- `stepdone.cmd`
+- `docs/current/TOOLS1_REMOTE_MODBOARD_STEPDONE_SUPPORT.md`
 - `project-state/CHANGELOG.md`
 
-Bewusste Strukturentscheidung:
+Inhalt:
 
-- keine neue Route-Datei
-- keine neuen Adapter-Service-Dateien
-- Adapter-Logik in vorhandene Lock-/Audit-Services integriert
-- Route in vorhandenes Lock-/Audit-Diagnose-Modul integriert
-
-Neu:
-
-- `GET /api/remote/lock-audit/schema-adapter/status`
-- `GET /api/remote/lock-audit/schema-adapter/status?db=1`
+- `remote-modboard/` als erlaubten Projektbereich in `stepdone.cmd` aufgenommen
+- JS-Syntaxcheck um `remote-modboard/backend/*.js` erweitert
+- Abschlussstatus verschaerft: relevante offene Projektdateien nach Commit/Push fuehren zu Fehler statt irrefuehrendem `[ok]`
 
 Keine Aenderung:
 
-- kein Login
-- kein OAuth
-- keine Sessions
-- keine DB-Writes
-- keine Migration
-- keine Remote-Writes
-- keine Agent-Actions
+- kein `git add .`
+- keine Secrets-Regeln abgeschwaecht
+- keine Backend-/DB-/Server-Funktion geaendert

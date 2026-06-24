@@ -58,10 +58,10 @@ echo ============================================================
 echo [stepdone] JS-Syntaxcheck geaenderter Dateien
 echo ============================================================
 
-findstr /I /R "^backend/.*\.js$ ^htdocs/.*\.js$ ^frontend/.*\.js$ ^frontend/.*\.jsx$" "%TMP_CHANGED%" > "%TMP_JS%" 2>nul
+findstr /I /R "^backend/.*\.js$ ^htdocs/.*\.js$ ^frontend/.*\.js$ ^frontend/.*\.jsx$ ^remote-modboard/backend/.*\.js$" "%TMP_CHANGED%" > "%TMP_JS%" 2>nul
 
 if errorlevel 1 (
-  echo [info] Keine geaenderten JS/JSX-Dateien in backend/, htdocs/ oder frontend/ gefunden.
+  echo [info] Keine geaenderten JS/JSX-Dateien in backend/, htdocs/, frontend/ oder remote-modboard/backend/ gefunden.
 ) else (
   for /f "usebackq delims=" %%F in ("%TMP_JS%") do (
     if exist "%%F" (
@@ -84,6 +84,7 @@ if exist "docs" git add docs
 if exist "project-state" git add project-state
 if exist "tools" git add tools
 if exist "frontend" git add frontend
+if exist "remote-modboard" git add remote-modboard
 
 if exist "check.cmd" git add check.cmd
 if exist "commit.cmd" git add commit.cmd
@@ -157,6 +158,16 @@ echo ============================================================
 
 git status --short --untracked-files=all
 if errorlevel 1 goto fail
+
+git status --short --untracked-files=all > "%TMP_CHANGED%"
+findstr /I /R "backend/ htdocs/ config/ docs/ project-state/ tools/ frontend/ remote-modboard/ check\.cmd commit\.cmd deploy\.cmd pull\.cmd restore\.cmd status\.cmd installstep\.cmd testdeploy\.cmd stepdone\.cmd stepundo\.cmd stepstatus\.cmd" "%TMP_CHANGED%" >nul
+if not errorlevel 1 (
+  echo.
+  echo [error] Nach Commit/Push sind noch relevante Projektdateien offen:
+  findstr /I /R "backend/ htdocs/ config/ docs/ project-state/ tools/ frontend/ remote-modboard/ check\.cmd commit\.cmd deploy\.cmd pull\.cmd restore\.cmd status\.cmd installstep\.cmd testdeploy\.cmd stepdone\.cmd stepundo\.cmd stepstatus\.cmd" "%TMP_CHANGED%"
+  echo [error] GitHub/dev enthaelt noch nicht den vollstaendigen Stand. Bitte gezielt nachpruefen.
+  goto fail
+)
 
 echo.
 echo [ok] Fertig. GitHub/dev enthaelt jetzt den getesteten Stand.
