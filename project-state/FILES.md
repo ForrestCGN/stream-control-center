@@ -1,12 +1,12 @@
 # FILES - stream-control-center
 
-Stand: RDAP_ADMIN_USERS2_MANAGEMENT_PLAN  
+Stand: RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN  
 Datum: 2026-06-24
 
 ## In diesem Step geändert
 
 ```text
-docs/current/RDAP_ADMIN_USERS2_MANAGEMENT_PLAN.md
+docs/current/RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN.md
 docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
@@ -15,17 +15,16 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## In diesem Step nicht geändert
+## Keine Code-Dateien geändert
+
+Dieser Step ändert bewusst keine:
 
 ```text
 remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/src/services/auth-db-read.service.js
-remote-modboard/backend/src/services/auth-profile-sync.service.js
-remote-modboard/backend/src/routes/auth-status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-tools/remote-modboard-deploy.sh
+remote-modboard/backend/src/routes/*.js
+remote-modboard/backend/src/services/*.js
 ```
 
 ## Relevante aktuelle RDAP-Frontend-Dateien
@@ -52,6 +51,20 @@ remote-modboard/backend/src/services/auth-status.service.js
 ```text
 remote-modboard/backend/src/services/auth-db-read.service.js
 ```
+
+## Mögliche spätere Admin-Write-Foundation-Dateien
+
+Nur Zielbild, noch nicht vorhanden/noch nicht bauen ohne neuen Step:
+
+```text
+remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/services/admin-user-permission.service.js
+remote-modboard/backend/src/services/admin-user-confirm.service.js
+remote-modboard/backend/src/services/admin-user-audit.service.js
+remote-modboard/backend/src/services/admin-user-lock.service.js
+```
+
+Beim echten Implementierungs-Step zuerst prüfen, ob vorhandene Services erweitert werden können. Keine Parallelstruktur erfinden.
 
 ## Relevante Auth3-DB-Datei
 

@@ -22,7 +22,7 @@ Aktuell vorhanden:
 
 - Twitch Login live aktiv.
 - Dashboard-Zugriff wird serverseitig geprüft.
-- ForrestCGN und EngelCGN sind als Test-User sichtbar.
+- ForrestCGN und EngelCGN sind sichtbar.
 - Dashboard-v2/V13-Look ist als echte Basis portiert.
 - Login-/Denied-Seite ist zentriert.
 - Status-Karten/Grid-Abstände sind korrigiert.
@@ -31,49 +31,33 @@ Aktuell vorhanden:
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
 - Profilpanel ist auf `Profil aktualisieren` und `Ausloggen` reduziert.
 - Topbar hat keinen doppelten Ausloggen-Button mehr.
-- Admin -> User & Rollen zeigt eine read-only Übersicht vorhandener User/Rollen/Gruppen/Sessions.
+- `Admin -> User & Rollen` zeigt eine read-only Übersicht vorhandener User/Rollen/Gruppen/Sessions.
 
-## Zuletzt geplant/dokumentiert
+## Zuletzt abgeschlossen
 
 ```text
 RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
 ```
 
-Änderung:
+Zweck:
+
+- spätere Admin-Userverwaltung geplant
+- Self-Profil vs. Admin-Verwaltung getrennt
+- Owner/Admin-Permission, Confirm-Write, Audit, Locking und Backup/Rollback als Pflicht festgelegt
+- keine Code-/DB-/Remote-Action-Änderungen
+
+## Aktueller Plan-Step
 
 ```text
-docs/current/RDAP_ADMIN_USERS2_MANAGEMENT_PLAN.md
-docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
+RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN
 ```
 
-Dieser Step ist absichtlich nur Doku/Planung.
+Zweck:
 
-Nicht geändert:
-
-- kein Backend-Code
-- kein Frontend-Code
-- keine DB
-- keine Routen
-- keine Services
-- keine Admin-Writes
-- keine Remote-Agent-Actions
-
-## Admin-Userverwaltung: Planungsstand
-
-`RDAP_ADMIN_USERS2_MANAGEMENT_PLAN.md` legt den Rahmen für spätere User-/Rollenverwaltung fest:
-
-- klare Trennung Self-Profil oben rechts vs. Admin-Verwaltung unter `Admin -> User & Rollen`
-- Owner/Admin-Permission als Pflicht
-- Confirm-Write für jede produktive Aktion
-- Audit-Log für jede Änderung
-- Locking mit Heartbeat/Timeout/Override
-- Backup-/Rollback vor DB-/Write-Steps
-- `Sound-Profi` als Spezialgruppe/Freigabe, nicht als globale Systemrolle
+- konkrete Write-Foundation für spätere Admin-Userverwaltung planen
+- kleinsten sicheren späteren Write-Step vorbereiten
+- weiterhin keine Admin-Writes bauen
+- Projektstatus auf aktuellen RDAP_ADMIN_USERS2/3-Stand korrigieren
 
 ## Wichtige Sicherheitsregeln
 
@@ -119,14 +103,8 @@ done
 
 ## Nächste sinnvolle Schritte
 
-1. `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` lokal einspielen.
-2. Doku-Dateien prüfen.
-3. `stepdone.cmd` ausführen, wenn sauber.
-4. Danach optional Webserver-Deploy, weil es nur Doku ist nicht zwingend kritisch.
-5. Danach als nächstes planen:
-
-```text
-RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN_OR_BACKUP_SCOPE
-```
-
-Ziel des nächsten Schritts: noch keine große UI, sondern zuerst DB-Tabellen prüfen, Backup-/Rollback und kleinsten sicheren Write-Scope festlegen.
+1. `RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN` lokal einspielen.
+2. `git status` prüfen.
+3. `stepdone.cmd` ausführen.
+4. Danach erst planen: `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION`.
+5. Secrets rotieren, falls noch nicht erledigt: `SESSION_SECRET`, `OAUTH_STATE_SECRET`.

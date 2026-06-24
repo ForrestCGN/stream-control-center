@@ -1,14 +1,14 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS2_MANAGEMENT_PLAN  
+Stand: RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN  
 Datum: 2026-06-24
 
 ## Sofort
 
-1. `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN.zip` lokal einspielen.
-2. Prüfen, dass nur Doku-/Projektstatus-Dateien geändert wurden.
-3. `stepdone.cmd` ausführen, wenn sauber.
-4. Optional danach Webserver-Deploy, weil Doku in GitHub/dev sauber sein soll.
+1. `RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN.zip` lokal einspielen.
+2. `git status` prüfen.
+3. Prüfen, dass nur Doku-/Projektstatus-Dateien geändert wurden.
+4. `stepdone.cmd` ausführen.
 
 ## Danach empfohlen
 
@@ -25,21 +25,24 @@ systemctl restart scc-remote-modboard.service
 
 Danach Login erneut testen.
 
-### 2. Admin User Management Foundation planen
+### 2. Admin Write Foundation vorbereiten
 
-Nächster Planungs-Step:
+Nächster Plan-/Foundation-Step:
 
 ```text
-RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN_OR_BACKUP_SCOPE
+RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION
 ```
 
-Scope weiterhin vorsichtig:
+Scope soll weiterhin klein bleiben:
 
-- echten DB-/Tabellenstand prüfen
-- vorhandene Auth-/Permission-/Audit-/Locking-Dateien prüfen
-- Backup-/Rollback konkret definieren
-- kleinsten sicheren Write-Scope festlegen
-- noch keine breite UI-Verwaltung bauen
+- echte DB-Tabellen/Spalten prüfen
+- Backup-Befehl dokumentieren
+- Rollback-Befehl dokumentieren
+- Owner/Admin-Permission-Read prüfen
+- Confirm-Write-Regel technisch vorbereiten oder exakt planen
+- Audit-Ziel prüfen
+- Locking-Ziel prüfen
+- noch keine großen User-/Rollen-Writes bauen
 
 ### 3. Spätere Admin-Writes nur mit eigenem Scope
 
@@ -73,17 +76,3 @@ Nicht verwenden:
 ```
 
 `/opt/stream-control-center` ist kein Git-Repository.
-
-Nach Restart immer Readiness abwarten:
-
-```bash
-systemctl restart scc-remote-modboard.service
-
-for i in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
-    echo "ready_after=${i}s"
-    break
-  fi
-  sleep 1
-done
-```

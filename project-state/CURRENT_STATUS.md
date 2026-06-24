@@ -1,6 +1,6 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS2_MANAGEMENT_PLAN  
+Stand: RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN  
 Datum: 2026-06-24
 
 ## Aktueller bestätigter RDAP-/Remote-Modboard-Stand
@@ -10,45 +10,32 @@ Remote-Modboard/Auth:
 - `mods.forrestcgn.de` läuft.
 - Twitch Login funktioniert live.
 - Dashboard-Zugriff wird serverseitig geprüft.
-- ForrestCGN kann sich anmelden und das Dashboard nutzen.
-- EngelCGN ist als User sichtbar bzw. für Tests vorgesehen.
+- ForrestCGN und EngelCGN sind sichtbar.
 - Avatar oben rechts wird angezeigt.
 - Profilpanel oben rechts ist vorhanden.
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
-- Profilpanel zeigt nur noch `Profil aktualisieren` und `Ausloggen`.
 - Login-/Denied-Layout ist zentriert.
 - Dashboard-Karten/Grid-Abstände sind nach V13-Fix sauberer.
 - Topbar-Ausloggen wurde entfernt; Logout bleibt im Profilpanel.
-- Admin -> User & Rollen zeigt eine read-only Übersicht bekannter Dashboard-User, Rollen, Gruppen, Permissions und Sessions.
+- Profilpanel ist auf die Self-Service-Aktionen `Profil aktualisieren` und `Ausloggen` reduziert.
+- `Admin -> User & Rollen` zeigt eine read-only Übersicht bekannter Dashboard-User, Rollen, Gruppen, Permissions und Sessions.
 
 ## Aktueller Arbeitsstand
 
-`RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` ist ein reiner Doku-/Plan-Step.
+`RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` wurde als reiner Planungs-/Doku-Step abgeschlossen.
 
-Neu dokumentiert:
+`RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN` konkretisiert jetzt die spätere Write-Grundlage.
 
-- spätere Admin-Userverwaltung zuerst planen, nicht direkt schreiben
-- Self-Profil oben rechts bleibt getrennt von Admin-Verwaltung
-- Admin-Verwaltung bleibt unter `Admin -> User & Rollen`
-- Owner/Admin-Permission als Pflicht für spätere Writes
-- Confirm-Write für produktive Aktionen
-- Audit-Log für jede Admin-Schreibaktion
-- Locking gegen gleichzeitige Bearbeitung
-- Backup/Rollback vor DB-/Write-Steps
-- `Sound-Profi` als Spezialgruppe/Freigabe, nicht als globale System-/Owner-Rolle
+Funktional weiterhin unverändert:
 
-## In diesem Step nicht geändert
+- Self-Profil darf nur eigene Twitch-Daten synchronisieren.
+- Admin-Userverwaltung bleibt read-only.
+- Keine Rollen-/Freigabe-Writes.
+- Keine produktiven Admin-Writes.
+- Keine DB-Migration.
+- Keine Remote-Agent-Actions.
 
-- kein Backend-Code
-- kein Frontend-Code
-- keine DB
-- keine Routen
-- keine Services
-- keine Migrationen
-- keine produktiven Admin-Writes
-- keine Remote-Agent-Actions
-
-## Weiterhin deaktiviert/verboten ohne eigenen Scope
+## Weiterhin deaktiviert
 
 - Remote-Writes außerhalb Auth-/Session-/Self-Profil-Scope
 - Agent-Actions
@@ -58,20 +45,20 @@ Neu dokumentiert:
 - Command-Steuerung
 - Admin-Userverwaltung mit Writes
 - Rollen-/Freigabe-Writes
-- DB-Migration ohne Backup/Rollback/Go
-- Secrets im Repo/Frontend/Chat/Logs
+- Session-Widerrufe über Admin-UI
 
 ## Wichtige offene Sicherheitsaufgabe
 
-- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt.
+- `SESSION_SECRET` rotieren, falls noch nicht erledigt.
+- `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt.
 - Nach Rotation Service neu starten und Browser-Login erneut prüfen.
 
 ## Nächster sinnvoller Block
 
-Nach Abschluss dieses Plan-Steps:
+Nach Abschluss dieses Steps:
 
 ```text
-RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN_OR_BACKUP_SCOPE
+RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION
 ```
 
-Ziel: noch keine große Admin-UI bauen, sondern zuerst DB-Tabellenstand, Backup-/Rollback, Permission-Middleware, Confirm-Write, Audit und Locking als Grundlage planen.
+Ziel: echte Tabellen/Spalten prüfen, Backup/Rollback festlegen, Permission-Read prüfen, Confirm-/Audit-/Locking-Foundation vorbereiten. Noch keine großen User-/Rollen-Writes bauen.
