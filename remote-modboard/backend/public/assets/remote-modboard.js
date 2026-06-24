@@ -8,7 +8,8 @@ const endpoints = {
   authModel: '/api/remote/auth/model',
   permission: '/api/remote/auth/permissions/check?permission=remote.view',
   lockAudit: '/api/remote/lock-audit/status?db=1',
-  schemaAdapter: '/api/remote/lock-audit/schema-adapter/status?db=1'
+  schemaAdapter: '/api/remote/lock-audit/schema-adapter/status?db=1',
+  syncTwitchProfile: '/api/remote/auth/me/sync-twitch'
 };
 
 const endpointLabels = {
@@ -19,7 +20,8 @@ const endpointLabels = {
   authModel: 'Auth-Modell',
   permission: 'Permission remote.view',
   lockAudit: 'Lock-/Audit',
-  schemaAdapter: 'Schema-Adapter'
+  schemaAdapter: 'Schema-Adapter',
+  syncTwitchProfile: 'Profil aktualisieren'
 };
 
 const AUTO_REFRESH_SECONDS = 30;
@@ -46,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindOptional('selfProfileLogoutButton', 'click', logout);
   bindOptional('selfProfileAccountButton', 'click', () => { setPage('account'); closeSelfProfilePanel(); });
   bindOptional('selfProfileAccessButton', 'click', () => { setPage('access'); closeSelfProfilePanel(); });
+  bindOptional('selfProfileSyncButton', 'click', syncSelfTwitchProfile);
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSelfProfilePanel(); });
   bindOptional('navToggle', 'click', () => document.body.classList.toggle('nav-collapsed'));
   bindOptional('scrim', 'click', () => document.body.classList.remove('nav-collapsed'));
@@ -132,7 +135,8 @@ async function loadDashboard(reason) {
   const refreshButton = byId('refreshButton');
   if (refreshButton) refreshButton.disabled = true;
 
-  const entries = await Promise.all(Object.entries(endpoints).map(async ([key, url]) => {
+  const dashboardEndpoints = Object.entries(endpoints).filter(([key]) => key !== 'syncTwitchProfile');
+  const entries = await Promise.all(dashboardEndpoints.map(async ([key, url]) => {
     const result = await getJson(url);
     return [key, result];
   }));
@@ -182,6 +186,67 @@ async function getJson(url) {
       error: err && err.message ? err.message : 'fetch_failed'
     };
   }
+}
+
+async function postJson(url) {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    const body = await response.json().catch(() => null);
+
+    return {
+      ok: response.ok && body && body.ok !== false,
+      httpStatus: response.status,
+      body,
+      error: null
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      httpStatus: 0,
+      body: null,
+      error: err && err.message ? err.message : 'fetch_failed'
+    };
+  }
+}
+
+
+async function syncSelfTwitchProfile() {
+  const button = byId('selfProfileSyncButton');
+  if (button) button.disabled = true;
+
+  showSelfProfileSyncNotice('loading', 'Profil wird aktualisiert', 'Twitch-Daten werden neu gelesen …');
+
+  const result = await postJson(endpoints.syncTwitchProfile);
+
+  if (result.ok) {
+    showSelfProfileSyncNotice('success', 'Profil wurde synchronisiert', 'Avatar und Twitch-Name wurden neu gelesen.');
+    await loadDashboard('profile-sync');
+    window.setTimeout(() => hideSelfProfileSyncNotice(), 3600);
+  } else {
+    const detail = result.error || (result.body && (result.body.error || result.body.message)) || `HTTP ${result.httpStatus || 0}`;
+    showSelfProfileSyncNotice('error', 'Profil konnte nicht aktualisiert werden', detail);
+  }
+
+  if (button) button.disabled = false;
+}
+
+function showSelfProfileSyncNotice(state, title, text) {
+  const notice = byId('selfProfileSyncNotice');
+  if (!notice) return;
+  notice.className = `self-profile-sync self-profile-sync--${state || 'info'}`;
+  setText('selfProfileSyncTitle', title || 'Profil aktualisieren');
+  setText('selfProfileSyncText', text || '—');
+  notice.hidden = false;
+}
+
+function hideSelfProfileSyncNotice() {
+  setHidden('selfProfileSyncNotice', true);
 }
 
 async function logout() {

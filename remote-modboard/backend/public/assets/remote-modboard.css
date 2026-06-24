@@ -443,6 +443,41 @@ body.nav-collapsed .cgn-sidebar{opacity:0;pointer-events:none;transform:translat
   line-height:1.45;
   margin-top:3px;
 }
+
+.self-profile-sync{
+  margin-top:12px;
+  padding:12px;
+  border-radius:16px;
+  border:1px solid rgba(27,216,255,.22);
+  background:rgba(27,216,255,.08);
+}
+.self-profile-sync strong,
+.self-profile-sync span{
+  display:block;
+}
+.self-profile-sync span{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+  margin-top:3px;
+}
+.self-profile-sync--loading{
+  border-color:rgba(27,216,255,.28);
+  background:rgba(27,216,255,.09);
+}
+.self-profile-sync--success{
+  border-color:rgba(69,245,167,.30);
+  background:rgba(69,245,167,.08);
+}
+.self-profile-sync--error{
+  border-color:rgba(255,84,112,.34);
+  background:rgba(255,84,112,.08);
+}
+.secondaryButton:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
 .self-profile-actions{
   display:flex;
   gap:8px;
