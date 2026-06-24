@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
 
-Stand: RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
+Stand: RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -13,20 +13,21 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-docs/current/RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS.md
 docs/current/RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN.md
+docs/current/RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN.md
 ```
 
 ## Aktueller bestaetigter Stand
 
 ```text
-RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
+RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN
 ```
 
-RDAP12 dokumentiert den Schema-Kompatibilitaetsplan fuer `dashboard_locks` und `dashboard_audit_log`.
+RDAP13 dokumentiert den read-only Schema-Adapter-Plan fuer das reale Lock-/Audit-Schema.
 
-RDAP12 ist reiner Doku-/Planungsstand:
+RDAP13 ist reiner Doku-/Planungsstand:
 
+- keine Backend-Codeaenderung
 - keine DB-Aenderung
 - keine Migration
 - keine Writes
@@ -35,95 +36,34 @@ RDAP12 ist reiner Doku-/Planungsstand:
 - keine Sessions
 - keine Agent-Actions
 
-## Bestaetigter Live-Stand aus RDAP11C
+## Wichtigster Befund
 
-```text
-GET /api/remote/lock-audit/status       -> HTTP 200
-GET /api/remote/lock-audit/status?db=1  -> HTTP 200
-GET /api/remote/auth/twitch/start       -> HTTP 403
-GET /api/remote/auth/twitch/callback    -> HTTP 403
-```
+`dashboard_locks` und `dashboard_audit_log` existieren, weichen aber vom RDAP11-Erwartungsmodell ab.
 
-Wichtige Live-Werte:
+RDAP13 plant deshalb Adapter/Mappings statt sofortiger Migration.
 
-```text
-statusApiVersion=rdap11.v1
-readOnly=true
-writeEnabled=false
-databaseWriteEnabled=false
-authEnabled=false
-loginEnabled=false
-agentActionsEnabled=false
-lockAcquireEnabled=false
-auditInsertEnabled=false
-```
+## Adapter-Ziel
 
-## Schema-Befund
+Spaeter read-only erkennen:
 
-`dashboard_locks` existiert mit:
-
-```text
-id
-lock_uid
-resource_key
-owner_user_uid
-status
-heartbeat_at
-expires_at
-created_at
-updated_at
-version_token
-```
-
-`dashboard_audit_log` existiert mit:
-
-```text
-id
-audit_uid
-created_at
-actor_user_uid
-actor_display_name
-source
-action
-permission_key
-resource_key
-status
-old_value_summary
-new_value_summary
-request_id
-correlation_id
-```
-
-Beide Schemas weichen vom RDAP11-Erwartungsmodell ab.
-
-## Empfehlung RDAP12
-
-Kurzfristig:
-
-```text
-Kompatibilitaetslayer/Adapter statt sofortiger Migration
-```
-
-Mittelfristig:
-
-```text
-kontrollierte Schema-Erweiterung mit Backup/Rollback/eigenem Scope
-```
-
-## Server-Script-Regel
-
-Nach `systemctl restart` immer Readiness-Wait/Retry einbauen, bevor API-Tests laufen.
-
-Keine sofortigen `curl`-Tests direkt nach Restart.
+- reale Tabellen
+- vorhandene Spalten
+- Mapping auf internes Modell
+- fehlende Pflichtfelder
+- `compatibleForRead`
+- `compatibleForWrite`
+- Gruende, warum Writes blockiert bleiben
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN
+RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON
 ```
 
-Alternativ:
+RDAP14 darf nur nach eigenem Scope und ausdruecklichem go umgesetzt werden.
 
-```text
-RDAP13_LOCK_AUDIT_SCHEMA_DUMP_READONLY_DOCS
-```
+## Server-Script-Regel
+
+Nach `systemctl restart` immer Readiness-Wait/Retry vor API-Tests.
+
+Keine sofortigen `curl`-Tests direkt nach Restart.

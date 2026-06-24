@@ -1,12 +1,12 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP12 / Lock-/Audit Schema-Kompatibilitaetsplan dokumentiert
+## 2026-06-24 - RDAP13 / Lock-/Audit Schema-Adapter read-only Plan dokumentiert
 
 Status: Doku-/Plan-Step vorbereitet
 
 Geaendert:
 
-- `docs/current/RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN.md`
+- `docs/current/RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN.md`
 - `docs/current/START_HERE_FOR_NEW_CHAT.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
@@ -16,12 +16,12 @@ Geaendert:
 
 Inhalt:
 
-- reales `dashboard_locks` Schema bewertet
-- reales `dashboard_audit_log` Schema bewertet
-- Mapping-Moeglichkeiten dokumentiert
+- internes Lock-Modell geplant
+- internes Audit-Modell geplant
+- Mapping reales Schema -> internes Modell dokumentiert
 - fehlende Felder dokumentiert
-- Empfehlung: Kompatibilitaetslayer vor produktiven Writes
-- Migration nur spaeter mit eigenem Scope, Backup und Rollback
+- Write-Block-Regeln dokumentiert
+- naechster Schritt RDAP14 Schema-Adapter read-only Skeleton vorbereitet
 
 Keine Aenderung:
 

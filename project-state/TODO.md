@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
+Stand: RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN
 Datum: 2026-06-24
 
 ## Erledigt
@@ -11,11 +11,12 @@ Datum: 2026-06-24
 - [x] RDAP11B Lock-/Audit read-only Skeleton live deployed und getestet
 - [x] RDAP11C Live-Test dokumentiert
 - [x] RDAP12 Schema-Kompatibilitaetsplan dokumentiert
+- [x] RDAP13 Schema-Adapter read-only Plan dokumentiert
 
 ## Noch offen / als naechstes
 
-- [ ] RDAP13 Lock-/Audit Schema-Adapter read-only planen
-- [ ] Optional: detaillierten INFORMATION_SCHEMA-Dump dokumentieren
+- [ ] RDAP14 Lock-/Audit Schema-Adapter read-only Skeleton bauen
+- [ ] Adapter-Diagnose live read-only testen
 - [ ] Step-Scripte spaeter so verbessern, dass `remote-modboard/` sauber erkannt/committed wird
 - [ ] Server-Deploy-Scripts mit Readiness-Wait/Retry standardisieren
 
