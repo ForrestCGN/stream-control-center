@@ -2,9 +2,10 @@
 
 const { buildAdminConfirmWriteDiagnostic } = require('./admin-confirm-write.service');
 const { buildAdminAuditWriteDiagnostic } = require('./admin-audit-write.service');
+const { buildAdminLockWriteDiagnostic } = require('./admin-lock-write.service');
 
 function getModuleBuild(context) {
-  return (context && context.moduleBuild) || 'RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN';
+  return (context && context.moduleBuild) || 'RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN';
 }
 
 function getSafety(context) {
@@ -21,6 +22,7 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
   const safety = getSafety(context);
   const confirmWriteDiagnostic = buildAdminConfirmWriteDiagnostic();
   const auditDiagnostic = buildAdminAuditWriteDiagnostic();
+  const lockDiagnostic = buildAdminLockWriteDiagnostic();
 
   const plannedResourceKeys = [
     'admin_user:user:<userUid>',
@@ -79,7 +81,15 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
   const plannedLocking = {
     required: true,
     targetTable: 'dashboard_locks',
-    helperPrepared: false,
+    helperPrepared: true,
+    helperEnabledForRealWrites: false,
+    lockWriteEnabled: false,
+    lockAcquireEnabled: false,
+    lockHeartbeatEnabled: false,
+    lockReleaseEnabled: false,
+    lockForceTakeoverEnabled: false,
+    requiredFields: lockDiagnostic.requiredFields,
+    supportedOperations: lockDiagnostic.supportedOperations,
     plannedLockScope: 'admin_users',
     plannedLockKeys: plannedResourceKeys,
     futureRule: 'Produktive Admin-Aenderungen duerfen spaeter nur mit aktivem Lock/Owner/Timeout-Regel laufen.'
@@ -92,7 +102,7 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
       service: 'remote-modboard',
       module: 'remote_admin_user_write_foundation',
       moduleBuild,
-      statusApiVersion: 'rdap_admin_users8.v1',
+      statusApiVersion: 'rdap_admin_users9.v1',
       readOnly: true,
       writeEnabled: false,
       databaseWriteEnabled: false,
@@ -113,7 +123,14 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
       auditInsertEnabled: false,
       auditUpdateEnabled: false,
       lockingRequired: true,
-      lockingHelperPrepared: false,
+      lockHelperPrepared: true,
+      lockingHelperPrepared: true,
+      lockHelperExecutesWrites: false,
+      lockWriteEnabled: false,
+      lockAcquireEnabled: false,
+      lockHeartbeatEnabled: false,
+      lockReleaseEnabled: false,
+      lockForceTakeoverEnabled: false,
       backupRequiredBeforeFutureWrites: true,
       writesStillBlocked: true,
       plannedResourceKeys,
@@ -123,6 +140,7 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
       plannedLocking,
       confirmWriteDiagnostic,
       auditDiagnostic,
+      lockDiagnostic,
       ownerAdminBoundary: {
         ownerMayManageAdminSecurityLater: true,
         adminMayManageNormalUsersLater: true,
@@ -131,9 +149,9 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
         soundProfiIsGroupOrModulePermissionMarker: true
       },
       nextAllowedSteps: [
-        'Locking-Helper mit acquire/release noch deaktiviert vorbereiten',
         'Backup/Rollback-Plan fuer kleinsten echten Admin-Write dokumentieren',
-        'Danach erst kleinsten echten Admin-Write mit Backup/Rollback und separatem Go planen'
+        'Kleinsten echten Admin-Write erst mit Permission/Confirm/Audit/Lock/Backup/Rollback und separatem Go planen',
+        'UI-Schreibbuttons erst nach bestaetigtem Backend-Sicherheitsweg vorbereiten'
       ],
       notImplementedInThisStep: [
         'User freigeben/sperren',
@@ -142,16 +160,16 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
         'Sessions widerrufen',
         'DB-Migration',
         'Audit-Inserts oder Audit-Updates',
-        'Locking-Write-Helper',
+        'Lock acquire/heartbeat/release/force-takeover',
         'UI-Schreibbuttons',
         'Agent-/OBS-/Sound-/Overlay-/Command-Actions'
       ],
       safety,
       notes: [
-        'RDAP_ADMIN_USERS8 bereitet einen Audit-Helper vor.',
-        'Der Helper baut und prueft nur sichere Audit-Drafts und fuehrt keine Writes aus.',
+        'RDAP_ADMIN_USERS9 bereitet einen Locking-Helper vor.',
+        'Der Helper baut und prueft nur Lock-Drafts und fuehrt keine Writes aus.',
         'Dieser Endpunkt fuehrt keine User-/Rollen-/Gruppen-/Session-Writes aus.',
-        'Produktive Admin-Writes und Audit-Writes bleiben in diesem Step absichtlich blockiert.',
+        'Produktive Admin-, Audit- und Lock-Writes bleiben in diesem Step absichtlich blockiert.',
         'Local/LAN/Twitch-Login bleibt als TODO geparkt, bis das Web-Dashboard stabiler ist.'
       ]
     }

@@ -11,13 +11,13 @@ Remote-Modboard läuft produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller bestätigter Stand:
+Aktueller Arbeitsstand:
 
 ```text
-RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
+RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
 ```
 
-## Bestätigt
+## Bestätigt bis RDAP8
 
 - Twitch Login ist live.
 - Dashboard-Zugriff wird serverseitig geprüft.
@@ -26,35 +26,34 @@ RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 - Admin -> User & Rollen ist read-only sichtbar.
 - RDAP5 Permission-Diagnose ist aktiv und read-only.
 - RDAP6 Write-Foundation-Diagnose ist aktiv und read-only.
-- RDAP7 Confirm-Write-Helper ist vorbereitet, aber produktive Writes bleiben deaktiviert.
+- RDAP7 Confirm-Write-Helper ist vorbereitet.
 - RDAP7B Confirm-Write-Metadaten sind remote bestätigt.
-- RDAP8 Audit-Helper ist vorbereitet, aber Audit-/Admin-Writes bleiben deaktiviert.
-- Build/Header:
-  - `moduleBuild: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN`
-  - `statusApiVersion: rdap_admin_users8.v1`
-- Audit-Metadaten bestätigt:
-  - `adminUsersWriteFoundation.auditHelperPrepared:true`
-  - `adminUsersWriteFoundation.auditWriteEnabled:false`
-  - `auditDiagnostic.helperPrepared:true`
-  - `auditDiagnostic.writeEnabled:false`
-- Sicherheitsstatus bestätigt:
+- RDAP8 Audit-Helper ist deployed und remote getestet.
+- Sicherheitsstatus RDAP8 bestätigt:
   - `writeEnabled:false`
   - `writesStillBlocked:true`
+  - `auditHelperPrepared:true`
+  - `auditWriteEnabled:false`
 
-## RDAP8 Ergebnis
+## RDAP9
 
-RDAP8 hat einen vorbereiteten Audit-Helper ergänzt:
+RDAP9 bereitet den Locking-Helper vor:
 
 ```text
-remote-modboard/backend/src/services/admin-audit-write.service.js
+remote-modboard/backend/src/services/admin-lock-write.service.js
 ```
 
-Der Helper baut/prueft nur sichere Audit-Drafts und blockiert weiterhin produktive Writes:
+Erwartete Werte nach Deploy:
 
 ```text
-auditWriteEnabled:false
-auditInsertEnabled:false
-auditUpdateEnabled:false
+moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
+statusApiVersion: rdap_admin_users9.v1
+lockHelperPrepared:true
+lockWriteEnabled:false
+lockAcquireEnabled:false
+lockHeartbeatEnabled:false
+lockReleaseEnabled:false
+lockForceTakeoverEnabled:false
 writeEnabled:false
 writesStillBlocked:true
 ```
@@ -67,8 +66,9 @@ Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
 DB-Migration
+Audit-Inserts oder Audit-Updates
+Lock acquire/heartbeat/release/force-takeover
 UI-Schreibbuttons
-Audit-Inserts/Audit-Updates
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 ```

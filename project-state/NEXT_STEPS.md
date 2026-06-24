@@ -1,22 +1,23 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN  
+Stand: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN  
 Datum: 2026-06-24
 
-## Aktuell erledigt
+## Aktuell
 
-`RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN` ist deployed und remote getestet.
+`RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN` lokal einspielen, prüfen, `stepdone.cmd`, danach Webserver-Deploy.
 
-Bestätigt:
+Erwartung nach Deploy:
 
 ```text
-moduleBuild: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
-statusApiVersion: rdap_admin_users8.v1
-adminUsersWriteFoundation.auditHelperPrepared: true
-adminUsersWriteFoundation.auditWriteEnabled: false
-adminUsersWriteFoundation.writesStillBlocked: true
-auditDiagnostic.helperPrepared: true
-auditDiagnostic.writeEnabled: false
+moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
+statusApiVersion: rdap_admin_users9.v1
+lockHelperPrepared: true
+lockWriteEnabled: false
+lockAcquireEnabled: false
+lockHeartbeatEnabled: false
+lockReleaseEnabled: false
+lockForceTakeoverEnabled: false
 writeEnabled: false
 writesStillBlocked: true
 ```
@@ -24,28 +25,16 @@ writesStillBlocked: true
 ## Nächster empfohlener Step
 
 ```text
-RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
+RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 ```
 
 Scope klein:
 
-- Locking-Helper vorbereiten.
-- Noch keine echten Locks erwerben/freigeben.
-- Keine produktiven Admin-Writes.
-- Keine DB-Migration ohne Backup/Rollback/Go.
-- Keine User-/Rollen-/Gruppen-/Session-Writes.
-- Keine UI-Schreibbuttons.
-- Read-only Diagnose/Planung erweitern.
-
-## Danach sinnvoll
-
-Erst wenn Permission, Confirm-Write, Audit-Helper und Locking-Helper vorbereitet sind:
-
-```text
-RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
-```
-
-Das ist noch kein Write, sondern zuerst nur die Absicherung/Planung fuer den kleinsten echten Admin-Write.
+- Backup-/Rollback-Plan fuer kleinsten echten Admin-Write vorbereiten.
+- Noch kein echter Write.
+- Kein UI-Schreibbutton.
+- Keine DB-Migration ohne separaten Backup/Rollback-Go.
+- Permission, Confirm, Audit und Locking bleiben Pflicht.
 
 ## Erst später
 
@@ -66,13 +55,6 @@ separates Go
 ```text
 RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
-
-Ziel später:
-
-- Online + Lokal/LAN-Betrieb.
-- ForrestCGN und EngelCGN lokal im LAN.
-- Lokaler Login ebenfalls über Twitch.
-- Erst weiterführen, wenn Web-Dashboard stabiler ist.
 
 ## Webserver-Deploy-Regel
 
