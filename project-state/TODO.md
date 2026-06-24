@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC
+Stand: RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
 Datum: 2026-06-24
 
 ## Erledigt
@@ -20,18 +20,25 @@ Datum: 2026-06-24
 - [x] Twitch-Avatar-Spalten in DB angelegt
 - [x] Avatar oben rechts sichtbar
 - [x] Self-Service `Profil aktualisieren` eingebaut und bestätigt
+- [x] Admin -> User & Rollen read-only Übersicht gebaut
+- [x] Topbar-Ausloggen entfernt, Logout bleibt im Profilpanel
+- [x] Profilpanel-Aktionen auf `Profil aktualisieren` und `Ausloggen` reduziert
 
-## Offen
+## Offen / direkt
 
-- [ ] `RDAP_AUTH4_DOCS_FINALIZE` lokal einspielen und per `stepdone.cmd` abschließen
+- [ ] `RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS` lokal einspielen
+- [ ] Profilpanel im Browser prüfen
+- [ ] `stepdone.cmd` ausführen
+- [ ] Webserver-Deploy durchführen
+- [ ] Browser-Test auf `https://mods.forrestcgn.de/`
 - [ ] `SESSION_SECRET` rotieren, falls noch nicht erledigt
 - [ ] `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt
 - [ ] Browser-Login nach Secret-Rotation prüfen
 
 ## Nächste Planung
 
-- [ ] `RDAP_ADMIN_USERS1_READONLY_OVERVIEW` planen/bauen
-- [ ] Admin-Bereich für User-/Rollenübersicht read-only vorbereiten
+- [ ] `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` planen
+- [ ] echte Admin-Userverwaltung nur mit Permission/Confirm/Audit/Locking/Rollback planen
 - [ ] Trennung beachten: Self-Funktionen oben rechts, Admin-Verwaltung unter Admin
 
 ## Später mit eigenem Write-Scope

@@ -1,13 +1,15 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC
+Stand: RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
 Datum: 2026-06-24
 
 ## Sofort
 
-1. Auth4-Doku-Finalisierung lokal einspielen.
-2. `stepdone.cmd` für Doku ausführen.
-3. Kein Webserver-Deploy nötig, da nur Doku.
+1. `RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS.zip` lokal einspielen.
+2. Prüfen, dass im Profilpanel nur noch `Profil aktualisieren` und `Ausloggen` sichtbar sind.
+3. `stepdone.cmd` ausführen.
+4. Danach Webserver-Deploy.
+5. Browser-Test auf `https://mods.forrestcgn.de/`.
 
 ## Danach empfohlen
 
@@ -24,22 +26,24 @@ systemctl restart scc-remote-modboard.service
 
 Danach Login erneut testen.
 
-### 2. Admin User Read-only Übersicht
+### 2. Admin User Management planen
 
-Nächster geplanter Step:
+Nächster Planungs-Step:
 
 ```text
-RDAP_ADMIN_USERS1_READONLY_OVERVIEW
+RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
 ```
 
-Scope:
+Scope nur Planung/Design, bevor Writes gebaut werden:
 
-- Admin-Bereich bekommt User-/Rollenübersicht.
-- Nur read-only.
-- Anzeige vorhandener User, Rollen, Gruppen, Sessions.
-- Keine Freigabe ändern.
-- Keine Rollen schreiben.
-- Keine User sperren/löschen.
+- Welche Rollen dürfen User verwalten?
+- Welche Aktionen brauchen Owner-only?
+- Welche Aktionen darf ein Admin?
+- Wie wird `Sound-Profi` gesetzt/entfernt?
+- Welche Confirm-Write-Mechanik?
+- Welche Audit-Felder?
+- Welche Locking-Regeln?
+- Wie wird Rollback/Backup umgesetzt?
 
 ### 3. Spätere Admin-Writes nur mit eigenem Scope
 

@@ -1,5 +1,33 @@
 # CHANGELOG - stream-control-center
 
+## 2026-06-24 - RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
+
+Zusammenfassung:
+
+- Self-Profilpanel aufgeräumt
+- `Mein Login` und `Zugriff` aus dem Profilpanel entfernt
+- `Profil aktualisieren` bleibt erhalten
+- `Ausloggen` bleibt im Profilpanel erhalten
+- Doku, TODO, NEXT_STEPS, FILES, CURRENT_STATUS und Handoff/PROMPT aktualisiert
+- Keine Backend-/Auth-/DB-/Remote-Action-Änderungen
+
+## 2026-06-24 - RDAP_TOPBAR1_REMOVE_DUPLICATE_LOGOUT
+
+Zusammenfassung:
+
+- Doppelten `Ausloggen`-Button aus der Topbar entfernt
+- Logout bleibt im Profilpanel
+- Keine Backend-/Auth-/DB-Änderungen
+
+## 2026-06-24 - RDAP_ADMIN_USERS1_READONLY_OVERVIEW
+
+Zusammenfassung:
+
+- Admin -> User & Rollen read-only ergänzt
+- Bekannte Dashboard-User sichtbar
+- Rollen-/Gruppen-/Permissions-Modell sichtbar
+- Keine DB-Writes/Remote-Actions
+
 ## 2026-06-24 - RDAP_AUTH4_DOCS_FINALIZE
 
 Stand:

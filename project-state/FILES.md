@@ -1,12 +1,15 @@
 # FILES - stream-control-center
 
-Stand: RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC
+Stand: RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
 Datum: 2026-06-24
 
-## In diesem Doku-Step geändert
+## In diesem Step geändert
 
 ```text
-docs/current/RDAP_AUTH4_CURRENT_STATE_2026-06-24.md
+remote-modboard/backend/public/index.html
+docs/current/RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS.md
+docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_2026-06-24.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -14,24 +17,42 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Relevante Auth4-Dateien
+## Relevante aktuelle RDAP-Frontend-Dateien
 
 ```text
-remote-modboard/backend/src/services/auth-profile-sync.service.js
-remote-modboard/backend/src/routes/auth-status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/public/assets/remote-modboard.css
 ```
 
-## Relevante Auth3-Dateien
+## Relevante Auth-/Profil-Sync-Dateien
 
 ```text
+remote-modboard/backend/src/services/auth-profile-sync.service.js
+remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/services/auth-session-write.service.js
 remote-modboard/backend/src/services/auth-permission-read.service.js
 remote-modboard/backend/src/services/auth-status.service.js
+```
+
+## Relevante Admin-read-only-Datei
+
+```text
+remote-modboard/backend/src/services/auth-db-read.service.js
+```
+
+## Relevante Auth3-DB-Datei
+
+```text
 db/rdap_auth3/sql/001_rdap_auth3_avatar_columns.sql
+```
+
+Produktiv wurden die Avatar-Spalten bereits manuell bestätigt:
+
+```text
+dashboard_users.profile_image_url
+dashboard_identities.provider_profile_image_url
 ```
 
 ## Relevante RDAP-Deploy-Datei

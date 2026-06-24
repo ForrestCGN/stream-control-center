@@ -1,9 +1,9 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC
+Stand: RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
 Datum: 2026-06-24
 
-## Aktueller bestätigter Stand
+## Aktueller bestätigter RDAP-/Remote-Modboard-Stand
 
 Remote-Modboard/Auth:
 
@@ -11,16 +11,19 @@ Remote-Modboard/Auth:
 - Twitch Login funktioniert live.
 - Dashboard-Zugriff wird serverseitig geprüft.
 - ForrestCGN kann sich anmelden und das Dashboard nutzen.
-- EngelCGN kann nach Allowlist-Erweiterung mittesten.
+- EngelCGN kann nach Allowlist-Erweiterung mittesten und ist als User sichtbar.
 - Avatar oben rechts wird angezeigt.
 - Profilpanel oben rechts ist vorhanden.
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
 - Login-/Denied-Layout ist zentriert.
 - Dashboard-Karten/Grid-Abstände sind nach V13-Fix sauberer.
+- Topbar-Ausloggen wurde entfernt; Logout bleibt im Profilpanel.
+- Profilpanel ist auf die Self-Service-Aktionen `Profil aktualisieren` und `Ausloggen` reduziert.
+- Admin -> User & Rollen zeigt eine read-only Übersicht bekannter Dashboard-User, Rollen, Gruppen, Permissions und Sessions.
 
 ## Aktueller Arbeitsstand
 
-`RDAP_AUTH4_SELF_TWITCH_PROFILE_SYNC` ist bestätigt.
+`RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS` ist der nächste einzuspielende/abzuschließende Step.
 
 Funktional vorhanden:
 
@@ -31,6 +34,7 @@ Funktional vorhanden:
 - `/api/remote/auth/me` liefert Avatar-/Profilbilddaten.
 - Im Self-Profilpanel gibt es `Profil aktualisieren`.
 - Der Sync aktualisiert nur den aktuell eingeloggten User.
+- `/api/remote/auth/model` liefert read-only Auth-/Rollenmodell inklusive Userliste für Admin-Übersicht.
 
 ## Weiterhin deaktiviert
 
@@ -40,7 +44,7 @@ Funktional vorhanden:
 - Sound-Steuerung
 - Overlay-Steuerung
 - Command-Steuerung
-- Admin-Userverwaltung
+- Admin-Userverwaltung mit Writes
 - Rollen-/Freigabe-Writes
 
 ## Wichtige offene Sicherheitsaufgabe
@@ -50,6 +54,10 @@ Funktional vorhanden:
 
 ## Nächster sinnvoller Block
 
-`RDAP_ADMIN_USERS1_READONLY_OVERVIEW`
+Nach Abschluss dieses Steps:
 
-Ziel: Admin-Bereich für User-/Rollenübersicht zunächst read-only vorbereiten. Noch keine Rollen schreiben, keine Freigaben ändern.
+```text
+RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
+```
+
+Ziel: echte Admin-Userverwaltung zuerst planen, nicht direkt schreiben. Benötigt Owner/Admin-Permission, Confirm-Write, Audit-Log, Locking, Rollback und klare UI-Trennung.
