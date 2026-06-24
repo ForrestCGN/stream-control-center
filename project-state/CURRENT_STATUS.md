@@ -11,33 +11,72 @@ Remote-Modboard läuft produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller relevanter Stand:
+Aktueller bestätigter Stand:
 
 ```text
 RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
 ```
 
-## Bestätigt / Zielstand
+## Bestätigt
 
 - Twitch Login ist live.
 - Dashboard-Zugriff wird serverseitig geprüft.
 - ForrestCGN wird als `owner` erkannt.
+- ForrestCGN ist `isOwner:true` und `isAdmin:true`.
 - Admin -> User & Rollen ist read-only sichtbar.
-- RDAP5 Permission-Diagnose bleibt aktiv.
-- RDAP6 Write-Foundation-Diagnose bleibt read-only aktiv.
-- RDAP7 Confirm-Write-Helper ist vorbereitet.
-- RDAP7B bereinigt Confirm-Write-Metadaten:
-  - `auth.permissions.confirmWriteHelperPrepared:true`
+- RDAP5 Permission-Diagnose ist aktiv und read-only.
+- RDAP6 Write-Foundation-Diagnose ist aktiv und read-only.
+- RDAP7 Confirm-Write-Helper ist vorbereitet, aber produktive Writes bleiben deaktiviert.
+- RDAP7B Confirm-Write-Metadaten sind remote bestätigt.
+- Build/Header:
+  - `moduleBuild: RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP`
+  - `statusApiVersion: rdap_admin_users7b.v1`
+- Confirm-Metadaten bestätigt:
   - `adminUsersWriteFoundation.confirmWriteHelperPrepared:true`
-  - Foundation-Diagnose enthält `confirmWriteHelperPrepared:true`
-  - Foundation-Diagnose enthält `confirmWriteHelper.prepared:true`
-- Keine produktiven Admin-Writes.
-- Keine DB-Migration.
-- Keine UI-Schreibbuttons.
+  - `auth.permissions.confirmWriteHelperPrepared:true`
+  - `auth.permissions.adminUsersConfirmWriteHelperPrepared:true`
+  - `confirmWriteDiagnostic.helperPrepared:true`
+- Sicherheitsstatus bestätigt:
+  - `writeEnabled:false`
+  - `writesStillBlocked:true`
+- Profilpanel oben rechts ist Self-Service:
+  - `Profil aktualisieren`
+  - `Ausloggen`
+- Topbar hat keinen doppelten Ausloggen-Button mehr.
+- Dashboard-v2/V13-Look ist portiert.
+- Login-/Denied-Seite ist zentriert.
+- Grid-/Spacing ist korrigiert.
+
+## Hinweis zu RDAP7B Diagnose
+
+Der Testwert:
+
+```text
+.confirmWriteHelper.helperPrepared = null
+```
+
+ist kein Funktionsfehler. Das reale Objekt heißt aktuell:
+
+```text
+.confirmWriteDiagnostic.helperPrepared = true
+```
+
+## Weiterhin nicht aktiv
+
+```text
+User freigeben/sperren
+Rollen vergeben/entziehen
+Gruppen/Freigaben setzen/entfernen
+Sessions widerrufen
+DB-Migration
+UI-Schreibbuttons
+Agent-Actions
+OBS-/Sound-/Overlay-/Command-Steuerung
+```
 
 ## Lokaler/LAN-Betrieb
 
-Forrest möchte später:
+Forrest möchte:
 
 ```text
 Online über mods.forrestcgn.de arbeiten.

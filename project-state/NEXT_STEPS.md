@@ -3,59 +3,24 @@
 Stand: RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP  
 Datum: 2026-06-24
 
-## Sofort: RDAP7B einspielen
+## Aktuell erledigt
 
-```powershell
-cd D:\Git\stream-control-center
+`RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP` ist deployed und remote getestet.
 
-.\installstep.cmd "$env:USERPROFILE\Downloads\RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP.zip" "RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP: Confirm-Write-Metadaten bereinigt, produktive Admin-Writes bleiben deaktiviert"
+Bestätigt:
 
-npm --prefix .\remote-modboard\backend run check
-
-git status --short
+```text
+moduleBuild: RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
+statusApiVersion: rdap_admin_users7b.v1
+adminUsersWriteFoundation.confirmWriteHelperPrepared: true
+auth.permissions.confirmWriteHelperPrepared: true
+auth.permissions.adminUsersConfirmWriteHelperPrepared: true
+confirmWriteDiagnostic.helperPrepared: true
+writeEnabled: false
+writesStillBlocked: true
 ```
 
-Wenn sauber:
-
-```powershell
-.\stepdone.cmd "RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP abgeschlossen: Confirm-Write-Metadaten bereinigt; produktive Admin-Writes bleiben deaktiviert"
-```
-
-## Danach Webserver-Deploy
-
-Erst nach `stepdone.cmd`:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
-cd RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
-sudo bash tools/remote-modboard-deploy.sh RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP dev
-```
-
-Restart + Readiness:
-
-```bash
-sudo systemctl restart scc-remote-modboard.service
-
-for i in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
-    echo "ready_after=${i}s"
-    break
-  fi
-  sleep 1
-done
-```
-
-Server-Test:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.moduleBuild,.statusApiVersion,.auth.permissions.confirmWriteHelperPrepared,.adminUsersWriteFoundation.confirmWriteHelperPrepared'
-
-curl -fsS http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic | jq '.moduleBuild,.statusApiVersion,.readOnly,.writeEnabled,.writesStillBlocked,.confirmWriteRequired,.confirmWriteHelperPrepared,.confirmWriteHelper.prepared'
-```
-
-## Danach empfohlen
+## Nächster empfohlener Step
 
 ```text
 RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
@@ -63,16 +28,53 @@ RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 
 Scope klein:
 
-- Audit-Helper planen/vorbereiten.
-- Produktive Writes weiter blockiert lassen.
-- Keine echten User-/Rollen-/Gruppen-Writes.
+- Audit-Helper vorbereiten.
+- Produktive Audit-Writes weiter deaktiviert lassen.
+- Keine DB-Migration.
+- Keine echten Admin-Writes.
+- Keine User-/Rollen-/Gruppen-/Session-Writes.
+- Keine UI-Schreibbuttons.
+- Read-only Diagnose/Planung erweitern.
+
+## Danach sinnvoll
+
+```text
+RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
+```
+
+Scope klein:
+
+- Locking-Helper vorbereiten.
+- Noch keine echten Locks erwerben/freigeben.
+- Keine produktiven Admin-Writes.
 - Keine DB-Migration ohne Backup/Rollback/Go.
+
+## Erst später
+
+Kleinster echter Admin-Write darf erst separat geplant werden, wenn folgende Punkte sauber stehen:
+
+```text
+Permission-Prüfung
+Confirm-Write
+Audit
+Locking
+Backup/Rollback
+klare Owner/Admin-Grenzen
+separates Go
+```
 
 ## Geparkt
 
 ```text
 RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
+
+Ziel später:
+
+- Online + Lokal/LAN-Betrieb.
+- ForrestCGN und EngelCGN lokal im LAN.
+- Lokaler Login ebenfalls über Twitch.
+- Erst weiterführen, wenn Web-Dashboard stabiler ist.
 
 ## Webserver-Deploy-Regel
 

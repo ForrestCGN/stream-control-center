@@ -3,82 +3,127 @@
 Stand: 2026-06-24  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Ziel
+## Ergebnis
 
-RDAP7B bereinigt nur die Confirm-Write-Metadaten, damit Status-/Diagnose-Tests nicht auf `null` laufen.
+`RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP` ist lokal eingespielt, per `stepdone.cmd` nach GitHub/dev gebracht, auf dem Webserver deployed und remote getestet.
 
-## Geändert
+Public URL:
 
-- `remote-modboard/backend/server.js`
-  - `MODULE_BUILD` auf `RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP` gesetzt.
-- `remote-modboard/backend/src/routes/status.routes.js`
-  - `statusApiVersion` auf `rdap_admin_users7b.v1` gesetzt.
-  - `auth.permissions.confirmWriteHelperPrepared:true` ergänzt.
-  - `auth.permissions.confirmWriteHelperEnabledForRealWrites:false` ergänzt.
-  - `auth.permissions.confirmWriteHelperExecutesWrites:false` ergänzt.
-  - `adminUsersWriteFoundation` mit eindeutigen Confirm-Write-Helper-Metadaten ergänzt.
-- `remote-modboard/backend/src/routes/routes.routes.js`
-  - `statusApiVersion` auf `rdap_admin_users7b.v1` gesetzt.
-  - Confirm-Write-Helper-Metadaten eindeutiger ergänzt.
-- `remote-modboard/backend/src/services/admin-confirm-write.service.js`
-  - Build/API-Version auf RDAP7B aktualisiert.
-  - eindeutige Diagnosefelder ergänzt.
-- `remote-modboard/backend/src/services/admin-user-write-foundation.service.js`
-  - `confirmWriteHelper` als direktes Objekt ergänzt.
-  - `confirmWriteDiagnostic` bleibt erhalten.
-
-## Nicht geändert
-
-- Keine User-Writes.
-- Keine Rollen-Writes.
-- Keine Gruppen-Writes.
-- Keine Session-Widerrufe.
-- Keine DB-Migration.
-- Keine UI-Schreibbuttons.
-- Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
-
-## Erwartete Tests lokal
-
-```powershell
-cd D:\Git\stream-control-center
-npm --prefix .\remote-modboard\backend run check
-git status --short
+```text
+https://mods.forrestcgn.de/
 ```
 
-## Erwartete Tests remote nach Deploy
+Service:
+
+```text
+scc-remote-modboard.service
+```
+
+Build:
+
+```text
+RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
+```
+
+Status API:
+
+```text
+rdap_admin_users7b.v1
+```
+
+## Remote bestätigt
+
+Statusroute:
 
 ```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.moduleBuild,.statusApiVersion,.auth.permissions.confirmWriteHelperPrepared,.adminUsersWriteFoundation.confirmWriteHelperPrepared'
-
-curl -fsS http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic | jq '.moduleBuild,.statusApiVersion,.readOnly,.writeEnabled,.writesStillBlocked,.confirmWriteRequired,.confirmWriteHelperPrepared,.confirmWriteHelper.prepared'
+curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.moduleBuild,.statusApiVersion,.adminUsersWriteFoundation.confirmWriteHelperPrepared,.auth.permissions.confirmWriteHelperPrepared,.auth.permissions.adminUsersConfirmWriteHelperPrepared'
 ```
 
-Erwartung:
+Bestätigtes Ergebnis:
 
 ```text
 "RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP"
 "rdap_admin_users7b.v1"
 true
 true
+true
 ```
 
-Foundation:
+Foundation-Diagnose:
+
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic | jq '.moduleBuild,.statusApiVersion,.confirmWriteHelperPrepared,.confirmWriteHelper.helperPrepared,.confirmWriteDiagnostic.helperPrepared,.writeEnabled,.writesStillBlocked'
+```
+
+Bestätigtes Ergebnis:
 
 ```text
-readOnly:true
-writeEnabled:false
-writesStillBlocked:true
-confirmWriteRequired:true
-confirmWriteHelperPrepared:true
-confirmWriteHelper.prepared:true
+"RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP"
+"rdap_admin_users7b.v1"
+true
+null
+true
+false
+true
 ```
+
+Bewertung:
+
+- `.confirmWriteHelper.helperPrepared = null` ist kein Funktionsfehler.
+- Der reale Diagnosewert liegt unter `.confirmWriteDiagnostic.helperPrepared`.
+- `.confirmWriteDiagnostic.helperPrepared = true` ist bestätigt.
+- `writeEnabled:false` und `writesStillBlocked:true` sind bestätigt.
+
+## Sicherheitsstatus
+
+Weiterhin deaktiviert:
+
+```text
+User freigeben/sperren
+Rollen vergeben/entziehen
+Gruppen/Freigaben setzen/entfernen
+Sessions widerrufen
+DB-Migration
+UI-Schreibbuttons
+Agent-Actions
+OBS-Steuerung
+Sound-Steuerung
+Overlay-Steuerung
+Command-Steuerung
+```
+
+## Zweck von RDAP7B
+
+RDAP7B bereinigt nur Metadaten und Diagnosefelder rund um den vorbereiteten Confirm-Write-Helper.
+
+Confirm-Write ist vorbereitet, aber produktive Admin-Writes bleiben blockiert.
 
 ## Nächster sinnvoller Schritt
 
-Nach RDAP7B-Test:
+Empfohlen:
 
 ```text
 RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 ```
 
-Weiterhin ohne produktive Admin-Writes.
+Ziel:
+
+- Audit-Helper vorbereiten.
+- Keine echten Audit-Writes aktivieren.
+- Keine DB-Migration.
+- Keine User-/Rollen-/Gruppen-Writes.
+- Nur read-only Diagnose/Planung und klare Metadaten.
+
+Alternative danach:
+
+```text
+RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
+```
+
+Ziel:
+
+- Locking-Helper vorbereiten.
+- Keine echten Locks erwerben/freigeben.
+- Keine produktiven Admin-Writes.
+
+Erst wenn Confirm, Audit, Locking, Backup/Rollback und Permission-Prüfung sauber vorbereitet und dokumentiert sind, darf ein kleinster echter Admin-Write separat geplant werden.
