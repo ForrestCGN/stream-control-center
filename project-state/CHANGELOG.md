@@ -1,27 +1,35 @@
 # CHANGELOG - stream-control-center
 
+## 2026-06-24 - RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION
+
+Zusammenfassung:
+
+- Backup-Regel für spätere Admin-/DB-Write-Steps dokumentiert
+- Rollback-Grundregel dokumentiert
+- Owner-/Admin-Permission-Read-Modell dokumentiert
+- Confirm-Write-Foundation dokumentiert
+- Audit-Foundation dokumentiert
+- Locking-Foundation dokumentiert
+- Sound-Profi weiterhin als Gruppe/Freigabe, nicht als Systemrolle, festgehalten
+- nächsten Mini-Code-Step `RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC` empfohlen
+- Doku, TODO, NEXT_STEPS, FILES, CURRENT_STATUS und Handoff aktualisiert
+- Keine Code-/Backend-/Frontend-/DB-/Remote-Action-Änderungen
+
 ## 2026-06-24 - RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN
 
 Zusammenfassung:
 
 - Write-Foundation für spätere Admin-Userverwaltung geplant
-- Owner/Admin-Permission-Grenzen konkretisiert
-- Confirm-Write-Regel konkretisiert
-- Audit-Write-Pflicht konkretisiert
-- Locking-Regel konkretisiert
-- Backup-/Rollback-Scope für späteren Write-Step festgelegt
-- Sound-Profi weiterhin als Gruppe/Freigabe, nicht als Systemrolle definiert
-- Nächster sinnvoller Step `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION` dokumentiert
-- Keine Code-/Frontend-/Backend-/DB-/Remote-Action-Änderungen
+- Permission, Confirm-Write, Audit, Locking und Backup/Rollback konkretisiert
+- Keine Code-/DB-/Remote-Action-Änderungen
 
 ## 2026-06-24 - RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
 
 Zusammenfassung:
 
-- spätere Admin-Userverwaltung geplant
+- Admin-Userverwaltung nur geplant
 - Self-Profil vs. Admin-Verwaltung getrennt
 - Owner/Admin-Permission, Confirm-Write, Audit, Locking und Backup/Rollback als Pflicht festgelegt
-- Keine User-/Rollen-/Gruppen-/Session-Writes gebaut
 - Keine Code-/DB-/Remote-Action-Änderungen
 
 ## 2026-06-24 - RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS

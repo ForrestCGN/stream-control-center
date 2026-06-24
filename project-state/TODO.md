@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN  
+Stand: RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION  
 Datum: 2026-06-24
 
 ## Erledigt
@@ -11,7 +11,7 @@ Datum: 2026-06-24
 - [x] Auth/OAuth/Sessions aktiv
 - [x] Dashboard Access-Gate aktiv
 - [x] ForrestCGN freigeschaltet
-- [x] EngelCGN sichtbar/testbar
+- [x] EngelCGN kann per Allowlist zum Testen freigeschaltet werden
 - [x] RDAP-Webserver-Deploy-Arbeitsweise korrigiert und dokumentiert
 - [x] Dashboard-v2/V13-Designbasis portiert
 - [x] Login-/Denied-Seite zentriert
@@ -23,38 +23,37 @@ Datum: 2026-06-24
 - [x] Admin -> User & Rollen read-only Übersicht gebaut
 - [x] Topbar-Ausloggen entfernt, Logout bleibt im Profilpanel
 - [x] Profilpanel-Aktionen auf `Profil aktualisieren` und `Ausloggen` reduziert
-- [x] `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` abgeschlossen
-- [x] Self-Profil vs. Admin-Verwaltung dokumentiert
-- [x] Owner/Admin-Permission, Confirm-Write, Audit, Locking und Backup/Rollback als Pflicht dokumentiert
+- [x] `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` dokumentiert
+- [x] `RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN` dokumentiert
+- [x] `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION` dokumentiert
 
 ## Offen / direkt
 
-- [ ] `RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN` lokal einspielen
+- [ ] `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION.zip` lokal einspielen
 - [ ] `git status` prüfen
 - [ ] `stepdone.cmd` ausführen
-- [ ] `SESSION_SECRET` rotieren, falls noch nicht erledigt
-- [ ] `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt
+- [ ] Secrets rotieren, falls noch nicht erledigt:
+  - [ ] `SESSION_SECRET`
+  - [ ] `OAUTH_STATE_SECRET`
 - [ ] Browser-Login nach Secret-Rotation prüfen
 
-## Nächste Planung
+## Nächste Planung / kleiner Code-Step
 
-- [ ] `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION` planen
-- [ ] echte DB-Tabellen/Spalten prüfen
-- [ ] Backup-/Rollback-Scope festlegen
-- [ ] Permission-Read für Owner/Admin prüfen
-- [ ] Confirm-Write-Pattern technisch sauber vorbereiten
-- [ ] Audit-Ziel prüfen
-- [ ] Locking-Ziel prüfen
+- [ ] `RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC` planen
+- [ ] vorhandene Auth-/Permission-/Read-Services prüfen
+- [ ] Permission-Read/Diagnose für Owner/Admin/normalen User vorbereiten
+- [ ] keine produktiven Admin-Writes bauen
 
 ## Später mit eigenem Write-Scope
 
 - [ ] User freigeben/sperren
 - [ ] Rollen vergeben/entziehen
-- [ ] Gruppen/Freigaben vergeben/entziehen
-- [ ] Sound-Profi-Freigabe setzen/entfernen
+- [ ] Gruppen/Freigaben setzen/entfernen
+- [ ] Sound-Profi setzen/entfernen
 - [ ] Sessions widerrufen
-- [ ] Audit-Verlauf für Adminaktionen anzeigen
-- [ ] Locks/Confirm/Audit für alle Admin-Writes erzwingen
+- [ ] Audit-Verlauf für Adminaktionen
+- [ ] Locks/Confirm/Audit für alle Admin-Writes
+- [ ] Backup/Rollback vor jedem produktiven DB-Write-Step
 
 ## Weiterhin verboten bis eigener Scope
 

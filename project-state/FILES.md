@@ -1,12 +1,12 @@
 # FILES - stream-control-center
 
-Stand: RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN  
+Stand: RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION  
 Datum: 2026-06-24
 
 ## In diesem Step geändert
 
 ```text
-docs/current/RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN.md
+docs/current/RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION.md
 docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
@@ -15,16 +15,14 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Keine Code-Dateien geändert
-
-Dieser Step ändert bewusst keine:
+## In diesem Step nicht geändert
 
 ```text
 remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/src/routes/*.js
-remote-modboard/backend/src/services/*.js
+remote-modboard/backend/src/*
+db/*
 ```
 
 ## Relevante aktuelle RDAP-Frontend-Dateien
@@ -52,19 +50,22 @@ remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/src/services/auth-db-read.service.js
 ```
 
-## Mögliche spätere Admin-Write-Foundation-Dateien
-
-Nur Zielbild, noch nicht vorhanden/noch nicht bauen ohne neuen Step:
+Darin relevante Tabellenbasis für spätere Admin-Userverwaltung:
 
 ```text
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/services/admin-user-permission.service.js
-remote-modboard/backend/src/services/admin-user-confirm.service.js
-remote-modboard/backend/src/services/admin-user-audit.service.js
-remote-modboard/backend/src/services/admin-user-lock.service.js
+dashboard_users
+dashboard_identities
+dashboard_roles
+dashboard_user_roles
+dashboard_groups
+dashboard_user_groups
+dashboard_permissions
+dashboard_role_permissions
+dashboard_module_permissions
+dashboard_sessions
+dashboard_locks
+dashboard_audit_log
 ```
-
-Beim echten Implementierungs-Step zuerst prüfen, ob vorhandene Services erweitert werden können. Keine Parallelstruktur erfinden.
 
 ## Relevante Auth3-DB-Datei
 

@@ -1,6 +1,6 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN  
+Stand: RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION  
 Datum: 2026-06-24
 
 ## Aktueller bestätigter RDAP-/Remote-Modboard-Stand
@@ -10,7 +10,8 @@ Remote-Modboard/Auth:
 - `mods.forrestcgn.de` läuft.
 - Twitch Login funktioniert live.
 - Dashboard-Zugriff wird serverseitig geprüft.
-- ForrestCGN und EngelCGN sind sichtbar.
+- ForrestCGN kann sich anmelden und das Dashboard nutzen.
+- EngelCGN kann nach Allowlist-Erweiterung mittesten und ist als User sichtbar.
 - Avatar oben rechts wird angezeigt.
 - Profilpanel oben rechts ist vorhanden.
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
@@ -18,22 +19,22 @@ Remote-Modboard/Auth:
 - Dashboard-Karten/Grid-Abstände sind nach V13-Fix sauberer.
 - Topbar-Ausloggen wurde entfernt; Logout bleibt im Profilpanel.
 - Profilpanel ist auf die Self-Service-Aktionen `Profil aktualisieren` und `Ausloggen` reduziert.
-- `Admin -> User & Rollen` zeigt eine read-only Übersicht bekannter Dashboard-User, Rollen, Gruppen, Permissions und Sessions.
+- Admin -> User & Rollen zeigt eine read-only Übersicht bekannter Dashboard-User, Rollen, Gruppen, Permissions und Sessions.
 
 ## Aktueller Arbeitsstand
 
-`RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` wurde als reiner Planungs-/Doku-Step abgeschlossen.
+`RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION` ist der aktuelle Doku-/Foundation-Step.
 
-`RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN` konkretisiert jetzt die spätere Write-Grundlage.
+Dokumentiert wurden:
 
-Funktional weiterhin unverändert:
-
-- Self-Profil darf nur eigene Twitch-Daten synchronisieren.
-- Admin-Userverwaltung bleibt read-only.
-- Keine Rollen-/Freigabe-Writes.
-- Keine produktiven Admin-Writes.
-- Keine DB-Migration.
-- Keine Remote-Agent-Actions.
+- Backup-Regel für spätere DB-Write-Steps
+- Rollback-Grundregel
+- Owner-/Admin-Permission-Read-Modell
+- Confirm-Write-Mindeststandard
+- Audit-Foundation
+- Locking-Foundation
+- Sound-Profi als Gruppe/Freigabe, nicht als Systemrolle
+- nächster kleiner Code-Step: `RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC`
 
 ## Weiterhin deaktiviert
 
@@ -45,12 +46,11 @@ Funktional weiterhin unverändert:
 - Command-Steuerung
 - Admin-Userverwaltung mit Writes
 - Rollen-/Freigabe-Writes
-- Session-Widerrufe über Admin-UI
+- DB-Migrationen ohne Backup/Rollback/Go
 
 ## Wichtige offene Sicherheitsaufgabe
 
-- `SESSION_SECRET` rotieren, falls noch nicht erledigt.
-- `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt.
+- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt.
 - Nach Rotation Service neu starten und Browser-Login erneut prüfen.
 
 ## Nächster sinnvoller Block
@@ -58,7 +58,14 @@ Funktional weiterhin unverändert:
 Nach Abschluss dieses Steps:
 
 ```text
-RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION
+RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
 ```
 
-Ziel: echte Tabellen/Spalten prüfen, Backup/Rollback festlegen, Permission-Read prüfen, Confirm-/Audit-/Locking-Foundation vorbereiten. Noch keine großen User-/Rollen-Writes bauen.
+Ziel:
+
+- echte serverseitige Permission-Read-/Diagnose-Grundlage prüfen oder minimal vorbereiten
+- eingeloggten User diagnostisch als Owner/Admin/normaler User einordnen
+- keine produktiven Admin-Writes
+- keine Rollen-/Gruppen-/Session-Writes
+- keine UI-Schreibbuttons
+- keine DB-Migration

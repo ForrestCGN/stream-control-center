@@ -22,56 +22,61 @@ Aktuell vorhanden:
 
 - Twitch Login live aktiv.
 - Dashboard-Zugriff wird serverseitig geprüft.
-- ForrestCGN und EngelCGN sind sichtbar.
+- ForrestCGN und EngelCGN sind als Test-User sichtbar.
 - Dashboard-v2/V13-Look ist als echte Basis portiert.
 - Login-/Denied-Seite ist zentriert.
 - Status-Karten/Grid-Abstände sind korrigiert.
 - Avatar/Name oben rechts sichtbar.
 - Self-Profilpanel oben rechts vorhanden.
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
-- Profilpanel ist auf `Profil aktualisieren` und `Ausloggen` reduziert.
 - Topbar hat keinen doppelten Ausloggen-Button mehr.
-- `Admin -> User & Rollen` zeigt eine read-only Übersicht vorhandener User/Rollen/Gruppen/Sessions.
+- Profilpanel ist auf `Profil aktualisieren` und `Ausloggen` reduziert.
+- Admin -> User & Rollen zeigt eine read-only Übersicht vorhandener User/Rollen/Gruppen/Sessions.
+- `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` ist dokumentiert.
+- `RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN` ist dokumentiert.
+- `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION` dokumentiert Backup-/Rollback-, Permission-, Confirm-, Audit- und Locking-Foundation.
 
-## Zuletzt abgeschlossen
-
-```text
-RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
-```
-
-Zweck:
-
-- spätere Admin-Userverwaltung geplant
-- Self-Profil vs. Admin-Verwaltung getrennt
-- Owner/Admin-Permission, Confirm-Write, Audit, Locking und Backup/Rollback als Pflicht festgelegt
-- keine Code-/DB-/Remote-Action-Änderungen
-
-## Aktueller Plan-Step
+## Zuletzt gebaut
 
 ```text
-RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN
+RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION
 ```
 
-Zweck:
+Änderung:
 
-- konkrete Write-Foundation für spätere Admin-Userverwaltung planen
-- kleinsten sicheren späteren Write-Step vorbereiten
-- weiterhin keine Admin-Writes bauen
-- Projektstatus auf aktuellen RDAP_ADMIN_USERS2/3-Stand korrigieren
+```text
+docs/current/RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION.md
+docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
+
+## Nicht geändert
+
+```text
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/public/assets/remote-modboard.css
+remote-modboard/backend/src/*
+db/*
+```
 
 ## Wichtige Sicherheitsregeln
 
 Bis eigener Scope geplant/gebaut ist, bleiben verboten:
 
-- keine Remote-Writes außerhalb freigegebener Auth-/Self-Profil-Funktion
-- keine Agent-Actions
-- keine OBS-Steuerung
-- keine Sound-Steuerung
-- keine Overlay-Steuerung
-- keine Command-Steuerung
-- keine DB-Migration ohne Backup/Rollback/Go
-- keine Secrets ins Repo/Frontend/Chat/Logs
-- keine User-/Rollen-Writes ohne eigene Admin-Permission/Confirm/Audit/Locking
+- keine Remote-Writes außerhalb freigegebener Auth-/Self-Profil-Funktion,
+- keine Agent-Actions,
+- keine OBS-Steuerung,
+- keine Sound-Steuerung,
+- keine Overlay-Steuerung,
+- keine Command-Steuerung,
+- keine DB-Migration ohne Backup/Rollback/Go,
+- keine Secrets ins Repo/Frontend/Chat/Logs,
+- keine User-/Rollen-Writes ohne eigene Admin-Permission/Confirm/Audit/Locking.
 
 ## Webserver-Deploy-Muster
 
@@ -103,8 +108,15 @@ done
 
 ## Nächste sinnvolle Schritte
 
-1. `RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN` lokal einspielen.
-2. `git status` prüfen.
+1. `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION.zip` lokal einspielen.
+2. Prüfen, dass nur Doku-/Projektstatus-Dateien geändert sind.
 3. `stepdone.cmd` ausführen.
-4. Danach erst planen: `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION`.
-5. Secrets rotieren, falls noch nicht erledigt: `SESSION_SECRET`, `OAUTH_STATE_SECRET`.
+4. Danach erst nächsten Code-Step planen.
+
+Empfohlener nächster Block:
+
+```text
+RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
+```
+
+Ziel: Permission-Read/Diagnose für eingeloggten User vorbereiten. Keine produktiven User-/Rollen-Writes.

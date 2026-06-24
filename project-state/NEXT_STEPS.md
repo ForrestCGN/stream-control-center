@@ -1,14 +1,24 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN  
+Stand: RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION  
 Datum: 2026-06-24
 
 ## Sofort
 
-1. `RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN.zip` lokal einspielen.
-2. `git status` prüfen.
-3. Prüfen, dass nur Doku-/Projektstatus-Dateien geändert wurden.
-4. `stepdone.cmd` ausführen.
+1. `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION.zip` lokal einspielen.
+2. Prüfen:
+
+```powershell
+git status
+```
+
+Erwartung: nur Doku-/Projektstatus-Dateien geändert.
+
+3. Bei sauberem Stand:
+
+```powershell
+.\stepdone.cmd "RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION abgeschlossen: Backup-/Rollback-, Permission-, Confirm-, Audit- und Locking-Foundation dokumentiert; keine Code-/DB-/Remote-Action-Änderungen"
+```
 
 ## Danach empfohlen
 
@@ -25,34 +35,32 @@ systemctl restart scc-remote-modboard.service
 
 Danach Login erneut testen.
 
-### 2. Admin Write Foundation vorbereiten
-
-Nächster Plan-/Foundation-Step:
+### 2. Nächster kleiner Code-Step
 
 ```text
-RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION
+RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
 ```
 
-Scope soll weiterhin klein bleiben:
+Scope:
 
-- echte DB-Tabellen/Spalten prüfen
-- Backup-Befehl dokumentieren
-- Rollback-Befehl dokumentieren
-- Owner/Admin-Permission-Read prüfen
-- Confirm-Write-Regel technisch vorbereiten oder exakt planen
-- Audit-Ziel prüfen
-- Locking-Ziel prüfen
-- noch keine großen User-/Rollen-Writes bauen
+- erst echte Dateien/Repo prüfen
+- vorhandene Auth-/Permission-/Read-Services auswerten
+- Permission-Read für aktuell eingeloggten User diagnostisch vorbereiten
+- Owner/Admin/normalen User serverseitig erkennen
+- keine produktiven Writes
+- keine Rollen-/Gruppen-/Session-Writes
+- keine DB-Migration
+- keine UI-Schreibbuttons
 
 ### 3. Spätere Admin-Writes nur mit eigenem Scope
 
 Für echte User-/Rollenverwaltung später nötig:
 
-- serverseitige Owner/Admin-Permission-Middleware
+- serverseitige Owner/Admin-Permission
 - Confirm-Write
 - Audit-Log
 - Locking
-- Backup/Rollback-Plan
+- Backup/Rollback
 - klare Trennung Self-Profil vs. Admin-Verwaltung
 
 ## Webserver-Deploy-Regel
