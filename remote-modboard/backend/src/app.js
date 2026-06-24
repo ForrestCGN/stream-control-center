@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('path');
 const express = require('express');
 const { buildSafetyBlock } = require('./security/safety');
 const { registerHealthRoutes } = require('./routes/health.routes');
@@ -30,6 +31,28 @@ function createApp({ config, moduleBuild }) {
   registerAuthTwitchRoutes(app, context);
   registerLockAuditDiagnosticRoutes(app, context);
   registerRoutesRoutes(app, context);
+
+  const publicDir = path.join(__dirname, '..', 'public');
+
+  app.use(express.static(publicDir, {
+    index: 'index.html',
+    extensions: ['html'],
+    fallthrough: true,
+    maxAge: '5m',
+    setHeaders(res) {
+      res.setHeader('X-Remote-Modboard-Ui', 'readonly');
+      res.setHeader('Cache-Control', 'public, max-age=300');
+    }
+  }));
+
+  app.get(['/', '/remote', '/modboard'], (req, res) => {
+    res.sendFile(path.join(publicDir, 'index.html'), {
+      headers: {
+        'X-Remote-Modboard-Ui': 'readonly',
+        'Cache-Control': 'no-store'
+      }
+    });
+  });
 
   app.use((req, res) => {
     res.status(404).json({

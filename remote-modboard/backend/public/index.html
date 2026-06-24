@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ForrestCGN Remote Modboard</title>
+  <meta name="description" content="ForrestCGN Remote Modboard read-only Diagnosemodus">
+  <link rel="stylesheet" href="/assets/remote-modboard.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">ForrestCGN · Remote Modboard</p>
+        <h1>Read-only Diagnose</h1>
+        <p class="heroText">Diese erste UI zeigt nur vorhandene Status- und Sicherheitsdaten. Es gibt hier keine Steuerung, keinen Login und keine Schreibaktionen.</p>
+      </div>
+      <div class="modeBadge" id="serviceOnlineBadge">prüfe Service…</div>
+    </header>
+
+    <section class="notice">
+      <strong>Read-only Diagnosemodus</strong>
+      <span>Keine Login-/OAuth-Aktivierung · Keine Remote-Writes · Keine Agent-Actions · Keine OBS-/Sound-/Overlay-/Command-Steuerung</span>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <div class="cardHead">
+          <h2>Service-Status</h2>
+          <span class="pill" id="statusPill">lädt</span>
+        </div>
+        <dl class="kv">
+          <div><dt>ok</dt><dd id="statusOk">—</dd></div>
+          <div><dt>readOnly</dt><dd id="statusReadOnly">—</dd></div>
+          <div><dt>writeEnabled</dt><dd id="statusWriteEnabled">—</dd></div>
+          <div><dt>statusApiVersion</dt><dd id="statusApiVersion">—</dd></div>
+          <div><dt>moduleBuild</dt><dd id="statusModuleBuild">—</dd></div>
+          <div><dt>generatedAt</dt><dd id="statusGeneratedAt">—</dd></div>
+        </dl>
+      </article>
+
+      <article class="card">
+        <div class="cardHead">
+          <h2>Sicherheit</h2>
+          <span class="pill safe">disabled</span>
+        </div>
+        <ul class="checkList" id="securityList">
+          <li>Login disabled</li>
+          <li>OAuth disabled</li>
+          <li>Writes disabled</li>
+          <li>Agent-Actions disabled</li>
+        </ul>
+      </article>
+
+      <article class="card wide">
+        <div class="cardHead">
+          <h2>Lock-/Audit Diagnose</h2>
+          <span class="pill" id="lockAuditPill">lädt</span>
+        </div>
+        <div class="twoCols">
+          <dl class="kv">
+            <div><dt>schemaAdapterPrepared</dt><dd id="schemaAdapterPrepared">—</dd></div>
+            <div><dt>locks compatibleForRead</dt><dd id="locksRead">—</dd></div>
+            <div><dt>locks compatibleForWrite</dt><dd id="locksWrite">—</dd></div>
+            <div><dt>locks missingForWrite</dt><dd id="locksMissing">—</dd></div>
+          </dl>
+          <dl class="kv">
+            <div><dt>audit compatibleForRead</dt><dd id="auditRead">—</dd></div>
+            <div><dt>audit compatibleForWrite</dt><dd id="auditWrite">—</dd></div>
+            <div><dt>lockAcquireEnabled</dt><dd id="lockAcquireEnabled">—</dd></div>
+            <div><dt>auditInsertEnabled</dt><dd id="auditInsertEnabled">—</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card wide">
+        <div class="cardHead">
+          <h2>Routen-Übersicht</h2>
+          <span class="pill" id="routesPill">lädt</span>
+        </div>
+        <div class="routes" id="routesList"></div>
+      </article>
+
+      <article class="card wide">
+        <div class="cardHead">
+          <h2>Auth-/Permission Diagnose</h2>
+          <span class="pill safe">read-only</span>
+        </div>
+        <dl class="kv">
+          <div><dt>loggedIn</dt><dd id="authLoggedIn">—</dd></div>
+          <div><dt>permission remote.view</dt><dd id="permissionAllowed">—</dd></div>
+          <div><dt>reason</dt><dd id="permissionReason">—</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <footer class="footer">
+      <span>UI1 · Remote-Modboard erste sichtbare read-only Seite</span>
+      <button class="refreshButton" type="button" id="refreshButton">Diagnose neu laden</button>
+    </footer>
+  </main>
+
+  <script src="/assets/remote-modboard.js" defer></script>
+</body>
+</html>
