@@ -20,54 +20,76 @@ const endpointLabels = {
   schemaAdapter: 'Schema-Adapter'
 };
 
-const pageTitles = {
-  overview: 'Übersicht',
-  diagnostics: 'Diagnose',
-  routes: 'Routen',
-  account: 'Mein Login',
-  permissions: 'Rechte',
-  modules: 'Module'
-};
-
 const AUTO_REFRESH_SECONDS = 30;
 let refreshTimer = null;
 let refreshCountdown = AUTO_REFRESH_SECONDS;
 let isLoading = false;
 let currentPage = 'overview';
 
+window.addEventListener('scroll', () => {
+  document.body.classList.toggle('is-scrolled', window.scrollY > 6);
+}, { passive: true });
+
 document.addEventListener('DOMContentLoaded', () => {
   bindNavigation();
-  byId('refreshButton').addEventListener('click', () => loadDashboard('manual'));
-  byId('clearErrorsButton').addEventListener('click', hideErrors);
-  byId('logoutButton').addEventListener('click', logout);
-  byId('deniedLogoutButton').addEventListener('click', logout);
+  bindOptional('refreshButton', 'click', () => loadDashboard('manual'));
+  bindOptional('clearErrorsButton', 'click', hideErrors);
+  bindOptional('logoutButton', 'click', logout);
+  bindOptional('deniedLogoutButton', 'click', logout);
+  bindOptional('navToggle', 'click', () => document.body.classList.toggle('nav-collapsed'));
+  bindOptional('scrim', 'click', () => document.body.classList.remove('nav-collapsed'));
   startAutoRefresh();
   loadDashboard('initial');
 });
 
 function bindNavigation() {
-  document.querySelectorAll('[data-nav-toggle]').forEach((button) => {
+  document.querySelectorAll('.nav-group[data-target]').forEach((button) => {
     button.addEventListener('click', () => {
-      const group = button.closest('.navGroup');
-      if (group) group.classList.toggle('isOpen');
+      const target = button.dataset.target;
+      const sub = target ? byId(target) : null;
+      const open = button.classList.contains('is-open');
+
+      document.querySelectorAll('.nav-group').forEach(node => node.classList.remove('is-open'));
+      document.querySelectorAll('.nav-sub').forEach(node => node.classList.remove('is-open'));
+
+      if (!open) {
+        button.classList.add('is-open');
+        if (sub) sub.classList.add('is-open');
+      }
     });
   });
 
-  document.querySelectorAll('[data-page]').forEach((button) => {
-    button.addEventListener('click', () => setPage(button.dataset.page));
+  document.querySelectorAll('.nav-link[data-page]').forEach((button) => {
+    button.addEventListener('click', () => {
+      setPage(button.dataset.page, {
+        section: button.dataset.section || 'Remote Modboard',
+        title: button.dataset.title || button.textContent.trim(),
+        tab: button.dataset.tab || ''
+      });
+      document.body.classList.remove('nav-collapsed');
+    });
   });
 }
 
-function setPage(page) {
-  currentPage = pageTitles[page] ? page : 'overview';
-  byId('pageTitle').textContent = pageTitles[currentPage];
+function setPage(page, meta) {
+  currentPage = document.querySelector(`[data-page-panel="${cssEscape(page)}"]`) ? page : 'overview';
+  const activeLink = document.querySelector(`.nav-link[data-page="${cssEscape(currentPage)}"]`);
+  const section = meta && meta.section ? meta.section : (activeLink ? activeLink.dataset.section : 'System');
+  const title = meta && meta.title ? meta.title : (activeLink ? activeLink.dataset.title : 'Übersicht');
+  const tab = meta && meta.tab ? meta.tab : (activeLink ? activeLink.dataset.tab : 'Status');
 
-  document.querySelectorAll('[data-page]').forEach((button) => {
-    button.classList.toggle('active', button.dataset.page === currentPage);
+  setText('sectionLabel', section);
+  const pageTitle = byId('pageTitle');
+  if (pageTitle) {
+    pageTitle.innerHTML = `${escapeHtml(title)}${tab ? ` <span class="tab-part">${escapeHtml(tab)}</span>` : ''}`;
+  }
+
+  document.querySelectorAll('.nav-link[data-page]').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.page === currentPage);
   });
 
   document.querySelectorAll('[data-page-panel]').forEach((panel) => {
-    panel.classList.toggle('activePage', panel.dataset.pagePanel === currentPage);
+    panel.classList.toggle('is-active-view', panel.dataset.pagePanel === currentPage);
   });
 }
 
@@ -116,11 +138,11 @@ async function loadDashboard(reason) {
   renderQuickStatus(results);
   renderErrors(results);
 
-  setText('lastUpdatedText', `Aktualisiert: ${new Date().toLocaleString('de-DE')} · ${reason || 'load'}`);
+  setText('lastUpdatedText', `Aktualisiert: ${new Date().toLocaleString('de-DE')}`);
 
   isLoading = false;
   if (refreshButton) refreshButton.disabled = false;
-  updateAutoRefreshText();
+  updateAutoRefreshText(reason ? `Auto-Refresh in ${refreshCountdown}s · ${reason}` : undefined);
 }
 
 async function getJson(url) {
@@ -163,9 +185,9 @@ async function logout() {
 }
 
 function renderScenes(authMe, status, loginPlan) {
-  const authBody = authMe.body || {};
-  const statusBody = status.body || {};
-  const loginBody = loginPlan && loginPlan.body ? loginPlan.body : {};
+  const authBody = (authMe && authMe.body) || {};
+  const statusBody = (status && status.body) || {};
+  const loginBody = (loginPlan && loginPlan.body) || {};
   const authEnabled = Boolean(statusBody.auth && statusBody.auth.loginEnabled);
   const loggedIn = Boolean(authBody.loggedIn);
   const allowed = Boolean(authBody.dashboardAccess);
@@ -178,9 +200,9 @@ function renderScenes(authMe, status, loginPlan) {
       : '/api/remote/auth/login/start';
   }
 
-  byId('loginScene').hidden = authEnabled ? loggedIn : true;
-  byId('deniedScene').hidden = !(authEnabled && loggedIn && !allowed);
-  byId('dashboardScene').hidden = authEnabled ? !allowed : false;
+  setHidden('loginScene', authEnabled ? loggedIn : true);
+  setHidden('deniedScene', !(authEnabled && loggedIn && !allowed));
+  setHidden('dashboardScene', authEnabled ? !allowed : false);
 
   if (loggedIn && !allowed) {
     setText('deniedUserText', `${user ? (user.displayName || user.loginName || user.userUid) : 'Dieser Twitch-Account'} ist angemeldet, aber noch nicht freigeschaltet. Grund: ${authBody.accessReason || 'not_allowed'}.`);
@@ -188,9 +210,8 @@ function renderScenes(authMe, status, loginPlan) {
 }
 
 function renderStatus(result) {
-  const body = result.body || {};
+  const body = (result && result.body) || {};
   const auth = body.auth || {};
-  setBadge('statusPill', result.ok, result.ok ? 'online' : 'Fehler');
   setValue('statusOk', body.ok);
   setValue('statusAuthEnabled', auth.enabled);
   setValue('statusLoginEnabled', auth.loginEnabled);
@@ -205,16 +226,16 @@ function renderQuickStatus(results) {
   const oauth = auth.twitchOAuth || {};
   const agent = statusBody.agent || {};
 
-  setQuick('quickService', results.status && results.status.ok, results.status && results.status.ok ? 'online' : 'prüfen');
-  setQuick('quickLogin', authMe.dashboardAccess === true, authMe.dashboardAccess ? 'freigegeben' : (authMe.loggedIn ? 'gesperrt' : 'Login'));
-  setQuick('quickOAuth', oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'aktiv' : 'gated');
-  setQuick('quickAgent', agent.actionsEnabled === false, 'disabled');
+  setChip('quickService', results.status && results.status.ok, results.status && results.status.ok ? 'Service online' : 'Service prüfen');
+  setChip('quickLogin', authMe.dashboardAccess === true, authMe.dashboardAccess ? 'Login freigegeben' : (authMe.loggedIn ? 'Login gesperrt' : 'Login nötig'));
+  setChip('quickOAuth', oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'OAuth aktiv' : 'OAuth gated');
+  setChip('quickAgent', agent.actionsEnabled === false, 'Agent disabled');
 }
 
 function renderSecurity(status, lockAudit, loginPlan) {
-  const statusBody = status.body || {};
-  const lockBody = lockAudit.body || {};
-  const loginBody = loginPlan && loginPlan.body ? loginPlan.body : {};
+  const statusBody = (status && status.body) || {};
+  const lockBody = (lockAudit && lockAudit.body) || {};
+  const loginBody = (loginPlan && loginPlan.body) || {};
   const agent = statusBody.agent || {};
   const items = [
     ['Zentrale Login-Schicht vorbereitet', Boolean(loginBody.centralAuth && loginBody.centralAuth.prepared)],
@@ -227,19 +248,21 @@ function renderSecurity(status, lockAudit, loginPlan) {
     ['OBS/Sound/Overlay/Commands disabled', true]
   ];
 
-  byId('securityList').innerHTML = items.map(([label, ok]) => {
+  const list = byId('securityList');
+  if (!list) return;
+  list.innerHTML = items.map(([label, ok]) => {
     const state = ok ? 'valueTrue' : 'valueFalse';
     const text = ok ? 'OK' : 'prüfen';
-    return `<li><span>${escapeHtml(label)}</span> <strong class="${state}">${text}</strong></li>`;
+    return `<li><span>${escapeHtml(label)}</span><strong class="${state}">${text}</strong></li>`;
   }).join('');
 }
 
 function renderLockAudit(lockAudit, schemaAdapter) {
-  const body = lockAudit.body || {};
-  const schemaBody = schemaAdapter.body || body;
+  const body = (lockAudit && lockAudit.body) || {};
+  const schemaBody = (schemaAdapter && schemaAdapter.body) || body;
   const locks = body.locks || {};
   const audit = body.audit || {};
-  setBadge('lockAuditPill', lockAudit.ok, lockAudit.ok ? 'read-only ok' : 'prüfen');
+  setChip('lockAuditPill', lockAudit && lockAudit.ok, lockAudit && lockAudit.ok ? 'read-only ok' : 'prüfen');
   setValue('schemaAdapterPrepared', schemaBody.schemaAdapterPrepared);
   setValue('locksRead', getNested(locks, ['adapter', 'compatibleForRead']));
   setValue('locksWrite', getNested(locks, ['adapter', 'compatibleForWrite']));
@@ -251,9 +274,11 @@ function renderLockAudit(lockAudit, schemaAdapter) {
 }
 
 function renderRoutes(result) {
-  const routes = (result.body && Array.isArray(result.body.routes)) ? result.body.routes : [];
-  setBadge('routesPill', result.ok, result.ok ? `${routes.length} Routen` : 'Fehler');
-  byId('routesList').innerHTML = routes.map(route => `
+  const routes = (result && result.body && Array.isArray(result.body.routes)) ? result.body.routes : [];
+  setChip('routesPill', result && result.ok, result && result.ok ? `${routes.length} Routen` : 'Fehler');
+  const routesList = byId('routesList');
+  if (!routesList) return;
+  routesList.innerHTML = routes.map(route => `
     <div class="route">
       <span class="method">${escapeHtml(route.method || 'GET')}</span>
       <div>
@@ -265,11 +290,11 @@ function renderRoutes(result) {
 }
 
 function renderAuth(authMe, permission, status) {
-  const authBody = authMe.body || {};
-  const permissionBody = permission.body || {};
+  const authBody = (authMe && authMe.body) || {};
+  const permissionBody = (permission && permission.body) || {};
   const user = authBody.user || null;
 
-  setText('loginStateText', authBody.dashboardAccess ? `Angemeldet als ${user ? (user.displayName || user.loginName || user.userUid) : 'Twitch-User'}` : 'Nicht freigegeben');
+  setText('loginStateText', authBody.dashboardAccess ? `${user ? (user.displayName || user.loginName || user.userUid) : 'Twitch-User'}` : 'Nicht freigegeben');
   setValue('authLoggedIn', authBody.loggedIn);
   setValue('dashboardAccess', authBody.dashboardAccess);
   setText('accessReason', authBody.accessReason || '—');
@@ -282,10 +307,12 @@ function renderAuth(authMe, permission, status) {
 }
 
 function renderEndpoints(results) {
-  const values = Object.entries(results);
+  const values = Object.entries(results || {});
   const okCount = values.filter(([, result]) => result.ok).length;
-  setBadge('endpointPill', okCount === values.length, `${okCount}/${values.length} ok`);
-  byId('endpointList').innerHTML = values.map(([key, result]) => {
+  setChip('endpointPill', okCount === values.length, `${okCount}/${values.length} ok`);
+  const endpointList = byId('endpointList');
+  if (!endpointList) return;
+  endpointList.innerHTML = values.map(([key, result]) => {
     const label = endpointLabels[key] || key;
     const status = result.httpStatus || 'fetch';
     const cls = result.ok ? 'endpoint ok' : 'endpoint bad';
@@ -295,7 +322,7 @@ function renderEndpoints(results) {
 }
 
 function renderErrors(results) {
-  const failed = Object.entries(results).filter(([, result]) => !result.ok && result.httpStatus !== 403);
+  const failed = Object.entries(results || {}).filter(([, result]) => !result.ok && result.httpStatus !== 403);
   if (!failed.length) {
     hideErrors();
     return;
@@ -305,11 +332,11 @@ function renderErrors(results) {
     const detail = result.error || (result.body && result.body.error) || `HTTP ${result.httpStatus || 0}`;
     return `${label}: ${detail}`;
   }).join(' · '));
-  byId('errorBox').hidden = false;
+  setHidden('errorBox', false);
 }
 
 function hideErrors() {
-  byId('errorBox').hidden = true;
+  setHidden('errorBox', true);
 }
 
 function updateAutoRefreshText(override) {
@@ -317,18 +344,11 @@ function updateAutoRefreshText(override) {
   if (node) node.textContent = override || `Auto-Refresh in ${refreshCountdown}s`;
 }
 
-function setBadge(id, ok, text) {
+function setChip(id, ok, text) {
   const node = byId(id);
   if (!node) return;
   node.textContent = text;
-  node.className = ok ? 'pill ok' : 'pill bad';
-}
-
-function setQuick(id, ok, text) {
-  const node = byId(id);
-  if (!node) return;
-  node.textContent = text;
-  node.className = ok ? 'quickGood' : 'quickBad';
+  node.className = ok ? 'cgn-chip cgn-chip--ok' : 'cgn-chip cgn-chip--warn';
 }
 
 function setValue(id, value) {
@@ -342,6 +362,16 @@ function setText(id, value) {
   const node = byId(id);
   if (!node) return;
   node.textContent = value == null || value === '' ? '—' : String(value);
+}
+
+function setHidden(id, hidden) {
+  const node = byId(id);
+  if (node) node.hidden = Boolean(hidden);
+}
+
+function bindOptional(id, eventName, handler) {
+  const node = byId(id);
+  if (node) node.addEventListener(eventName, handler);
 }
 
 function formatValue(value) {
@@ -368,6 +398,11 @@ function getNested(obj, keys) {
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+function cssEscape(value) {
+  if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(String(value));
+  return String(value).replace(/[^A-Za-z0-9_-]/g, '\\$&');
 }
 
 function escapeHtml(value) {
