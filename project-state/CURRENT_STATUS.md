@@ -1,221 +1,120 @@
 # CURRENT STATUS
 
-Stand: RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY  
+Stand: RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP  
 Datum: 2026-06-24
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP10 dokumentiert den konkreten read-only Implementierungsplan fuer spaetere Lock-/Audit-Funktionen im Remote-Modboard.
+RDAP11 bereitet ein read-only Lock-/Audit-Diagnose-Skeleton fuer das Remote-Modboard vor.
 
-RDAP10 ist ein reiner Doku-/Planungsstand.
-
-Es wurde kein Backend-Code geaendert, kein Login aktiviert, kein OAuth aktiviert, kein Cookie gesetzt, keine Session erstellt, keine Session verlaengert, kein `last_seen_at` Update gebaut, keine DB-Schreibaktion ausgefuehrt, keine Remote-Write-Route gebaut und keine Agent-Action aktiviert.
-
-Das Remote-Modboard laeuft weiterhin produktiv read-only.
-
-## Fertig und bestaetigt
+Neue Route:
 
 ```text
-RDAP5I Remote-Modboard Node-Basisdienst read-only live
-RDAP5J Remote Node Monitoring/Hardening
-RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
-RDAP6D Testdatenbanklauf auf Webserver bestanden
-RDAP6E Test-DB-Auswertung dokumentiert
-RDAP6F Auth DB Integration Plan dokumentiert
-RDAP6G Auth Backend Read-only DB Layer vorbereitet und deployed
-RDAP6H Remote read-only Auth-Model Deploy/Test bestanden
-RDAP6I Auth DB Production Migration Runbook dokumentiert
-RDAP6J Productive Migration Precheck bestanden und Backup erstellt
-RDAP6K Produktive Auth-DB Schema-/Seed-Migration auf c3stream_control erfolgreich ausgefuehrt
-RDAP6L Auth DB Productive Migration Result Docs erstellt
-RDAP7 Login-/Session-Konzept dokumentiert
-RDAP7A Auth Read-only User Resolution Plan eingespielt
-RDAP7B Auth Read-only Status Endpoints gebaut und nach GitHub/dev gepusht
-RDAP7C Remote Auth Status Deploy/Test live bestanden
-RDAP7C1 Server Workdir Cleanup live bestanden
-RDAP7D Auth Status Deploy Result Docs erstellt
-RDAP7E Server Workdir Cleanup Docs erstellt und nach GitHub/dev gepusht
-RDAP7F Chat-Handoff und Next-Chat-Prompt erstellt
-RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
-RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
-RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
-RDAP7I Session Store Read-only Validation Layer live deployed/getestet
-RDAP8 Permission Check Middleware Plan dokumentiert
-RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
-RDAP8B Permission Resolver Live Deploy/Test dokumentiert
-RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
-RDAP10 Lock-/Audit-Implementierungsplan read-only dokumentiert
+GET /api/remote/lock-audit/status
 ```
 
-## RDAP8A/RDAP8B live bestaetigt
-
-Deploy:
+Optional:
 
 ```text
-Deploy-Clone: /opt/stream-control-center/_deploy_tmp/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_20260624_080242
-Live-Ziel: /opt/stream-control-center/remote-modboard/backend
-Service: scc-remote-modboard.service
-Backup: /var/backups/stream-control-center/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_remote-modboard-backend_20260624_080242.tar.gz
+GET /api/remote/lock-audit/status?db=1
 ```
 
-Syntax/Service:
+Ohne `db=1` werden keine DB-Abfragen ausgefuehrt. Mit `db=1` werden nur `INFORMATION_SCHEMA.COLUMNS`-SELECTs ueber die vorhandene read-only DB-Verbindung ausgefuehrt.
+
+RDAP11 aktiviert keine produktiven Schreibfunktionen.
+
+## Geaenderte Dateien
 
 ```text
-npm install --omit=dev erfolgreich
-npm run check erfolgreich
-scc-remote-modboard.service active
-Listen intern: 127.0.0.1:3010
+remote-modboard/backend/package.json
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+remote-modboard/backend/src/services/lock-read.service.js
+remote-modboard/backend/src/services/audit-read.service.js
+docs/current/RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP.md
+docs/current/START_HERE_FOR_NEW_CHAT.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
 ```
 
-Status:
+## Sicherheitsstatus
+
+Weiterhin gilt:
 
 ```text
-GET /api/remote/status ok=true
-statusApiVersion=rdap8a.v1
 readOnly=true
 writeEnabled=false
-auth.enabled=false
-auth.loginEnabled=false
-permissions.readOnlyResolverPrepared=true
-permissions.diagnosticCheckRoutePrepared=true
-permissions.checkRouteEnabled=true
-permissions.productiveAuthorizationEnabled=false
-database.writeEnabled=false
-agent.actionsEnabled=false
+authEnabled=false
+loginEnabled=false
+sessionCreationEnabled=false
+databaseWriteEnabled=false
+agentActionsEnabled=false
+productivePermissionEnforcementEnabled=false
 ```
 
-Permission-Check ohne Cookie:
+Weiterhin verboten / nicht aktiviert:
 
 ```text
-GET /api/remote/auth/permissions/check?permission=remote.view
-ok=true
-statusApiVersion=rdap8a.v1
-allowed=false
-reason=auth_disabled_or_not_logged_in
-session.reason=no_session_cookie
-session.createsSession=false
-session.setsCookie=false
-session.updatesLastSeen=false
-diagnostics.contextLookupPerformed=false
-diagnostics.permissionEvaluationPerformed=false
-```
-
-OAuth Start/Callback bleiben disabled:
-
-```text
-GET /api/remote/auth/twitch/start -> HTTP 403
-GET /api/remote/auth/twitch/callback -> HTTP 403
-kein Redirect
-kein Set-Cookie
-kein Token-Tausch
+kein Login
+kein Twitch-OAuth
+kein Redirect zu Twitch
+kein OAuth-Code-gegen-Token-Tausch
+keine Cookies
 keine Session-Erstellung
-keine DB-Writes
+keine Session-Verlaengerung
+kein last_seen_at Update
+keine produktiven DB-Writes
+keine Remote-Writes
+keine User-/Rollen-/Gruppen-Schreibrouten
+keine Lock-Writes
+keine Audit-Writes
 keine Agent-Actions
+keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine produktive Permission-Erzwingung fuer Writes
+keine Secrets im Repo, Frontend, Log oder Chat
+keine Funktionalitaet entfernen
 ```
 
-## Remote-Modboard read-only live
+## Live-Status
+
+Der zuletzt bestaetigte Live-Stand vor RDAP11-Deploy bleibt RDAP8A/RDAP8B:
 
 ```text
-Webserver: web.cgn.community
-Subdomain/API: https://mods.forrestcgn.de/api/remote/
-Service: scc-remote-modboard.service
-Listen intern: 127.0.0.1:3010
-moduleBuild live: RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS
+Remote-Modboard: https://mods.forrestcgn.de/api/remote/
+Interner Service: 127.0.0.1:3010
+systemd service: scc-remote-modboard.service
 statusApiVersion live: rdap8a.v1
+readOnly=true
+writeEnabled=false
+authEnabled=false
+loginEnabled=false
+databaseWriteEnabled=false
+agentActionsEnabled=false
 ```
 
-Hinweis: `moduleBuild` ist noch der alte server.js-Buildname. Das ist kosmetisch und soll nur mit eigenem Mini-Scope angepasst werden.
-
-## RDAP9 Konzept zusammengefasst
-
-RDAP9 legt fuer spaetere produktive Writes fest:
-
-```text
-Backend entscheidet Rechte, Frontend ist nur Anzeige.
-Produktive Writes brauchen spaeter mindestens Login + Session + Permission + Audit.
-Bearbeitbare Ressourcen brauchen zusaetzlich Lock + Heartbeat + Timeout.
-Riskante Aktionen brauchen zusaetzlich Confirm/Safety.
-Owner/Admin-Lock-Uebernahmen brauchen Grund + Confirm + Audit.
-Audit speichert keine Secrets, keine Tokens, keine Cookies und keine sensiblen Rohdaten.
-Version-/Lost-Update-Schutz soll Locks ergaenzen.
-```
-
-## RDAP10 Implementierungsplan zusammengefasst
-
-RDAP10 legt fest:
-
-```text
-geplante Lock-/Audit-Service-Struktur
-geplante read-only Diagnose-Routen
-Permission-Gate-Reihenfolge
-Confirm-/Safety-Gate-Regeln
-Request-/Correlation-ID-Konzept
-MariaDB-Transaktions-/Fehlerfall-Konzept
-Version-/Lost-Update-Schutz
-Testplan fuer spaetere read-only Diagnose
-Backup-/Rollback-Regeln
-empfohlene Folge ab RDAP11
-```
-
-RDAP10 bleibt reiner Doku-/Plan-Step.
-
-## Bestaetigter Sicherheitsstatus bleibt
-
-```text
-readOnly: true
-writeEnabled: false
-migrationEnabled: false
-authPrepared: true
-authEnabled: false
-loginEnabled: false
-oauthPrepared: true
-oauthEnabled: false
-twitchOAuthPrepared: true
-twitchOAuthEnabled: false
-oauthStartRouteEnabled: false
-oauthCallbackRouteEnabled: false
-sessionsEnabled: false
-sessionCreationEnabled: false
-sessionCookieWriteEnabled: false
-databaseWriteEnabled: false
-agentActionsEnabled: false
-productivePermissionEnforcementEnabled: false
-secretsInFrontend: false
-secretsLogged: false
-```
-
-## Webserver-Backups
-
-```text
-/var/backups/stream-control-center/RDAP7G_TWITCH_OAUTH_ENV_SERVER_PREP_DISABLED_remote-modboard-backend_20260623_213057.tar.gz
-/var/backups/stream-control-center/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED_remote-modboard-backend_20260623_213951.tar.gz
-/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_222938.tar.gz
-/var/backups/stream-control-center/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_remote-modboard-backend_20260623_223314.tar.gz
-/var/backups/stream-control-center/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_remote-modboard-backend_20260624_080242.tar.gz
-```
-
-## Webserver-DB
-
-```text
-DB_USER=c1stream_control
-DB_NAME=c3stream_control
-DB-Typ: MariaDB 11.8.6
-```
-
-Passwort wird nicht dokumentiert und darf nicht ins Repo, Frontend oder Chat.
+RDAP11 ist nach lokalem Einspielen zunaechst lokal zu testen. Live-Deploy ist ein separater Schritt.
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP11_LOCK_AUDIT_READONLY_DIAGNOSTIC
+RDAP11B_LOCK_AUDIT_READONLY_LOCAL_TEST
 ```
 
 Ziel:
 
 ```text
-Nur read-only Diagnose-Routen fuer Locks/Audit/Write-Safety vorbereiten.
-Noch keine produktiven Writes.
-Noch kein Login.
-Noch keine Sessions.
-Noch keine Agent-Actions.
+RDAP11 lokal einspielen
+remote-modboard/backend npm run check ausfuehren
+git status pruefen
+stepdone.cmd erst danach
+```
+
+Danach separat:
+
+```text
+RDAP11C_LOCK_AUDIT_READONLY_LIVE_DEPLOY_TEST
 ```

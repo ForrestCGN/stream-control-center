@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Stand: RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY  
+Stand: RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP  
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -13,23 +13,27 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
-project-state/CHANGELOG.md
-docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
-docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
 docs/current/RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS.md
 docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md
 docs/current/RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY.md
+docs/current/RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP.md
 ```
 
 ## Aktueller gesicherter Stand
 
 ```text
-RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY
+RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP
 ```
 
-RDAP10 dokumentiert den konkreten Implementierungsplan fuer Lock-/Audit-Helper, Safety-/Confirm-Gates, Permission-Zusammenspiel, read-only Diagnose-Routen, Transaktions-/Fehlerfall-Konzept und spaetere Reihenfolge.
+RDAP11 bereitet eine read-only Lock-/Audit-Diagnose technisch vor. Es wurde eine neue read-only Diagnose-Route vorbereitet:
 
-RDAP10 ist ein reiner Doku-/Planungsstand.
+```text
+GET /api/remote/lock-audit/status
+```
+
+Optional mit `db=1` werden nur `INFORMATION_SCHEMA.COLUMNS`-SELECTs ausgefuehrt, um `dashboard_locks` und `dashboard_audit_log` diagnostisch zu pruefen.
+
+RDAP11 aktiviert keine produktiven Schreibfunktionen.
 
 ## Kurzstatus
 
@@ -48,9 +52,12 @@ RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 RDAP8B Permission Resolver Live Deploy/Test dokumentiert
 RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
 RDAP10 Lock-/Audit-Implementierungsplan read-only dokumentiert
+RDAP11 Lock-/Audit read-only Skeleton vorbereitet
 ```
 
 ## Live Remote-Modboard
+
+Bisher bestaetigter Live-Stand vor RDAP11-Deploy:
 
 ```text
 URL: https://mods.forrestcgn.de/api/remote/
@@ -64,103 +71,48 @@ authEnabled: false
 loginEnabled: false
 sessionCreationEnabled: false
 productivePermissionEnforcementEnabled: false
-databaseWriteEnabled: false
-agentActionsEnabled: false
 ```
 
-Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Relevant fuer RDAP8B/RDAP9/RDAP10 ist `statusApiVersion=rdap8a.v1`. Eine Anpassung des `moduleBuild` ist spaeter nur mit eigenem Mini-Scope erlaubt.
+Hinweis: `moduleBuild` in `remote-modboard/backend/server.js` meldet weiterhin kosmetisch `RDAP7B_AUTH_READONLY_STATUS_ENDPOINTS`. Eine Anpassung ist nur mit eigenem Mini-Scope erlaubt.
 
-## RDAP8B bestaetigter Live-Test
+## RDAP11 Inhalt
+
+Geaenderte Backend-Dateien:
 
 ```text
-npm install --omit=dev erfolgreich
-npm run check erfolgreich
-scc-remote-modboard.service active
-GET /api/remote/status -> statusApiVersion rdap8a.v1
-GET /api/remote/routes -> /api/remote/auth/permissions/check vorhanden
-GET /api/remote/auth/permissions/check?permission=remote.view -> allowed=false, reason auth_disabled_or_not_logged_in
-GET /api/remote/auth/twitch/start -> HTTP 403
-GET /api/remote/auth/twitch/callback -> HTTP 403
-kein Redirect
-kein Set-Cookie
-keine Session-Erstellung
-keine DB-Writes
-keine Agent-Actions
+remote-modboard/backend/package.json
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+remote-modboard/backend/src/services/lock-read.service.js
+remote-modboard/backend/src/services/audit-read.service.js
 ```
 
-RDAP8B Backup auf Webserver:
+Neue Route:
 
 ```text
-/var/backups/stream-control-center/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC_remote-modboard-backend_20260624_080242.tar.gz
+GET /api/remote/lock-audit/status
+GET /api/remote/lock-audit/status?db=1
 ```
 
-## Bestaetigter Sicherheitsrahmen
+Weiterhin deaktiviert:
 
 ```text
-readOnly: true
-writeEnabled: false
-authEnabled: false
-loginEnabled: false
-twitchOAuth.effectiveEnabled: false
-startRouteEnabled: false
-callbackRouteEnabled: false
-redirectToTwitch: false
-tokenExchangeEnabled: false
-sessions.effectiveEnabled: false
-sessions.createSession: false
-sessions.setCookie: false
-sessions.refreshSession: false
-sessions.updateLastSeen: false
-databaseWriteEnabled: false
-agentActionsEnabled: false
-productivePermissionEnforcementEnabled: false
-keine Cookies
-keine Session-Erstellung
-keine DB-Writes
-keine Agent-Actions
-kein Redirect zu Twitch
-kein OAuth-Code-gegen-Token-Tausch
+Login
+OAuth
+Cookies
+Sessions
+DB-Writes
+Remote-Writes
+Lock-Writes
+Audit-Writes
+Agent-Actions
+OBS/Sound/Overlay/Command-Steuerung
 ```
-
-## RDAP9 Inhalt
-
-RDAP9 klaert fuer spaetere Writes:
-
-```text
-welche Schreibbereiche Locks brauchen
-welche Aktionen Audit brauchen
-wie dashboard_locks genutzt werden soll
-wie dashboard_audit_log genutzt werden soll
-wie Permission + Lock + Audit + Confirm zusammenspielen
-wie Lock-Heartbeat/Timeout/Owner-Admin-Override aussehen soll
-wie Audit ohne Secrets und ohne sensible Rohdaten gespeichert werden soll
-welche spaeteren API-Writes erst nach Login + Permission + Lock + Audit erlaubt werden duerfen
-```
-
-RDAP9 hat keine produktive Funktion aktiviert.
-
-## RDAP10 Inhalt
-
-RDAP10 legt den konkreten Implementierungsplan fest:
-
-```text
-geplante Lock-/Audit-Service-Struktur
-geplante read-only Diagnose-Routen
-Permission-Gate-Reihenfolge
-Confirm-/Safety-Gate-Regeln
-Request-/Correlation-ID-Konzept
-MariaDB-Transaktions-/Fehlerfall-Konzept
-Version-/Lost-Update-Schutz
-Testplan fuer spaetere read-only Diagnose
-Backup-/Rollback-Regeln
-empfohlene Folge ab RDAP11
-```
-
-RDAP10 hat keine produktive Funktion aktiviert.
 
 ## Server-Ordnerregel
 
-Nicht mehr verwenden:
+Nicht verwenden:
 
 ```text
 /root fuer RDAP-Deploy-Clones, Arbeitsordner, Temp-Ordner oder Backups
@@ -181,6 +133,7 @@ GitHub/dev als Single Source of Truth.
 Echte Dateien pruefen, nicht raten.
 Keine Funktionalitaet entfernen.
 Vor Umsetzung Scope nennen und auf go warten.
+Wenn Forrest nach einem Befehlsblock go/weiter sagt, gilt: ausgefuehrt, kein Fehler, naechster Schritt.
 Maximal ein Befehlsblock pro Antwort.
 Vor Befehlen sagen: Wo ausfuehren, was macht der Befehl, wann stoppen, welche Ausgabe schicken.
 Keine langen unnoetigen Ausgaben anfordern.
@@ -192,7 +145,17 @@ StepDone erst nach Einspielen/Deploy/Test.
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP11_LOCK_AUDIT_READONLY_DIAGNOSTIC
+RDAP11B_LOCK_AUDIT_READONLY_LOCAL_TEST
 ```
 
-Nur read-only Diagnose planen und danach separat bauen. Noch keine produktiven Writes, keine Agent-Actions, kein Login, keine Cookies und keine Sessions ohne eigenen Scope und ausdrueckliches go.
+Ziel:
+
+```text
+RDAP11 lokal einspielen, npm run check ausfuehren, git status pruefen und danach stepdone.cmd.
+```
+
+Danach separat:
+
+```text
+RDAP11C_LOCK_AUDIT_READONLY_LIVE_DEPLOY_TEST
+```
