@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN_DOKU
+Stand: RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC
 Datum: 2026-06-24
 
 ## Erledigt
@@ -43,32 +43,37 @@ Datum: 2026-06-24
 - [x] RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 - [x] RDAP7I Live-Deploy-Ergebnis dokumentiert
 - [x] RDAP8 Permission Check Middleware Plan dokumentiert
+- [x] RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 
 ## Noch offen / als naechstes
 
-### RDAP8A Permission Context Read-only Diagnostic Plan
+### RDAP8B Permission Resolver Live Deploy/Test Docs
 
-- [ ] echte Remote-Modboard-Dateien vor Planung erneut pruefen
-- [ ] vorhandenes Rollen-/Gruppen-/Permission-Modell verwenden
-- [ ] RDAP7I Auth-/Session-Read-only-Status als Grundlage beruecksichtigen
-- [ ] Auth-/Permission-Context nur read-only/diagnostisch planen
-- [ ] pruefen, ob separate Services sinnvoll sind:
-  - [ ] `auth-context-read.service.js`
-  - [ ] `auth-permission-read.service.js`
-  - [ ] `security/permissions.js`
-- [ ] Backend-seitige Permission-Checks nur vorbereiten, nicht produktiv erzwingen
-- [ ] Frontend nur als Anzeige behandeln, nicht als Sicherheitsentscheidung
-- [ ] keine produktiven Schreibrouten ohne Lock/Audit/Permission
-- [ ] keine Agent-Actions
-- [ ] keine OBS-/Sound-/Overlay-/Command-Steuerung
-- [ ] keine Login-/Cookie-/Session-Erstellung aktivieren
+- [ ] RDAP8A auf Webserver deployen
+- [ ] Backup nach `/var/backups/stream-control-center/` erstellen
+- [ ] Deploy-Clone nach `/opt/stream-control-center/_deploy_tmp/` verwenden
+- [ ] `npm run check` auf Webserver ausfuehren
+- [ ] `scc-remote-modboard.service` neu starten
+- [ ] `GET /api/remote/status` pruefen
+- [ ] `GET /api/remote/routes` pruefen
+- [ ] `GET /api/remote/auth/permissions/check?permission=remote.view` pruefen
+- [ ] Erwartung ohne Cookie: `allowed=false`, `reason=auth_disabled_or_not_logged_in`
+- [ ] OAuth Start/Callback bleiben HTTP 403
+- [ ] Kein Redirect
+- [ ] Kein Set-Cookie
+- [ ] Keine Session-Erstellung
+- [ ] Keine DB-Writes
+- [ ] Keine Agent-Actions
+- [ ] Live-Ergebnis dokumentieren
 
 ### Spaeter
 
 - [ ] Lock-/Audit-Implementierung fuer spaetere Writes planen
-- [ ] Server-ENV nach RDAP7G/RDAP7H/RDAP7I Deploy manuell pruefen/ergaenzen, aber `TWITCH_OAUTH_ENABLED=false` und `SESSION_ENABLED=false` beibehalten
+- [ ] Server-ENV nach RDAP7G/RDAP7H/RDAP7I/RDAP8A Deploy manuell pruefen/ergaenzen, aber `TWITCH_OAUTH_ENABLED=false` und `SESSION_ENABLED=false` beibehalten
 - [ ] Alte RDAP6J-Backup-Referenz unter `/root` bleibt historisch dokumentiert; neue Backups duerfen nicht mehr nach `/root`
 - [ ] Kosmetik spaeter: `moduleBuild` in `remote-modboard/backend/server.js` auf aktuellen RDAP-Stand anheben, aber nur mit eigenem Mini-Scope.
+- [ ] Produktive Permission-Erzwingung erst nach aktivem Login, Lock-/Audit-Konzept und separatem Go
+- [ ] User-/Rollen-/Gruppen-Schreibrouten erst nach separatem Sicherheits-Scope
 
 ## Dauerhaft beachten
 

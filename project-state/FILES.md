@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN_DOKU
+Stand: RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC
 Datum: 2026-06-24
 
 ## Wichtigste Dateien zuerst
@@ -18,6 +18,7 @@ docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
+docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
 docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
 ```
 
@@ -45,11 +46,10 @@ docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
+docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
 ```
-
-Hinweis: `docs/current/RDAP7H_CHAT_HANDOFF_AND_NEXT_PROMPT.md` und `docs/current/NEXT_CHAT_PROMPT_RDAP7I.txt` waren beim RDAP7I-Start nicht im GitHub/dev-Stand vorhanden.
 
 ## Remote-Modboard Paket im Repo
 
@@ -71,28 +71,9 @@ remote-modboard/backend/src/services/db.service.js
 remote-modboard/backend/src/services/auth-db-read.service.js
 remote-modboard/backend/src/services/auth-session-read.service.js
 remote-modboard/backend/src/services/auth-status.service.js
+remote-modboard/backend/src/services/auth-permission-read.service.js
+remote-modboard/backend/src/security/permissions.js
 remote-modboard/backend/src/security/safety.js
-```
-
-## RDAP7G geaenderte Remote-Modboard-Dateien
-
-```text
-remote-modboard/backend/.env.example
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/security/safety.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/README.md
-```
-
-## RDAP7H geaenderte Remote-Modboard-Dateien
-
-```text
-remote-modboard/backend/package.json
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/auth-twitch.routes.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/README.md
 ```
 
 ## RDAP7I geaenderte Remote-Modboard-Dateien
@@ -120,17 +101,22 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Moegliche spaetere RDAP8A-Code-Dateien
-
-Nur nach eigenem Scope und ausdruecklichem go:
+## RDAP8A geaenderte Dateien
 
 ```text
-remote-modboard/backend/src/services/auth-context-read.service.js
-remote-modboard/backend/src/services/auth-permission-read.service.js
-remote-modboard/backend/src/security/permissions.js
+remote-modboard/backend/package.json
+remote-modboard/backend/README.md
 remote-modboard/backend/src/routes/auth-status.routes.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/services/auth-permission-read.service.js
+remote-modboard/backend/src/security/permissions.js
+docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
 ```
 
 ## Installierte Dateien auf Webserver
@@ -196,7 +182,7 @@ dashboard_locks
 dashboard_audit_log
 ```
 
-## Bestaetigte API-Routen
+## Bestaetigte API-Routen vor RDAP8A
 
 ```text
 GET https://mods.forrestcgn.de/api/remote/auth/model
@@ -213,7 +199,13 @@ sessionCreationEnabled: false
 sessionCookieWriteEnabled: false
 oauthStartRouteEnabled: false
 oauthCallbackRouteEnabled: false
-statusApiVersion live: rdap7i.v1
+statusApiVersion live vor RDAP8A: rdap7i.v1
+```
+
+## Neue RDAP8A API-Route nach Deploy
+
+```text
+GET https://mods.forrestcgn.de/api/remote/auth/permissions/check?permission=remote.view
 ```
 
 ## Webserver-Backups
@@ -262,5 +254,5 @@ moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ## Naechste geplante Datei / naechster Scope
 
 ```text
-RDAP8A_PERMISSION_CONTEXT_READONLY_DIAGNOSTIC_PLAN
+RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
 ```

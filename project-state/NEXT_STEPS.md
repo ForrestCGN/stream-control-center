@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN_DOKU
+Stand: RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC
 Datum: 2026-06-24
 
 ## Aktueller Stand
@@ -19,10 +19,11 @@ RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
 RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 ```
 
-Neu vorbereitet als Doku-/Plan-Step:
+Vorbereitet:
 
 ```text
 RDAP8 Permission Check Middleware Plan dokumentiert
+RDAP8A Read-only Permission Resolver Diagnostic vorbereitet
 ```
 
 Remote-Modboard bleibt read-only:
@@ -44,58 +45,46 @@ databaseWriteEnabled: false
 agentActionsEnabled: false
 ```
 
-RDAP8 legt fest:
+RDAP8A liefert neu:
 
 ```text
-Backend entscheidet Rechte.
-Frontend ist nur Anzeige.
-Rollen und Gruppen bleiben getrennt.
-sound_profi hat keine globalen Grundrechte.
-Produktive Writes brauchen spaeter Permission + Lock + Audit + Confirm/Safety.
-Keine Schreibroute ohne eigenen Scope.
-Keine Agent-Actions.
-Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+GET /api/remote/auth/permissions/check?permission=remote.view
+```
+
+Die Route ist nur Diagnose. Ohne aktiven Login bleibt:
+
+```text
+allowed=false
 ```
 
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP8A_PERMISSION_CONTEXT_READONLY_DIAGNOSTIC_PLAN
+RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS
 ```
 
 Ziel:
 
 ```text
-Konkreten Code-Scope fuer einen read-only Auth-/Permission-Context vorbereiten.
+RDAP8A auf dem Webserver deployen, Node-Service neu starten, read-only Permission-Diagnose testen und Ergebnis dokumentieren.
 ```
 
-RDAP8A darf klaeren/umsetzen, aber erst nach eigenem Scope und ausdruecklichem go:
+RDAP8B darf klaeren/umsetzen, aber erst nach eigenem Scope und ausdruecklichem go:
 
 ```text
-echte Remote-Modboard-Dateien erneut pruefen
-keinen Login aktivieren
-keine Cookies setzen
-keine Sessions erstellen
-keine Sessions verlaengern
-kein last_seen_at Update
-vorhandenes Rollen-/Gruppen-/Permission-Modell read-only verwenden
-Auth-/Session-Read-only-Status aus RDAP7I als Grundlage nutzen
-Permission-Context nur diagnostisch/read-only vorbereiten
-keine User-/Rollen-/Gruppen-Schreibrouten
-keine DB-Writes
-keine Remote-Writes
-keine Agent-Actions
-```
-
-Moegliche spaetere Dateien, nur wenn RDAP8A als Code-Step freigegeben wird:
-
-```text
-remote-modboard/backend/src/services/auth-context-read.service.js
-remote-modboard/backend/src/services/auth-permission-read.service.js
-remote-modboard/backend/src/security/permissions.js
-remote-modboard/backend/src/routes/auth-status.routes.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
+Deploy aus GitHub/dev auf Webserver
+Backup nach /var/backups/stream-control-center/
+Deploy-Clone nach /opt/stream-control-center/_deploy_tmp/
+scc-remote-modboard.service neu starten
+npm run check auf Webserver pruefen
+GET /api/remote/status pruefen
+GET /api/remote/routes pruefen
+GET /api/remote/auth/permissions/check?permission=remote.view pruefen
+OAuth Start/Callback bleiben HTTP 403 pruefen
+kein Set-Cookie pruefen
+kein Redirect pruefen
+keine DB-Writes/Agent-Actions
+Testergebnis dokumentieren
 ```
 
 ## Noch nicht erlaubt
@@ -113,6 +102,7 @@ keine User-/Rollen-/Gruppen-Schreibroute
 keine Remote-Writes
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
+keine produktive Permission-Erzwingung fuer Writes
 ```
 
 ## Danach moeglich, nicht jetzt

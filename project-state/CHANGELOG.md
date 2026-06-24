@@ -1,5 +1,51 @@
 # CHANGELOG
 
+## 2026-06-24 - RDAP8A / Read-only Permission Resolver Diagnostic vorbereitet
+
+Status: Code-/Doku-Step vorbereitet
+
+Geaendert:
+
+- `remote-modboard/backend/package.json`
+- `remote-modboard/backend/README.md`
+- `remote-modboard/backend/src/routes/auth-status.routes.js`
+- `remote-modboard/backend/src/routes/status.routes.js`
+- `remote-modboard/backend/src/routes/routes.routes.js`
+- `remote-modboard/backend/src/services/auth-permission-read.service.js`
+- `remote-modboard/backend/src/security/permissions.js`
+- `docs/current/RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+- `project-state/CHANGELOG.md`
+
+Dokumentiert:
+
+- RDAP8A bereitet einen read-only Permission-Resolver fuer das Remote-Modboard vor.
+- Neue Diagnose-Route: `GET /api/remote/auth/permissions/check?permission=remote.view`.
+- Ohne aktiven Login bleibt `allowed=false`.
+- Ohne Cookie ist `reason=auth_disabled_or_not_logged_in` erwartet.
+- Mit diagnostisch gueltiger Session darf der Resolver Rollen/Gruppen/Permissions read-only lesen, bleibt aber produktiv gesperrt.
+- Status-/Routes-Ausgaben melden `statusApiVersion=rdap8a.v1`.
+- Naechster sinnvoller Schritt: `RDAP8B_PERMISSION_RESOLVER_LIVE_DEPLOY_TEST_DOCS`.
+
+Nicht geaendert:
+
+- kein produktiver Login
+- keine Twitch-OAuth-Secrets ins Repo
+- kein Redirect zu Twitch
+- kein OAuth-Code-gegen-Token-Tausch
+- kein Cookie gesetzt
+- keine Session erstellt/verlaengert
+- kein `last_seen_at` Update
+- keine DB-Writes
+- keine User-/Rollen-/Gruppen-Schreibroute
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- kein `moduleBuild`-Kosmetik-Fix in `remote-modboard/backend/server.js`
+
 ## 2026-06-24 - RDAP8 / Permission Check Middleware Plan dokumentiert
 
 Status: Doku-/Plan-Step vorbereitet
