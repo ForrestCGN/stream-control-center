@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS  
+Stand: RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED  
 Datum: 2026-06-24
 
 ## Zentrale RDAP-Dokumente
@@ -17,7 +17,29 @@ docs/current/RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN.md
 docs/current/RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC.md
 docs/current/RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED.md
 docs/current/RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS.md
+docs/current/RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED.md
 ```
+
+## Projektstatus-Dateien
+
+```text
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
+
+## Workflow-Tools
+
+```text
+installstep.cmd
+stepdone.cmd
+testdeploy.cmd
+tools/remote-modboard-deploy.sh
+```
+
+Wichtig: Workflow-Tools dürfen in Design-/Frontend-Steps nicht überschrieben werden. `installstep.cmd` ist der allgemeine ZIP-Installer und muss erhalten bleiben.
 
 ## Wichtige Remote-Modboard-Code-Dateien
 
@@ -38,6 +60,13 @@ remote-modboard/backend/src/services/admin-user-write-foundation.service.js
 remote-modboard/backend/src/services/admin-mini-write-foundation.service.js
 remote-modboard/backend/src/services/lock-read.service.js
 remote-modboard/backend/src/services/audit-read.service.js
+```
+
+## Frontend/Login-Dateien DESIGN2
+
+```text
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.css
 ```
 
 ## Bestätigte RDAP11-Route

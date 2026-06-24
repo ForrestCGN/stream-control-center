@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS  
+Stand: RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED  
 Datum: 2026-06-24
 
 ## RDAP / Remote-Modboard
@@ -12,10 +12,13 @@ Datum: 2026-06-24
 - [x] RDAP10B Projektstatus-Dateien auf RDAP10-Planstand synchronisiert.
 - [x] RDAP11 Mini-Write-Foundation disabled gebaut.
 - [x] RDAP11 Webserver-Deploy remote bestätigt.
+- [x] RDAP DESIGN2 Login Text Polish lokal und live bestätigt.
+- [x] `installstep.cmd` nach Zwischenfehler geprüft: allgemeiner ZIP-Installer ist wieder aktiv.
 - [ ] RDAP12 First-Mini-Write-Scope-Plan erstellen.
 - [ ] Noch keine produktiven Admin-Writes ohne separaten Scope/Go.
 - [ ] Noch keine UI-Schreibbuttons.
 - [ ] Noch keine DB-Migration ohne Backup/Rollback/Go.
+- [ ] Auffälligkeit prüfen: `statusApiVersion` zeigt `rdap_admin_users9.v1`, obwohl `moduleBuild` RDAP11 ist.
 
 ## RDAP12 muss klären
 
@@ -28,6 +31,18 @@ Datum: 2026-06-24
 - [ ] Audit-Payload dokumentieren.
 - [ ] Lock-Scope dokumentieren.
 - [ ] Fehlerfälle/Abbruchbedingungen dokumentieren.
+
+## Optionaler UI-Feinschliff
+
+- [ ] `RDAP_DESIGN3_LOGIN_TEXT_LAYOUT_FINE_TUNE` nur falls gewünscht.
+- [ ] Login-Textblock/Umbruch ruhiger machen.
+- [ ] Keine Backend-/OAuth-/DB-/Write-Änderungen.
+
+## Workflow-Schutz
+
+- [ ] Vor jedem weiteren Step `installstep.cmd`, `stepdone.cmd`, `testdeploy.cmd` und `tools/remote-modboard-deploy.sh` als geschützte Workflow-Tools behandeln.
+- [ ] Design-/Frontend-Steps dürfen Workflow-Tools nicht überschreiben.
+- [ ] Fehlende Dateien gezielt anfordern; nicht raten.
 
 ## Geparkt: Lokal/LAN
 

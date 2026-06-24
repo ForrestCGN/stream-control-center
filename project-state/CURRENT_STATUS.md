@@ -3,7 +3,7 @@
 Stand: 2026-06-24  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller bestätigter RDAP-Status
+## Aktueller bestätigter RDAP-/Design-Status
 
 Produktiv unter:
 
@@ -11,41 +11,47 @@ Produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller auf dem Webserver bestätigter Code-Stand:
+Aktueller auf dem Webserver bestätigter Backend-/Security-Code-Stand:
 
 ```text
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 ```
 
-Remote bestätigt:
+Aktueller bestätigter Frontend/Login-Design-Stand:
 
 ```text
+RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
+```
+
+Browser-Test bestätigt:
+
+```text
+Login-Subtext: Melde dich mit Twitch an und öffne dein Modboard.
+Login-Button: Anmelden
+```
+
+Optik: Noch nicht perfekt, aber für jetzt akzeptiert. Optionaler Feinschliff später.
+
+## Remote-Status nach DESIGN2-Deploy
+
+Bestätigt per Statusroute:
+
+```text
+ok: true
+service: remote-modboard
 moduleBuild: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
-foundationBuild: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
-statusApiVersion: rdap_admin_users11.v1
-miniWriteFoundationPrepared: true
 writeEnabled: false
-productiveWritesEnabled: false
-writesStillBlocked: true
-uiWriteButtonsEnabled: false
-routeRemainsReadOnly: true
+actionEnabled: false
+productiveAgentRuntime: false
 ```
 
-Bestätigte Route:
+Auffälligkeit:
 
 ```text
-GET /api/remote/admin/users/mini-write-foundation-diagnostic
+statusApiVersion: rdap_admin_users9.v1
 ```
 
-Auch mit `confirmWrite=true` bleiben Writes blockiert:
-
-```text
-confirmWrite.acceptedInRequest: true
-confirmWrite.acceptedButStillBlocked: true
-confirmWrite.reason: confirm_write_accepted_but_writes_disabled
-writeEnabled: false
-writesStillBlocked: true
-```
+Hinweis: `statusApiVersion` passt nicht sauber zur RDAP11-Build-Bezeichnung. Für DESIGN2 ist das kein Stopper, weil nur Frontend/Login-Texte geändert wurden. Später separat prüfen.
 
 ## Aktueller Dokumentations-/Planstand
 
@@ -54,9 +60,26 @@ RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
 RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS
+RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
 ```
 
-RDAP11 ist deployed und remote bestätigt. Es wurde nur eine disabled/read-only Foundation für spätere Mini-Writes vorbereitet.
+## Workflow-/Tool-Stand
+
+`installstep.cmd` wurde nach dem Zwischenfehler geprüft und ist lokal wieder der allgemeine ZIP-Installer:
+
+```text
+STEP_ZIP=%~1
+Downloads-Fallback bei leerem ZIP-Argument
+Expand-Archive ins Repo
+testdeploy.cmd wird gestartet
+```
+
+Wichtig für weitere Steps:
+
+```text
+Design-/Frontend-Steps dürfen keine Workflow-Tools überschreiben.
+installstep.cmd, stepdone.cmd und Deploy-Skripte nur ändern, wenn Forrest das ausdrücklich beauftragt.
+```
 
 ## Sicherheitsstand
 
@@ -69,6 +92,8 @@ Mini-Write-Foundation: vorbereitet, Writes deaktiviert
 Admin-Writes: weiterhin aus
 DB-Migration: keine
 UI-Schreibbuttons: keine
+Agent-Actions: aus
+OBS-/Sound-/Overlay-/Command-Steuerung: aus
 ```
 
 ## Weiterhin nicht aktiv
