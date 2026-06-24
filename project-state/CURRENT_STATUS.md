@@ -14,9 +14,10 @@ https://mods.forrestcgn.de/
 Aktueller relevanter Stand:
 
 ```text
+RDAP_META1_BUILD_HEADER_CLEANUP: deployed und getestet
 RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC: deployed und getestet
+RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION: ZIP-Step vorbereitet
 RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN: geplant/dokumentiert
-RDAP_META1_BUILD_HEADER_CLEANUP: Build-/Header-Metadaten bereinigt
 ```
 
 ## Bestätigt
@@ -32,6 +33,9 @@ RDAP_META1_BUILD_HEADER_CLEANUP: Build-/Header-Metadaten bereinigt
   - mit ForrestCGN Session: `ok:true`, `loggedIn:true`, `canReadAdminUsers:true`
   - `canWriteAdminUsers:false`
   - keine produktiven Writes
+- Build/Header-Cleanup ist remote bestätigt:
+  - `X-Remote-Modboard-Build: RDAP_META1_BUILD_HEADER_CLEANUP`
+  - `statusApiVersion: rdap_meta1.v1`
 - Profilpanel oben rechts ist Self-Service:
   - `Profil aktualisieren`
   - `Ausloggen`
@@ -40,23 +44,34 @@ RDAP_META1_BUILD_HEADER_CLEANUP: Build-/Header-Metadaten bereinigt
 - Login-/Denied-Seite ist zentriert.
 - Grid-/Spacing ist korrigiert.
 
-## Neue Zielentscheidung
+## RDAP6
+
+RDAP6 bereitet Confirm/Audit/Locking für spätere Admin-User-Writes vor.
+
+Neue Route:
+
+```text
+GET /api/remote/admin/users/write-foundation-diagnostic
+```
+
+Diese Route ist read-only und zeigt nur geplante Regeln/Felder/Aktionen.
+
+## Lokaler/LAN-Betrieb
 
 Forrest möchte:
 
 ```text
-Online über mods.forrestcgn.de arbeiten und zusätzlich lokal im Heimnetz arbeiten können.
+Online über mods.forrestcgn.de arbeiten.
+Zusätzlich lokal im Heimnetz arbeiten können.
 EngelCGN soll lokal im LAN ebenfalls arbeiten können.
 Lokaler Login soll ebenfalls über Twitch laufen.
 ```
 
-Dazu wurde dokumentiert:
+Geparkt, bis Web-Dashboard stabiler ist:
 
 ```text
-docs/current/RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN.md
+RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
-
-Umsetzung bleibt geparkt, bis das Web-Dashboard online stabiler ist.
 
 ## Workflow-Regel
 
@@ -77,8 +92,3 @@ Server-/Browser-Test
 ```
 
 `stepdone.cmd` bedeutet nicht, dass der Webserver aktualisiert wurde.
-
-## Offene technische Auffälligkeiten
-
-- Owner/Admin-Fallback funktioniert, Reason-Ausgaben sollten später verständlicher werden.
-- Lokal/LAN-Betrieb mit Twitch-Login ist noch Planung, nicht umgesetzt.

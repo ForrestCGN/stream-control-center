@@ -20,18 +20,35 @@ Branch: `dev`
 - Profilpanel zeigt nur noch `Profil aktualisieren` und `Ausloggen`.
 - Admin -> User & Rollen ist read-only sichtbar.
 - Topbar hat keinen doppelten Ausloggen-Button mehr.
-- RDAP5 Admin-User-Permission-Diagnose ist serverseitig getestet:
-  - ohne Browser-Session: `401 Unauthorized` korrekt
-  - mit ForrestCGN Browser-Session: `ok:true`, `loggedIn:true`, `roles:["owner"]`, `isOwner:true`, `isAdmin:true`, `canReadAdminUsers:true`, `canWriteAdminUsers:false`
-  - keine User-/Rollen-/Gruppen-/Session-Writes
+- RDAP5 Admin-User-Permission-Diagnose ist serverseitig getestet.
+- RDAP_META1_BUILD_HEADER_CLEANUP ist remote getestet:
+  - `X-Remote-Modboard-Build: RDAP_META1_BUILD_HEADER_CLEANUP`
+  - `statusApiVersion: rdap_meta1.v1`
+  - RDAP5 Permission-Diagnoseroute bleibt sichtbar.
+- RDAP6 Confirm-/Audit-/Locking-Foundation wurde vorbereitet:
+  - neue read-only Route `/api/remote/admin/users/write-foundation-diagnostic`
+  - keine produktiven Writes
   - keine DB-Migration
-- `RDAP_META1_BUILD_HEADER_CLEANUP` bereinigt Build-/Header-Metadaten, damit Status/Routes nicht weiter irreführend `RDAP_AUTH2_CENTRAL_LOGIN_READY` anzeigen.
-- Lokaler/LAN-Betrieb soll künftig berücksichtigt werden:
-  - Online weiter über `mods.forrestcgn.de`
-  - zusätzlich lokales Modboard im Heimnetz
-  - EngelCGN soll im LAN arbeiten können
-  - lokaler Login soll ebenfalls über Twitch erfolgen
-  - Umsetzung ist geparkt, bis das Web-Dashboard stabiler ist.
+  - keine UI-Schreibbuttons
+
+## Local/LAN-Entscheidung
+
+Forrest möchte langfristig:
+
+```text
+Online über mods.forrestcgn.de arbeiten.
+Zusätzlich lokal im Heimnetz arbeiten können.
+EngelCGN soll lokal im LAN ebenfalls arbeiten können.
+Lokaler Login soll ebenfalls über Twitch laufen.
+```
+
+Dieser Punkt ist als TODO geparkt:
+
+```text
+RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
+```
+
+Erst weiterführen, wenn das Web-Dashboard stabiler ist.
 
 ## Wichtige aktuelle Doku-Dateien
 
@@ -40,8 +57,10 @@ docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
 docs/current/RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC.md
-docs/current/RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN.md
 docs/current/RDAP_META1_BUILD_HEADER_CLEANUP.md
+docs/current/RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION.md
+docs/current/RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_RDAP6_2026-06-24.md
 ```
 
 ## Korrekte Arbeitsweise
@@ -69,35 +88,12 @@ Wichtig:
 
 ## Nächste sinnvolle Schritte
 
-### Web-Dashboard zuerst
-
 ```text
-RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
 ```
 
 Ziel:
 
-- Confirm-Write-Grundlage
-- Audit-Write-Grundlage
-- Locking-Grundlage
-- noch keine produktiven User-/Rollen-Writes
-
-### Geparkt: Lokal/LAN
-
-```text
-RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
-```
-
-Ziel später:
-
-- lokale Env-Strategie planen
-- lokales Startscript planen
-- LAN-Erreichbarkeit sauber vorbereiten
-- Twitch-Login lokal weiter planen
-- EngelCGN LAN-Zugriff berücksichtigen
-- keine Secrets ins Repo
-
-## Offene Hinweise
-
-- Owner/Admin-Fallback funktioniert diagnostisch; Reason-Ausgaben könnten später verständlicher werden.
-- Lokal/LAN mit Twitch-Login ist geplant, aber noch nicht gebaut.
+- Confirm-Write-Helfer vorbereiten, aber produktive Writes deaktiviert lassen.
+- Audit-/Locking-Zusammenspiel weiter vorbereiten.
+- Keine User-/Rollen-/Gruppen-Writes ohne eigenen separaten Go.

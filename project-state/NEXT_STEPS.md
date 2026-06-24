@@ -1,47 +1,52 @@
-# NEXT_STEPS - stream-control-center
+# NEXT STEPS - stream-control-center
 
-Stand: RDAP_META1_BUILD_HEADER_CLEANUP  
+Stand: RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION  
 Datum: 2026-06-24
 
-## Sofort nach ZIP
+## Sofort: RDAP6 einspielen
 
-Lokal auf Windows:
+1. ZIP lokal einspielen:
 
 ```powershell
 cd D:\Git\stream-control-center
 
-.\installstep.cmd "$env:USERPROFILE\Downloads\RDAP_META1_BUILD_HEADER_CLEANUP.zip" "RDAP_META1_BUILD_HEADER_CLEANUP: Build-/Header-Metadaten bereinigt, RDAP5-Route abgesichert, Local/LAN-Twitch-Login als TODO geparkt"
+.\installstep.cmd "$env:USERPROFILE\Downloads\RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION.zip" "RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION: Confirm-/Audit-/Locking-Foundation read-only vorbereitet, keine produktiven Writes"
+```
 
-node --check .\remote-modboard\backend\server.js
-node --check .\remote-modboard\backend\src\app.js
-node --check .\remote-modboard\backend\src\routes\status.routes.js
-node --check .\remote-modboard\backend\src\routes\routes.routes.js
+2. Lokale Checks:
+
+```powershell
+node --check .\remote-modboard\backend\src\services\admin-user-write-foundation.service.js
 node --check .\remote-modboard\backend\src\routes\admin-users.routes.js
-node --check .\remote-modboard\backend\src\services\admin-user-permission-read.service.js
-node -e "JSON.parse(require('fs').readFileSync('.\\remote-modboard\\backend\\package.json','utf8')); console.log('package.json ok')"
+node --check .\remote-modboard\backend\src\routes\routes.routes.js
+node -e "JSON.parse(require('fs').readFileSync('.\remote-modboard\backend\package.json','utf8')); console.log('package.json ok')"
 
 git status
 ```
 
-Wenn sauber:
+3. Wenn sauber:
 
 ```powershell
-.\stepdone.cmd "RDAP_META1_BUILD_HEADER_CLEANUP abgeschlossen: Build-/Header-Metadaten bereinigt; RDAP5 Admin-User-Permission-Diagnose bleibt read-only; Local/LAN-Twitch-Login als geparkter TODO dokumentiert; keine DB-/Admin-Write-/Secret-Änderungen"
+.\stepdone.cmd "RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION abgeschlossen: Confirm-/Audit-/Locking-Foundation read-only vorbereitet; keine User-/Rollen-/Gruppen-/Session-Writes, keine DB-Migration, keine UI-Schreibbuttons"
 ```
 
 ## Danach Webserver-Deploy
 
-Erst nach lokalem `stepdone.cmd`:
+Erst nach `stepdone.cmd`:
 
 ```bash
 cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP_META1_BUILD_HEADER_CLEANUP
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_META1_BUILD_HEADER_CLEANUP
-cd RDAP_META1_BUILD_HEADER_CLEANUP
-sudo bash tools/remote-modboard-deploy.sh RDAP_META1_BUILD_HEADER_CLEANUP dev
+
+rm -rf RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+
+cd RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+
+sudo bash tools/remote-modboard-deploy.sh RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION dev
 ```
 
-Danach Readiness:
+Restart + Readiness:
 
 ```bash
 systemctl restart scc-remote-modboard.service
@@ -55,53 +60,52 @@ for i in $(seq 1 30); do
 done
 ```
 
-Server-Tests:
+Server-Test:
 
 ```bash
 curl -i http://127.0.0.1:3010/api/remote/status
-curl -fsS http://127.0.0.1:3010/api/remote/routes | grep -i "permission-diagnostic"
-curl -i http://127.0.0.1:3010/api/remote/admin/users/permission-diagnostic
+curl -fsS http://127.0.0.1:3010/api/remote/routes | grep -i "write-foundation"
+curl -i http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic
 ```
 
 Erwartung:
 
-- `X-Remote-Modboard-Build: RDAP_META1_BUILD_HEADER_CLEANUP`
-- `statusApiVersion: rdap_meta1.v1`
-- `permission-diagnostic` Route sichtbar
-- Ohne Session bei Permission-Diagnose weiterhin `401` korrekt
+```text
+HTTP 200
+readOnly: true
+writeEnabled: false
+writesStillBlocked: true
+confirmWriteRequired: true
+auditRequired: true
+lockingRequired: true
+```
 
 ## Danach empfohlen
 
-### 1. Admin Confirm/Audit/Locking-Foundation
-
 ```text
-RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
 ```
 
-Scope weiterhin klein:
+Scope klein:
 
-- Confirm-Write-Helfer vorbereiten
-- Audit-Write-Ziel technisch prüfen
-- Locking-Foundation prüfen
-- keine großen User-/Rollen-Writes
-- keine UI-Schreibbuttons ohne eigenen Step
+- Confirm-Write-Helfer vorbereiten.
+- Produktive Writes weiter blockiert lassen.
+- Audit-/Locking-Pflicht weiter vorbereiten.
+- Keine echten User-/Rollen-/Gruppen-Writes.
 
-### 2. Geparkt: Lokaler/LAN-Betrieb mit Twitch-Login
+## Geparkt
 
 ```text
 RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
 
-Erst weiterführen, wenn das Web-Dashboard online stabil genug ist.
-
 Ziel später:
 
-- lokaler Betrieb im Heimnetz
-- EngelCGN LAN-Zugriff
-- lokaler Twitch-Login
-- lokale Env/Startscript/DB-Strategie
-- keine Secrets im Repo
+- Online + Lokal/LAN-Betrieb.
+- ForrestCGN und EngelCGN lokal im LAN.
+- Lokaler Login ebenfalls über Twitch.
+- Erst weiterführen, wenn Web-Dashboard stabiler ist.
 
 ## Webserver-Deploy-Regel
 
-`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen.
+`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen. Immer frischer Clone in `_deploy_tmp`.

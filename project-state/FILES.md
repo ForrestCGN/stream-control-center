@@ -1,26 +1,41 @@
-# FILES - stream-control-center
+# FILES
 
-Stand: RDAP_META1_BUILD_HEADER_CLEANUP  
-Datum: 2026-06-24
+Stand: 2026-06-24  
+Projekt: `stream-control-center` / Remote-Modboard
 
-## In diesem Step geändert
+## Zentrale RDAP-Dokumente
+
+```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
+docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
+docs/current/RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC.md
+docs/current/RDAP_META1_BUILD_HEADER_CLEANUP.md
+docs/current/RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION.md
+docs/current/RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_RDAP6_2026-06-24.md
+```
+
+## Wichtige Remote-Modboard-Code-Dateien
 
 ```text
 remote-modboard/backend/server.js
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/package.json
-docs/current/RDAP_META1_BUILD_HEADER_CLEANUP.md
-docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/services/admin-user-permission-read.service.js
+remote-modboard/backend/src/services/admin-user-write-foundation.service.js
+remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/services/auth-permission-read.service.js
+remote-modboard/backend/src/services/auth-profile-sync.service.js
+remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/services/lock-read.service.js
+remote-modboard/backend/src/services/audit-read.service.js
 ```
 
-## Relevante aktuelle RDAP-Frontend-Dateien
+## Frontend-Dateien
 
 ```text
 remote-modboard/backend/public/index.html
@@ -28,64 +43,29 @@ remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/public/assets/remote-modboard.css
 ```
 
-## Relevante Auth-/Profil-Sync-Dateien
-
-```text
-remote-modboard/backend/src/services/auth-profile-sync.service.js
-remote-modboard/backend/src/routes/auth-status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/services/auth-session-write.service.js
-remote-modboard/backend/src/services/auth-permission-read.service.js
-remote-modboard/backend/src/services/auth-status.service.js
-```
-
-## Relevante Admin-read-only-/Permission-Dateien
-
-```text
-remote-modboard/backend/src/services/auth-db-read.service.js
-remote-modboard/backend/src/services/admin-user-permission-read.service.js
-remote-modboard/backend/src/routes/admin-users.routes.js
-```
-
-## Relevante RDAP-Deploy-Datei
+## Deploy
 
 ```text
 tools/remote-modboard-deploy.sh
 ```
 
-Wichtig: Diese Datei liegt im Repo/Clone. Nicht als festen Serverpfad `/opt/stream-control-center/tools/...` annehmen.
-
-## Server Env
+## Neu mit RDAP6
 
 ```text
-/etc/stream-control-center/remote-modboard.env
+remote-modboard/backend/src/services/admin-user-write-foundation.service.js
+docs/current/RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_RDAP6_2026-06-24.md
 ```
 
-Diese Datei enthält produktive Secrets und darf nicht ins Repo.
-
-Aktuelle DB-Variablennamen:
+## Geparkt / später geplant
 
 ```text
-DB_HOST
-DB_PORT
-DB_NAME
-DB_USER
-DB_PASSWORD
+RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
+lokales Startscript
+lokale Env-Beispiel-Doku ohne Secrets
+lokale DB-Teststrategie
+lokaler Twitch-Login
+EngelCGN LAN-Zugriff
 ```
 
-Nicht `MYSQL_*`.
-
-## Webserver
-
-```text
-/opt/stream-control-center/remote-modboard
-/opt/stream-control-center/remote-modboard/backend
-/opt/stream-control-center/_deploy_tmp/
-/opt/stream-control-center/_runtime_tmp/
-```
-
-Wichtig:
-
-```text
-/opt/stream-control-center ist kein Git-Repository.
-```
+Keine Secrets, keine `.env`, keine DB-Dateien ins Repo.
