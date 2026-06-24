@@ -7,7 +7,7 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_routes',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_admin_users7.v1',
+      statusApiVersion: 'rdap_admin_users7b.v1',
       readOnly: true,
       writeEnabled: false,
       authEnabled: Boolean(context.config && context.config.auth && context.config.auth.authEnabled),
@@ -35,6 +35,8 @@ function registerRoutesRoutes(app, context) {
       ],
       adminUsersWriteFoundation: {
         confirmWriteHelperPrepared: true,
+        confirmWriteHelperEnabledForRealWrites: false,
+        confirmWriteHelperExecutesWrites: false,
         productiveWritesEnabled: false,
         writesStillBlocked: true,
         routeRemainsReadOnly: true

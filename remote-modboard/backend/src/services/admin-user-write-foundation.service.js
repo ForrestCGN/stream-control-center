@@ -3,7 +3,7 @@
 const { buildAdminConfirmWriteDiagnostic } = require('./admin-confirm-write.service');
 
 function getModuleBuild(context) {
-  return (context && context.moduleBuild) || 'RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED';
+  return (context && context.moduleBuild) || 'RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP';
 }
 
 function getSafety(context) {
@@ -39,6 +39,16 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
     'admin.users.permission.grant',
     'admin.users.permission.revoke'
   ];
+
+  const confirmWriteHelper = {
+    prepared: true,
+    enabledForRealWrites: false,
+    executesWrites: false,
+    touchesDatabase: false,
+    createsRoutes: false,
+    bypassesPermissions: false,
+    diagnostic: confirmWriteDiagnostic
+  };
 
   const plannedConfirmWrite = {
     required: true,
@@ -85,7 +95,7 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
       service: 'remote-modboard',
       module: 'remote_admin_user_write_foundation',
       moduleBuild,
-      statusApiVersion: 'rdap_admin_users7.v1',
+      statusApiVersion: 'rdap_admin_users7b.v1',
       readOnly: true,
       writeEnabled: false,
       databaseWriteEnabled: false,
@@ -99,6 +109,7 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
       confirmWriteRequired: true,
       confirmWriteHelperPrepared: true,
       confirmWriteHelperExecutesWrites: false,
+      confirmWriteHelper,
       auditRequired: true,
       auditHelperPrepared: false,
       lockingRequired: true,
@@ -137,7 +148,7 @@ function buildAdminUserWriteFoundationDiagnostic({ context } = {}) {
       ],
       safety,
       notes: [
-        'RDAP_ADMIN_USERS7 bereitet einen Confirm-Write-Helper vor.',
+        'RDAP_ADMIN_USERS7B bereinigt Confirm-Write-Metadaten in Status und Foundation-Diagnose.',
         'Der Helper prueft nur Confirm-Write-Eingaben und fuehrt keine Writes aus.',
         'Dieser Endpunkt fuehrt keine User-/Rollen-/Gruppen-/Session-Writes aus.',
         'Produktive Admin-Writes bleiben in diesem Step absichtlich blockiert.',

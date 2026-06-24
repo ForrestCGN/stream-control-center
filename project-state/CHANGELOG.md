@@ -3,7 +3,7 @@
 Stand: 2026-06-24  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
+## RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
 
 Typ: Code klein + Doku  
 DB: nein  
@@ -11,22 +11,22 @@ Secrets: nein
 Produktive Writes: nein  
 UI-Schreibbuttons: nein
 
-### Geaendert
+### Geändert
 
-- Neuer Confirm-Write-Helper vorbereitet:
-  - `remote-modboard/backend/src/services/admin-confirm-write.service.js`
-- Bestehende read-only Foundation-Diagnose erweitert:
-  - `/api/remote/admin/users/write-foundation-diagnostic`
-  - zeigt jetzt Confirm-Write-Diagnosebeispiele
-- `server.js` Build auf `RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED` gesetzt.
-- `/api/remote/status` meldet `statusApiVersion: rdap_admin_users7.v1` und Confirm-Write-Helper-Status.
-- `/api/remote/routes` meldet `statusApiVersion: rdap_admin_users7.v1` und die Foundation-Route mit Confirm-Hinweis.
-- `package.json` Syntaxcheck um `admin-confirm-write.service.js` erweitert.
+- Confirm-Write-Metadaten bereinigt:
+  - `auth.permissions.confirmWriteHelperPrepared:true`
+  - `adminUsersWriteFoundation.confirmWriteHelperPrepared:true`
+  - `confirmWriteHelperPrepared:true` in Foundation-Diagnose
+  - `confirmWriteHelper.prepared:true` in Foundation-Diagnose
+- Build/API-Version auf RDAP7B aktualisiert:
+  - `RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP`
+  - `rdap_admin_users7b.v1`
+- `confirmWriteDiagnostic` bleibt erhalten.
 - Doku, CURRENT_STATUS, NEXT_STEPS, TODO, FILES aktualisiert.
-- Neuer Prompt fuer naechsten Chat erstellt:
-  - `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_RDAP7_2026-06-24.md`
+- Neuer Prompt für nächsten Chat erstellt:
+  - `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_RDAP7B_2026-06-24.md`
 
-### Nicht geaendert
+### Nicht geändert
 
 - Keine User-Writes.
 - Keine Rollen-Writes.
@@ -38,67 +38,20 @@ UI-Schreibbuttons: nein
 - Keine UI-Schreibbuttons.
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
 
-## RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
+## RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED
 
-Typ: Code klein + Doku  
-DB: nein  
-Secrets: nein  
-Produktive Writes: nein  
-UI-Schreibbuttons: nein
+Status: deployed und getestet, kleiner Metadaten-Cleanup nötig.
 
-### Geaendert
+Bestätigt:
 
-- Neue read-only Foundation-Diagnose vorbereitet:
-  - `/api/remote/admin/users/write-foundation-diagnostic`
-- Neuer Service:
-  - `remote-modboard/backend/src/services/admin-user-write-foundation.service.js`
-- Admin-User-Routen erweitert:
-  - `permission-diagnostic` bleibt bestehen.
-  - `write-foundation-diagnostic` kommt hinzu.
-- Routenuebersicht erweitert.
-- `package.json` Syntaxcheck um RDAP5/RDAP6 Admin-User-Dateien erweitert.
-- Doku, CURRENT_STATUS, NEXT_STEPS, TODO, FILES aktualisiert.
+- `moduleBuild:"RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED"`
+- `statusApiVersion:"rdap_admin_users7.v1"`
+- `/api/remote/routes` zeigt `adminUsersWriteFoundation.confirmWriteHelperPrepared:true`.
+- Produktive Writes bleiben deaktiviert.
 
-### Nicht geaendert
+Problem:
 
-- Keine User-Writes.
-- Keine Rollen-Writes.
-- Keine Gruppen-Writes.
-- Keine Session-Widerrufe.
-- Keine DB-Migration.
-- Keine SQL-Dateien.
-- Keine Secrets.
-- Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions.
-
-## RDAP_META1_BUILD_HEADER_CLEANUP
-
-Status: deployed und getestet.
-
-Bestaetigt:
-
-- `/api/remote/status` zeigte:
-  - `X-Remote-Modboard-Build: RDAP_META1_BUILD_HEADER_CLEANUP`
-  - `statusApiVersion: rdap_meta1.v1`
-- `/api/remote/routes` zeigt RDAP5 Route weiter.
-- `/api/remote/admin/users/permission-diagnostic` gibt ohne Session korrekt `401 Unauthorized`.
-
-## RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
-
-Status: deployed und getestet.
-
-Bestaetigt:
-
-- `/api/remote/admin/users/permission-diagnostic` aktiv.
-- Ohne Session: `401 Unauthorized` korrekt.
-- Mit ForrestCGN Browser-Session:
-  - `ok:true`
-  - `loggedIn:true`
-  - `dashboardAccess:true`
-  - `roles:["owner"]`
-  - `isOwner:true`
-  - `isAdmin:true`
-  - `canReadAdminUsers:true`
-  - `canWriteAdminUsers:false`
+- Testpfade `.auth.permissions.confirmWriteHelperPrepared` und `.confirmWriteHelper` liefen auf `null`, weil die Felder anders benannt/platziert waren.
 
 ## Geparkt
 

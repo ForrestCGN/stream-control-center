@@ -1,5 +1,8 @@
 'use strict';
 
+const MODULE_BUILD = 'RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP';
+const STATUS_API_VERSION = 'rdap_admin_users7b.v1';
+
 const ACCEPTED_CONFIRM_KEYS = Object.freeze([
   'confirmWrite',
   'confirm_write'
@@ -21,8 +24,8 @@ function evaluateAdminConfirmWrite(input = {}) {
     ok: accepted,
     service: 'remote-modboard',
     module: 'remote_admin_confirm_write',
-    moduleBuild: 'RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED',
-    statusApiVersion: 'rdap_admin_users7.v1',
+    moduleBuild: MODULE_BUILD,
+    statusApiVersion: STATUS_API_VERSION,
     readOnly: true,
     writeEnabled: false,
     databaseWriteEnabled: false,
@@ -67,14 +70,16 @@ function buildAdminConfirmWriteDiagnostic() {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_admin_confirm_write_diagnostic',
-    moduleBuild: 'RDAP_ADMIN_USERS7_CONFIRM_HELPER_DISABLED',
-    statusApiVersion: 'rdap_admin_users7.v1',
+    moduleBuild: MODULE_BUILD,
+    statusApiVersion: STATUS_API_VERSION,
     readOnly: true,
     writeEnabled: false,
     productiveWritesEnabled: false,
     writesStillBlocked: true,
     helperPrepared: true,
     helperEnabledForRealWrites: false,
+    confirmWriteHelperPrepared: true,
+    confirmWriteHelperExecutesWrites: false,
     acceptedKeys: ACCEPTED_CONFIRM_KEYS.slice(),
     acceptedValues: ACCEPTED_CONFIRM_VALUES.slice(),
     examples: {
