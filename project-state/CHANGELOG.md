@@ -1,12 +1,13 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP15 / Lock resourceType Decision Plan dokumentiert
+## 2026-06-24 - RDAP16 / Handoff Visible Next vorbereitet
 
-Status: Doku-/Plan-Step vorbereitet
+Status: Doku-/Handoff-Step vorbereitet
 
-Geaendert:
+Geändert:
 
-- `docs/current/RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN.md`
+- `docs/current/RDAP16_HANDOFF_VISIBLE_NEXT.md`
+- `docs/current/NEXT_CHAT_PROMPT_RDAP_UI1.txt`
 - `docs/current/START_HERE_FOR_NEW_CHAT.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
@@ -16,16 +17,22 @@ Geaendert:
 
 Inhalt:
 
-- RDAP14C Lock-Befund bewertet
-- Optionen Migration vs typisierter resource_key vs Hybrid verglichen
-- Hybrid als Empfehlung dokumentiert
-- verbindliche Resource-Key-Regel fuer neue Lock-Konzepte dokumentiert
-- RDAP16 als naechsten Plan-Step gesetzt
+- RDAP15 Abschluss konsolidiert
+- Live-Basis Remote-Modboard dokumentiert
+- Read-only Diagnose-Routen dokumentiert
+- OAuth disabled dokumentiert
+- Strukturregel dokumentiert: vorhandene Module nutzen
+- Server-Regel dokumentiert: Restart-Wait/Retry
+- nächster Fokus auf sichtbare UI gelegt
 
-Keine Aenderung:
+Nächster Schritt:
+
+- `RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE`
+
+Keine Änderung:
 
 - kein Backend-Code
-- keine DB-Aenderung
+- keine DB-Änderung
 - keine Migration
 - kein Login
 - kein OAuth

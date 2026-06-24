@@ -1,37 +1,55 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN
+Stand: RDAP16_HANDOFF_VISIBLE_NEXT
 Datum: 2026-06-24
 
-## Naechster sinnvoller Schritt
+## Nächster sinnvoller Schritt
 
 ```text
-RDAP16_TYPED_RESOURCE_KEY_RULES_AND_ADAPTER_PLAN
+RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
 ```
 
-## Ziel RDAP16
+## Ziel
 
-Konkrete Regeln fuer typisierte Resource-Keys planen.
+Eine erste sichtbare Remote-Modboard-Webseite bauen.
 
-RDAP16 soll klaeren:
+Fokus:
 
-- erlaubte `resourceType` Werte
-- erlaubte Namespaces
-- Format-Regeln
-- Parser-/Validator-Verhalten
-- Fehlergruende fuer untypisierte Keys
-- Adapter-Ausgabe fuer typisierte und untypisierte Keys
-- welche Dashboard-Bereiche welche Resource-Keys nutzen sollen
+```text
+sichtbarer Fortschritt
+```
 
-## RDAP16 darf NICHT
+Nicht noch weitere Mini-Konzeptsteps.
 
-- Backend-Code aendern
-- DB aendern
-- Migration ausfuehren
-- DB-Writes bauen
+## UI1 soll anzeigen
+
+- Service-Status
+- Read-only-/Write-Safety
+- Login/OAuth disabled
+- Agent-Actions disabled
+- Routen-Status
+- Lock-/Audit Schema-Adapter Diagnose
+- Hinweisbox: read-only Diagnosemodus
+
+## UI1 darf NICHT
+
 - Login aktivieren
 - OAuth aktivieren
-- Cookies/Sessions bauen
-- Remote-Writes bauen
-- Agent-Actions aktivieren
-- Secrets ausgeben oder loggen
+- Cookies setzen
+- Sessions erstellen
+- POST/PUT/PATCH/DELETE bauen
+- Agent-Actions auslösen
+- OBS/Sound/Overlay/Command steuern
+- Secrets anzeigen
+- DB-Writes ausführen
+
+## Vor Umsetzung
+
+Im neuen Chat zuerst echte Dateien prüfen:
+
+- vorhandene htdocs/dashboard-v2 Struktur
+- vorhandene remote-modboard Struktur
+- vorhandene Frontend-/Static-Serving-Struktur
+- bestehende CSS/JS Patterns
+
+Dann Scope nennen und auf go warten.

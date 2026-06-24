@@ -1,52 +1,77 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN
+Stand: RDAP16_HANDOFF_VISIBLE_NEXT
 Datum: 2026-06-24
 
-## Aktueller bestaetigter Arbeitsstand
+## Aktueller bestätigter Arbeitsstand
 
-RDAP15 dokumentiert die Entscheidungsvorbereitung fuer `resourceType` bei spaeteren Lock-Writes.
+RDAP15 wurde abgeschlossen.
 
-RDAP15 ist ein reiner Doku-/Planungsstand.
+RDAP16 konsolidiert den Stand und bereitet den nächsten Chat mit sichtbarem UI-Fokus vor.
 
-Keine Code-, DB- oder Server-Aenderung.
-
-## Ausgangslage
-
-RDAP14C bestaetigte live:
+## Bestätigte Live-Basis
 
 ```text
-locks.compatibleForRead=true
-locks.compatibleForWrite=false
-missingForWrite=["resourceType"]
-writeBlockReason=resource_type_column_missing_typed_resource_key_required_and_writes_disabled
+Remote-Modboard public read-only:
+https://mods.forrestcgn.de/api/remote/
+
+Interner Service:
+127.0.0.1:3010
+
+Systemd:
+scc-remote-modboard.service
 ```
 
-## Entscheidung
-
-Empfohlen wird Hybrid:
-
-1. kurzfristig typisierte `resource_key` verwenden
-2. mittelfristig `resource_type` als eigene Spalte planen
-3. produktive Lock-Writes bleiben blockiert, bis alle Safety-/Auth-/Permission-/Audit-/Schema-Gates stehen
-
-## Verbindliche Resource-Key-Regel
-
-Format:
+## Bestätigte Diagnose-Routen
 
 ```text
-<resourceType>:<namespace>:<id>
+GET /api/remote/status
+GET /api/remote/routes
+GET /api/remote/auth/me
+GET /api/remote/auth/permissions/check?permission=remote.view
+GET /api/remote/lock-audit/status
+GET /api/remote/lock-audit/status?db=1
+GET /api/remote/lock-audit/schema-adapter/status
+GET /api/remote/lock-audit/schema-adapter/status?db=1
 ```
 
-Beispiele:
+## OAuth bleibt deaktiviert
 
 ```text
-text:message:welcome
-config:module:loyalty
-media:sound:1602
-overlay:layout:event_winner
-command:twitch:clip
+GET /api/remote/auth/twitch/start    -> HTTP 403
+GET /api/remote/auth/twitch/callback -> HTTP 403
 ```
+
+## Aktuelle Sicherheitslage
+
+Weiterhin:
+
+```text
+readOnly=true
+writeEnabled=false
+databaseWriteEnabled=false
+authEnabled=false
+loginEnabled=false
+agentActionsEnabled=false
+lockAcquireEnabled=false
+auditInsertEnabled=false
+```
+
+## resourceType Entscheidung
+
+RDAP15 empfiehlt Hybrid:
+
+- kurzfristig typisierte `resource_key`
+- mittelfristig `resource_type` per eigener Migration planen
+- keine produktiven Lock-Writes ohne eigene Safety-Kette
+
+## Nächster Fokus
+
+```text
+RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
+```
+
+Eine erste sichtbare read-only UI-Seite bauen.
 
 ## Weiterhin verboten
 

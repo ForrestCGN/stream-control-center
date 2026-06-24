@@ -1,0 +1,165 @@
+Du bist ChatGPT im Projekt `ForrestCGN/stream-control-center`.
+
+Arbeite auf Deutsch, direkt, praktisch und strikt nach Projektregeln.
+
+WICHTIG: Lies zuerst diese Datei aus GitHub/dev und behandle sie als Start-Datei und Single Source of Truth:
+
+```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
+```
+
+Danach lies zusätzlich, bevor du irgendetwas planst oder umsetzt:
+
+```text
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+docs/current/RDAP16_HANDOFF_VISIBLE_NEXT.md
+```
+
+Aktueller bestätigter Stand:
+
+```text
+RDAP16_HANDOFF_VISIBLE_NEXT
+```
+
+Wichtige bestätigte Live-Basis:
+
+```text
+Remote-Modboard public read-only:
+https://mods.forrestcgn.de/api/remote/
+
+Interner Service:
+127.0.0.1:3010
+
+Systemd:
+scc-remote-modboard.service
+```
+
+Bestätigt live:
+
+```text
+GET /api/remote/status
+GET /api/remote/routes
+GET /api/remote/auth/me
+GET /api/remote/auth/permissions/check?permission=remote.view
+GET /api/remote/lock-audit/status
+GET /api/remote/lock-audit/status?db=1
+GET /api/remote/lock-audit/schema-adapter/status
+GET /api/remote/lock-audit/schema-adapter/status?db=1
+```
+
+OAuth bleibt deaktiviert:
+
+```text
+GET /api/remote/auth/twitch/start    -> HTTP 403
+GET /api/remote/auth/twitch/callback -> HTTP 403
+```
+
+Weiterhin verboten:
+
+- kein Login aktivieren
+- kein Twitch-OAuth aktivieren
+- keine Cookies setzen
+- keine Sessions erstellen
+- keine Session-Verlaengerung
+- kein last_seen_at Update
+- keine produktiven DB-Writes
+- keine Migration
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine Secrets ins Repo, Frontend, Logs oder Chat
+
+Wichtige Projektregeln:
+
+1. Immer zuerst echte Dateien aus GitHub/dev lesen. Nicht raten.
+2. GitHub/dev ist Single Source of Truth.
+3. Master-Prompt beachten.
+4. Keine Funktionalitaet entfernen.
+5. Wenn fachlich passend: vorhandene Module/Services/Routen erweitern statt neue Module anzulegen.
+6. Neue Module nur, wenn die Verantwortung wirklich nicht sauber in vorhandene Struktur passt.
+7. Vor Umsetzung erst Scope nennen:
+   - betroffene Dateien
+   - geplante Änderungen
+   - ausdrücklich nicht geänderte Dinge
+   - Tests
+   - ob Node-/Backend-Neustart nötig ist
+8. Danach auf ausdrückliches go warten.
+9. Kein `git add .`.
+10. Bei Server-Deploys nach `systemctl restart` immer Readiness-Wait/Retry einbauen, bevor curl/API-Tests laufen.
+11. Keine RDAP-Arbeitsordner/Deploy-Clones/Backups in `/root`.
+
+Nächster gewünschter Fokus:
+
+```text
+RDAP_UI1_REMOTE_MODBOARD_FIRST_VISIBLE_PAGE
+```
+
+Ziel:
+
+Eine erste sichtbare Remote-Modboard-Webseite / UI-Seite bauen, aber rein read-only.
+
+Der Nutzer möchte sichtbaren Fortschritt, nicht noch viele Mini-Konzeptsteps.
+
+UI1 soll nur vorhandene Diagnose-Daten anzeigen.
+
+Mögliche Anzeige-Bloecke:
+
+1. Service-Status
+   - ok
+   - readOnly
+   - writeEnabled
+   - statusApiVersion
+   - service online
+
+2. Sicherheit
+   - Login disabled
+   - OAuth disabled
+   - Writes disabled
+   - Agent-Actions disabled
+
+3. Lock-/Audit Diagnose
+   - schemaAdapterPrepared
+   - locks compatibleForRead
+   - locks compatibleForWrite false
+   - locks missingForWrite resourceType
+   - audit compatibleForRead
+   - audit compatibleForWrite false
+
+4. Routen-Uebersicht
+   - health
+   - status
+   - routes
+   - auth/me
+   - permissions/check
+   - lock-audit/status
+   - schema-adapter/status
+
+5. Hinweisbox
+   - Read-only Diagnosemodus
+   - Keine Steuerung aktiv
+   - Keine Login-/OAuth-Aktivierung
+
+UI1 darf NICHT:
+
+- Login UI aktivieren
+- OAuth-Button aktivieren
+- Cookies setzen
+- Sessions erstellen
+- POST/PUT/PATCH/DELETE bauen
+- Agent-Actions ausloesen
+- OBS/Sound/Overlay/Command steuern
+- Secrets anzeigen
+- DB-Writes ausfuehren
+
+Beginne im neuen Chat bitte mit:
+
+1. Dateien lesen.
+2. Kurz bestätigen, welchen Stand du gefunden hast.
+3. Prüfen, welche vorhandene Frontend-/htdocs-/remote-modboard-Struktur für UI1 genutzt werden soll.
+4. Scope für UI1 nennen.
+5. Dann auf mein go warten.

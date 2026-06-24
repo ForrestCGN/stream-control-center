@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN
+Stand: RDAP16_HANDOFF_VISIBLE_NEXT
 Datum: 2026-06-24
 
 ## Erledigt
@@ -16,15 +16,15 @@ Datum: 2026-06-24
 - [x] RDAP14B Schema-Adapter read-only Skeleton live deployed und getestet
 - [x] RDAP14C Live-Test dokumentiert
 - [x] RDAP15 Lock resourceType Decision Plan dokumentiert
+- [x] RDAP16 Handoff Visible Next vorbereitet
 
-## Noch offen / als naechstes
+## Als nächstes
 
-- [ ] RDAP16 Typed Resource-Key Rules and Adapter Plan
-- [ ] ResourceType-Werte definieren
-- [ ] Namespaces definieren
-- [ ] Parser-/Validator-Regeln planen
-- [ ] Step-Scripte beobachten: remote-modboard sollte nach TOOLS1 automatisch mitgenommen werden
-- [ ] Server-Deploy-Scripts mit Readiness-Wait/Retry weiter standardisieren
+- [ ] RDAP_UI1 Remote-Modboard erste sichtbare read-only UI-Seite planen
+- [ ] echte Frontend-/htdocs-/remote-modboard-Struktur prüfen
+- [ ] vorhandene Module nutzen statt neue Modulflut
+- [ ] UI nur read-only Diagnose anzeigen lassen
+- [ ] keine Login-/OAuth-/Write-/Agent-Aktivierung
 
 ## Dauerhafte Verbote bis eigener Scope
 
