@@ -1,9 +1,9 @@
 # FILES - stream-control-center
 
-Stand: RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON
+Stand: RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS
 Datum: 2026-06-24
 
-## RDAP14 relevante Dateien
+## RDAP14/RDAP14C relevante Dateien
 
 ```text
 remote-modboard/backend/src/services/lock-read.service.js
@@ -11,6 +11,7 @@ remote-modboard/backend/src/services/audit-read.service.js
 remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 docs/current/RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON.md
+docs/current/RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS.md
 docs/current/START_HERE_FOR_NEW_CHAT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
@@ -19,17 +20,11 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Keine neuen Adapter-Module
-
-Bewusst nicht angelegt:
+## Backup RDAP14B
 
 ```text
-remote-modboard/backend/src/services/lock-schema-adapter.service.js
-remote-modboard/backend/src/services/audit-schema-adapter.service.js
-remote-modboard/backend/src/routes/schema-adapter-diagnostic.routes.js
+/var/backups/stream-control-center/RDAP14B_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_DEPLOY_TEST_remote-modboard-backend_20260624_090046.tar.gz
 ```
-
-Grund: vorhandenes Lock-/Audit-Diagnose-Modul passt fachlich.
 
 ## Webserver Pfade
 

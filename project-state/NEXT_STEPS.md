@@ -1,47 +1,47 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON
+Stand: RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS
 Datum: 2026-06-24
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP14B_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_DEPLOY_TEST
+RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN
 ```
 
-## Ziel RDAP14B
+## Ziel RDAP15
 
-RDAP14 auf dem Webserver deployen und read-only testen.
+Planen, wie `resourceType` fuer spaetere Lock-Writes behandelt werden soll.
 
-## Tests live
-
-Nach Deploy und Service-Restart mit Readiness-Wait:
+Grund:
 
 ```text
-GET /api/remote/status
-GET /api/remote/routes
-GET /api/remote/lock-audit/status
-GET /api/remote/lock-audit/status?db=1
-GET /api/remote/lock-audit/schema-adapter/status
-GET /api/remote/lock-audit/schema-adapter/status?db=1
-GET /api/remote/auth/twitch/start -> 403
-GET /api/remote/auth/twitch/callback -> 403
+locks.compatibleForWrite=false
+missingForWrite=["resourceType"]
 ```
 
-## Muss weiter gelten
+Optionen:
 
-```text
-readOnly=true
-writeEnabled=false
-databaseWriteEnabled=false
-migrationEnabled=false
-authEnabled=false
-loginEnabled=false
-agentActionsEnabled=false
-lockAcquireEnabled=false
-auditInsertEnabled=false
-```
+1. Migration: `dashboard_locks.resource_type` ergaenzen
+2. Kein Schema-Change: `resource_key` zwingend typisiert nutzen
+3. Hybrid: `resource_type` spaeter ergaenzen, bis dahin typisierte `resource_key`
+
+## RDAP15 darf NICHT
+
+- Tabellen aendern
+- Migration ausfuehren
+- DB-Writes ausfuehren
+- Login aktivieren
+- OAuth aktivieren
+- Cookies/Sessions bauen
+- Remote-Writes bauen
+- Agent-Actions aktivieren
+- Secrets ausgeben oder loggen
 
 ## Server-Regel
 
-Nach `systemctl restart` immer Readiness-Wait/Retry vor API-Tests.
+Bei jedem Server-Restart:
+
+- `systemctl restart`
+- Readiness-Wait/Retry
+- erst danach API-Tests

@@ -1,55 +1,81 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON
+Stand: RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS
 Datum: 2026-06-24
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP14 baut das read-only Schema-Adapter-Skeleton fuer Lock/Audit.
+RDAP14B wurde live deployed und getestet.
 
-Wichtig: Kein unnoetiger Modul-Wildwuchs.
+RDAP14C dokumentiert den Live-Test.
 
-Die Adapter-Logik wurde in vorhandene Services integriert:
+Remote-Modboard:
 
 ```text
-remote-modboard/backend/src/services/lock-read.service.js
-remote-modboard/backend/src/services/audit-read.service.js
+https://mods.forrestcgn.de/api/remote/
+127.0.0.1:3010
+scc-remote-modboard.service
 ```
 
-Die neue Diagnose-Route wurde in das vorhandene Lock-/Audit-Diagnose-Modul integriert:
+## Backup
 
 ```text
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+/var/backups/stream-control-center/RDAP14B_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_DEPLOY_TEST_remote-modboard-backend_20260624_090046.tar.gz
 ```
 
-## Route
+## Bestaetigte Live-Routen
 
 ```text
+GET /api/remote/lock-audit/status
+GET /api/remote/lock-audit/status?db=1
 GET /api/remote/lock-audit/schema-adapter/status
 GET /api/remote/lock-audit/schema-adapter/status?db=1
 ```
 
-## Safety
-
-RDAP14 bleibt read-only:
+## Bestaetigte Werte
 
 ```text
+statusApiVersion=rdap14.v1
 readOnly=true
 writeEnabled=false
 databaseWriteEnabled=false
-migrationEnabled=false
-authEnabled=false
-loginEnabled=false
-agentActionsEnabled=false
+schemaAdapterPrepared=true
+lockSchemaAdapterPrepared=true
+auditSchemaAdapterPrepared=true
 lockAcquireEnabled=false
 auditInsertEnabled=false
+```
+
+OAuth:
+
+```text
+start=403
+callback=403
+```
+
+## Adapter-Befund
+
+Locks:
+
+```text
+compatibleForRead=true
 compatibleForWrite=false
+missingForWrite=["resourceType"]
+writeBlockReason=resource_type_column_missing_typed_resource_key_required_and_writes_disabled
+```
+
+Audit:
+
+```text
+compatibleForRead=true
+compatibleForWrite=false
+writeBlockReason=writes_disabled_by_safety_flags
 ```
 
 ## Weiterhin verboten
 
 - kein Login
-- kein Twitch-OAuth
+- kein OAuth
 - keine Cookies
 - keine Sessions
 - keine DB-Writes
