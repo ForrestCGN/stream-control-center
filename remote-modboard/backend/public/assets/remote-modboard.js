@@ -149,6 +149,7 @@ async function loadDashboard(reason) {
   renderRoutes(results.routes);
   renderAuth(results.authMe, results.permission, results.status);
   renderAccessModel(results.authMe, results.permission, results.authModel);
+  renderAdminUsersModel(results.authModel);
   renderLockAudit(results.lockAudit, results.schemaAdapter);
   renderEndpoints(results);
   renderQuickStatus(results);
@@ -520,6 +521,50 @@ function renderAccessModel(authMe, permission, authModel) {
   renderModelList('accessRolesModel', model.roles, row => `${row.role_key || 'role'}${row.label ? ` · ${row.label}` : ''}`);
   renderModelList('accessGroupsModel', model.groups, row => `${row.group_key || 'group'}${row.label ? ` · ${row.label}` : ''}${row.group_type ? ` · ${row.group_type}` : ''}`);
   renderModelList('accessPermissionsModel', model.permissions, row => `${row.permission_key || 'permission'}${row.area ? ` · ${row.area}` : ''}`);
+}
+
+
+function renderAdminUsersModel(authModel) {
+  const modelBody = (authModel && authModel.body) || {};
+  const counts = modelBody.counts || {};
+  const model = modelBody.model || {};
+  const users = Array.isArray(model.users) ? model.users : [];
+
+  setText('adminCountUsers', formatCount(counts.dashboard_users));
+  setText('adminCountSessions', formatCount(counts.dashboard_sessions));
+  setText('adminCountRoles', formatCount(counts.dashboard_roles));
+  setText('adminCountPermissions', formatCount(counts.dashboard_permissions));
+  setChip('adminUsersPill', authModel && authModel.ok, authModel && authModel.ok ? `${users.length} geladen` : 'prüfen');
+
+  renderAdminUsersList('adminUsersList', users);
+  renderModelList('adminRolesModel', model.roles, row => `${row.role_key || 'role'}${row.label ? ` · ${row.label}` : ''}`);
+  renderModelList('adminGroupsModel', model.groups, row => `${row.group_key || 'group'}${row.label ? ` · ${row.label}` : ''}${row.group_type ? ` · ${row.group_type}` : ''}`);
+}
+
+function renderAdminUsersList(id, users) {
+  const node = byId(id);
+  if (!node) return;
+  const rows = Array.isArray(users) ? users : [];
+  if (!rows.length) {
+    node.innerHTML = '<div class="admin-user-row admin-user-row--empty"><strong>—</strong><span>Keine User geladen oder Auth-DB-Modell nicht lesbar</span></div>';
+    return;
+  }
+
+  node.innerHTML = rows.slice(0, 40).map((user) => {
+    const displayName = user.display_name || user.displayName || user.login_name || user.loginName || user.user_uid || 'User';
+    const loginName = user.login_name || user.loginName || '—';
+    const status = user.status || '—';
+    const lastLogin = user.last_login_at || user.lastLoginAt || '—';
+    const roles = user.roles || '—';
+    return `
+      <div class="admin-user-row">
+        <div><strong>${escapeHtml(displayName)}</strong><small>${escapeHtml(loginName)}</small></div>
+        <span>${escapeHtml(status)}</span>
+        <span>${escapeHtml(roles)}</span>
+        <span>${escapeHtml(lastLogin)}</span>
+      </div>
+    `;
+  }).join('') + (rows.length > 40 ? `<div class="admin-user-row admin-user-row--empty"><strong>+${rows.length - 40}</strong><span>weitere User später mit Suche/Pagination</span></div>` : '');
 }
 
 function renderModelList(id, rows, formatter) {

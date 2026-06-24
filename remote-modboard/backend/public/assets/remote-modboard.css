@@ -612,3 +612,10 @@ body.nav-collapsed .cgn-sidebar{opacity:0;pointer-events:none;transform:translat
   .metric-grid,
   .metrics-grid{grid-template-columns:1fr;}
 }
+
+
+/* RDAP_ADMIN_USERS1_READONLY_OVERVIEW */
+.admin-user-table{display:grid;gap:8px}
+.admin-user-row{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(84px,.45fr) minmax(120px,.7fr) minmax(150px,.8fr);gap:10px;align-items:center;padding:10px;border-radius:15px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06)}
+.admin-user-row strong,.admin-user-row small{display:block}.admin-user-row small{color:var(--muted);font-size:12px;margin-top:2px}.admin-user-row span{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.admin-user-row--empty{grid-template-columns:90px minmax(0,1fr)}
+@media(max-width:900px){.admin-user-row{grid-template-columns:1fr}.admin-user-row span{white-space:normal}}

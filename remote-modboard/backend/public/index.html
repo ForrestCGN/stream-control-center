@@ -178,6 +178,7 @@
 
           <button class="nav-group" type="button" data-target="nav-admin"><span>⚙</span><b>Admin</b><i>⌄</i></button>
           <div class="nav-sub" id="nav-admin">
+            <button class="nav-link" type="button" data-section="Admin" data-title="User & Rollen" data-tab="read-only" data-page="admin-users">User & Rollen</button>
             <button class="nav-link" type="button" data-section="Admin" data-title="Sicherheit" data-tab="geplant" data-page="permissions">Sicherheit</button>
           </div>
         </nav>
@@ -320,6 +321,50 @@
                 <div class="kv-row"><span>Audit-Logs</span><strong id="accessCountAudit">—</strong></div>
                 <div class="kv-row"><span>Locks</span><strong id="accessCountLocks">—</strong></div>
                 <div class="kv-row"><span>Hinweis</span><strong>Keine Schreibfunktionen in diesem Step.</strong></div>
+              </div>
+            </article>
+          </section>
+        </section>
+
+
+        <section class="rdap-view" data-page-panel="admin-users">
+          <section class="page-header module-page-header cgn-card">
+            <p class="cgn-eyebrow">Admin / read-only</p>
+            <h1>User & Rollen</h1>
+            <p>Admin-Übersicht über vorhandene Dashboard-User, Rollen, Gruppen und Sessions. Dieser Step zeigt nur an und schreibt keine Rechte.</p>
+          </section>
+
+          <section class="metric-grid">
+            <article class="metric-card cgn-card"><span>User</span><strong id="adminCountUsers">—</strong><small>dashboard_users</small><div class="cgn-progress"><i style="width:62%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Sessions</span><strong id="adminCountSessions">—</strong><small>dashboard_sessions</small><div class="cgn-progress"><i style="width:46%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Rollen</span><strong id="adminCountRoles">—</strong><small>dashboard_roles</small><div class="cgn-progress"><i style="width:58%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Permissions</span><strong id="adminCountPermissions">—</strong><small>read-only</small><div class="cgn-progress"><i style="width:54%"></i></div></article>
+          </section>
+
+          <section class="page-grid">
+            <article class="cgn-card span2">
+              <div class="card-head"><div><p class="cgn-eyebrow">User</p><h2>Bekannte Dashboard-User</h2></div><span class="cgn-chip" id="adminUsersPill">lädt</span></div>
+              <div class="admin-user-table" id="adminUsersList">—</div>
+            </article>
+
+            <article class="cgn-card">
+              <div class="card-head"><div><p class="cgn-eyebrow">Rollen</p><h2>Rollenmodell</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+              <div class="model-list" id="adminRolesModel">—</div>
+            </article>
+
+            <article class="cgn-card">
+              <div class="card-head"><div><p class="cgn-eyebrow">Gruppen</p><h2>Gruppenmodell</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+              <div class="model-list" id="adminGroupsModel">—</div>
+            </article>
+
+            <article class="cgn-card span2">
+              <div class="card-head"><div><p class="cgn-eyebrow">Sicherheit</p><h2>Keine Schreibverwaltung in diesem Step</h2></div><span class="cgn-chip cgn-chip--warn">gesperrt</span></div>
+              <div class="admin-lock-note">
+                <i>!</i>
+                <div>
+                  <strong>Nur Übersicht</strong>
+                  <span>User freigeben/sperren, Rollen vergeben, Sessions widerrufen und Audit-Aktionen kommen später als eigener Write-Scope mit Owner/Admin-Prüfung, Confirm, Locking und Audit.</span>
+                </div>
               </div>
             </article>
           </section>

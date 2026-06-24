@@ -30,24 +30,55 @@ async function readAuthDbModel(config) {
       const existingTables = await readExistingTables(connection);
       const existingSet = new Set(existingTables);
       const missingTables = EXPECTED_TABLES.filter((tableName) => !existingSet.has(tableName));
-
       const schemaReady = missingTables.length === 0;
 
       const [
         migrations,
+        users,
+        userRoles,
+        userGroups,
         roles,
         groups,
         permissions,
         rolePermissions,
         modulePermissions,
+        sessions,
         counts
       ] = await Promise.all([
         readRowsIfTableExists(connection, existingSet, 'schema_migrations', `
           SELECT migration_key, version, status, applied_at, notes
           FROM schema_migrations
-          WHERE migration_key LIKE 'rdap6%'
+          WHERE migration_key LIKE 'rdap%'
           ORDER BY applied_at DESC, migration_key ASC
-          LIMIT 25
+          LIMIT 50
+        `),
+        readRowsIfTableExists(connection, existingSet, 'dashboard_users', `
+          SELECT
+            u.user_uid,
+            u.display_name,
+            u.login_name,
+            u.status,
+            u.last_login_at,
+            GROUP_CONCAT(DISTINCT ur.role_key ORDER BY ur.role_key ASC SEPARATOR ', ') AS roles,
+            GROUP_CONCAT(DISTINCT ug.group_key ORDER BY ug.group_key ASC SEPARATOR ', ') AS groups
+          FROM dashboard_users u
+          LEFT JOIN dashboard_user_roles ur ON ur.user_uid = u.user_uid AND ur.revoked_at IS NULL
+          LEFT JOIN dashboard_user_groups ug ON ug.user_uid = u.user_uid AND ug.revoked_at IS NULL
+          GROUP BY u.user_uid, u.display_name, u.login_name, u.status, u.last_login_at
+          ORDER BY u.last_login_at DESC, u.display_name ASC
+          LIMIT 250
+        `),
+        readRowsIfTableExists(connection, existingSet, 'dashboard_user_roles', `
+          SELECT user_uid, role_key, granted_by, granted_at, revoked_at
+          FROM dashboard_user_roles
+          ORDER BY granted_at DESC
+          LIMIT 250
+        `),
+        readRowsIfTableExists(connection, existingSet, 'dashboard_user_groups', `
+          SELECT user_uid, group_key, granted_by, granted_at, revoked_at
+          FROM dashboard_user_groups
+          ORDER BY granted_at DESC
+          LIMIT 250
         `),
         readRowsIfTableExists(connection, existingSet, 'dashboard_roles', `
           SELECT role_key, label, description, is_system
@@ -75,6 +106,12 @@ async function readAuthDbModel(config) {
           ORDER BY subject_type ASC, subject_key ASC, permission_key ASC, target_type ASC, target_key ASC
           LIMIT 250
         `),
+        readRowsIfTableExists(connection, existingSet, 'dashboard_sessions', `
+          SELECT user_uid, status, created_at, expires_at, revoked_at, last_seen_at
+          FROM dashboard_sessions
+          ORDER BY created_at DESC
+          LIMIT 250
+        `),
         readCounts(connection, existingSet)
       ]);
 
@@ -82,7 +119,7 @@ async function readAuthDbModel(config) {
         ok: true,
         service: 'remote-modboard',
         module: 'remote_auth_db_read',
-        statusApiVersion: 'rdap6g.v1',
+        statusApiVersion: 'rdap_admin_users1.v1',
         readOnly: true,
         writeEnabled: false,
         migrationEnabled: false,
@@ -109,6 +146,10 @@ async function readAuthDbModel(config) {
         counts,
         model: {
           migrations: normalizeRows(migrations),
+          users: normalizeRows(users),
+          userRoles: normalizeRows(userRoles),
+          userGroups: normalizeRows(userGroups),
+          sessions: normalizeRows(sessions),
           roles: normalizeRows(roles),
           groups: normalizeRows(groups),
           permissions: normalizeRows(permissions),
@@ -165,10 +206,14 @@ async function readCounts(connection, existingSet) {
 }
 
 function buildValidation({ roles, groups, rolePermissions, modulePermissions, counts, schemaReady }) {
-  const soundProfiRoleCount = roles.filter((row) => row.role_key === 'sound_profi').length;
-  const soundProfiGroups = groups.filter((row) => row.group_key === 'sound_profi');
+  const roleRows = Array.isArray(roles) ? roles : [];
+  const groupRows = Array.isArray(groups) ? groups : [];
+  const rolePermissionRows = Array.isArray(rolePermissions) ? rolePermissions : [];
+  const modulePermissionRows = Array.isArray(modulePermissions) ? modulePermissions : [];
+  const soundProfiRoleCount = roleRows.filter((row) => row.role_key === 'sound_profi').length;
+  const soundProfiGroups = groupRows.filter((row) => row.group_key === 'sound_profi');
   const soundProfiGroup = soundProfiGroups[0] || null;
-  const soundProfiRolePermissionCount = rolePermissions.filter((row) => row.role_key === 'sound_profi').length;
+  const soundProfiRolePermissionCount = rolePermissionRows.filter((row) => row.role_key === 'sound_profi').length;
 
   return {
     schemaReady,
@@ -179,7 +224,7 @@ function buildValidation({ roles, groups, rolePermissions, modulePermissions, co
     soundProfiGroupMarkerCount: soundProfiGroups.length,
     soundProfiGrantsPermissionsByItself: soundProfiGroup ? Boolean(Number(soundProfiGroup.grants_permissions_by_itself)) : null,
     soundProfiRolePermissionCount,
-    modulePermissionRows: Array.isArray(modulePermissions) ? modulePermissions.length : (counts.dashboard_module_permissions || 0),
+    modulePermissionRows: modulePermissionRows.length || (counts.dashboard_module_permissions || 0),
     sessionRows: counts.dashboard_sessions,
     lockRows: counts.dashboard_locks,
     auditRows: counts.dashboard_audit_log
@@ -188,8 +233,8 @@ function buildValidation({ roles, groups, rolePermissions, modulePermissions, co
 
 function buildWarnings(schemaReady, missingTables) {
   const warnings = [
-    'RDAP6G ist read-only. Diese Route aktiviert kein Login, keine Sessions und keine Schreibaktionen.',
-    'Frontend-Anzeigen sind keine Sicherheitsentscheidung. Rechte muessen spaeter serverseitig geprueft werden.'
+    'RDAP_ADMIN_USERS1 ist read-only. Diese Route aktiviert keine Schreibaktionen.',
+    'Frontend-Anzeigen sind keine Sicherheitsentscheidung. Rechte muessen serverseitig geprueft werden.'
   ];
 
   if (!schemaReady) {
@@ -204,7 +249,7 @@ function buildUnavailableResult(config, readiness, errorCode) {
     ok: false,
     service: 'remote-modboard',
     module: 'remote_auth_db_read',
-    statusApiVersion: 'rdap6g.v1',
+    statusApiVersion: 'rdap_admin_users1.v1',
     readOnly: true,
     writeEnabled: false,
     migrationEnabled: false,
@@ -232,6 +277,10 @@ function buildUnavailableResult(config, readiness, errorCode) {
     counts: {},
     model: {
       migrations: [],
+      users: [],
+      userRoles: [],
+      userGroups: [],
+      sessions: [],
       roles: [],
       groups: [],
       permissions: [],
@@ -263,13 +312,11 @@ function buildUnavailableResult(config, readiness, errorCode) {
 function normalizeRows(rows) {
   return rows.map((row) => {
     const normalized = {};
-
     for (const key of Object.keys(row)) {
       const value = row[key];
       if (value instanceof Date) normalized[key] = value.toISOString();
       else normalized[key] = value;
     }
-
     return normalized;
   });
 }
