@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindOptional('selfProfileBackdrop', 'click', closeSelfProfilePanel);
   bindOptional('selfProfileLogoutButton', 'click', logout);
   bindOptional('selfProfileAccountButton', 'click', () => { setPage('account'); closeSelfProfilePanel(); });
-  bindOptional('selfProfileAccessButton', 'click', () => { setPage('access'); closeSelfProfilePanel(); });
+  bindOptional('selfProfileAccessButton', 'click', () => { setPage('permissions', { section: 'Mein Konto', title: 'Meine Rechte', tab: 'Berechtigungen' }); closeSelfProfilePanel(); });
   bindOptional('selfProfileSyncButton', 'click', syncSelfTwitchProfile);
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSelfProfilePanel(); });
   bindOptional('navToggle', 'click', () => document.body.classList.toggle('nav-collapsed'));

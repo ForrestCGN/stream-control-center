@@ -127,6 +127,7 @@
       </div>
 
       <div class="self-profile-actions self-profile-actions--compact">
+        <button class="secondaryButton small" type="button" id="selfProfileAccessButton">Meine Rechte</button>
         <button class="secondaryButton small" type="button" id="selfProfileSyncButton">Profil aktualisieren</button>
         <button class="secondaryButton small danger" type="button" id="selfProfileLogoutButton">Ausloggen</button>
       </div>
@@ -149,12 +150,6 @@
             <button class="nav-link" type="button" data-section="System" data-title="Routen" data-tab="Read-only" data-page="routes">Routen</button>
           </div>
 
-          <button class="nav-group" type="button" data-target="nav-auth"><span>✦</span><b>Benutzer & Rechte</b><i>⌄</i></button>
-          <div class="nav-sub" id="nav-auth">
-            <button class="nav-link" type="button" data-section="Benutzer & Rechte" data-title="Mein Login" data-tab="Session" data-page="account">Mein Login</button>
-            <button class="nav-link" type="button" data-section="Benutzer & Rechte" data-title="Rechte" data-tab="remote.view" data-page="permissions">Rechte</button>
-            <button class="nav-link" type="button" data-section="Benutzer & Rechte" data-title="Zugriff" data-tab="read-only" data-page="access">Zugriff</button>
-          </div>
 
           <button class="nav-group" type="button" data-target="nav-modules"><span>◇</span><b>Module</b><i>⌄</i></button>
           <div class="nav-sub" id="nav-modules">
@@ -163,8 +158,9 @@
 
           <button class="nav-group" type="button" data-target="nav-admin"><span>⚙</span><b>Admin</b><i>⌄</i></button>
           <div class="nav-sub" id="nav-admin">
-            <button class="nav-link" type="button" data-section="Admin" data-title="User & Rollen" data-tab="read-only" data-page="admin-users">User & Rollen</button>
-            <button class="nav-link" type="button" data-section="Admin" data-title="Sicherheit" data-tab="geplant" data-page="permissions">Sicherheit</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Benutzerverwaltung" data-tab="read-only" data-page="admin-users">Benutzerverwaltung</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Rollen & Rechte" data-tab="read-only" data-page="access">Rollen & Rechte</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Sicherheit" data-tab="Diagnose" data-page="diagnostics">Sicherheit</button>
           </div>
         </nav>
 
@@ -241,15 +237,15 @@
         </section>
 
         <section class="rdap-view" data-page-panel="permissions">
-          <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Benutzer & Rechte</p><h1>Rechte</h1><p>Dashboard-Zugriff wird serverseitig entschieden. Produktive Actions brauchen später eigene Permission-Middleware.</p></section>
-          <section class="page-grid"><article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Permission</p><h2>remote.view</h2></div><span class="cgn-chip cgn-chip--warn">geplant</span></div><div class="kv-grid"><div class="kv-row"><span>permission remote.view</span><strong id="permissionAllowed">—</strong></div><div class="kv-row"><span>reason</span><strong id="permissionReason">—</strong></div><div class="kv-row"><span>Hinweis</span><strong>Frontend zeigt nur an. Backend entscheidet.</strong></div></div></article></section>
+          <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Mein Konto</p><h1>Meine Rechte</h1><p>Persönliche Berechtigungsanzeige für diesen Login. Änderungen gehören später in den Admin-Bereich.</p></section>
+          <section class="page-grid"><article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Berechtigung</p><h2>remote.view</h2></div><span class="cgn-chip cgn-chip--warn">read-only</span></div><div class="kv-grid"><div class="kv-row"><span>remote.view</span><strong id="permissionAllowed">—</strong></div><div class="kv-row"><span>Grund</span><strong id="permissionReason">—</strong></div><div class="kv-row"><span>Hinweis</span><strong>Frontend zeigt nur an. Backend entscheidet.</strong></div></div></article></section>
         </section>
 
         <section class="rdap-view" data-page-panel="access">
           <section class="page-header module-page-header cgn-card">
-            <p class="cgn-eyebrow">Benutzer & Rechte / read-only</p>
-            <h1>Zugriff & Rollenmodell</h1>
-            <p>Diese Seite macht den aktuellen Login, die Übergangs-Allowlist und das vorbereitete Rollen-/Permission-Modell sichtbar. Es werden keine Rechte geschrieben.</p>
+            <p class="cgn-eyebrow">Admin / read-only</p>
+            <h1>Rollen & Rechte</h1>
+            <p>Admin-Übersicht über Zugriff, Übergangs-Allowlist und vorbereitetes Rollen-/Permission-Modell. Es werden keine Rechte geschrieben.</p>
           </section>
 
           <section class="metric-grid">
@@ -315,7 +311,7 @@
         <section class="rdap-view" data-page-panel="admin-users">
           <section class="page-header module-page-header cgn-card">
             <p class="cgn-eyebrow">Admin / read-only</p>
-            <h1>User & Rollen</h1>
+            <h1>Benutzerverwaltung</h1>
             <p>Admin-Übersicht über vorhandene Dashboard-User, Rollen, Gruppen und Sessions. Dieser Step zeigt nur an und schreibt keine Rechte.</p>
           </section>
 
