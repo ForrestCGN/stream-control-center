@@ -1,23 +1,28 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION  
+Stand: RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
 Datum: 2026-06-24
 
 ## Sofort
 
-1. `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION.zip` lokal einspielen.
-2. Prüfen:
+1. `RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC.zip` lokal einspielen.
+2. Lokalen Service/Remote-Modboard falls noetig neu starten.
+3. Route pruefen:
 
 ```powershell
-git status
+Invoke-RestMethod "http://127.0.0.1:3010/api/remote/admin/users/permission-diagnostic" |
+  ConvertTo-Json -Depth 10
 ```
 
-Erwartung: nur Doku-/Projektstatus-Dateien geändert.
+Ohne Browser-Session im PowerShell-Kontext ist `401` erwartbar.
 
-3. Bei sauberem Stand:
+4. `git status` pruefen.
+5. Wenn sauber: `stepdone.cmd` ausfuehren.
+6. Danach Webserver-Deploy aus GitHub/dev.
+7. Remote pruefen:
 
-```powershell
-.\stepdone.cmd "RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION abgeschlossen: Backup-/Rollback-, Permission-, Confirm-, Audit- und Locking-Foundation dokumentiert; keine Code-/DB-/Remote-Action-Änderungen"
+```text
+https://mods.forrestcgn.de/api/remote/admin/users/permission-diagnostic
 ```
 
 ## Danach empfohlen
@@ -35,52 +40,35 @@ systemctl restart scc-remote-modboard.service
 
 Danach Login erneut testen.
 
-### 2. Nächster kleiner Code-Step
+### 2. Confirm-/Audit-/Locking-Foundation planen/bauen
+
+Naechster Step:
 
 ```text
-RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
+RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
 ```
 
-Scope:
+Scope weiterhin klein:
 
-- erst echte Dateien/Repo prüfen
-- vorhandene Auth-/Permission-/Read-Services auswerten
-- Permission-Read für aktuell eingeloggten User diagnostisch vorbereiten
-- Owner/Admin/normalen User serverseitig erkennen
-- keine produktiven Writes
-- keine Rollen-/Gruppen-/Session-Writes
-- keine DB-Migration
-- keine UI-Schreibbuttons
+- Confirm-Write-Helfer vorbereiten,
+- Audit-Write-Ziel technisch pruefen,
+- Locking-Foundation pruefen,
+- keine grossen User-/Rollen-Writes,
+- keine UI-Schreibbuttons ohne eigenen Step.
 
 ### 3. Spätere Admin-Writes nur mit eigenem Scope
 
-Für echte User-/Rollenverwaltung später nötig:
+Fuer echte User-/Rollenverwaltung spaeter noetig:
 
-- serverseitige Owner/Admin-Permission
-- Confirm-Write
-- Audit-Log
-- Locking
-- Backup/Rollback
-- klare Trennung Self-Profil vs. Admin-Verwaltung
+- serverseitige Owner/Admin-Permission-Middleware,
+- Confirm-Write,
+- Audit-Log,
+- Locking,
+- Backup/Rollback-Plan,
+- klare Trennung Self-Profil vs. Admin-Verwaltung.
 
 ## Webserver-Deploy-Regel
 
 Erst nach lokalem `installstep.cmd`, Tests und `stepdone.cmd`.
 
-Auf dem Webserver immer frisch klonen:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
-```
-
-Nicht verwenden:
-
-```text
-/opt/stream-control-center/tools/remote-modboard-deploy.sh
-```
-
-`/opt/stream-control-center` ist kein Git-Repository.
+`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen.

@@ -14,38 +14,41 @@ Public URL: https://mods.forrestcgn.de/
 Service: scc-remote-modboard.service
 ```
 
-## Aktueller bestätigter Bereich
+## Aktueller bestaetigter Bereich
 
 Remote-Modboard / RDAP ist live unter `mods.forrestcgn.de`.
 
 Aktuell vorhanden:
 
 - Twitch Login live aktiv.
-- Dashboard-Zugriff wird serverseitig geprüft.
+- Dashboard-Zugriff wird serverseitig geprueft.
 - ForrestCGN und EngelCGN sind als Test-User sichtbar.
 - Dashboard-v2/V13-Look ist als echte Basis portiert.
 - Login-/Denied-Seite ist zentriert.
-- Status-Karten/Grid-Abstände sind korrigiert.
+- Status-Karten/Grid-Abstaende sind korrigiert.
 - Avatar/Name oben rechts sichtbar.
 - Self-Profilpanel oben rechts vorhanden.
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
 - Topbar hat keinen doppelten Ausloggen-Button mehr.
 - Profilpanel ist auf `Profil aktualisieren` und `Ausloggen` reduziert.
-- Admin -> User & Rollen zeigt eine read-only Übersicht vorhandener User/Rollen/Gruppen/Sessions.
-- `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` ist dokumentiert.
-- `RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN` ist dokumentiert.
-- `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION` dokumentiert Backup-/Rollback-, Permission-, Confirm-, Audit- und Locking-Foundation.
+- Admin -> User & Rollen zeigt eine read-only Uebersicht vorhandener User/Rollen/Gruppen/Sessions.
+- RDAP_ADMIN_USERS2/3/4 haben Admin-Userverwaltung, Write-Foundation sowie Backup-/Permission-/Confirm-/Audit-/Locking-Grundregeln geplant.
+- RDAP_ADMIN_USERS5 ergaenzt eine reine Admin-User-Permission-Diagnose.
 
 ## Zuletzt gebaut
 
 ```text
-RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION
+RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
 ```
 
-Änderung:
+Aenderungen:
 
 ```text
-docs/current/RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION.md
+remote-modboard/backend/src/services/admin-user-permission-read.service.js
+remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+docs/current/RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC.md
 docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
@@ -54,21 +57,25 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Nicht geändert
+## Neue Diagnose-Route
 
 ```text
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/src/*
-db/*
+GET /api/remote/admin/users/permission-diagnostic
 ```
+
+Zweck:
+
+- aktuelle Session read-only pruefen,
+- Actor-Rollen/Gruppen diagnostisch ausgeben,
+- Owner/Admin/Sound-Profi diagnostisch erkennen,
+- `remote.admin.users.read` und `remote.admin.users.write` read-only bewerten,
+- produktive Writes weiterhin blockieren.
 
 ## Wichtige Sicherheitsregeln
 
 Bis eigener Scope geplant/gebaut ist, bleiben verboten:
 
-- keine Remote-Writes außerhalb freigegebener Auth-/Self-Profil-Funktion,
+- keine Remote-Writes ausserhalb freigegebener Auth-/Self-Profil-Funktion,
 - keine Agent-Actions,
 - keine OBS-Steuerung,
 - keine Sound-Steuerung,
@@ -77,6 +84,8 @@ Bis eigener Scope geplant/gebaut ist, bleiben verboten:
 - keine DB-Migration ohne Backup/Rollback/Go,
 - keine Secrets ins Repo/Frontend/Chat/Logs,
 - keine User-/Rollen-Writes ohne eigene Admin-Permission/Confirm/Audit/Locking.
+
+RDAP_ADMIN_USERS5 baut keine User-/Rollen-/Gruppen-/Session-Writes und keine UI-Schreibbuttons.
 
 ## Webserver-Deploy-Muster
 
@@ -106,17 +115,10 @@ for i in $(seq 1 30); do
 done
 ```
 
-## Nächste sinnvolle Schritte
+## Naechste sinnvolle Schritte
 
-1. `RDAP_ADMIN_USERS4_BACKUP_AND_PERMISSION_FOUNDATION.zip` lokal einspielen.
-2. Prüfen, dass nur Doku-/Projektstatus-Dateien geändert sind.
-3. `stepdone.cmd` ausführen.
-4. Danach erst nächsten Code-Step planen.
-
-Empfohlener nächster Block:
-
-```text
-RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC
-```
-
-Ziel: Permission-Read/Diagnose für eingeloggten User vorbereiten. Keine produktiven User-/Rollen-Writes.
+1. RDAP_ADMIN_USERS5 lokal einspielen, testen und `stepdone.cmd` ausfuehren.
+2. Danach Webserver-Deploy aus GitHub/dev.
+3. Diagnose-Route lokal und remote pruefen.
+4. Danach planen: `RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION`.
+5. Secrets rotieren, falls noch nicht erledigt: `SESSION_SECRET`, `OAUTH_STATE_SECRET`.
