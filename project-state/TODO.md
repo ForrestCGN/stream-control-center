@@ -6,21 +6,21 @@ Datum: 2026-06-24
 ## RDAP / Remote-Modboard
 
 - [x] RDAP7B Confirm-Metadata-Cleanup remote bestätigt.
-- [ ] RDAP8 ZIP lokal einspielen.
-- [ ] RDAP8 lokale Syntaxchecks ausführen.
-- [ ] RDAP8 `git status` prüfen.
-- [ ] RDAP8 `stepdone.cmd` ausführen.
-- [ ] RDAP8 Webserver-Deploy aus frischem GitHub/dev-Clone durchführen.
-- [ ] RDAP8 Remote-Readiness nach Restart abwarten.
-- [ ] RDAP8 Statusroute remote testen.
-- [ ] RDAP8 Foundation-Diagnose remote testen.
-- [ ] Erwartung RDAP8 prüfen:
-  - [ ] `moduleBuild: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN`
-  - [ ] `statusApiVersion: rdap_admin_users8.v1`
-  - [ ] `auditHelperPrepared:true`
-  - [ ] `auditWriteEnabled:false`
-  - [ ] `writeEnabled:false`
-  - [ ] `writesStillBlocked:true`
+- [x] RDAP8 ZIP lokal eingespielt.
+- [x] RDAP8 lokale Syntaxchecks ausgeführt.
+- [x] RDAP8 `git status` geprüft.
+- [x] RDAP8 `stepdone.cmd` ausgeführt.
+- [x] RDAP8 Webserver-Deploy aus frischem GitHub/dev-Clone durchgeführt.
+- [x] RDAP8 Remote-Readiness nach Restart abgewartet.
+- [x] RDAP8 Statusroute remote getestet.
+- [x] RDAP8 Foundation-Diagnose remote getestet.
+- [x] Erwartung RDAP8 geprüft:
+  - [x] `moduleBuild: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN`
+  - [x] `statusApiVersion: rdap_admin_users8.v1`
+  - [x] `auditHelperPrepared:true`
+  - [x] `auditWriteEnabled:false`
+  - [x] `writeEnabled:false`
+  - [x] `writesStillBlocked:true`
 
 ## Danach
 

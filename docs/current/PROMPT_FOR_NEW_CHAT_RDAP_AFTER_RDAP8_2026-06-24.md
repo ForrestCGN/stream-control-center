@@ -73,13 +73,13 @@ scc-remote-modboard.service
 11. Readiness-Loop auf `127.0.0.1:3010/api/remote/status`.
 12. Erst danach Server-/Browser-Tests.
 
-## Aktueller Zielstand nach RDAP8
+## Aktueller bestätigter Stand
 
 ```text
 RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 ```
 
-Bestaetigen:
+Remote bestätigt:
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
@@ -103,3 +103,8 @@ Ziel:
 - Noch keine echten Locks erwerben/freigeben.
 - Keine produktiven Admin-Writes.
 - Keine DB-Migration ohne Backup/Rollback/Go.
+- Read-only Diagnose/Planung erweitern.
+
+## Erst später
+
+Kleinster echter Admin-Write erst nach Permission, Confirm-Write, Audit, Locking, Backup/Rollback, Owner/Admin-Grenzen und separatem Go.

@@ -1,7 +1,8 @@
 # RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 
 Stand: 2026-06-24  
-Projekt: `stream-control-center` / Remote-Modboard
+Projekt: `stream-control-center` / Remote-Modboard  
+Status: deployed und remote getestet
 
 ## Ziel
 
@@ -70,7 +71,7 @@ rawBody
 rawPayload
 ```
 
-## Erwartete Diagnose
+## Remote bestätigt
 
 Statusroute:
 
@@ -93,20 +94,14 @@ writeEnabled: false
 writesStillBlocked: true
 ```
 
-## Lokale Tests
+## Ergebnis
 
-```powershell
-cd D:\Git\stream-control-center
-npm --prefix .\remote-modboard\backend run check
-git status --short
-```
-
-## Webserver-Test nach stepdone/deploy
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.moduleBuild,.statusApiVersion,.adminUsersWriteFoundation.auditHelperPrepared,.adminUsersWriteFoundation.auditWriteEnabled,.adminUsersWriteFoundation.writesStillBlocked'
-
-curl -fsS http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic | jq '.moduleBuild,.statusApiVersion,.auditHelperPrepared,.auditWriteEnabled,.auditDiagnostic.helperPrepared,.auditDiagnostic.writeEnabled,.writeEnabled,.writesStillBlocked'
+```text
+Audit-Helper vorbereitet
+Audit-Writes deaktiviert
+Admin-Writes deaktiviert
+DB-Migration nicht ausgefuehrt
+UI-Schreibbuttons nicht gebaut
 ```
 
 ## Naechster sinnvoller Step

@@ -11,13 +11,13 @@ Remote-Modboard läuft produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller Zielstand dieses Steps:
+Aktueller bestätigter Stand:
 
 ```text
 RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 ```
 
-## Bestätigt vor RDAP8
+## Bestätigt
 
 - Twitch Login ist live.
 - Dashboard-Zugriff wird serverseitig geprüft.
@@ -28,22 +28,36 @@ RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 - RDAP6 Write-Foundation-Diagnose ist aktiv und read-only.
 - RDAP7 Confirm-Write-Helper ist vorbereitet, aber produktive Writes bleiben deaktiviert.
 - RDAP7B Confirm-Write-Metadaten sind remote bestätigt.
+- RDAP8 Audit-Helper ist vorbereitet, aber Audit-/Admin-Writes bleiben deaktiviert.
+- Build/Header:
+  - `moduleBuild: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN`
+  - `statusApiVersion: rdap_admin_users8.v1`
+- Audit-Metadaten bestätigt:
+  - `adminUsersWriteFoundation.auditHelperPrepared:true`
+  - `adminUsersWriteFoundation.auditWriteEnabled:false`
+  - `auditDiagnostic.helperPrepared:true`
+  - `auditDiagnostic.writeEnabled:false`
 - Sicherheitsstatus bestätigt:
   - `writeEnabled:false`
   - `writesStillBlocked:true`
 
-## Neu mit RDAP8
+## RDAP8 Ergebnis
 
-- Audit-Helper vorbereitet:
-  - `remote-modboard/backend/src/services/admin-audit-write.service.js`
-- Audit-Helper baut/prueft nur sichere Audit-Drafts.
-- Audit-Writes bleiben deaktiviert:
-  - `auditWriteEnabled:false`
-  - `auditInsertEnabled:false`
-  - `auditUpdateEnabled:false`
-- Keine produktiven Admin-Writes.
-- Keine DB-Migration.
-- Keine UI-Schreibbuttons.
+RDAP8 hat einen vorbereiteten Audit-Helper ergänzt:
+
+```text
+remote-modboard/backend/src/services/admin-audit-write.service.js
+```
+
+Der Helper baut/prueft nur sichere Audit-Drafts und blockiert weiterhin produktive Writes:
+
+```text
+auditWriteEnabled:false
+auditInsertEnabled:false
+auditUpdateEnabled:false
+writeEnabled:false
+writesStillBlocked:true
+```
 
 ## Weiterhin nicht aktiv
 
@@ -54,6 +68,7 @@ Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
 DB-Migration
 UI-Schreibbuttons
+Audit-Inserts/Audit-Updates
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 ```

@@ -5,11 +5,24 @@ Projekt: `stream-control-center` / Remote-Modboard
 
 ## RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 
+Status: deployed und getestet.  
 Typ: Code klein + Doku  
 DB: nein  
 Secrets: nein  
 Produktive Writes: nein  
 UI-Schreibbuttons: nein
+
+### Bestätigt remote
+
+- `moduleBuild: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN`
+- `statusApiVersion: rdap_admin_users8.v1`
+- `adminUsersWriteFoundation.auditHelperPrepared:true`
+- `adminUsersWriteFoundation.auditWriteEnabled:false`
+- `adminUsersWriteFoundation.writesStillBlocked:true`
+- `auditDiagnostic.helperPrepared:true`
+- `auditDiagnostic.writeEnabled:false`
+- `writeEnabled:false`
+- `writesStillBlocked:true`
 
 ### Geändert
 
