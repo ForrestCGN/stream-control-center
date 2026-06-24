@@ -9,12 +9,13 @@ const { registerAuthModelRoutes } = require('./routes/auth-model.routes');
 const { registerAuthStatusRoutes } = require('./routes/auth-status.routes');
 const { registerAuthLoginRoutes } = require('./routes/auth-login.routes');
 const { registerAuthTwitchRoutes } = require('./routes/auth-twitch.routes');
-const { registerAdminUsersRoutes } = require('./routes/admin-users.routes');
 const { registerLockAuditDiagnosticRoutes } = require('./routes/lock-audit-diagnostic.routes');
+const { registerAdminMiniWriteFoundationRoutes } = require('./routes/admin-mini-write-foundation.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 
 function createApp({ config, moduleBuild }) {
   const app = express();
+
   app.disable('x-powered-by');
   app.use(express.json({ limit: '128kb' }));
 
@@ -32,8 +33,8 @@ function createApp({ config, moduleBuild }) {
   registerAuthStatusRoutes(app, context);
   registerAuthLoginRoutes(app, context);
   registerAuthTwitchRoutes(app, context);
-  registerAdminUsersRoutes(app, context);
   registerLockAuditDiagnosticRoutes(app, context);
+  registerAdminMiniWriteFoundationRoutes(app, context);
   registerRoutesRoutes(app, context);
 
   const publicDir = path.join(__dirname, '..', 'public');

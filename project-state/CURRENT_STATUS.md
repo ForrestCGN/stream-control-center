@@ -1,9 +1,9 @@
 # CURRENT_STATUS
 
-Stand: 2026-06-24  
+Stand: 2026-06-24
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller bestätigter RDAP-Status
+## Aktueller bestaetigter RDAP-Status
 
 Produktiv unter:
 
@@ -11,13 +11,13 @@ Produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller auf dem Webserver bestätigter Code-Stand:
+Aktueller vor diesem Step auf dem Webserver bestaetigter Code-Stand:
 
 ```text
 RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
 ```
 
-Remote bestätigt:
+Remote bestaetigt:
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
@@ -30,14 +30,15 @@ writeEnabled: false
 writesStillBlocked: true
 ```
 
-## Aktueller Dokumentations-/Planstand
+## Aktueller lokaler/GitHub-Planstand nach diesem Step
 
 ```text
 RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
+RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 ```
 
-RDAP10 ist ein reiner Plan-/Doku-Step. RDAP10B synchronisiert nur die Projektstatus-Dateien auf diesen Stand.
+RDAP11 bereitet nur eine disabled Mini-Write-Foundation vor. Es gibt weiterhin keine produktiven Admin-Writes.
 
 ## Sicherheitsstand
 
@@ -46,6 +47,7 @@ Permission-Read-Diagnose: vorbereitet
 Confirm-Write-Helper: vorbereitet, Writes deaktiviert
 Audit-Helper: vorbereitet, Writes deaktiviert
 Lock-Helper: vorbereitet, Writes deaktiviert
+Mini-Write-Foundation: vorbereitet, Writes deaktiviert
 Admin-Writes: weiterhin aus
 DB-Migration: keine
 UI-Schreibbuttons: keine
@@ -59,15 +61,19 @@ Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
 DB-Migration
+Audit-Inserts oder Audit-Updates
+Lock acquire/heartbeat/release/force-takeover
+Backup-Ausfuehrung
+Rollback-Ausfuehrung
 UI-Schreibbuttons
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
-## Nächster sinnvoller Schritt
+## Naechster sinnvoller Schritt
 
 ```text
-RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
 ```
 
-Nur Foundation/Struktur mit weiterhin deaktivierten Writes. Noch kein produktiver User-/Rollen-/Gruppen-/Session-Write.
+Nur Scope-/Sicherheitsplanung fuer den ersten echten Mini-Write. Noch keine Umsetzung ohne separates Go.

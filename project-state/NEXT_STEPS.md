@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC  
+Stand: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 Datum: 2026-06-24
 
 ## Aktuell erledigt
@@ -9,37 +9,37 @@ Datum: 2026-06-24
 RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
 RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
 RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
+RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 ```
 
-RDAP9 ist deployed und remote bestätigt. RDAP10 dokumentiert Backup-/Rollback-/Mini-Write-Planung. RDAP10B synchronisiert die Projektstatus-Dateien.
+RDAP9 ist deployed und remote bestaetigt. RDAP10 dokumentiert Backup-/Rollback-/Mini-Write-Planung. RDAP10B synchronisiert die Projektstatus-Dateien. RDAP11 baut eine disabled Mini-Write-Foundation ohne produktive Writes.
 
-## Nächster empfohlener Step
+## Naechster empfohlener Step
 
 ```text
-RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
 ```
 
 Scope:
 
-- Foundation für den kleinsten späteren Admin-Write vorbereiten.
-- Writes bleiben deaktiviert.
-- Kein echter User-/Rollen-/Gruppen-/Session-Write.
-- Keine DB-Migration.
-- Keine UI-Schreibbuttons.
-- Permission, Confirm-Write, Audit, Locking, Backup/Rollback und Rollback-Hinweise müssen sichtbar zusammengeführt werden.
+- Kleinsten echten Admin-Write auswaehlen.
+- Noch keine Umsetzung.
+- Betroffene Tabellen/Datensaetze bestimmen.
+- DB-Backup und Rollback-Befehl konkret planen.
+- Permission, Confirm-Write, Audit, Locking und Read-Back-Pruefung konkret festlegen.
+- Separates Go fuer die spaetere Umsetzung verlangen.
 
-## Erst später
-
-Kleinster echter Admin-Write darf erst separat gebaut werden, wenn folgende Punkte sauber stehen:
+## Weiterhin verboten bis separater Admin-Write-Step kommt
 
 ```text
-Permission-Prüfung
-Confirm-Write
-Audit
-Locking
-Backup/Rollback
-klare Owner/Admin-Grenzen
-separates Go
+User freigeben/sperren
+Rollen vergeben/entziehen
+Gruppen/Freigaben setzen/entfernen
+Sessions widerrufen
+DB-Migration
+UI-Schreibbuttons
+Agent-Actions
+OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
 ## Webserver-Deploy-Regel

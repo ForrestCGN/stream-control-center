@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC  
+Stand: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
 Datum: 2026-06-24
 
 ## Zentrale RDAP-Dokumente
@@ -15,6 +15,7 @@ docs/current/RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN.md
 docs/current/RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN.md
 docs/current/RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN.md
 docs/current/RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC.md
+docs/current/RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED.md
 ```
 
 ## Wichtige Remote-Modboard-Code-Dateien
@@ -25,6 +26,7 @@ remote-modboard/backend/package.json
 remote-modboard/backend/src/app.js
 remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/routes/admin-mini-write-foundation.routes.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
 remote-modboard/backend/src/services/admin-user-permission-read.service.js
@@ -32,6 +34,7 @@ remote-modboard/backend/src/services/admin-confirm-write.service.js
 remote-modboard/backend/src/services/admin-audit-write.service.js
 remote-modboard/backend/src/services/admin-lock-write.service.js
 remote-modboard/backend/src/services/admin-user-write-foundation.service.js
+remote-modboard/backend/src/services/admin-mini-write-foundation.service.js
 remote-modboard/backend/src/services/lock-read.service.js
 remote-modboard/backend/src/services/audit-read.service.js
 ```
