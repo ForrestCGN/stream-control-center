@@ -90,7 +90,7 @@
       <div class="top-right">
         <button class="cgn-icon-button cgn-lang" type="button">DE</button>
         <button class="cgn-icon-button cgn-bell" type="button">🔒<em>0</em></button>
-        <button class="cgn-avatar-button" type="button" id="userMenuButton" aria-haspopup="dialog" aria-expanded="false" title="Mein Profil und Rechte anzeigen">
+        <button class="cgn-avatar-button" type="button" id="userMenuButton" aria-haspopup="dialog" aria-expanded="false" title="Mein Konto anzeigen">
           <span class="cgn-avatar" id="topUserAvatar">
             <img id="topUserAvatarImage" alt="" hidden>
             <span id="topUserAvatarInitial">F</span>
@@ -117,19 +117,8 @@
         <button class="cgn-icon-button self-profile-close" type="button" id="selfProfileCloseButton" aria-label="Profil schließen">×</button>
       </div>
 
-      <div class="self-profile-grid">
-        <div class="kv-row"><span>Dashboard-Zugriff</span><strong id="selfPanelAccess">—</strong></div>
-        <div class="kv-row"><span>Access-Grund</span><strong id="selfPanelAccessReason">—</strong></div>
-        <div class="kv-row"><span>User UID</span><strong id="selfPanelUserUid">—</strong></div>
-        <div class="kv-row"><span>Rollen</span><strong id="selfPanelRoles">—</strong></div>
-        <div class="kv-row"><span>Gruppen</span><strong id="selfPanelGroups">—</strong></div>
-        <div class="kv-row"><span>Session</span><strong id="selfPanelSession">—</strong></div>
-        <div class="kv-row"><span>remote.view</span><strong id="selfPanelRemoteView">—</strong></div>
-      </div>
-
-      <div class="self-profile-note">
-        <strong>Nur dein eigenes Konto</strong>
-        <span>User-Verwaltung, Freigaben und Rollenänderungen gehören später in den Admin-Bereich.</span>
+      <div class="self-profile-grid self-profile-grid--compact">
+        <div class="kv-row"><span>Rolle</span><strong id="selfPanelRoles">—</strong></div>
       </div>
 
       <div class="self-profile-sync" id="selfProfileSyncNotice" hidden>

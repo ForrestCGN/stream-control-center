@@ -413,25 +413,18 @@ function closeSelfProfilePanel() {
 
 function renderSelfProfile(authBody, permissionBody) {
   const body = authBody || {};
-  const permission = permissionBody || {};
   const user = body.user || null;
   const displayName = user ? (user.displayName || user.loginName || user.userUid || 'Twitch-User') : 'Nicht angemeldet';
   const loginName = user && user.loginName ? `@${user.loginName}` : '—';
-  const groups = Array.isArray(body.groups) ? body.groups.map(group => group.groupKey || group.group_key || group).filter(Boolean) : [];
   const avatarUrl = findAvatarUrl(body, user);
   const initial = buildInitial(displayName);
 
   setText('selfPanelDisplayName', displayName);
   setText('selfPanelLoginName', loginName);
-  setText('selfPanelUserUid', user ? user.userUid : '—');
-  setValue('selfPanelAccess', body.dashboardAccess);
-  setText('selfPanelAccessReason', body.accessReason || '—');
   setText('selfPanelRoles', formatList(body.roles));
-  setText('selfPanelGroups', formatList(groups));
-  setText('selfPanelSession', body.session ? body.session.reason : '—');
-  setValue('selfPanelRemoteView', permission.allowed);
   updateAvatar('topUserAvatar', 'topUserAvatarImage', 'topUserAvatarInitial', avatarUrl, initial);
   updateAvatar('selfPanelAvatar', 'selfPanelAvatarImage', 'selfPanelAvatarInitial', avatarUrl, initial);
+  void permissionBody;
 }
 
 function updateAvatar(containerId, imageId, initialId, avatarUrl, initial) {
