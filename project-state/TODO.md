@@ -1,46 +1,34 @@
-# TODO
+# TODO - stream-control-center
 
-Stand: 2026-06-24  
-Projekt: `stream-control-center` / Remote-Modboard
+Stand: RDAP_META1_BUILD_HEADER_CLEANUP  
+Datum: 2026-06-24
 
-## Aktuell erledigt
+## RDAP / Remote-Modboard
 
-- [x] RDAP5 Permission-Diagnose read-only gebaut.
-- [x] RDAP5 serverseitig getestet.
-- [x] Browser-Test mit ForrestCGN Session erfolgreich.
-- [x] `canWriteAdminUsers:false` bleibt aktiv.
-- [x] Kein User-/Rollen-/Gruppen-/Session-Write gebaut.
-- [x] Lokal/LAN-Ziel mit Twitch-Login als Planung aufgenommen.
+- [ ] RDAP_META1_BUILD_HEADER_CLEANUP lokal einspielen.
+- [ ] Lokale Syntaxchecks ausführen.
+- [ ] `git status` prüfen.
+- [ ] Bei Erfolg `stepdone.cmd` ausführen.
+- [ ] Danach Webserver-Deploy aus frischem GitHub/dev-Clone durchführen.
+- [ ] Remote-Readiness nach Restart abwarten.
+- [ ] `/api/remote/status` prüfen.
+- [ ] Erwartung: `X-Remote-Modboard-Build: RDAP_META1_BUILD_HEADER_CLEANUP`.
+- [ ] Erwartung: `statusApiVersion: rdap_meta1.v1`.
+- [ ] `/api/remote/routes` prüfen und `permission-diagnostic` bestätigen.
+- [ ] `/api/remote/admin/users/permission-diagnostic` ohne Session prüfen: `401` ist korrekt.
+- [ ] Browser-Test mit ForrestCGN-Session bei Bedarf erneut prüfen.
 
-## Hoch priorisiert
+## Danach
 
-- [ ] RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN planen.
-- [ ] Lokale Env-Strategie festlegen.
-- [ ] Lokales Startscript planen.
-- [ ] LAN-Zugriff für EngelCGN planen.
-- [ ] Lokale Twitch OAuth Callback-Strategie planen.
-- [ ] Lokale DB-Strategie festlegen, bevorzugt MariaDB-Testdatenbank.
+- [ ] `RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION` planen.
+- [ ] Keine produktiven Admin-Writes ohne Backup/Rollback/Permission/Confirm/Audit/Locking bauen.
+- [ ] Owner/Admin-Fallback-Reason später verständlicher machen.
 
-## Admin-Userverwaltung
+## Geparkt: Lokal/LAN
 
-- [ ] RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION planen/bauen.
-- [ ] Confirm-Write-Pattern vorbereiten.
-- [ ] Audit-Write-Pflicht vorbereiten.
-- [ ] Locking-Grundlage vorbereiten.
-- [ ] Erst danach kleinste echte Admin-Write-Aktion planen.
-
-## Cleanup
-
-- [ ] RDAP_META1_BUILD_HEADER_CLEANUP planen.
-- [ ] `moduleBuild`/Header-Metadaten aktualisieren oder zentralisieren.
-- [ ] Reason-Ausgabe der Permission-Diagnose verständlicher machen:
-  - Owner-Fallback klar anzeigen
-  - Step-Scope-Block klar anzeigen
-
-## Sicherheitsregeln
-
-- [ ] Keine Secrets ins Repo.
-- [ ] Keine lokalen Env-Dateien committen.
-- [ ] Keine lokalen Dev-/LAN-Bypässe produktiv aktivieren.
-- [ ] Keine DB-Migration ohne Backup/Rollback/Go.
-- [ ] Keine Admin-Writes ohne Permission, Confirm, Audit, Locking.
+- [ ] `RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN` später fortsetzen.
+- [ ] Ziel: Remote-Modboard zusätzlich lokal im Heimnetz betreiben.
+- [ ] Ziel: ForrestCGN und EngelCGN sollen lokal arbeiten können.
+- [ ] Lokaler Login soll ebenfalls über Twitch laufen.
+- [ ] Erst fortsetzen, wenn das Web-Dashboard online stabil genug ist.
+- [ ] Keine lokalen Secrets ins Repo.

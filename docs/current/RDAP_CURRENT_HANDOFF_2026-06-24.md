@@ -25,11 +25,13 @@ Branch: `dev`
   - mit ForrestCGN Browser-Session: `ok:true`, `loggedIn:true`, `roles:["owner"]`, `isOwner:true`, `isAdmin:true`, `canReadAdminUsers:true`, `canWriteAdminUsers:false`
   - keine User-/Rollen-/Gruppen-/Session-Writes
   - keine DB-Migration
+- `RDAP_META1_BUILD_HEADER_CLEANUP` bereinigt Build-/Header-Metadaten, damit Status/Routes nicht weiter irreführend `RDAP_AUTH2_CENTRAL_LOGIN_READY` anzeigen.
 - Lokaler/LAN-Betrieb soll künftig berücksichtigt werden:
   - Online weiter über `mods.forrestcgn.de`
   - zusätzlich lokales Modboard im Heimnetz
   - EngelCGN soll im LAN arbeiten können
   - lokaler Login soll ebenfalls über Twitch erfolgen
+  - Umsetzung ist geparkt, bis das Web-Dashboard stabiler ist.
 
 ## Wichtige aktuelle Doku-Dateien
 
@@ -39,6 +41,7 @@ docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
 docs/current/RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC.md
 docs/current/RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN.md
+docs/current/RDAP_META1_BUILD_HEADER_CLEANUP.md
 ```
 
 ## Korrekte Arbeitsweise
@@ -62,25 +65,11 @@ Wichtig:
 - `stepdone.cmd` bedeutet nicht Webserver-Deploy.
 - Lokale Windows-Tests dürfen nicht fälschlich Port `3010` voraussetzen.
 - `/opt/stream-control-center` ist kein Git-Repository.
-- Webserver-Deploy immer über `_deploy_tmp/<STEP_NAME>` aus frischem Clone.
+- Webserver-Deploy immer über `_deploy_tmp/` aus frischem Clone.
 
 ## Nächste sinnvolle Schritte
 
-### Lokal/LAN
-
-```text
-RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
-```
-
-Ziel:
-
-- lokale Env-Strategie planen
-- lokales Startscript planen
-- LAN-Erreichbarkeit sauber vorbereiten
-- Twitch-Login lokal weiter planen
-- keine Secrets ins Repo
-
-### Admin-Userverwaltung
+### Web-Dashboard zuerst
 
 ```text
 RDAP_ADMIN_USERS6_CONFIRM_AUDIT_LOCK_FOUNDATION
@@ -93,19 +82,22 @@ Ziel:
 - Locking-Grundlage
 - noch keine produktiven User-/Rollen-Writes
 
-### Cleanup
+### Geparkt: Lokal/LAN
 
 ```text
-RDAP_META1_BUILD_HEADER_CLEANUP
+RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
 
-Ziel:
+Ziel später:
 
-- veraltetes `moduleBuild`/Header `RDAP_AUTH2_CENTRAL_LOGIN_READY` bereinigen oder zentralisieren
-- Statusausgaben sollen aktuelle Steps weniger verwirrend anzeigen
+- lokale Env-Strategie planen
+- lokales Startscript planen
+- LAN-Erreichbarkeit sauber vorbereiten
+- Twitch-Login lokal weiter planen
+- EngelCGN LAN-Zugriff berücksichtigen
+- keine Secrets ins Repo
 
 ## Offene Hinweise
 
-- RDAP5 funktioniert, aber `moduleBuild`/Header zeigt weiterhin `RDAP_AUTH2_CENTRAL_LOGIN_READY`.
 - Owner/Admin-Fallback funktioniert diagnostisch; Reason-Ausgaben könnten später verständlicher werden.
 - Lokal/LAN mit Twitch-Login ist geplant, aber noch nicht gebaut.

@@ -16,6 +16,7 @@ Aktueller relevanter Stand:
 ```text
 RDAP_ADMIN_USERS5_PERMISSION_READ_DIAGNOSTIC: deployed und getestet
 RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN: geplant/dokumentiert
+RDAP_META1_BUILD_HEADER_CLEANUP: Build-/Header-Metadaten bereinigt
 ```
 
 ## Bestätigt
@@ -44,8 +45,7 @@ RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN: geplant/dokumentiert
 Forrest möchte:
 
 ```text
-Online über mods.forrestcgn.de arbeiten
-und zusätzlich lokal im Heimnetz arbeiten können.
+Online über mods.forrestcgn.de arbeiten und zusätzlich lokal im Heimnetz arbeiten können.
 EngelCGN soll lokal im LAN ebenfalls arbeiten können.
 Lokaler Login soll ebenfalls über Twitch laufen.
 ```
@@ -55,6 +55,8 @@ Dazu wurde dokumentiert:
 ```text
 docs/current/RDAP_LOCAL_MODE1_LAN_TWITCH_LOGIN_PLAN.md
 ```
+
+Umsetzung bleibt geparkt, bis das Web-Dashboard online stabiler ist.
 
 ## Workflow-Regel
 
@@ -78,6 +80,5 @@ Server-/Browser-Test
 
 ## Offene technische Auffälligkeiten
 
-- `moduleBuild`/Header zeigt teils noch `RDAP_AUTH2_CENTRAL_LOGIN_READY`, obwohl neuere Routen aktiv sind.
 - Owner/Admin-Fallback funktioniert, Reason-Ausgaben sollten später verständlicher werden.
 - Lokal/LAN-Betrieb mit Twitch-Login ist noch Planung, nicht umgesetzt.

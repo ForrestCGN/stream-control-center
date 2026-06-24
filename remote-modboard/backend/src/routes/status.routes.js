@@ -17,7 +17,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_auth2.v1',
+      statusApiVersion: 'rdap_meta1.v1',
       readOnly: !authEnabled,
       writeEnabled: false,
       actionEnabled: false,
@@ -74,6 +74,7 @@ function registerStatusRoutes(app, context) {
           middlewarePlanned: true,
           readOnlyResolverPrepared: true,
           diagnosticCheckRoutePrepared: true,
+          adminUsersPermissionDiagnosticPrepared: true,
           checkRouteEnabled: true,
           productiveAuthorizationEnabled: false,
           backendMustDecideRights: true,
@@ -81,9 +82,9 @@ function registerStatusRoutes(app, context) {
           writesRequirePermissionLockAudit: true
         },
         notes: [
-          'AUTH2 bereitet eine zentrale Login-Schicht mit mehreren Einstiegspunkten vor.',
-          'forrestcgn.de und mods.forrestcgn.de sollen spaeter dieselben User-/Identity-/Session-Tabellen nutzen.',
-          'Der aktive Standard bleibt local_twitch_fallback, damit der funktionierende Modboard-Login erhalten bleibt.',
+          'META1 bereinigt Build-/Header-Metadaten, damit neue Steps nicht mehr als RDAP_AUTH2 erscheinen.',
+          'Twitch Login und Session-Handling bleiben aktiv und unveraendert.',
+          'RDAP5 Admin-User-Permission-Diagnose bleibt read-only verfuegbar.',
           'Login-Daten, Twitch-Tokens oder Sessionwerte duerfen nicht im Frontend oder in Links weitergereicht werden.',
           'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.'
         ]
@@ -99,12 +100,20 @@ function registerStatusRoutes(app, context) {
       permissionsModel: {
         active: false,
         diagnosticReadOnlyResolverPrepared: true,
+        adminUsersPermissionDiagnosticPrepared: true,
         plannedModel: 'RDAP5C3 roles-and-groups-separated',
         rolesAreSeparateFromGroups: true,
         soundProfiIsRole: false,
         soundProfiIsGroupMarker: true,
         modulePermissionMatrixUsesTargetTypeAndTargetKey: true,
         productivePermissionEnforcementEnabled: false
+      },
+      localLanMode: {
+        planned: true,
+        implemented: false,
+        twitchLoginPlanned: true,
+        engelCgnLanAccessPlanned: true,
+        todoParkedUntilWebDashboardStable: true
       },
       safety: context.safety
     });
