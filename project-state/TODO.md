@@ -1,7 +1,7 @@
 # TODO
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
-Datum: 2026-06-23
+Stand: RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN_DOKU
+Datum: 2026-06-24
 
 ## Erledigt
 
@@ -42,15 +42,21 @@ Datum: 2026-06-23
 - [x] RDAP7I Session Store Read-only Validation Layer vorbereitet
 - [x] RDAP7I Session Store Read-only Validation Layer live deployed/getestet
 - [x] RDAP7I Live-Deploy-Ergebnis dokumentiert
+- [x] RDAP8 Permission Check Middleware Plan dokumentiert
 
 ## Noch offen / als naechstes
 
-### RDAP8 Permission Check Middleware Plan
+### RDAP8A Permission Context Read-only Diagnostic Plan
 
-- [ ] echte Remote-Modboard-Dateien vor Planung pruefen
+- [ ] echte Remote-Modboard-Dateien vor Planung erneut pruefen
 - [ ] vorhandenes Rollen-/Gruppen-/Permission-Modell verwenden
 - [ ] RDAP7I Auth-/Session-Read-only-Status als Grundlage beruecksichtigen
-- [ ] Backend-seitige Permission-Checks planen
+- [ ] Auth-/Permission-Context nur read-only/diagnostisch planen
+- [ ] pruefen, ob separate Services sinnvoll sind:
+  - [ ] `auth-context-read.service.js`
+  - [ ] `auth-permission-read.service.js`
+  - [ ] `security/permissions.js`
+- [ ] Backend-seitige Permission-Checks nur vorbereiten, nicht produktiv erzwingen
 - [ ] Frontend nur als Anzeige behandeln, nicht als Sicherheitsentscheidung
 - [ ] keine produktiven Schreibrouten ohne Lock/Audit/Permission
 - [ ] keine Agent-Actions

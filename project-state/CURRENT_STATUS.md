@@ -1,13 +1,15 @@
 # CURRENT STATUS
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
-Datum: 2026-06-23
+Stand: RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN_DOKU
+Datum: 2026-06-24
 
 ## Aktueller bestaetigter Arbeitsstand
 
 RDAP7I ist abgeschlossen, lokal sauber, nach GitHub/dev gepusht und live auf dem Webserver deployed/getestet.
 
-RDAP7I bereitet den Session-Store-/Validation-Layer read-only vor. `dashboard_sessions` wird nur per SELECT diagnostisch/validierend gelesen. Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Session-Erstellung, keine Session-Verlaengerung, kein `last_seen_at` Update, keine DB-Writes und keine Agent-Actions.
+RDAP8 wurde als reiner Plan-/Doku-Step vorbereitet. RDAP8 beschreibt die spaetere Permission-Check-Middleware fuer Remote-Modboard-Bereiche und haelt fest, wie vorhandenes Rollen-/Gruppen-/Permission-Modell und RDAP7I Auth-/Session-Read-only-Status zusammengefuehrt werden sollen.
+
+Es gibt weiterhin keinen produktiven Login, keinen Redirect zu Twitch, keinen Token-Tausch, keine Cookies, keine Session-Erstellung, keine Session-Verlaengerung, kein `last_seen_at` Update, keine DB-Writes, keine Remote-Writes und keine Agent-Actions.
 
 ## Fertig und bestaetigt
 
@@ -36,6 +38,7 @@ RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
 RDAP7I Session Store Read-only Validation Layer live deployed/getestet
+RDAP8 Permission Check Middleware Plan dokumentiert
 ```
 
 ## Remote-Modboard read-only live
@@ -170,6 +173,25 @@ keine DB-Writes
 keine Agent-Actions
 ```
 
+## RDAP8 Plan-/Doku-Ergebnis
+
+Neu dokumentiert:
+
+```text
+docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
+```
+
+Festgelegt:
+
+```text
+Backend entscheidet Rechte.
+Frontend ist nur Anzeige.
+Rollen und Gruppen bleiben getrennt.
+sound_profi bekommt keine globalen Grundrechte.
+Produktive Writes brauchen spaeter Permission + Lock + Audit + Confirm/Safety.
+RDAP8 aktiviert noch keine produktiven Flows.
+```
+
 ## Webserver-Backups
 
 ```text
@@ -204,11 +226,11 @@ Backups:             /var/backups/stream-control-center/
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN
+RDAP8A_PERMISSION_CONTEXT_READONLY_DIAGNOSTIC_PLAN
 ```
 
 Ziel:
 
 ```text
-Permission-Check-Middleware planen/vorbereiten, weiterhin ohne produktive Remote-Writes und ohne Agent-Actions.
+Konkreten Code-Scope fuer einen read-only Auth-/Permission-Context vorbereiten. Noch kein produktiver Login, keine Schreibaktionen und keine Agent-Actions.
 ```

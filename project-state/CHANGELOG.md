@@ -1,5 +1,45 @@
 # CHANGELOG
 
+## 2026-06-24 - RDAP8 / Permission Check Middleware Plan dokumentiert
+
+Status: Doku-/Plan-Step vorbereitet
+
+Geaendert:
+
+- `docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
+- `project-state/CHANGELOG.md`
+
+Dokumentiert:
+
+- RDAP8 plant die spaetere Permission-Check-Middleware fuer Remote-Modboard-Bereiche.
+- Backend entscheidet Rechte, Frontend ist nur Anzeige.
+- Bestehendes Rollen-/Gruppen-/Permission-Modell bleibt Grundlage.
+- Rollen und Gruppen bleiben getrennt.
+- `sound_profi` bekommt keine globalen Grundrechte.
+- Produktive Writes brauchen spaeter Permission + Lock + Audit + Confirm/Safety.
+- Naechster sinnvoller Schritt: `RDAP8A_PERMISSION_CONTEXT_READONLY_DIAGNOSTIC_PLAN`.
+
+Nicht geaendert:
+
+- kein Backend-Code
+- kein produktiver Login
+- keine Twitch-OAuth-Secrets ins Repo
+- kein Redirect zu Twitch
+- kein OAuth-Code-gegen-Token-Tausch
+- kein Cookie gesetzt
+- keine Session erstellt/verlaengert
+- kein `last_seen_at` Update
+- keine DB-Writes
+- keine User-/Rollen-/Gruppen-Schreibroute
+- keine Remote-Writes
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+- kein `moduleBuild`-Kosmetik-Fix in `remote-modboard/backend/server.js`
+
 ## 2026-06-23 - RDAP7I / Session Store Read-only Validation Layer live bestaetigt
 
 Status: live deployed und dokumentiert

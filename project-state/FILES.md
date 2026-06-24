@@ -1,7 +1,7 @@
 # FILES
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
-Datum: 2026-06-23
+Stand: RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN_DOKU
+Datum: 2026-06-24
 
 ## Wichtigste Dateien zuerst
 
@@ -17,6 +17,7 @@ docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
+docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
 ```
 
@@ -43,6 +44,7 @@ docs/current/RDAP7H_OAUTH_CALLBACK_SKELETON_DISABLED.md
 docs/current/RDAP7H_LIVE_DEPLOY_RESULT_DOCS.md
 docs/current/RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER.md
 docs/current/RDAP7I_LIVE_DEPLOY_RESULT_DOCS.md
+docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
 docs/current/NEXT_CHAT_PROMPT_RDAP7F.txt
 docs/current/NEXT_CHAT_PROMPT_RDAP8.txt
 ```
@@ -103,6 +105,32 @@ remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/services/auth-session-read.service.js
 remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/README.md
+```
+
+## RDAP8 geaenderte Dateien
+
+Reiner Plan-/Doku-Step, kein Backend-Code:
+
+```text
+docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
+
+## Moegliche spaetere RDAP8A-Code-Dateien
+
+Nur nach eigenem Scope und ausdruecklichem go:
+
+```text
+remote-modboard/backend/src/services/auth-context-read.service.js
+remote-modboard/backend/src/services/auth-permission-read.service.js
+remote-modboard/backend/src/security/permissions.js
+remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```
 
 ## Installierte Dateien auf Webserver
@@ -231,8 +259,8 @@ moduleVersion: 0.0.3
 moduleBuild: RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY
 ```
 
-## Naechste geplante Datei
+## Naechste geplante Datei / naechster Scope
 
 ```text
-docs/current/RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN.md
+RDAP8A_PERMISSION_CONTEXT_READONLY_DIAGNOSTIC_PLAN
 ```

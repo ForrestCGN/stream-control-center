@@ -1,7 +1,7 @@
 # NEXT STEPS
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER_LIVE_DEPLOY_BESTAETIGT
-Datum: 2026-06-23
+Stand: RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN_DOKU
+Datum: 2026-06-24
 
 ## Aktueller Stand
 
@@ -17,6 +17,12 @@ RDAP7F Twitch OAuth Dry-Run Plan dokumentiert
 RDAP7G Twitch OAuth ENV/Server Prep disabled vorbereitet und live deployed
 RDAP7H OAuth Callback Skeleton disabled vorbereitet und live deployed/getestet
 RDAP7I Session Store Read-only Validation Layer live deployed/getestet
+```
+
+Neu vorbereitet als Doku-/Plan-Step:
+
+```text
+RDAP8 Permission Check Middleware Plan dokumentiert
 ```
 
 Remote-Modboard bleibt read-only:
@@ -38,53 +44,58 @@ databaseWriteEnabled: false
 agentActionsEnabled: false
 ```
 
-RDAP7I erlaubt nur:
+RDAP8 legt fest:
 
 ```text
-dashboard_sessions per SELECT validierend lesen
-Session-Cookie-Namen erkennen
-Cookie-Wert nicht ausgeben
-kurzen Cookie-Fingerprint fuer Diagnose anzeigen
-Session exists/valid/expires/revoked diagnostisch melden
-```
-
-RDAP7I erlaubt nicht:
-
-```text
-Session erstellen
-Session verlaengern
-last_seen_at aktualisieren
-Cookie setzen
-Login aktivieren
-User-/Rollen-/Gruppen-Schreibroute
-DB-Writes
-Remote-Writes
-Agent-Actions
+Backend entscheidet Rechte.
+Frontend ist nur Anzeige.
+Rollen und Gruppen bleiben getrennt.
+sound_profi hat keine globalen Grundrechte.
+Produktive Writes brauchen spaeter Permission + Lock + Audit + Confirm/Safety.
+Keine Schreibroute ohne eigenen Scope.
+Keine Agent-Actions.
+Keine OBS-/Sound-/Overlay-/Command-Steuerung.
 ```
 
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP8_PERMISSION_CHECK_MIDDLEWARE_PLAN
+RDAP8A_PERMISSION_CONTEXT_READONLY_DIAGNOSTIC_PLAN
 ```
 
 Ziel:
 
 ```text
-Permission-Check-Middleware fuer spaetere Remote-Modboard-Bereiche planen/vorbereiten.
+Konkreten Code-Scope fuer einen read-only Auth-/Permission-Context vorbereiten.
 ```
 
-RDAP8 darf klaeren/umsetzen, aber erst nach eigenem Scope und ausdruecklichem go:
+RDAP8A darf klaeren/umsetzen, aber erst nach eigenem Scope und ausdruecklichem go:
 
 ```text
-echte Remote-Modboard-Dateien vor Planung pruefen
-bestehendes Rollen-/Gruppen-/Permission-Modell weiterverwenden
-Auth-/Session-Read-only-Status aus RDAP7I als Grundlage beruecksichtigen
-Backend entscheidet Rechte, Frontend nur Anzeige
-Permission-Checks fuer spaetere Bereiche entwerfen
-keine Schreibrouten ohne Lock/Audit/Permission
+echte Remote-Modboard-Dateien erneut pruefen
+keinen Login aktivieren
+keine Cookies setzen
+keine Sessions erstellen
+keine Sessions verlaengern
+kein last_seen_at Update
+vorhandenes Rollen-/Gruppen-/Permission-Modell read-only verwenden
+Auth-/Session-Read-only-Status aus RDAP7I als Grundlage nutzen
+Permission-Context nur diagnostisch/read-only vorbereiten
+keine User-/Rollen-/Gruppen-Schreibrouten
+keine DB-Writes
+keine Remote-Writes
 keine Agent-Actions
-keine OBS-/Sound-/Overlay-/Command-Steuerung
+```
+
+Moegliche spaetere Dateien, nur wenn RDAP8A als Code-Step freigegeben wird:
+
+```text
+remote-modboard/backend/src/services/auth-context-read.service.js
+remote-modboard/backend/src/services/auth-permission-read.service.js
+remote-modboard/backend/src/security/permissions.js
+remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```
 
 ## Noch nicht erlaubt
