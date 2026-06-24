@@ -32,6 +32,7 @@ async function buildMeStatus({ context, req }) {
 
   const access = buildDashboardAccess(context.config, user, sessionValidation);
   const roles = mergeRoles(permissionContext ? permissionContext.roles : [], access.roles);
+  const avatarUrl = user ? (user.avatarUrl || user.profileImageUrl || null) : null;
 
   return {
     ok: true,
@@ -49,6 +50,8 @@ async function buildMeStatus({ context, req }) {
     dashboardAccess: access.allowed,
     accessReason: access.reason,
     user,
+    avatarUrl,
+    profileImageUrl: avatarUrl,
     identity: null,
     roles,
     groups: permissionContext ? permissionContext.groups : [],

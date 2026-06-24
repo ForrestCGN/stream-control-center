@@ -157,8 +157,13 @@ async function readPermissionContextReadOnly({ config, userUid, permissionKey, t
 }
 
 async function readUser(connection, userUid) {
+  const avatarSchema = await readAvatarSchema(connection);
+  const selectProfileImage = avatarSchema.dashboardUsersProfileImageUrl
+    ? ', profile_image_url'
+    : '';
+
   const [rows] = await connection.query(`
-    SELECT user_uid, display_name, login_name, status
+    SELECT user_uid, display_name, login_name, status${selectProfileImage}
     FROM dashboard_users
     WHERE user_uid = ?
     LIMIT 1
@@ -170,15 +175,21 @@ async function readUser(connection, userUid) {
       userUid,
       displayName: null,
       loginName: null,
+      profileImageUrl: null,
+      avatarUrl: null,
       status: null,
       exists: false
     };
   }
 
+  const profileImageUrl = avatarSchema.dashboardUsersProfileImageUrl ? (row.profile_image_url || null) : null;
+
   return {
     userUid: row.user_uid,
     displayName: row.display_name || null,
     loginName: row.login_name || null,
+    profileImageUrl,
+    avatarUrl: profileImageUrl,
     status: row.status || null,
     exists: true
   };
@@ -259,6 +270,27 @@ async function readModulePermissions(connection, { userUid, roles, groups, permi
   `, params);
 
   return rows;
+}
+
+async function readAvatarSchema(connection) {
+  try {
+    const [rows] = await connection.query(`
+      SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'dashboard_users'
+        AND COLUMN_NAME = 'profile_image_url'
+    `);
+
+    const hasColumn = Array.isArray(rows) && rows.some((row) => row.table_name === 'dashboard_users' && row.column_name === 'profile_image_url');
+    return {
+      dashboardUsersProfileImageUrl: hasColumn
+    };
+  } catch (err) {
+    return {
+      dashboardUsersProfileImageUrl: false
+    };
+  }
 }
 
 function buildPublicSessionState(sessionValidation) {
