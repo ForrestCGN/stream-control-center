@@ -1,47 +1,37 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS
+Stand: RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN
 Datum: 2026-06-24
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN
+RDAP16_TYPED_RESOURCE_KEY_RULES_AND_ADAPTER_PLAN
 ```
 
-## Ziel RDAP15
+## Ziel RDAP16
 
-Planen, wie `resourceType` fuer spaetere Lock-Writes behandelt werden soll.
+Konkrete Regeln fuer typisierte Resource-Keys planen.
 
-Grund:
+RDAP16 soll klaeren:
 
-```text
-locks.compatibleForWrite=false
-missingForWrite=["resourceType"]
-```
+- erlaubte `resourceType` Werte
+- erlaubte Namespaces
+- Format-Regeln
+- Parser-/Validator-Verhalten
+- Fehlergruende fuer untypisierte Keys
+- Adapter-Ausgabe fuer typisierte und untypisierte Keys
+- welche Dashboard-Bereiche welche Resource-Keys nutzen sollen
 
-Optionen:
+## RDAP16 darf NICHT
 
-1. Migration: `dashboard_locks.resource_type` ergaenzen
-2. Kein Schema-Change: `resource_key` zwingend typisiert nutzen
-3. Hybrid: `resource_type` spaeter ergaenzen, bis dahin typisierte `resource_key`
-
-## RDAP15 darf NICHT
-
-- Tabellen aendern
+- Backend-Code aendern
+- DB aendern
 - Migration ausfuehren
-- DB-Writes ausfuehren
+- DB-Writes bauen
 - Login aktivieren
 - OAuth aktivieren
 - Cookies/Sessions bauen
 - Remote-Writes bauen
 - Agent-Actions aktivieren
 - Secrets ausgeben oder loggen
-
-## Server-Regel
-
-Bei jedem Server-Restart:
-
-- `systemctl restart`
-- Readiness-Wait/Retry
-- erst danach API-Tests

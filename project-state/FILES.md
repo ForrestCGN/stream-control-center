@@ -1,23 +1,27 @@
 # FILES - stream-control-center
 
-Stand: RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS
+Stand: RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN
 Datum: 2026-06-24
 
-## RDAP14/RDAP14C relevante Dateien
+## RDAP15 relevante Dateien
 
 ```text
-remote-modboard/backend/src/services/lock-read.service.js
-remote-modboard/backend/src/services/audit-read.service.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-docs/current/RDAP14_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_SKELETON.md
-docs/current/RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS.md
+docs/current/RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN.md
 docs/current/START_HERE_FOR_NEW_CHAT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
+```
+
+## Weiterhin relevante RDAP14 Backend-Dateien
+
+```text
+remote-modboard/backend/src/services/lock-read.service.js
+remote-modboard/backend/src/services/audit-read.service.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```
 
 ## Backup RDAP14B

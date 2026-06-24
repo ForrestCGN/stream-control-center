@@ -1,12 +1,12 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP14C / Lock-/Audit Schema-Adapter Live-Test dokumentiert
+## 2026-06-24 - RDAP15 / Lock resourceType Decision Plan dokumentiert
 
-Status: Live-Test erfolgreich dokumentiert
+Status: Doku-/Plan-Step vorbereitet
 
 Geaendert:
 
-- `docs/current/RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS.md`
+- `docs/current/RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN.md`
 - `docs/current/START_HERE_FOR_NEW_CHAT.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
@@ -14,23 +14,13 @@ Geaendert:
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
 
-Bestaetigt:
+Inhalt:
 
-- RDAP14B Webserver-Deploy erfolgreich
-- Backup erstellt
-- Clone-Backend `npm run check` erfolgreich
-- Live-Backend `npm run check` erfolgreich
-- Service-Restart erfolgreich
-- Readiness-Wait erfolgreich: `ready_after=2s`
-- Schema-Adapter-Route lokal und public erreichbar
-- OAuth bleibt HTTP 403
-
-Wichtiger Befund:
-
-- Locks sind read-only kompatibel
-- Lock-Writes bleiben blockiert, weil `resourceType` fehlt
-- Audit ist read-only kompatibel
-- Audit-Writes bleiben durch Safety-Flags blockiert
+- RDAP14C Lock-Befund bewertet
+- Optionen Migration vs typisierter resource_key vs Hybrid verglichen
+- Hybrid als Empfehlung dokumentiert
+- verbindliche Resource-Key-Regel fuer neue Lock-Konzepte dokumentiert
+- RDAP16 als naechsten Plan-Step gesetzt
 
 Keine Aenderung:
 

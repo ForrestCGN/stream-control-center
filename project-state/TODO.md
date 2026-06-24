@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP14C_LOCK_AUDIT_SCHEMA_ADAPTER_LIVE_TEST_DOCS
+Stand: RDAP15_LOCK_RESOURCE_TYPE_DECISION_PLAN
 Datum: 2026-06-24
 
 ## Erledigt
@@ -15,12 +15,15 @@ Datum: 2026-06-24
 - [x] RDAP14 Schema-Adapter read-only Skeleton vorbereitet
 - [x] RDAP14B Schema-Adapter read-only Skeleton live deployed und getestet
 - [x] RDAP14C Live-Test dokumentiert
+- [x] RDAP15 Lock resourceType Decision Plan dokumentiert
 
 ## Noch offen / als naechstes
 
-- [ ] RDAP15 Lock resourceType Decision Plan
-- [ ] Entscheidung: resource_type Migration vs typisierter resource_key vs Hybrid
-- [ ] Step-Scripte spaeter beobachten: remote-modboard sollte nach TOOLS1 automatisch mitgenommen werden
+- [ ] RDAP16 Typed Resource-Key Rules and Adapter Plan
+- [ ] ResourceType-Werte definieren
+- [ ] Namespaces definieren
+- [ ] Parser-/Validator-Regeln planen
+- [ ] Step-Scripte beobachten: remote-modboard sollte nach TOOLS1 automatisch mitgenommen werden
 - [ ] Server-Deploy-Scripts mit Readiness-Wait/Retry weiter standardisieren
 
 ## Dauerhafte Verbote bis eigener Scope
