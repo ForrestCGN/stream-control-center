@@ -1,12 +1,12 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP11C / Lock-/Audit Live-Test dokumentiert
+## 2026-06-24 - RDAP12 / Lock-/Audit Schema-Kompatibilitaetsplan dokumentiert
 
-Status: Live-Test erfolgreich dokumentiert
+Status: Doku-/Plan-Step vorbereitet
 
 Geaendert:
 
-- `docs/current/RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS.md`
+- `docs/current/RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN.md`
 - `docs/current/START_HERE_FOR_NEW_CHAT.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
@@ -14,31 +14,22 @@ Geaendert:
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
 
-Bestaetigt live:
+Inhalt:
 
-- `GET /api/remote/lock-audit/status` -> HTTP 200
-- `GET /api/remote/lock-audit/status?db=1` -> HTTP 200
-- `GET /api/remote/auth/twitch/start` -> HTTP 403
-- `GET /api/remote/auth/twitch/callback` -> HTTP 403
+- reales `dashboard_locks` Schema bewertet
+- reales `dashboard_audit_log` Schema bewertet
+- Mapping-Moeglichkeiten dokumentiert
+- fehlende Felder dokumentiert
+- Empfehlung: Kompatibilitaetslayer vor produktiven Writes
+- Migration nur spaeter mit eigenem Scope, Backup und Rollback
 
-Bestaetigte Safety-Werte:
+Keine Aenderung:
 
-- `readOnly=true`
-- `writeEnabled=false`
-- `databaseWriteEnabled=false`
-- `authEnabled=false`
-- `loginEnabled=false`
-- `agentActionsEnabled=false`
-- `lockAcquireEnabled=false`
-- `auditInsertEnabled=false`
-
-Wichtiger Befund:
-
-- `dashboard_locks` existiert, reales Schema weicht vom Erwartungsmodell ab.
-- `dashboard_audit_log` existiert, reales Schema weicht vom Erwartungsmodell ab.
-- Vor produktiven Writes ist `RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN` Pflicht.
-
-Neue Arbeitsregel:
-
-- Nach `systemctl restart` immer Readiness-Wait/Retry vor API-Tests.
-- Keine sofortigen `curl`-Tests direkt nach Service-Restart.
+- kein Backend-Code
+- keine DB-Aenderung
+- keine Migration
+- kein Login
+- kein OAuth
+- keine Sessions
+- keine Writes
+- keine Agent-Actions

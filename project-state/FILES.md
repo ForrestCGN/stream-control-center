@@ -1,9 +1,21 @@
 # FILES - stream-control-center
 
-Stand: RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
+Stand: RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
 Datum: 2026-06-24
 
-## RDAP11/RDAP11C relevante Dateien
+## RDAP12 relevante Dateien
+
+```text
+docs/current/RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN.md
+docs/current/START_HERE_FOR_NEW_CHAT.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
+
+## RDAP11 relevante Backend-Dateien
 
 ```text
 remote-modboard/backend/package.json
@@ -12,14 +24,6 @@ remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
 remote-modboard/backend/src/services/lock-read.service.js
 remote-modboard/backend/src/services/audit-read.service.js
-docs/current/RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP.md
-docs/current/RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS.md
-docs/current/START_HERE_FOR_NEW_CHAT.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
 ```
 
 ## Webserver Pfade

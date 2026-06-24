@@ -1,77 +1,98 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
+Stand: RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
 Datum: 2026-06-24
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP11C dokumentiert den erfolgreichen Live-Deploy/Test von RDAP11.
+RDAP12 dokumentiert den Schema-Kompatibilitaetsplan fuer `dashboard_locks` und `dashboard_audit_log`.
 
-Remote-Modboard auf Webserver:
+RDAP12 ist ein reiner Doku-/Planungsstand.
+
+Keine Code-, DB- oder Server-Aenderung.
+
+## Live-Stand aus RDAP11C
+
+Remote-Modboard:
 
 ```text
 https://mods.forrestcgn.de/api/remote/
 127.0.0.1:3010
-systemd service: scc-remote-modboard.service
+scc-remote-modboard.service
 ```
 
-RDAP11 Live-Routen:
+Bestaetigt:
 
 ```text
-GET /api/remote/lock-audit/status
-GET /api/remote/lock-audit/status?db=1
+GET /api/remote/lock-audit/status      HTTP 200
+GET /api/remote/lock-audit/status?db=1 HTTP 200
 ```
 
-Bestaetigte Live-Werte:
+Safety:
 
 ```text
 statusApiVersion=rdap11.v1
 readOnly=true
 writeEnabled=false
 databaseWriteEnabled=false
-migrationEnabled=false
 authEnabled=false
 loginEnabled=false
 agentActionsEnabled=false
 lockAcquireEnabled=false
-lockHeartbeatEnabled=false
-lockReleaseEnabled=false
-lockForceTakeoverEnabled=false
 auditInsertEnabled=false
-auditUpdateEnabled=false
-productiveAuthorizationEnabled=false
-obsControlEnabled=false
-soundControlEnabled=false
-overlayControlEnabled=false
-commandControlEnabled=false
 ```
 
-OAuth bleibt disabled/read-only:
+OAuth bleibt:
 
 ```text
-GET /api/remote/auth/twitch/start    -> HTTP 403
-GET /api/remote/auth/twitch/callback -> HTTP 403
+start=403
+callback=403
 ```
 
-## Backup
+## RDAP12 Schema-Befund
+
+`dashboard_locks` reale Spalten:
 
 ```text
-/var/backups/stream-control-center/RDAP11B_LOCK_AUDIT_READONLY_SKELETON_LIVE_DEPLOY_TEST_remote-modboard-backend_20260624_083346.tar.gz
+id
+lock_uid
+resource_key
+owner_user_uid
+status
+heartbeat_at
+expires_at
+created_at
+updated_at
+version_token
 ```
 
-## Schema-Befund
+`dashboard_audit_log` reale Spalten:
 
-`dashboard_locks` existiert, aber reale Spalten weichen vom RDAP11-Erwartungsmodell ab.
+```text
+id
+audit_uid
+created_at
+actor_user_uid
+actor_display_name
+source
+action
+permission_key
+resource_key
+status
+old_value_summary
+new_value_summary
+request_id
+correlation_id
+```
 
-`dashboard_audit_log` existiert, aber reale Spalten weichen vom RDAP11-Erwartungsmodell ab.
+## Entscheidung
 
-Vor Writes ist RDAP12 Schema-Kompatibilitaetsplanung Pflicht.
+Vor produktiver Lock-/Audit-Schreiblogik:
 
-## Wichtige Regel aus RDAP11B
-
-Nach Server-Restart immer Readiness-Wait/Retry einbauen.
-
-Kein sofortiges `curl` direkt nach `systemctl restart`.
+- Schema-Kompatibilitaetslayer planen/bauen
+- fehlende Spalten nicht stillschweigend ignorieren
+- keine Writes ohne saubere Mapping-/Migrationsentscheidung
+- keine Migration ohne eigenen Scope
 
 ## Weiterhin verboten
 
@@ -79,11 +100,8 @@ Kein sofortiges `curl` direkt nach `systemctl restart`.
 - kein Twitch-OAuth
 - keine Cookies
 - keine Sessions
-- keine Session-Verlaengerung
-- kein last_seen_at Update
-- keine produktiven DB-Writes
-- keine User-/Rollen-/Gruppen-Schreibrouten
+- keine DB-Writes
+- keine Migration
 - keine Remote-Writes
 - keine Agent-Actions
-- keine OBS-/Sound-/Overlay-/Command-Steuerung
-- keine Secrets ins Repo, Frontend, Logs oder Chat
+- keine Secrets

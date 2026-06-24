@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
 
-Stand: RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
+Stand: RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
 Datum: 2026-06-24
 
 ## Zuerst lesen
@@ -13,28 +13,38 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-docs/current/RDAP9_LOCK_AUDIT_CONCEPT_FOR_FUTURE_WRITES.md
-docs/current/RDAP10_LOCK_AUDIT_IMPLEMENTATION_PLAN_READONLY.md
-docs/current/RDAP11_LOCK_AUDIT_READONLY_SKELETON_PREP.md
 docs/current/RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS.md
+docs/current/RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN.md
 ```
 
 ## Aktueller bestaetigter Stand
 
 ```text
-RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
+RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
 ```
 
-RDAP11 read-only Lock-/Audit-Diagnose-Skeleton wurde auf dem Webserver deployed und live getestet.
+RDAP12 dokumentiert den Schema-Kompatibilitaetsplan fuer `dashboard_locks` und `dashboard_audit_log`.
 
-Bestaetigt live:
+RDAP12 ist reiner Doku-/Planungsstand:
+
+- keine DB-Aenderung
+- keine Migration
+- keine Writes
+- kein Login
+- kein OAuth
+- keine Sessions
+- keine Agent-Actions
+
+## Bestaetigter Live-Stand aus RDAP11C
 
 ```text
-GET /api/remote/lock-audit/status
-GET /api/remote/lock-audit/status?db=1
+GET /api/remote/lock-audit/status       -> HTTP 200
+GET /api/remote/lock-audit/status?db=1  -> HTTP 200
+GET /api/remote/auth/twitch/start       -> HTTP 403
+GET /api/remote/auth/twitch/callback    -> HTTP 403
 ```
 
-Wichtig:
+Wichtige Live-Werte:
 
 ```text
 statusApiVersion=rdap11.v1
@@ -48,68 +58,72 @@ lockAcquireEnabled=false
 auditInsertEnabled=false
 ```
 
-OAuth bleibt deaktiviert:
+## Schema-Befund
+
+`dashboard_locks` existiert mit:
 
 ```text
-GET /api/remote/auth/twitch/start    -> HTTP 403
-GET /api/remote/auth/twitch/callback -> HTTP 403
+id
+lock_uid
+resource_key
+owner_user_uid
+status
+heartbeat_at
+expires_at
+created_at
+updated_at
+version_token
 ```
 
-## Webserver Fakten
+`dashboard_audit_log` existiert mit:
 
 ```text
-Webserver: web.cgn.community
-Public Subdomain: mods.forrestcgn.de
-Service: scc-remote-modboard.service
-Intern: 127.0.0.1:3010
-DB-Typ: MariaDB 11.8.6
-DB_NAME: c3stream_control
-DB_USER: c1stream_control
+id
+audit_uid
+created_at
+actor_user_uid
+actor_display_name
+source
+action
+permission_key
+resource_key
+status
+old_value_summary
+new_value_summary
+request_id
+correlation_id
 ```
 
-Passwort niemals dokumentieren oder ausgeben.
+Beide Schemas weichen vom RDAP11-Erwartungsmodell ab.
 
-## Backup RDAP11B
+## Empfehlung RDAP12
+
+Kurzfristig:
 
 ```text
-/var/backups/stream-control-center/RDAP11B_LOCK_AUDIT_READONLY_SKELETON_LIVE_DEPLOY_TEST_remote-modboard-backend_20260624_083346.tar.gz
+Kompatibilitaetslayer/Adapter statt sofortiger Migration
 ```
 
-## Wichtiger Live-Befund
+Mittelfristig:
 
-`dashboard_locks` und `dashboard_audit_log` existieren, aber das reale Schema weicht vom RDAP11-Erwartungsmodell ab.
-
-Vor produktiver Lock-/Audit-Schreiblogik muss ein eigener Schema-Kompatibilitaetsplan erstellt werden.
+```text
+kontrollierte Schema-Erweiterung mit Backup/Rollback/eigenem Scope
+```
 
 ## Server-Script-Regel
 
-Nach `systemctl restart` immer Readiness-Wait/Retry einbauen, bevor `curl`-Tests laufen.
+Nach `systemctl restart` immer Readiness-Wait/Retry einbauen, bevor API-Tests laufen.
 
-Nicht direkt nach Restart testen.
-
-Grosse Server-Bloecke vermeiden, wenn ein kompakter Block oder ein Scriptfile sicherer ist.
+Keine sofortigen `curl`-Tests direkt nach Restart.
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
+RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN
 ```
 
-RDAP12 darf nur planen/dokumentieren, solange kein separater Code-/DB-Scope freigegeben wird.
+Alternativ:
 
-RDAP12 darf NICHT:
-
-- Login aktivieren
-- Twitch-OAuth aktivieren
-- Cookies setzen
-- Sessions erstellen
-- Sessions verlaengern
-- last_seen_at aktualisieren
-- produktive DB-Writes bauen oder ausfuehren
-- User-/Rollen-/Gruppen-Schreibrouten bauen
-- Remote-Writes bauen
-- Agent-Actions aktivieren
-- OBS-/Sound-/Overlay-/Command-Steuerung bauen
-- Secrets ins Repo, Frontend, Logs oder Chat bringen
-- bestehende Routen entfernen
-- Funktionalitaet entfernen
+```text
+RDAP13_LOCK_AUDIT_SCHEMA_DUMP_READONLY_DOCS
+```

@@ -1,30 +1,36 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP11C_LOCK_AUDIT_LIVE_TEST_DOCS
+Stand: RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
 Datum: 2026-06-24
 
 ## Naechster sinnvoller Schritt
 
 ```text
-RDAP12_LOCK_AUDIT_SCHEMA_COMPATIBILITY_PLAN
+RDAP13_LOCK_AUDIT_SCHEMA_ADAPTER_READONLY_PLAN
 ```
 
-## Ziel RDAP12
+## Ziel RDAP13
 
-Das reale MariaDB-Schema von `dashboard_locks` und `dashboard_audit_log` mit dem RDAP9/RDAP10/RDAP11-Erwartungsmodell abgleichen.
+Read-only Adapter-Konzept fuer das reale Lock-/Audit-Schema vorbereiten.
 
-RDAP12 soll klaeren:
+RDAP13 soll planen:
 
-- welche bestehenden Spalten bereits nutzbar sind
-- welche geplanten Felder gemappt werden koennen
-- welche Felder fehlen
-- ob Erweiterung, Kompatibilitaetslayer oder neues Schema sinnvoll ist
-- welche Migration spaeter noetig waere
-- welche Migration zwingend Backup/Rollback braucht
-- welche Writes danach erst erlaubt werden duerfen
-- wie alte Daten erhalten bleiben
+- wie `dashboard_locks` reales Schema auf internes Lock-Modell gemappt wird
+- wie `dashboard_audit_log` reales Schema auf internes Audit-Modell gemappt wird
+- welche Felder mandatory/optional sind
+- wann produktive Writes blockiert bleiben muessen
+- welche Diagnose-Ausgabe sinnvoll ist
+- wie spaeter Migration vorbereitet werden kann, ohne bestehende Daten zu gefaehrden
 
-## RDAP12 darf NICHT
+## Alternative
+
+```text
+RDAP13_LOCK_AUDIT_SCHEMA_DUMP_READONLY_DOCS
+```
+
+Nur falls vor Adapter-Plan ein detaillierter INFORMATION_SCHEMA-Dump dokumentiert werden soll.
+
+## RDAP13 darf NICHT
 
 - Login aktivieren
 - OAuth aktivieren
@@ -32,23 +38,8 @@ RDAP12 soll klaeren:
 - Sessions erstellen
 - Sessions verlaengern
 - DB-Writes ausfuehren
-- Tabellen aendern
 - Migrationen ausfuehren
+- Tabellen aendern
 - Remote-Writes bauen
 - Agent-Actions aktivieren
 - Secrets ausgeben oder loggen
-
-## Spaetere Server-Script-Regel
-
-Bei jedem Server-Deploy mit Service-Neustart:
-
-- Backup erstellen
-- Syntaxcheck vor Deploy
-- Deploy
-- Syntaxcheck live
-- `systemctl restart`
-- Readiness-Wait/Retry auf Port/Statusroute
-- erst danach API-Tests
-- OAuth/Write-Safety erneut pruefen
-
-Keine riesigen unsicheren Server-Bloecke, wenn ein kompakter Block oder ein Scriptfile robuster ist.
