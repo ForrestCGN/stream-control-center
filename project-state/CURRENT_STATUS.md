@@ -1,33 +1,34 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
+Stand: RDAP_HANDOFF_AUTH_DASHBOARD2_STOCKT
 Datum: 2026-06-24
 
-## Aktueller Stand
+## Aktueller bestätigter Stand
 
-```text
-RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
-```
+Remote-Modboard/Auth:
 
-## Inhalt
+- `mods.forrestcgn.de` läuft
+- Deploy-Script funktioniert
+- Twitch Login funktioniert live
+- ForrestCGN konnte sich im Browser anmelden
+- Auth/OAuth/Sessions aktiv
 
-Dashboard2 ergänzt:
+## Aktueller offener Punkt
 
-- Login-Seite ohne Dashboard, wenn nicht angemeldet
-- Access-Denied-Seite, wenn angemeldet aber nicht freigegeben
-- Dashboard nur bei `dashboardAccess=true`
-- Serverentscheidung über `/api/remote/auth/me`
-- CGN-/Neon-Galaxy-Designrichtung stärker umgesetzt
+Dashboard2/Auth-Gate/Design wurde begonnen, aber Forrest bewertet das Design als nicht passend zum geplanten CGN-/Vision-UI-/Neon-Galaxy-Dashboard.
 
-## Zugang
+Der aktuelle Chat soll beendet/übergeben werden.
 
-Initial erlaubt:
+## Wichtig
 
-```text
-forrestcgn
-```
+Nicht weiter frei Design bauen. Für den nächsten Design-Step echte Projektdateien/Designbasis aus GitHub/dev prüfen.
 
-Später sollen Mods/Spezialrollen sauber über Rollen/Rechte folgen.
+## Sofort offen
+
+- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, da sie im Chat sichtbar waren
+- Nach Rotation Service neu starten
+- Browser ggf. erneut einloggen
+- Dann Design/Frontend sauber auf echter Basis neu planen
 
 ## Weiterhin deaktiviert
 

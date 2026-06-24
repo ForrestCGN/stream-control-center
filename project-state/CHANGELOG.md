@@ -1,10 +1,24 @@
 # CHANGELOG - stream-control-center
 
-## 2026-06-24 - RDAP Dashboard2 Auth-Gate und CGN Design vorbereitet
+## 2026-06-24 - Handoff wegen stockendem Dashboard2-Design
 
-- Login-Seite für nicht eingeloggte Nutzer
-- Access-Denied für eingeloggte, aber nicht freigegebene Nutzer
-- Dashboard nur bei `dashboardAccess=true`
-- Backend `/auth/me` erweitert um Dashboard-Zugriff
-- CGN-/Neon-Galaxy-Designrichtung verbessert
-- keine Remote-Writes/Agent-Actions
+Stand:
+
+```text
+RDAP_HANDOFF_AUTH_DASHBOARD2_STOCKT
+```
+
+Zusammenfassung:
+
+- Twitch Login funktioniert live
+- ForrestCGN wurde im Browser als angemeldet angezeigt
+- Auth/OAuth/Sessions sind aktiv
+- Dashboard1/2 wurden begonnen
+- Dashboard2-Design entspricht noch nicht dem geplanten CGN-/Vision-UI-/Neon-Galaxy-Stil
+- Nächster Chat soll mit echter Designbasis aus dem Repo arbeiten, nicht mit freiem CSS-Raten
+
+Offen:
+
+- Secrets rotieren
+- Designbasis prüfen
+- Zentralen Login für Hauptseite/Modboard-Übernahme planen

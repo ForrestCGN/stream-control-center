@@ -1,44 +1,49 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_DASHBOARD2_AUTH_GATE_AND_CGN_DESIGN
+Stand: RDAP_HANDOFF_AUTH_DASHBOARD2_STOCKT
 Datum: 2026-06-24
 
-## Test nach Einspielen
+## Im neuen Chat zuerst
 
-Lokal:
+1. GitHub/dev als Source of Truth prüfen
+2. `docs/current/START_HERE_FOR_NEW_CHAT.md` lesen
+3. aktuellen Auth-/Dashboard-Stand anhand Repo-Dateien prüfen
+4. nicht raten, keine losen Patches
+5. echte Designbasis suchen/prüfen
 
-```powershell
-node --check .\remote-modboard\backend\src\services\config.service.js
-node --check .\remote-modboard\backend\src\services\auth-status.service.js
-node --check .\remote-modboard\backend\public\assets\remote-modboard.js
-```
+## Sofort prüfen
 
-Webserver:
+Secrets rotieren:
 
 ```bash
-curl -fsS https://mods.forrestcgn.de/api/remote/auth/me | jq '.loggedIn,.dashboardAccess,.accessReason,.roles'
+openssl rand -base64 48
+openssl rand -base64 48
+nano /etc/stream-control-center/remote-modboard.env
+systemctl restart scc-remote-modboard.service
 ```
 
-Browser:
+## Nächste geplante Steps
 
-```text
-https://mods.forrestcgn.de/
-```
+### RDAP_DESIGN1_REAL_CGN_BASE
 
-Erwartung:
+Ziel:
 
-- ohne Login: Login-Seite
-- ForrestCGN: Dashboard
-- nicht freigegebener User: Access-Denied
+- echtes CGN-/Vision-UI-/Neon-Galaxy-Design
+- Designbasis aus bestehenden Repo-/Projektdateien übernehmen
+- keine weiteren frei erfundenen CSS-Versuche
 
-## Danach
+### RDAP_AUTH2_CENTRAL_LOGIN_READY
 
-```text
-RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI
-```
+Ziel:
 
-oder
+- Modboard-Login als Übergang dokumentieren
+- späteren Hauptseiten-/Zentral-Login vorbereiten
+- Return-To/Redirect-Konzept
+- gemeinsame Session-/Cookie-Strategie für `forrestcgn.de` und `mods.forrestcgn.de`
 
-```text
-RDAP_DASHBOARD3_MODULE_LAYOUT
-```
+### RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI
+
+Ziel:
+
+- Owner/Streamer/Mods/Sound-Profi sichtbar und verwaltbar planen
+- noch keine produktiven Actions
