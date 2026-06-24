@@ -11,54 +11,46 @@ Produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller Backend-/Security-Code-Stand nach RDAP14:
+Aktueller Backend-/Security-Code-Stand nach RDAP14B:
 
 ```text
-RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
+RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
 ```
 
-Aktueller bestätigter Frontend/Login-/Konto-/Navigations-Stand:
+RDAP14 wurde live getestet und bestätigt:
 
 ```text
-RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
-RDAP_ACCOUNT_PANEL_CLEANUP_V2
-RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
-RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE
+moduleBuild: RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
+statusApiVersion: rdap_admin_users14.v1
+writeEnabled: false
+actionEnabled: false
+productiveAgentRuntime: false
 ```
 
-Aktueller Planstand:
-
-```text
-RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
-RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
-```
-
-## RDAP14 Ergebnis
-
-RDAP14 ergänzt eine read-only Diagnose-Route für die später geplante Admin-Notiz-Funktion.
-
-Neue Route:
+RDAP14 Diagnose-Route funktionierte korrekt:
 
 ```text
 GET /api/remote/admin/users/admin-note-diagnostic
 ```
 
-Zweck:
+Ergebnis:
 
 ```text
-Prüfen, ob dashboard_user_admin_notes existiert und ob die erwarteten Mindestspalten vorhanden sind.
-```
-
-Weiterhin gilt:
-
-```text
+readOnly: true
+routeRemainsReadOnly: true
 writeEnabled: false
-databaseWriteEnabled: false
-migrationEnabled: false
 productiveWritesEnabled: false
 writesStillBlocked: true
-routeRemainsReadOnly: true
-uiWriteButtonsEnabled: false
+tableExists: false
+schemaReady: false
+migrationRequired: true
+reason: admin_note_table_missing_or_incomplete
+```
+
+RDAP14B synchronisiert nur die Routenuebersicht, damit dieser Key nicht mehr `null` ist:
+
+```text
+/api/remote/routes -> adminUserAdminNoteDiagnostic
 ```
 
 ## Weiterhin nicht aktiv
@@ -83,7 +75,7 @@ Admin-Notiz-Write
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP_ADMIN_USERS14B_DEPLOY_CONFIRMATION_DOCS
+RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN
 ```
 
-Nach lokalem Test und Webserver-Deploy soll RDAP14 dokumentiert werden. Erst danach darf ein separater Migrations-/Write-Vorbereitungsschritt geplant werden.
+RDAP15 darf keine echte Migration ohne separaten Backup-/Rollback-Plan und ausdrückliches Go ausführen.

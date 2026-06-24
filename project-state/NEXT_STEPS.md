@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC  
+Stand: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC  
 Datum: 2026-06-24
 
 ## Aktuell erledigt
@@ -9,52 +9,58 @@ Datum: 2026-06-24
 RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
 RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
 RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
+RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
 ```
 
-## RDAP14 testen
+## RDAP14 Ergebnis
 
-Lokal nach Installation:
-
-```powershell
-node --check .\remote-modboard\backend\server.js
-node --check .\remote-modboard\backend\src\app.js
-node --check .\remote-modboard\backend\src\routes\admin-users.routes.js
-node --check .\remote-modboard\backend\src\routes\routes.routes.js
-node --check .\remote-modboard\backend\src\routes\status.routes.js
-node --check .\remote-modboard\backend\src\services\admin-user-admin-note-diagnostic.service.js
-```
-
-Nach Webserver-Deploy:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq '{ok, service, moduleBuild, statusApiVersion, writeEnabled, actionEnabled, productiveAgentRuntime}'
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.statusApiVersion, .adminUsersAdminNoteDiagnostic'
-curl -fsS http://127.0.0.1:3010/api/remote/admin/users/admin-note-diagnostic | jq
-```
-
-Erwartung:
+RDAP14 ist live bestätigt. Die Admin-Notiz-Diagnose bleibt read-only und meldet korrekt, dass die Tabelle noch fehlt:
 
 ```text
-moduleBuild: RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
-writeEnabled: false
-productiveWritesEnabled: false
+tableExists: false
+schemaReady: false
+migrationRequired: true
 writesStillBlocked: true
-routeRemainsReadOnly: true
-migrationEnabled: false
 ```
 
-## Nächster Schritt
+## RDAP14B Ergebnis
+
+RDAP14B synchronisiert nur die Routenuebersicht:
 
 ```text
-RDAP_ADMIN_USERS14B_DEPLOY_CONFIRMATION_DOCS
+/api/remote/routes -> adminUserAdminNoteDiagnostic
 ```
 
-Nur Doku nach bestätigtem Deploy.
+Keine Migration, keine Writes, keine UI-Schreibbuttons.
 
-## Danach erst planen
+## Nächster empfohlener Fach-Step
 
 ```text
-RDAP_ADMIN_USERS15_ADMIN_NOTE_MIGRATION_PLAN
+RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN
 ```
 
-Noch keine echte Migration ohne separaten Backup-/Rollback-Plan und ausdrückliches Go.
+Scope:
+
+- Migration für `dashboard_user_admin_notes` planen.
+- Exakten SQL-Entwurf dokumentieren.
+- Backup-Befehl dokumentieren.
+- Rollback-Befehl dokumentieren.
+- Prüfen, ob Migration als separater disabled/prepared Step oder direkt als Migration-Step mit hartem Go gebaut wird.
+- Noch keinen Admin-Notiz-Write bauen.
+- Keine UI-Schreibbuttons.
+
+## Erst nach bestätigter Tabelle
+
+Ein echter Admin-Notiz-Write darf erst gebaut werden, wenn:
+
+```text
+Tabelle existiert
+SchemaReady true
+Backup/Rollback geklärt
+Permission admin.users.note.write geklärt
+Confirm-Write Pflicht umgesetzt
+Audit-Payload umgesetzt
+Lock-Scope umgesetzt
+Read-Back-Prüfung umgesetzt
+separates Go von Forrest
+```

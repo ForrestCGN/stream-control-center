@@ -7,7 +7,7 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_routes',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_admin_users14.v1',
+      statusApiVersion: 'rdap_admin_users14b.v1',
       readOnly: true,
       writeEnabled: false,
       authEnabled: Boolean(context.config && context.config.auth && context.config.auth.authEnabled),
@@ -44,6 +44,20 @@ function registerRoutesRoutes(app, context) {
         writesStillBlocked: true,
         routeRemainsReadOnly: true
       },
+      adminUserAdminNoteDiagnostic: {
+        prepared: true,
+        route: '/api/remote/admin/users/admin-note-diagnostic',
+        tableName: 'dashboard_user_admin_notes',
+        readOnly: true,
+        writeEnabled: false,
+        productiveWritesEnabled: false,
+        writesStillBlocked: true,
+        migrationEnabled: false,
+        routeRemainsReadOnly: true,
+        uiWriteButtonsEnabled: false,
+        routeListKeySynced: true,
+        aliasOf: 'adminUsersAdminNoteDiagnostic'
+      },
       adminUsersAdminNoteDiagnostic: {
         prepared: true,
         route: '/api/remote/admin/users/admin-note-diagnostic',
@@ -54,7 +68,8 @@ function registerRoutesRoutes(app, context) {
         writesStillBlocked: true,
         migrationEnabled: false,
         routeRemainsReadOnly: true,
-        uiWriteButtonsEnabled: false
+        uiWriteButtonsEnabled: false,
+        routeListKeySynced: true
       },
       adminUsersMiniWriteFoundation: {
         prepared: true,

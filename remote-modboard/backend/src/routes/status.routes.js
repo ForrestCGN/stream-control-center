@@ -17,7 +17,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_admin_users14.v1',
+      statusApiVersion: 'rdap_admin_users14b.v1',
       readOnly: !authEnabled,
       writeEnabled: false,
       actionEnabled: false,
@@ -101,7 +101,8 @@ function registerStatusRoutes(app, context) {
           'RDAP6/RDAP7/RDAP8 Write-Foundation/Confirm/Audit-Diagnosen bleiben read-only verfuegbar.',
           'Login-Daten, Twitch-Tokens oder Sessionwerte duerfen nicht im Frontend oder in Links weitergereicht werden.',
           'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.',
-          'RDAP14 Admin-Notiz-Diagnose prueft nur lesend, ob die spaetere Notiz-Tabelle vorbereitet ist.'
+          'RDAP14 Admin-Notiz-Diagnose prueft nur lesend, ob die spaetere Notiz-Tabelle vorbereitet ist.',
+          'RDAP14B synchronisiert die Routenuebersicht fuer adminUserAdminNoteDiagnostic ohne Writes.'
         ]
       },
       adminUsersWriteFoundation: {
