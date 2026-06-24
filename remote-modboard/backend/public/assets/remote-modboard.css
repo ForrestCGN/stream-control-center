@@ -790,18 +790,20 @@ body:has(.loginScene:not([hidden])) .bg-wash-b{
 }
 .login-card.login-card--welcome p:not(.cgn-eyebrow){
   margin:26px auto 28px;
-  max-width:620px;
+  max-width:560px;
   color:rgba(221,228,255,.84);
-  font-size:clamp(18px,1.65vw,23px);
-  line-height:1.48;
+  font-size:clamp(18px,1.48vw,21px);
+  line-height:1.42;
+  text-wrap:balance;
 }
 .login-card.login-card--welcome .twitch-login{
-  width:min(580px,100%);
-  min-height:74px;
+  width:min(460px,100%);
+  min-height:70px;
   height:auto;
   margin:0;
-  padding:0 30px;
-  gap:18px;
+  padding:0 32px;
+  gap:16px;
+  white-space:nowrap;
   border:1px solid rgba(213,170,255,.56);
   border-radius:17px;
   background:
@@ -866,8 +868,8 @@ body:has(.loginScene:not([hidden])) .bg-wash-b{
   .login-mark span{width:34px;height:34px;border-width:5px}
   .login-card.login-card--welcome .cgn-eyebrow{font-size:11px;letter-spacing:.13em}
   .login-card.login-card--welcome h1{font-size:clamp(44px,13vw,62px)}
-  .login-card.login-card--welcome p:not(.cgn-eyebrow){font-size:17px}
-  .login-card.login-card--welcome .twitch-login{min-height:62px;font-size:19px;padding:0 20px}
+  .login-card.login-card--welcome p:not(.cgn-eyebrow){font-size:17px;max-width:330px}
+  .login-card.login-card--welcome .twitch-login{min-height:62px;font-size:19px;padding:0 20px;width:min(320px,100%)}
   .twitch-icon,.twitch-icon svg{width:28px;height:28px}
 }
 
