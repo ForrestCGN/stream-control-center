@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE  
+Stand: RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN  
 Datum: 2026-06-24
 
 ## Zentrale RDAP-Dokumente
@@ -10,9 +10,6 @@ docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
 docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
-docs/current/RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP.md
-docs/current/RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN.md
-docs/current/RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN.md
 docs/current/RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN.md
 docs/current/RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC.md
 docs/current/RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED.md
@@ -20,6 +17,7 @@ docs/current/RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS.md
 docs/current/RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED.md
 docs/current/RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP_LIVE_CONFIRMED.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_NAV_ACCOUNT_CLEANUP.md
+docs/current/RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN.md
 ```
 
 ## Projektstatus-Dateien
@@ -64,6 +62,18 @@ remote-modboard/backend/src/services/lock-read.service.js
 remote-modboard/backend/src/services/audit-read.service.js
 ```
 
+## Relevante DB-/Schema-Plan-Dateien
+
+```text
+db/rdap6c/sql/001_rdap6c_schema_migration.sql
+```
+
+RDAP12 plant zusätzlich, aber erstellt noch nicht:
+
+```text
+dashboard_user_admin_notes
+```
+
 ## Frontend/Login-/UX-Dateien
 
 ```text
@@ -72,26 +82,19 @@ remote-modboard/backend/public/assets/remote-modboard.css
 remote-modboard/backend/public/assets/remote-modboard.js
 ```
 
-Zuletzt geändert im UX-Bereich:
-
-```text
-RDAP_ACCOUNT_PANEL_CLEANUP_V2
-RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
-```
-
-Ziel der Änderung:
-
-```text
-Konto-Panel enttechnisiert.
-Sidebar-Gruppe Benutzer & Rechte entfernt.
-Persönliche Konto-/Rechte-Ansicht oben rechts im Profilbereich.
-Admin-Bereich für Benutzerverwaltung, Rollen/Rechte, Zugriff/Freigaben und Sicherheit.
-```
-
 ## Bestätigte RDAP11-Route
 
 ```text
 GET /api/remote/admin/users/mini-write-foundation-diagnostic
+```
+
+## Geplante spätere RDAP12/RDAP13-Aktion
+
+```text
+action: admin.users.note.set
+permission: admin.users.note.write
+lock: admin:user-note:<target_user_uid>
+table: dashboard_user_admin_notes
 ```
 
 ## Deploy

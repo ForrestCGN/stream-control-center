@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE  
+Stand: RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN  
 Datum: 2026-06-24
 
 ## Aktuell erledigt
@@ -15,119 +15,76 @@ RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
 RDAP_ACCOUNT_PANEL_CLEANUP_V2
 RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
 RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE
+RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
 ```
 
-## Ergebnis Konto-/Navigations-Cleanup
+## RDAP12 Ergebnis
 
-Konto-Panel:
+Der erste spätere echte Admin-Write wurde bewusst auf einen harmlosen Scope begrenzt:
 
 ```text
-Technische Werte aus normaler Nutzeransicht entfernt.
-Nur noch Avatar, Displayname, Twitch-Login, Rolle und Aktionen sichtbar.
-Profil aktualisieren und Ausloggen bleiben erhalten.
+Admin-Notiz zu einem Dashboard-User setzen/aktualisieren
 ```
 
-Sidebar/Navigation:
+Nicht als erster Write:
 
 ```text
-Benutzer & Rechte als eigene Sidebar-Gruppe entfernt.
-Mein Konto / persönliche Rechte liegen oben rechts im Profilbereich.
-Admin-Bereich ist der Ort für Benutzerverwaltung, Rollen/Rechte, Zugriff/Freigaben und Sicherheit.
+User freigeben/sperren
+Rollen vergeben/entziehen
+Gruppen ändern
+Sessions widerrufen
+Permissions ändern
+dashboard_users.status ändern
 ```
-
-Nicht geändert:
-
-```text
-Keine Backend-Logik.
-Keine Auth-/Session-/Permission-Logik.
-Keine DB.
-Keine produktiven Writes.
-Keine UI-Schreibbuttons.
-Keine Workflow-Tools.
-```
-
-## Workflow-Notiz
-
-Für weitere Steps gilt zwingend:
-
-```text
-Keine Workflow-Tools in Design-/Frontend-/Doku-Steps überschreiben.
-installstep.cmd, stepdone.cmd, testdeploy.cmd und Deploy-Skripte zuerst prüfen und nur ändern, wenn Forrest es ausdrücklich beauftragt.
-ZIPs mit echten Zielpfaden bauen, keine Patch-Skripte unter tools/steps/*.ps1.
-```
-
-## Offene Auffälligkeit
-
-Statusroute zeigte nach DESIGN2:
-
-```text
-moduleBuild: RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
-statusApiVersion: rdap_admin_users9.v1
-```
-
-Das ist kein Frontend-/UX-Stopper, sollte aber später separat geprüft werden.
 
 ## Nächster empfohlener Fach-Step
 
 ```text
-RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
+RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
 ```
 
-Scope nur Planung:
+RDAP13 darf nur vorbereitet/disabled planen oder bauen, nicht produktiv schreiben.
 
-- Kleinsten möglichen späteren Admin-Write auswählen.
-- Noch keinen produktiven Write bauen.
-- Noch keine UI-Schreibbuttons.
-- Noch keine DB-Migration ohne Backup/Rollback/Go.
-- Exakten Datenpfad klären: Welche Tabelle, welcher Datensatz, welches Feld.
-- Backup- und Rollback-Befehl konkret dokumentieren.
-- Permission-Grenze definieren.
-- Confirm-Write-Anforderung definieren.
-- Audit-Payload definieren.
-- Lock-Scope definieren.
-- Read-Back-Prüfung definieren.
-- Fehlerfälle und Abbruchbedingungen dokumentieren.
-
-## Erst nach RDAP12
-
-Ein echter Mini-Write darf erst separat gebaut werden, wenn RDAP12 abgeschlossen ist und Forrest ein weiteres klares `go` gibt.
-
-## Geparkter optionaler UI-Feinschliff
+## RDAP13 Mindestscope
 
 ```text
-RDAP_DESIGN3_LOGIN_TEXT_LAYOUT_FINE_TUNE
+- Prüfen, ob dashboard_user_admin_notes bereits existiert.
+- Falls nein: Migration separat planen, nicht blind ausführen.
+- Read-only Diagnose für die spätere Notiz-Tabelle vorbereiten.
+- Noch keine Notiz schreiben.
+- Noch keine UI-Schreibbuttons.
+- Backup-/Rollback-Befehl konkret am echten Server/DB-Typ prüfen.
 ```
 
-Nur falls gewünscht:
+## Erst nach RDAP13/RDAP14
 
-- Login-Textblock optisch ruhiger machen.
-- Umbruch/Zeilenlänge feiner einstellen.
-- Keine Backend-/OAuth-/DB-/Write-Änderungen.
+Ein echter Admin-Notiz-Write darf erst gebaut werden, wenn separat erledigt ist:
 
-## Webserver-Deploy-Regel
-
-`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen.
-
-Immer frischer Clone in `_deploy_tmp`:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+```text
+Backup vorhanden
+Rollback getestet/geplant
+Permission admin.users.note.write serverseitig geprüft
+confirmWrite Pflicht
+Lock-Scope admin:user-note:<target_user_uid>
+Audit-Payload definiert
+Read-Back-Prüfung definiert
+Forrest gibt erneut ausdrücklich go
 ```
 
-Nach Service-Restart immer Readiness abwarten:
+## Offene Auffälligkeit
 
-```bash
-sudo systemctl restart scc-remote-modboard.service
+```text
+statusApiVersion kann noch rdap_admin_users9.v1 anzeigen, obwohl moduleBuild RDAP11 ist.
+```
 
-for i in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
-    echo "ready_after=${i}s"
-    break
-  fi
-  sleep 1
-done
+Für RDAP12 kein Stopper, weil nur Doku/Plan.
+
+## Workflow-Regeln
+
+```text
+Keine Workflow-Tools in Design-/Frontend-/Doku-Steps überschreiben.
+ZIPs mit echten Zielpfaden bauen.
+Keine Patch-Skripte unter tools/steps/*.ps1.
+Nicht im Webserver-Verzeichnis git pull empfehlen.
+Webserver-Deploy immer aus frischem GitHub/dev-Clone.
 ```
