@@ -1,94 +1,60 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN  
+Stand: RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC  
 Datum: 2026-06-24
 
 ## Aktuell erledigt
 
 ```text
-RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
-RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN
-RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC
-RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
-RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS
-RDAP_DESIGN2_LOGIN_TEXT_POLISH_LIVE_CONFIRMED
-RDAP_ACCOUNT_PANEL_CLEANUP_V2
-RDAP_NAV_ACCOUNT_TO_PROFILE_MENU_CLEANUP
-RDAP_NAV_ACCOUNT_CLEANUP_DOCS_UPDATE
 RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
 RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
-```
-
-## RDAP13 Ergebnis
-
-RDAP13 konkretisiert den späteren ersten echten Write, baut ihn aber noch nicht.
-
-Geplanter späterer Write:
-
-```text
-Admin-Notiz zu User setzen/aktualisieren
-```
-
-Geplanter Datenpfad:
-
-```text
-dashboard_user_admin_notes.note_text
-```
-
-## Nächster empfohlener Fach-Step
-
-```text
 RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
 ```
 
-Maximaler Scope für RDAP14:
+## RDAP14 testen
 
-```text
-- SQL-Migrationsdatei für dashboard_user_admin_notes vorbereiten, nicht ausführen
-- read-only/disabled Diagnose-Route vorbereiten
-- Status sichtbar machen: table planned/prepared, writes disabled
-- keine UI-Schreibbuttons
-- keine produktiven Writes
-- keine echte Migration ohne Backup/Rollback/Go
+Lokal nach Installation:
+
+```powershell
+node --check .\remote-modboard\backend\server.js
+node --check .\remote-modboard\backend\src\app.js
+node --check .\remote-modboard\backend\src\routes\admin-users.routes.js
+node --check .\remote-modboard\backend\src\routes\routes.routes.js
+node --check .\remote-modboard\backend\src\routes\status.routes.js
+node --check .\remote-modboard\backend\src\services\admin-user-admin-note-diagnostic.service.js
 ```
 
-## Noch nicht erlaubt
-
-```text
-User freigeben/sperren
-Rollen vergeben/entziehen
-Gruppen ändern
-Sessions widerrufen
-Permissions ändern
-dashboard_users.status ändern
-Admin-Notiz produktiv schreiben
-DB-Migration ausführen
-```
-
-## Webserver-Deploy-Regel
-
-`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen.
-
-Immer frischer Clone in `_deploy_tmp`:
+Nach Webserver-Deploy:
 
 ```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+curl -fsS http://127.0.0.1:3010/api/remote/status | jq '{ok, service, moduleBuild, statusApiVersion, writeEnabled, actionEnabled, productiveAgentRuntime}'
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.statusApiVersion, .adminUsersAdminNoteDiagnostic'
+curl -fsS http://127.0.0.1:3010/api/remote/admin/users/admin-note-diagnostic | jq
 ```
 
-Nach Service-Restart immer Readiness abwarten:
+Erwartung:
 
-```bash
-sudo systemctl restart scc-remote-modboard.service
-
-for i in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
-    echo "ready_after=${i}s"
-    break
-  fi
-  sleep 1
-done
+```text
+moduleBuild: RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
+writeEnabled: false
+productiveWritesEnabled: false
+writesStillBlocked: true
+routeRemainsReadOnly: true
+migrationEnabled: false
 ```
+
+## Nächster Schritt
+
+```text
+RDAP_ADMIN_USERS14B_DEPLOY_CONFIRMATION_DOCS
+```
+
+Nur Doku nach bestätigtem Deploy.
+
+## Danach erst planen
+
+```text
+RDAP_ADMIN_USERS15_ADMIN_NOTE_MIGRATION_PLAN
+```
+
+Noch keine echte Migration ohne separaten Backup-/Rollback-Plan und ausdrückliches Go.

@@ -10,6 +10,7 @@ const { registerAuthStatusRoutes } = require('./routes/auth-status.routes');
 const { registerAuthLoginRoutes } = require('./routes/auth-login.routes');
 const { registerAuthTwitchRoutes } = require('./routes/auth-twitch.routes');
 const { registerLockAuditDiagnosticRoutes } = require('./routes/lock-audit-diagnostic.routes');
+const { registerAdminUsersRoutes } = require('./routes/admin-users.routes');
 const { registerAdminMiniWriteFoundationRoutes } = require('./routes/admin-mini-write-foundation.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 
@@ -34,6 +35,7 @@ function createApp({ config, moduleBuild }) {
   registerAuthLoginRoutes(app, context);
   registerAuthTwitchRoutes(app, context);
   registerLockAuditDiagnosticRoutes(app, context);
+  registerAdminUsersRoutes(app, context);
   registerAdminMiniWriteFoundationRoutes(app, context);
   registerRoutesRoutes(app, context);
 

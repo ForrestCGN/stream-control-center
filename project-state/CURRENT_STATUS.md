@@ -11,10 +11,10 @@ Produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller bestätigter Backend-/Security-Code-Stand:
+Aktueller Backend-/Security-Code-Stand nach RDAP14:
 
 ```text
-RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
+RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
 ```
 
 Aktueller bestätigter Frontend/Login-/Konto-/Navigations-Stand:
@@ -33,26 +33,32 @@ RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
 RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
 ```
 
-## RDAP13 Ergebnis
+## RDAP14 Ergebnis
 
-RDAP13 ist nur Planung/Vorbereitung. Es wurde kein echter Write gebaut und keine DB-Migration ausgeführt.
+RDAP14 ergänzt eine read-only Diagnose-Route für die später geplante Admin-Notiz-Funktion.
 
-Geplanter erster späterer Mini-Write bleibt:
+Neue Route:
 
 ```text
-Admin-Notiz zu einem Dashboard-User setzen/aktualisieren
+GET /api/remote/admin/users/admin-note-diagnostic
 ```
 
-RDAP13 konkretisiert dafür:
+Zweck:
 
 ```text
-table: dashboard_user_admin_notes
-action: admin.users.note.set
-permission: admin.users.note.write
-lock: admin:user-note:<target_user_uid>
-confirmWrite: Pflicht
-Audit: Pflicht im späteren Write
-Read-Back: Pflicht im späteren Write
+Prüfen, ob dashboard_user_admin_notes existiert und ob die erwarteten Mindestspalten vorhanden sind.
+```
+
+Weiterhin gilt:
+
+```text
+writeEnabled: false
+databaseWriteEnabled: false
+migrationEnabled: false
+productiveWritesEnabled: false
+writesStillBlocked: true
+routeRemainsReadOnly: true
+uiWriteButtonsEnabled: false
 ```
 
 ## Weiterhin nicht aktiv
@@ -77,7 +83,7 @@ Admin-Notiz-Write
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
+RDAP_ADMIN_USERS14B_DEPLOY_CONFIRMATION_DOCS
 ```
 
-Nur nach weiterem ausdrücklichem Go. RDAP14 darf höchstens SQL-Datei + read-only/disabled Diagnose vorbereiten. Noch keine produktiven Writes.
+Nach lokalem Test und Webserver-Deploy soll RDAP14 dokumentiert werden. Erst danach darf ein separater Migrations-/Write-Vorbereitungsschritt geplant werden.

@@ -7,7 +7,7 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_routes',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_admin_users11.v1',
+      statusApiVersion: 'rdap_admin_users14.v1',
       readOnly: true,
       writeEnabled: false,
       authEnabled: Boolean(context.config && context.config.auth && context.config.auth.authEnabled),
@@ -23,6 +23,7 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/admin/users/permission-diagnostic', description: 'Read-only Admin-User-Permission-Diagnose; keine User-/Rollen-Writes' },
         { method: 'GET', path: '/api/remote/admin/users/write-foundation-diagnostic', description: 'Read-only Confirm-/Audit-/Locking-Foundation inkl. disabled Confirm-/Audit-/Lock-Helper; schreibt nichts' },
         { method: 'GET', path: '/api/remote/admin/users/mini-write-foundation-diagnostic', description: 'Read-only RDAP11 Mini-Write-Foundation; Permission/Confirm/Audit/Lock/Backup/Rollback vorbereitet, Writes bleiben blockiert' },
+        { method: 'GET', path: '/api/remote/admin/users/admin-note-diagnostic', description: 'Read-only RDAP14 Admin-Notiz-Tabellen-Diagnose; keine Migration, keine Notiz-Writes' },
         { method: 'GET', path: '/api/remote/auth/login/plan', description: 'Read-only Plan fuer zentrale Login-Schicht' },
         { method: 'GET', path: '/api/remote/auth/login/start', description: 'Neutraler Login-Einstieg; aktuell Fallback auf Twitch, spaeter zentrale Auth' },
         { method: 'GET', path: '/api/remote/auth/twitch/start', description: 'Gated Twitch OAuth Start' },
@@ -42,6 +43,18 @@ function registerRoutesRoutes(app, context) {
         productiveWritesEnabled: false,
         writesStillBlocked: true,
         routeRemainsReadOnly: true
+      },
+      adminUsersAdminNoteDiagnostic: {
+        prepared: true,
+        route: '/api/remote/admin/users/admin-note-diagnostic',
+        tableName: 'dashboard_user_admin_notes',
+        readOnly: true,
+        writeEnabled: false,
+        productiveWritesEnabled: false,
+        writesStillBlocked: true,
+        migrationEnabled: false,
+        routeRemainsReadOnly: true,
+        uiWriteButtonsEnabled: false
       },
       adminUsersMiniWriteFoundation: {
         prepared: true,

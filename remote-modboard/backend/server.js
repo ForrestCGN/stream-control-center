@@ -3,14 +3,14 @@
 const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 
-const MODULE_BUILD = 'RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED';
+const MODULE_BUILD = 'RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC';
 
 async function main() {
   const config = loadConfig();
   const app = createApp({ config, moduleBuild: MODULE_BUILD });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] ${MODULE_BUILD} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] mini-write-foundation-disabled=true read-only-ui=true remoteWrites=false agentActions=false');
+    console.log('[remote-modboard] admin-note-diagnostic=true mini-write-foundation-disabled=true read-only-ui=true remoteWrites=false agentActions=false');
   });
 
   process.on('SIGTERM', () => shutdown(server, 'SIGTERM'));
