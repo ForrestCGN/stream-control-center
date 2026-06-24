@@ -325,3 +325,16 @@ body.nav-collapsed .cgn-sidebar{opacity:0;pointer-events:none;transform:translat
 .errorBox{margin:0 0 var(--gap);display:flex;justify-content:space-between;align-items:center;gap:12px;border-color:rgba(255,209,102,.32)}.errorBox p{margin:5px 0 0;color:var(--muted)}.errorBox[hidden]{display:none!important}.secondaryButton{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.052);color:#fff;font-weight:850;cursor:pointer}.secondaryButton.small{min-height:34px;font-size:13px}.secondaryButton:hover{border-color:rgba(27,216,255,.35)}
 .footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:var(--gap) 0 18px;color:var(--muted);font-size:13px}.rdap-readonly-badge{color:var(--yellow)}
 @media(max-width:1100px){.endpoint-grid{grid-template-columns:1fr}.kv-row,.route{grid-template-columns:1fr}.cgn-topbar{grid-template-columns:1fr auto}.top-search,.top-center{display:none}.top-right{min-width:0}.cgn-avatar-copy{display:none}}
+
+
+/* RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI - read-only access model cards */
+.access-note{display:grid;gap:10px;color:var(--muted);line-height:1.55}
+.access-note p{margin:0}
+.access-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.access-columns h3{margin:0 0 8px;font-size:14px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.model-list{display:grid;gap:8px}
+.model-row{display:grid;gap:3px;min-height:54px;padding:10px 11px;border:1px solid rgba(255,255,255,.07);border-radius:14px;background:rgba(255,255,255,.035)}
+.model-row strong{font-size:13px;overflow-wrap:anywhere}
+.model-row small{color:var(--muted);font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+.model-row.muted{opacity:.72}
+@media(max-width:1100px){.access-columns{grid-template-columns:1fr}}

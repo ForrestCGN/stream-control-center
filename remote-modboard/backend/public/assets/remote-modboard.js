@@ -5,6 +5,7 @@ const endpoints = {
   routes: '/api/remote/routes',
   authMe: '/api/remote/auth/me',
   loginPlan: '/api/remote/auth/login/plan',
+  authModel: '/api/remote/auth/model',
   permission: '/api/remote/auth/permissions/check?permission=remote.view',
   lockAudit: '/api/remote/lock-audit/status?db=1',
   schemaAdapter: '/api/remote/lock-audit/schema-adapter/status?db=1'
@@ -15,6 +16,7 @@ const endpointLabels = {
   routes: 'Routen',
   authMe: 'Auth/me',
   loginPlan: 'Login-Plan',
+  authModel: 'Auth-Modell',
   permission: 'Permission remote.view',
   lockAudit: 'Lock-/Audit',
   schemaAdapter: 'Schema-Adapter'
@@ -133,6 +135,7 @@ async function loadDashboard(reason) {
   renderSecurity(results.status, results.lockAudit, results.loginPlan);
   renderRoutes(results.routes);
   renderAuth(results.authMe, results.permission, results.status);
+  renderAccessModel(results.authMe, results.permission, results.authModel);
   renderLockAudit(results.lockAudit, results.schemaAdapter);
   renderEndpoints(results);
   renderQuickStatus(results);
@@ -304,6 +307,59 @@ function renderAuth(authMe, permission, status) {
   setValue('permissionAllowed', permissionBody.allowed);
   setText('permissionReason', permissionBody.reason || authBody.reason || '—');
   void status;
+}
+
+
+function renderAccessModel(authMe, permission, authModel) {
+  const authBody = (authMe && authMe.body) || {};
+  const permissionBody = (permission && permission.body) || {};
+  const modelBody = (authModel && authModel.body) || {};
+  const user = authBody.user || null;
+  const counts = modelBody.counts || {};
+  const model = modelBody.model || {};
+  const validation = modelBody.validation || {};
+  const groups = Array.isArray(authBody.groups) ? authBody.groups.map(group => group.groupKey || group.group_key || group).filter(Boolean) : [];
+
+  setValue('accessLoggedIn', authBody.loggedIn);
+  setValue('accessDashboardAllowed', authBody.dashboardAccess);
+  setValue('accessPermissionRemoteView', permissionBody.allowed);
+  setValue('accessSchemaReady', validation.schemaReady || (modelBody.schema && modelBody.schema.ready));
+  setValue('accessSchemaReadyDetail', validation.schemaReady || (modelBody.schema && modelBody.schema.ready));
+  setText('accessUser', user ? `${user.displayName || user.loginName || user.userUid} (${user.userUid})` : '—');
+  setText('accessReasonDetail', authBody.accessReason || permissionBody.reason || '—');
+  setText('accessRoles', formatList(authBody.roles));
+  setText('accessGroups', formatList(groups));
+  setText('accessSessionReason', authBody.session ? authBody.session.reason : '—');
+  setText('accessCountUsers', formatCount(counts.dashboard_users));
+  setText('accessCountSessions', formatCount(counts.dashboard_sessions));
+  setText('accessCountAudit', formatCount(counts.dashboard_audit_log));
+  setText('accessCountLocks', formatCount(counts.dashboard_locks));
+
+  setChip('accessModelPill', authModel && authModel.ok, authModel && authModel.ok ? 'DB-Modell ok' : 'DB-Modell prüfen');
+  renderModelList('accessRolesModel', model.roles, row => `${row.role_key || 'role'}${row.label ? ` · ${row.label}` : ''}`);
+  renderModelList('accessGroupsModel', model.groups, row => `${row.group_key || 'group'}${row.label ? ` · ${row.label}` : ''}${row.group_type ? ` · ${row.group_type}` : ''}`);
+  renderModelList('accessPermissionsModel', model.permissions, row => `${row.permission_key || 'permission'}${row.area ? ` · ${row.area}` : ''}`);
+}
+
+function renderModelList(id, rows, formatter) {
+  const node = byId(id);
+  if (!node) return;
+  const values = Array.isArray(rows) ? rows : [];
+  if (!values.length) {
+    node.innerHTML = '<div class="model-row"><strong>—</strong><small>Keine Einträge oder DB nicht lesbar</small></div>';
+    return;
+  }
+  node.innerHTML = values.slice(0, 12).map((row) => {
+    const title = formatter(row);
+    const description = row.description || row.protection_level || row.effect || row.status || '';
+    return `<div class="model-row"><strong>${escapeHtml(title)}</strong>${description ? `<small>${escapeHtml(description)}</small>` : ''}</div>`;
+  }).join('') + (values.length > 12 ? `<div class="model-row muted"><strong>+${values.length - 12}</strong><small>weitere Einträge über /api/remote/auth/model</small></div>` : '');
+}
+
+function formatCount(value) {
+  if (value == null || value === '') return '—';
+  const number = Number(value);
+  return Number.isFinite(number) ? String(number) : String(value);
 }
 
 function renderEndpoints(results) {

@@ -121,6 +121,7 @@
           <div class="nav-sub" id="nav-auth">
             <button class="nav-link" type="button" data-section="Benutzer & Rechte" data-title="Mein Login" data-tab="Session" data-page="account">Mein Login</button>
             <button class="nav-link" type="button" data-section="Benutzer & Rechte" data-title="Rechte" data-tab="remote.view" data-page="permissions">Rechte</button>
+            <button class="nav-link" type="button" data-section="Benutzer & Rechte" data-title="Zugriff" data-tab="read-only" data-page="access">Zugriff</button>
           </div>
 
           <button class="nav-group" type="button" data-target="nav-modules"><span>◇</span><b>Module</b><i>⌄</i></button>
@@ -209,6 +210,72 @@
         <section class="rdap-view" data-page-panel="permissions">
           <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Benutzer & Rechte</p><h1>Rechte</h1><p>Dashboard-Zugriff wird serverseitig entschieden. Produktive Actions brauchen später eigene Permission-Middleware.</p></section>
           <section class="page-grid"><article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Permission</p><h2>remote.view</h2></div><span class="cgn-chip cgn-chip--warn">geplant</span></div><div class="kv-grid"><div class="kv-row"><span>permission remote.view</span><strong id="permissionAllowed">—</strong></div><div class="kv-row"><span>reason</span><strong id="permissionReason">—</strong></div><div class="kv-row"><span>Hinweis</span><strong>Frontend zeigt nur an. Backend entscheidet.</strong></div></div></article></section>
+        </section>
+
+        <section class="rdap-view" data-page-panel="access">
+          <section class="page-header module-page-header cgn-card">
+            <p class="cgn-eyebrow">Benutzer & Rechte / read-only</p>
+            <h1>Zugriff & Rollenmodell</h1>
+            <p>Diese Seite macht den aktuellen Login, die Übergangs-Allowlist und das vorbereitete Rollen-/Permission-Modell sichtbar. Es werden keine Rechte geschrieben.</p>
+          </section>
+
+          <section class="metrics-grid">
+            <article class="metric-card cgn-card"><span>Login</span><strong id="accessLoggedIn">—</strong><small>Session</small><div class="metric-bar"><i style="width:72%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Dashboard</span><strong id="accessDashboardAllowed">—</strong><small>Zugriff</small><div class="metric-bar"><i style="width:72%"></i></div></article>
+            <article class="metric-card cgn-card"><span>remote.view</span><strong id="accessPermissionRemoteView">—</strong><small>Permission-Test</small><div class="metric-bar"><i style="width:64%"></i></div></article>
+            <article class="metric-card cgn-card"><span>DB-Modell</span><strong id="accessSchemaReady">—</strong><small>read-only</small><div class="metric-bar"><i style="width:58%"></i></div></article>
+          </section>
+
+          <section class="page-grid">
+            <article class="cgn-card">
+              <div class="card-head"><div><p class="cgn-eyebrow">Aktueller User</p><h2>Session & Zugriff</h2></div><span class="cgn-chip cgn-chip--info">serverseitig</span></div>
+              <div class="kv-grid">
+                <div class="kv-row"><span>User</span><strong id="accessUser">—</strong></div>
+                <div class="kv-row"><span>Access-Grund</span><strong id="accessReasonDetail">—</strong></div>
+                <div class="kv-row"><span>Rollen</span><strong id="accessRoles">—</strong></div>
+                <div class="kv-row"><span>Gruppen</span><strong id="accessGroups">—</strong></div>
+                <div class="kv-row"><span>Session</span><strong id="accessSessionReason">—</strong></div>
+              </div>
+            </article>
+
+            <article class="cgn-card">
+              <div class="card-head"><div><p class="cgn-eyebrow">Übergang</p><h2>Allowlist ist nur Startschutz</h2></div><span class="cgn-chip cgn-chip--warn">temporär</span></div>
+              <div class="access-note">
+                <p>Aktuell darf der Dashboard-Zugriff zusätzlich über eine serverseitige Allowlist in der Env begrenzt werden. Das ist sicherer als ein offenes Login, aber keine endgültige Benutzerverwaltung.</p>
+                <p>Später sollen Owner, Mods und Spezialrollen wie Sound-Profi über die gemeinsame Auth-/Session-DB und serverseitige Permissions verwaltet werden.</p>
+              </div>
+            </article>
+
+            <article class="cgn-card span2">
+              <div class="card-head"><div><p class="cgn-eyebrow">DB-Modell</p><h2>Rollen, Gruppen & Permissions</h2></div><span class="cgn-chip" id="accessModelPill">lädt</span></div>
+              <div class="access-columns">
+                <div>
+                  <h3>Rollen</h3>
+                  <div class="model-list" id="accessRolesModel">—</div>
+                </div>
+                <div>
+                  <h3>Gruppen</h3>
+                  <div class="model-list" id="accessGroupsModel">—</div>
+                </div>
+                <div>
+                  <h3>Permissions</h3>
+                  <div class="model-list" id="accessPermissionsModel">—</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="cgn-card span2">
+              <div class="card-head"><div><p class="cgn-eyebrow">Diagnose</p><h2>Schema & Tabellen</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+              <div class="kv-grid">
+                <div class="kv-row"><span>Schema bereit</span><strong id="accessSchemaReadyDetail">—</strong></div>
+                <div class="kv-row"><span>User</span><strong id="accessCountUsers">—</strong></div>
+                <div class="kv-row"><span>Sessions</span><strong id="accessCountSessions">—</strong></div>
+                <div class="kv-row"><span>Audit-Logs</span><strong id="accessCountAudit">—</strong></div>
+                <div class="kv-row"><span>Locks</span><strong id="accessCountLocks">—</strong></div>
+                <div class="kv-row"><span>Hinweis</span><strong>Keine Schreibfunktionen in diesem Step.</strong></div>
+              </div>
+            </article>
+          </section>
         </section>
 
         <section class="rdap-view" data-page-panel="modules">
