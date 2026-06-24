@@ -1,49 +1,44 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_AUTH1_TWITCH_LOGIN_LIVE_CONFIRMED
+Stand: RDAP_DASHBOARD1_PROTECTED_SHELL
 Datum: 2026-06-24
 
-## Sofort erledigen
+## Nach Einspielen testen
 
-### Secrets rotieren
+Lokal:
 
-Da `SESSION_SECRET` und `OAUTH_STATE_SECRET` im Chat sichtbar waren:
+```powershell
+node --check .\remote-modboard\backend\public\assets\remote-modboard.js
+```
+
+Webserver:
 
 ```bash
-openssl rand -base64 48
-openssl rand -base64 48
-nano /etc/stream-control-center/remote-modboard.env
-systemctl restart scc-remote-modboard.service
+curl -fsS https://mods.forrestcgn.de/api/remote/status | jq '.auth.enabled,.auth.loginEnabled'
 ```
 
-Danach erneut im Browser anmelden.
-
-## Nächster Entwicklungsstep
+Browser:
 
 ```text
-RDAP_DASHBOARD1_PROTECTED_SHELL
+https://mods.forrestcgn.de/
 ```
 
-Ziel:
+Erwartung:
 
-- Dashboard-Shell hinter Login
-- eingeloggter User oben rechts
-- Sidebar/Navigation
-- geschützte read-only Seiten
-- Status/Diagnose als erste geschützte Module
-- Logout sauber sichtbar
-- kein Agent/OBS/Sound/Overlay/Command-Control
+- ohne Login: Login-Gate
+- mit Login: Dashboard-Shell mit Sidebar
+- User oben rechts sichtbar
+- Seitenumschaltung ohne Reload
+- keine Steueraktionen sichtbar
 
 ## Danach
-
-```text
-RDAP_PERMISSIONS1_READONLY_ROLE_VIEW
-```
-
-oder
 
 ```text
 RDAP_DASHBOARD2_MODULE_NAVIGATION
 ```
 
-je nachdem, ob zuerst Rechteansicht oder Dashboardstruktur ausgebaut wird.
+oder
+
+```text
+RDAP_PERMISSIONS1_READONLY_ROLE_VIEW
+```

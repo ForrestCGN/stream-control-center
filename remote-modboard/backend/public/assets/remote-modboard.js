@@ -18,62 +18,55 @@ const endpointLabels = {
   schemaAdapter: 'Schema-Adapter'
 };
 
-const ids = {
-  serviceOnlineBadge: 'serviceOnlineBadge',
-  lastUpdatedText: 'lastUpdatedText',
-  autoRefreshText: 'autoRefreshText',
-  loginStateText: 'loginStateText',
-  loginButton: 'loginButton',
-  logoutButton: 'logoutButton',
-  quickService: 'quickService',
-  quickLogin: 'quickLogin',
-  quickOAuth: 'quickOAuth',
-  quickAgent: 'quickAgent',
-  errorBox: 'errorBox',
-  errorText: 'errorText',
-  clearErrorsButton: 'clearErrorsButton',
-  endpointPill: 'endpointPill',
-  endpointList: 'endpointList',
-  statusPill: 'statusPill',
-  statusOk: 'statusOk',
-  statusAuthEnabled: 'statusAuthEnabled',
-  statusLoginEnabled: 'statusLoginEnabled',
-  statusWriteEnabled: 'statusWriteEnabled',
-  statusApiVersion: 'statusApiVersion',
-  statusModuleBuild: 'statusModuleBuild',
-  statusGeneratedAt: 'statusGeneratedAt',
-  securityList: 'securityList',
-  lockAuditPill: 'lockAuditPill',
-  schemaAdapterPrepared: 'schemaAdapterPrepared',
-  locksRead: 'locksRead',
-  locksWrite: 'locksWrite',
-  locksMissing: 'locksMissing',
-  auditRead: 'auditRead',
-  auditWrite: 'auditWrite',
-  lockAcquireEnabled: 'lockAcquireEnabled',
-  auditInsertEnabled: 'auditInsertEnabled',
-  routesPill: 'routesPill',
-  routesList: 'routesList',
-  authLoggedIn: 'authLoggedIn',
-  authUser: 'authUser',
-  authRoles: 'authRoles',
-  permissionAllowed: 'permissionAllowed',
-  permissionReason: 'permissionReason',
-  refreshButton: 'refreshButton'
+const pageTitles = {
+  overview: 'Übersicht',
+  diagnostics: 'Diagnose',
+  routes: 'Routen',
+  account: 'Mein Login',
+  permissions: 'Rechte-Diagnose',
+  modules: 'Module'
 };
 
 const AUTO_REFRESH_SECONDS = 30;
 let refreshTimer = null;
 let refreshCountdown = AUTO_REFRESH_SECONDS;
 let isLoading = false;
+let currentPage = 'overview';
 
 document.addEventListener('DOMContentLoaded', () => {
-  el(ids.refreshButton).addEventListener('click', () => loadDashboard('manual'));
-  el(ids.clearErrorsButton).addEventListener('click', hideErrors);
-  el(ids.logoutButton).addEventListener('click', logout);
+  bindNavigation();
+  byId('refreshButton').addEventListener('click', () => loadDashboard('manual'));
+  byId('clearErrorsButton').addEventListener('click', hideErrors);
+  byId('logoutButton').addEventListener('click', logout);
   startAutoRefresh();
   loadDashboard('initial');
 });
+
+function bindNavigation() {
+  document.querySelectorAll('[data-nav-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const group = button.closest('.navGroup');
+      if (group) group.classList.toggle('isOpen');
+    });
+  });
+
+  document.querySelectorAll('[data-page]').forEach((button) => {
+    button.addEventListener('click', () => setPage(button.dataset.page));
+  });
+}
+
+function setPage(page) {
+  currentPage = pageTitles[page] ? page : 'overview';
+  byId('pageTitle').textContent = pageTitles[currentPage];
+
+  document.querySelectorAll('[data-page]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.page === currentPage);
+  });
+
+  document.querySelectorAll('[data-page-panel]').forEach((panel) => {
+    panel.classList.toggle('activePage', panel.dataset.pagePanel === currentPage);
+  });
+}
 
 function startAutoRefresh() {
   stopAutoRefresh();
@@ -102,10 +95,7 @@ async function loadDashboard(reason) {
   isLoading = true;
   refreshCountdown = AUTO_REFRESH_SECONDS;
   updateAutoRefreshText('lädt…');
-
-  setText(ids.serviceOnlineBadge, 'prüfe Service…');
-  el(ids.serviceOnlineBadge).className = 'modeBadge';
-  el(ids.refreshButton).disabled = true;
+  byId('refreshButton').disabled = true;
 
   const entries = await Promise.all(Object.entries(endpoints).map(async ([key, url]) => {
     const result = await getJson(url);
@@ -114,6 +104,7 @@ async function loadDashboard(reason) {
 
   const results = Object.fromEntries(entries);
 
+  renderAuthGate(results.authMe, results.status);
   renderStatus(results.status);
   renderSecurity(results.status, results.lockAudit);
   renderRoutes(results.routes);
@@ -123,10 +114,10 @@ async function loadDashboard(reason) {
   renderQuickStatus(results);
   renderErrors(results);
 
-  setText(ids.lastUpdatedText, `Aktualisiert: ${new Date().toLocaleString('de-DE')} · ${reason || 'load'}`);
+  byId('lastUpdatedText').textContent = `Aktualisiert: ${new Date().toLocaleString('de-DE')} · ${reason || 'load'}`;
 
   isLoading = false;
-  el(ids.refreshButton).disabled = false;
+  byId('refreshButton').disabled = false;
   updateAutoRefreshText();
 }
 
@@ -136,9 +127,7 @@ async function getJson(url) {
       method: 'GET',
       credentials: 'include',
       cache: 'no-store',
-      headers: {
-        'Accept': 'application/json'
-      }
+      headers: { 'Accept': 'application/json' }
     });
 
     const body = await response.json().catch(() => null);
@@ -160,38 +149,43 @@ async function getJson(url) {
 }
 
 async function logout() {
-  el(ids.logoutButton).disabled = true;
+  byId('logoutButton').disabled = true;
   try {
     await fetch('/api/remote/auth/logout', {
       method: 'POST',
       credentials: 'include',
       cache: 'no-store',
-      headers: {
-        'Accept': 'application/json'
-      }
+      headers: { 'Accept': 'application/json' }
     });
-  } catch (err) {
-    // The next reload will show the real state.
-  }
+  } catch (err) {}
   await loadDashboard('logout');
-  el(ids.logoutButton).disabled = false;
+  byId('logoutButton').disabled = false;
+}
+
+function renderAuthGate(authMe, status) {
+  const authBody = authMe.body || {};
+  const statusBody = status.body || {};
+  const authEnabled = Boolean(statusBody.auth && statusBody.auth.loginEnabled);
+  const loggedIn = Boolean(authBody.loggedIn);
+
+  byId('authGate').hidden = loggedIn || !authEnabled;
+  byId('dashboardContent').hidden = authEnabled && !loggedIn;
+
+  if (!authEnabled) {
+    byId('dashboardContent').hidden = false;
+  }
 }
 
 function renderStatus(result) {
   const body = result.body || {};
   const auth = body.auth || {};
 
-  setBadge(ids.statusPill, result.ok, result.ok ? 'online' : 'Fehler');
-  setText(ids.serviceOnlineBadge, result.ok ? 'Service online' : 'Service nicht erreichbar');
-  el(ids.serviceOnlineBadge).className = result.ok ? 'modeBadge online' : 'modeBadge bad';
-
-  setValue(ids.statusOk, body.ok);
-  setValue(ids.statusAuthEnabled, auth.enabled);
-  setValue(ids.statusLoginEnabled, auth.loginEnabled);
-  setValue(ids.statusWriteEnabled, body.writeEnabled);
-  setText(ids.statusApiVersion, body.statusApiVersion || '—');
-  setText(ids.statusModuleBuild, body.moduleBuild || '—');
-  setText(ids.statusGeneratedAt, formatDate(body.generatedAt));
+  setBadge('statusPill', result.ok, result.ok ? 'online' : 'Fehler');
+  setValue('statusOk', body.ok);
+  setValue('statusAuthEnabled', auth.enabled);
+  setValue('statusLoginEnabled', auth.loginEnabled);
+  setValue('statusWriteEnabled', body.writeEnabled);
+  setText('statusModuleBuild', body.moduleBuild || '—');
 }
 
 function renderQuickStatus(results) {
@@ -201,10 +195,10 @@ function renderQuickStatus(results) {
   const oauth = auth.twitchOAuth || {};
   const agent = statusBody.agent || {};
 
-  setQuick(ids.quickService, results.status && results.status.ok, results.status && results.status.ok ? 'online' : 'prüfen');
-  setQuick(ids.quickLogin, authMe.loggedIn === true || auth.loginEnabled === true, authMe.loggedIn ? 'eingeloggt' : (auth.loginEnabled ? 'bereit' : 'gated'));
-  setQuick(ids.quickOAuth, oauth.startRouteEnabled === true || oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'aktiv' : 'gated');
-  setQuick(ids.quickAgent, agent.actionsEnabled === false, 'disabled');
+  setQuick('quickService', results.status && results.status.ok, results.status && results.status.ok ? 'online' : 'prüfen');
+  setQuick('quickLogin', authMe.loggedIn === true || auth.loginEnabled === true, authMe.loggedIn ? 'eingeloggt' : (auth.loginEnabled ? 'bereit' : 'gated'));
+  setQuick('quickOAuth', oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'aktiv' : 'gated');
+  setQuick('quickAgent', agent.actionsEnabled === false, 'disabled');
 }
 
 function renderSecurity(status, lockAudit) {
@@ -215,15 +209,15 @@ function renderSecurity(status, lockAudit) {
   const agent = statusBody.agent || {};
 
   const items = [
-    ['Login gated/controlled', auth.loginEnabled === true || auth.enabled === false],
-    ['OAuth gated/controlled', oauth.effectiveEnabled === true || oauth.startRouteEnabled === false],
+    ['Login aktiv/gated kontrolliert', auth.loginEnabled === true || auth.enabled === false],
+    ['OAuth aktiv/gated kontrolliert', oauth.effectiveEnabled === true || oauth.startRouteEnabled === false],
     ['Remote-Writes disabled', statusBody.writeEnabled === false && lockBody.writeEnabled === false],
     ['Agent-Actions disabled', agent.actionsEnabled === false || lockBody.agentActionsEnabled === false],
-    ['Session cookie HttpOnly serverseitig', true],
+    ['OBS/Sound/Overlay/Commands disabled', true],
     ['last_seen_at Update disabled in AUTH1', true]
   ];
 
-  el(ids.securityList).innerHTML = items.map(([label, ok]) => {
+  byId('securityList').innerHTML = items.map(([label, ok]) => {
     const state = ok ? 'valueTrue' : 'valueFalse';
     const text = ok ? 'OK' : 'prüfen';
     return `<li><span>${escapeHtml(label)}</span> <strong class="${state}">${text}</strong></li>`;
@@ -236,38 +230,22 @@ function renderLockAudit(lockAudit, schemaAdapter) {
   const locks = body.locks || {};
   const audit = body.audit || {};
 
-  setBadge(ids.lockAuditPill, lockAudit.ok, lockAudit.ok ? 'read-only ok' : 'prüfen');
-
-  setValue(ids.schemaAdapterPrepared, schemaBody.schemaAdapterPrepared);
-  setValue(ids.locksRead, getNested(locks, ['adapter', 'compatibleForRead']));
-  setValue(ids.locksWrite, getNested(locks, ['adapter', 'compatibleForWrite']));
-  setText(ids.locksMissing, formatList(getNested(locks, ['adapter', 'missingForWrite'])));
-  setValue(ids.auditRead, getNested(audit, ['adapter', 'compatibleForRead']));
-  setValue(ids.auditWrite, getNested(audit, ['adapter', 'compatibleForWrite']));
-  setValue(ids.lockAcquireEnabled, body.lockAcquireEnabled);
-  setValue(ids.auditInsertEnabled, body.auditInsertEnabled);
+  setBadge('lockAuditPill', lockAudit.ok, lockAudit.ok ? 'read-only ok' : 'prüfen');
+  setValue('schemaAdapterPrepared', schemaBody.schemaAdapterPrepared);
+  setValue('locksRead', getNested(locks, ['adapter', 'compatibleForRead']));
+  setValue('locksWrite', getNested(locks, ['adapter', 'compatibleForWrite']));
+  setText('locksMissing', formatList(getNested(locks, ['adapter', 'missingForWrite'])));
+  setValue('auditRead', getNested(audit, ['adapter', 'compatibleForRead']));
+  setValue('auditWrite', getNested(audit, ['adapter', 'compatibleForWrite']));
+  setValue('lockAcquireEnabled', body.lockAcquireEnabled);
+  setValue('auditInsertEnabled', body.auditInsertEnabled);
 }
 
 function renderRoutes(result) {
   const routes = (result.body && Array.isArray(result.body.routes)) ? result.body.routes : [];
-  setBadge(ids.routesPill, result.ok, result.ok ? `${routes.length} Routen` : 'Fehler');
+  setBadge('routesPill', result.ok, result.ok ? `${routes.length} Routen` : 'Fehler');
 
-  const preferred = [
-    '/api/remote/health',
-    '/api/remote/status',
-    '/api/remote/routes',
-    '/api/remote/auth/me',
-    '/api/remote/auth/permissions/check',
-    '/api/remote/auth/twitch/start',
-    '/api/remote/auth/twitch/callback',
-    '/api/remote/auth/logout',
-    '/api/remote/lock-audit/status',
-    '/api/remote/lock-audit/schema-adapter/status'
-  ];
-
-  const filtered = routes.filter(route => preferred.includes(route.path));
-
-  el(ids.routesList).innerHTML = filtered.map(route => `
+  byId('routesList').innerHTML = routes.map(route => `
     <div class="route">
       <span class="method">${escapeHtml(route.method || 'GET')}</span>
       <div>
@@ -286,38 +264,32 @@ function renderAuth(authMe, permission, status) {
   const loggedIn = Boolean(authBody.loggedIn);
   const user = authBody.user || null;
 
-  setValue(ids.authLoggedIn, authBody.loggedIn);
-  setText(ids.authUser, user ? `${user.displayName || user.loginName || user.userUid} (${user.userUid})` : '—');
-  setText(ids.authRoles, formatList(authBody.roles));
-  setValue(ids.permissionAllowed, permissionBody.allowed);
-  setText(ids.permissionReason, permissionBody.reason || authBody.reason || (loggedIn ? 'logged_in' : '—'));
+  setValue('authLoggedIn', authBody.loggedIn);
+  setText('authUser', user ? `${user.displayName || user.loginName || user.userUid} (${user.userUid})` : '—');
+  setText('authRoles', formatList(authBody.roles));
+  setText('authSessionReason', authBody.session ? authBody.session.reason : '—');
+  setValue('permissionAllowed', permissionBody.allowed);
+  setText('permissionReason', permissionBody.reason || authBody.reason || (loggedIn ? 'logged_in' : '—'));
 
   if (loggedIn) {
-    setText(ids.loginStateText, `Angemeldet als ${user && (user.displayName || user.loginName || user.userUid) ? (user.displayName || user.loginName || user.userUid) : 'Twitch-User'}.`);
-    el(ids.loginButton).hidden = true;
-    el(ids.logoutButton).hidden = false;
+    byId('loginStateText').textContent = `Angemeldet als ${user && (user.displayName || user.loginName || user.userUid) ? (user.displayName || user.loginName || user.userUid) : 'Twitch-User'}`;
+    byId('loginButton').hidden = true;
+    byId('logoutButton').hidden = false;
     return;
   }
 
-  el(ids.logoutButton).hidden = true;
-  el(ids.loginButton).hidden = false;
-
-  if (loginEnabled) {
-    setText(ids.loginStateText, 'Login ist serverseitig aktiviert. Du kannst dich mit Twitch anmelden.');
-    el(ids.loginButton).classList.remove('disabled');
-  } else {
-    setText(ids.loginStateText, 'Login ist vorbereitet, aber noch nicht aktiviert. Es fehlen Env-Flags/Secrets oder die Gates sind aus.');
-    el(ids.loginButton).classList.add('disabled');
-  }
+  byId('logoutButton').hidden = true;
+  byId('loginButton').hidden = false;
+  byId('loginStateText').textContent = loginEnabled ? 'Nicht angemeldet' : 'Login nicht aktiv';
 }
 
 function renderEndpoints(results) {
   const values = Object.entries(results);
   const okCount = values.filter(([, result]) => result.ok).length;
 
-  setBadge(ids.endpointPill, okCount === values.length, `${okCount}/${values.length} ok`);
+  setBadge('endpointPill', okCount === values.length, `${okCount}/${values.length} ok`);
 
-  el(ids.endpointList).innerHTML = values.map(([key, result]) => {
+  byId('endpointList').innerHTML = values.map(([key, result]) => {
     const label = endpointLabels[key] || key;
     const status = result.httpStatus || 'fetch';
     const cls = result.ok ? 'endpoint ok' : 'endpoint bad';
@@ -334,50 +306,47 @@ function renderEndpoints(results) {
 
 function renderErrors(results) {
   const failed = Object.entries(results).filter(([, result]) => !result.ok && result.httpStatus !== 403);
-
   if (!failed.length) {
     hideErrors();
     return;
   }
 
-  const text = failed.map(([key, result]) => {
+  byId('errorText').textContent = failed.map(([key, result]) => {
     const label = endpointLabels[key] || key;
     const detail = result.error || (result.body && result.body.error) || `HTTP ${result.httpStatus || 0}`;
     return `${label}: ${detail}`;
   }).join(' · ');
-
-  setText(ids.errorText, text);
-  el(ids.errorBox).hidden = false;
+  byId('errorBox').hidden = false;
 }
 
 function hideErrors() {
-  el(ids.errorBox).hidden = true;
+  byId('errorBox').hidden = true;
 }
 
 function updateAutoRefreshText(override) {
-  setText(ids.autoRefreshText, override || `Auto-Refresh in ${refreshCountdown}s`);
+  byId('autoRefreshText').textContent = override || `Auto-Refresh in ${refreshCountdown}s`;
 }
 
 function setBadge(id, ok, text) {
-  const node = el(id);
+  const node = byId(id);
   node.textContent = text;
   node.className = ok ? 'pill ok' : 'pill bad';
 }
 
 function setQuick(id, ok, text) {
-  const node = el(id);
+  const node = byId(id);
   node.textContent = text;
   node.className = ok ? 'quickGood' : 'quickBad';
 }
 
 function setValue(id, value) {
-  const node = el(id);
+  const node = byId(id);
   node.textContent = formatValue(value);
   node.className = value === true ? 'valueTrue' : value === false ? 'valueFalse' : 'valueNeutral';
 }
 
 function setText(id, value) {
-  el(id).textContent = value == null || value === '' ? '—' : String(value);
+  byId(id).textContent = value == null || value === '' ? '—' : String(value);
 }
 
 function formatValue(value) {
@@ -385,13 +354,6 @@ function formatValue(value) {
   if (value === false) return 'false';
   if (value == null || value === '') return '—';
   return String(value);
-}
-
-function formatDate(value) {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString('de-DE');
 }
 
 function formatList(value) {
@@ -409,7 +371,7 @@ function getNested(obj, keys) {
   return current;
 }
 
-function el(id) {
+function byId(id) {
   return document.getElementById(id);
 }
 

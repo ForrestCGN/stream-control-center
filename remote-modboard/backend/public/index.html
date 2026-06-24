@@ -3,154 +3,262 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ForrestCGN Remote Modboard</title>
-  <meta name="description" content="ForrestCGN Remote Modboard gated Twitch Login und read-only Diagnose">
+  <title>ForrestCGN Remote Dashboard</title>
+  <meta name="description" content="ForrestCGN Remote Dashboard geschützte Shell">
   <link rel="stylesheet" href="/assets/remote-modboard.css">
 </head>
 <body>
-  <main class="shell">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">ForrestCGN · Remote Modboard</p>
-        <h1>Remote Dashboard</h1>
-        <p class="heroText">Twitch-Login ist vorbereitet und nur aktiv, wenn die Server-Env bewusst freigeschaltet ist. Bis dahin bleibt alles Diagnose/read-only.</p>
+  <main class="dashboardShell">
+    <aside class="sidebar" aria-label="Dashboard Navigation">
+      <div class="brandBlock">
+        <div class="brandMark">CGN</div>
+        <div>
+          <p class="eyebrow">ForrestCGN</p>
+          <strong>Remote Dashboard</strong>
+        </div>
       </div>
-      <div class="heroActions" aria-label="Status">
-        <div class="modeBadge" id="serviceOnlineBadge">prüfe Service…</div>
-        <div class="miniMeta" id="lastUpdatedText">Noch nicht geladen</div>
-        <div class="miniMeta" id="autoRefreshText">Auto-Refresh: —</div>
-      </div>
-    </header>
 
-    <section class="notice">
-      <strong>Gated Auth-Modus</strong>
-      <span>Twitch-Login nur mit Env-Flags + Secrets · Keine Remote-Writes · Keine Agent-Actions · Keine OBS-/Sound-/Overlay-/Command-Steuerung</span>
+      <nav class="navGroups">
+        <section class="navGroup isOpen">
+          <button class="navGroupButton" type="button" data-nav-toggle="system">
+            <span>System</span>
+            <span class="navArrow">›</span>
+          </button>
+          <div class="navItems" data-nav-group="system">
+            <button class="navItem active" type="button" data-page="overview">Übersicht</button>
+            <button class="navItem" type="button" data-page="diagnostics">Diagnose</button>
+            <button class="navItem" type="button" data-page="routes">Routen</button>
+          </div>
+        </section>
+
+        <section class="navGroup isOpen">
+          <button class="navGroupButton" type="button" data-nav-toggle="auth">
+            <span>Benutzer & Rechte</span>
+            <span class="navArrow">›</span>
+          </button>
+          <div class="navItems" data-nav-group="auth">
+            <button class="navItem" type="button" data-page="account">Mein Login</button>
+            <button class="navItem" type="button" data-page="permissions">Rechte-Diagnose</button>
+          </div>
+        </section>
+
+        <section class="navGroup isOpen">
+          <button class="navGroupButton" type="button" data-nav-toggle="modules">
+            <span>Module</span>
+            <span class="navArrow">›</span>
+          </button>
+          <div class="navItems" data-nav-group="modules">
+            <button class="navItem locked" type="button" data-page="modules">Module read-only</button>
+          </div>
+        </section>
+      </nav>
+
+      <div class="sidebarFooter">
+        <span>Dashboard1</span>
+        <small>protected shell · read-only</small>
+      </div>
+    </aside>
+
+    <section class="mainArea">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Remote Modboard</p>
+          <h1 id="pageTitle">Übersicht</h1>
+        </div>
+        <div class="userBox">
+          <div class="userText">
+            <span id="loginStateText">Prüfe Login…</span>
+            <small id="lastUpdatedText">Noch nicht geladen</small>
+          </div>
+          <a class="loginButton" id="loginButton" href="/api/remote/auth/twitch/start">Mit Twitch einloggen</a>
+          <button class="smallButton" type="button" id="logoutButton" hidden>Ausloggen</button>
+        </div>
+      </header>
+
+      <section class="authGate" id="authGate" hidden>
+        <div class="authGateCard">
+          <p class="eyebrow">Geschützt</p>
+          <h2>Bitte mit Twitch einloggen</h2>
+          <p>Das Remote Dashboard ist ab Dashboard1 hinter Login sichtbar. Ohne Login bleiben nur minimale Hinweise sichtbar.</p>
+          <a class="loginButton big" href="/api/remote/auth/twitch/start">Mit Twitch einloggen</a>
+        </div>
+      </section>
+
+      <section class="dashboardContent" id="dashboardContent">
+        <section class="notice compact">
+          <strong>Protected Shell aktiv</strong>
+          <span>Login erforderlich · aktuell nur read-only Diagnose · keine Remote-Writes · keine Agent-Actions · keine OBS-/Sound-/Overlay-/Command-Steuerung</span>
+        </section>
+
+        <section class="statusStrip" aria-label="Schnellstatus">
+          <div class="statusTile">
+            <span>Service</span>
+            <strong id="quickService">—</strong>
+          </div>
+          <div class="statusTile">
+            <span>Login</span>
+            <strong id="quickLogin">—</strong>
+          </div>
+          <div class="statusTile">
+            <span>OAuth</span>
+            <strong id="quickOAuth">—</strong>
+          </div>
+          <div class="statusTile">
+            <span>Agent</span>
+            <strong id="quickAgent">—</strong>
+          </div>
+        </section>
+
+        <section class="errorBox" id="errorBox" hidden>
+          <div>
+            <strong>Diagnose-Hinweis</strong>
+            <p id="errorText">—</p>
+          </div>
+          <button class="smallButton" type="button" id="clearErrorsButton">Hinweis ausblenden</button>
+        </section>
+
+        <section class="page activePage" data-page-panel="overview">
+          <div class="grid">
+            <article class="card">
+              <div class="cardHead">
+                <h2>Service-Status</h2>
+                <span class="pill" id="statusPill">lädt</span>
+              </div>
+              <dl class="kv">
+                <div><dt>ok</dt><dd id="statusOk">—</dd></div>
+                <div><dt>authEnabled</dt><dd id="statusAuthEnabled">—</dd></div>
+                <div><dt>loginEnabled</dt><dd id="statusLoginEnabled">—</dd></div>
+                <div><dt>writeEnabled</dt><dd id="statusWriteEnabled">—</dd></div>
+                <div><dt>moduleBuild</dt><dd id="statusModuleBuild">—</dd></div>
+              </dl>
+            </article>
+
+            <article class="card">
+              <div class="cardHead">
+                <h2>Sicherheit</h2>
+                <span class="pill safe">read-only</span>
+              </div>
+              <ul class="checkList" id="securityList">
+                <li>Login wird geprüft</li>
+              </ul>
+            </article>
+
+            <article class="card wide">
+              <div class="cardHead">
+                <h2>Nächste Ausbaustufe</h2>
+                <span class="pill warn">geplant</span>
+              </div>
+              <div class="infoGrid">
+                <div>
+                  <strong>Dashboard2</strong>
+                  <p>Module/Seiten sauberer strukturieren, ohne Steueraktionen freizuschalten.</p>
+                </div>
+                <div>
+                  <strong>Permissions1</strong>
+                  <p>Rollen/Rechte sichtbar machen und später serverseitig erzwingen.</p>
+                </div>
+                <div>
+                  <strong>Actions später</strong>
+                  <p>Remote-Writes/Agent-Actions erst mit eigener Freigabe, Audit und Locking.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" data-page-panel="diagnostics">
+          <div class="grid">
+            <article class="card wide">
+              <div class="cardHead">
+                <h2>Endpoint-Status</h2>
+                <span class="pill" id="endpointPill">lädt</span>
+              </div>
+              <div class="endpointGrid" id="endpointList"></div>
+            </article>
+
+            <article class="card wide">
+              <div class="cardHead">
+                <h2>Lock-/Audit Diagnose</h2>
+                <span class="pill" id="lockAuditPill">lädt</span>
+              </div>
+              <div class="twoCols">
+                <dl class="kv">
+                  <div><dt>schemaAdapterPrepared</dt><dd id="schemaAdapterPrepared">—</dd></div>
+                  <div><dt>locks compatibleForRead</dt><dd id="locksRead">—</dd></div>
+                  <div><dt>locks compatibleForWrite</dt><dd id="locksWrite">—</dd></div>
+                  <div><dt>locks missingForWrite</dt><dd id="locksMissing">—</dd></div>
+                </dl>
+                <dl class="kv">
+                  <div><dt>audit compatibleForRead</dt><dd id="auditRead">—</dd></div>
+                  <div><dt>audit compatibleForWrite</dt><dd id="auditWrite">—</dd></div>
+                  <div><dt>lockAcquireEnabled</dt><dd id="lockAcquireEnabled">—</dd></div>
+                  <div><dt>auditInsertEnabled</dt><dd id="auditInsertEnabled">—</dd></div>
+                </dl>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" data-page-panel="routes">
+          <article class="card wide">
+            <div class="cardHead">
+              <h2>Routen-Übersicht</h2>
+              <span class="pill" id="routesPill">lädt</span>
+            </div>
+            <div class="routes" id="routesList"></div>
+          </article>
+        </section>
+
+        <section class="page" data-page-panel="account">
+          <article class="card wide">
+            <div class="cardHead">
+              <h2>Mein Login</h2>
+              <span class="pill safe">Twitch</span>
+            </div>
+            <dl class="kv">
+              <div><dt>loggedIn</dt><dd id="authLoggedIn">—</dd></div>
+              <div><dt>User</dt><dd id="authUser">—</dd></div>
+              <div><dt>Rollen</dt><dd id="authRoles">—</dd></div>
+              <div><dt>Session</dt><dd id="authSessionReason">—</dd></div>
+            </dl>
+          </article>
+        </section>
+
+        <section class="page" data-page-panel="permissions">
+          <article class="card wide">
+            <div class="cardHead">
+              <h2>Rechte-Diagnose</h2>
+              <span class="pill safe">read-only</span>
+            </div>
+            <dl class="kv">
+              <div><dt>permission remote.view</dt><dd id="permissionAllowed">—</dd></div>
+              <div><dt>reason</dt><dd id="permissionReason">—</dd></div>
+              <div><dt>Hinweis</dt><dd>Frontend zeigt nur an. Spätere Rechte müssen serverseitig erzwungen werden.</dd></div>
+            </dl>
+          </article>
+        </section>
+
+        <section class="page" data-page-panel="modules">
+          <article class="card wide">
+            <div class="cardHead">
+              <h2>Module read-only</h2>
+              <span class="pill warn">noch ohne Actions</span>
+            </div>
+            <div class="infoGrid">
+              <div><strong>OBS</strong><p>Noch keine Steuerung.</p></div>
+              <div><strong>Sound</strong><p>Noch keine Steuerung.</p></div>
+              <div><strong>Overlays</strong><p>Noch keine Steuerung.</p></div>
+              <div><strong>Commands</strong><p>Noch keine Steuerung.</p></div>
+            </div>
+          </article>
+        </section>
+
+        <footer class="footer">
+          <span id="autoRefreshText">Auto-Refresh: —</span>
+          <button class="refreshButton" type="button" id="refreshButton">Neu laden</button>
+        </footer>
+      </section>
     </section>
-
-    <section class="loginPanel">
-      <div>
-        <h2>Login</h2>
-        <p id="loginStateText">Prüfe Loginstatus…</p>
-      </div>
-      <div class="loginActions">
-        <a class="loginButton" id="loginButton" href="/api/remote/auth/twitch/start">Mit Twitch einloggen</a>
-        <button class="smallButton" type="button" id="logoutButton" hidden>Ausloggen</button>
-      </div>
-    </section>
-
-    <section class="statusStrip" aria-label="Schnellstatus">
-      <div class="statusTile">
-        <span>Service</span>
-        <strong id="quickService">—</strong>
-      </div>
-      <div class="statusTile">
-        <span>Login</span>
-        <strong id="quickLogin">—</strong>
-      </div>
-      <div class="statusTile">
-        <span>OAuth</span>
-        <strong id="quickOAuth">—</strong>
-      </div>
-      <div class="statusTile">
-        <span>Agent</span>
-        <strong id="quickAgent">—</strong>
-      </div>
-    </section>
-
-    <section class="errorBox" id="errorBox" hidden>
-      <div>
-        <strong>Diagnose-Hinweis</strong>
-        <p id="errorText">—</p>
-      </div>
-      <button class="smallButton" type="button" id="clearErrorsButton">Hinweis ausblenden</button>
-    </section>
-
-    <section class="grid">
-      <article class="card">
-        <div class="cardHead">
-          <h2>Service-Status</h2>
-          <span class="pill" id="statusPill">lädt</span>
-        </div>
-        <dl class="kv">
-          <div><dt>ok</dt><dd id="statusOk">—</dd></div>
-          <div><dt>authEnabled</dt><dd id="statusAuthEnabled">—</dd></div>
-          <div><dt>loginEnabled</dt><dd id="statusLoginEnabled">—</dd></div>
-          <div><dt>writeEnabled</dt><dd id="statusWriteEnabled">—</dd></div>
-          <div><dt>statusApiVersion</dt><dd id="statusApiVersion">—</dd></div>
-          <div><dt>moduleBuild</dt><dd id="statusModuleBuild">—</dd></div>
-          <div><dt>generatedAt</dt><dd id="statusGeneratedAt">—</dd></div>
-        </dl>
-      </article>
-
-      <article class="card">
-        <div class="cardHead">
-          <h2>Sicherheit</h2>
-          <span class="pill safe">gated</span>
-        </div>
-        <ul class="checkList" id="securityList">
-          <li>Login gated</li>
-          <li>OAuth gated</li>
-          <li>Remote-Writes disabled</li>
-          <li>Agent-Actions disabled</li>
-        </ul>
-      </article>
-
-      <article class="card wide">
-        <div class="cardHead">
-          <h2>Endpoint-Status</h2>
-          <span class="pill" id="endpointPill">lädt</span>
-        </div>
-        <div class="endpointGrid" id="endpointList"></div>
-      </article>
-
-      <article class="card wide">
-        <div class="cardHead">
-          <h2>Lock-/Audit Diagnose</h2>
-          <span class="pill" id="lockAuditPill">lädt</span>
-        </div>
-        <div class="twoCols">
-          <dl class="kv">
-            <div><dt>schemaAdapterPrepared</dt><dd id="schemaAdapterPrepared">—</dd></div>
-            <div><dt>locks compatibleForRead</dt><dd id="locksRead">—</dd></div>
-            <div><dt>locks compatibleForWrite</dt><dd id="locksWrite">—</dd></div>
-            <div><dt>locks missingForWrite</dt><dd id="locksMissing">—</dd></div>
-          </dl>
-          <dl class="kv">
-            <div><dt>audit compatibleForRead</dt><dd id="auditRead">—</dd></div>
-            <div><dt>audit compatibleForWrite</dt><dd id="auditWrite">—</dd></div>
-            <div><dt>lockAcquireEnabled</dt><dd id="lockAcquireEnabled">—</dd></div>
-            <div><dt>auditInsertEnabled</dt><dd id="auditInsertEnabled">—</dd></div>
-          </dl>
-        </div>
-      </article>
-
-      <article class="card wide">
-        <div class="cardHead">
-          <h2>Routen-Übersicht</h2>
-          <span class="pill" id="routesPill">lädt</span>
-        </div>
-        <div class="routes" id="routesList"></div>
-      </article>
-
-      <article class="card wide">
-        <div class="cardHead">
-          <h2>Auth-/Permission Diagnose</h2>
-          <span class="pill safe">serverseitig</span>
-        </div>
-        <dl class="kv">
-          <div><dt>loggedIn</dt><dd id="authLoggedIn">—</dd></div>
-          <div><dt>User</dt><dd id="authUser">—</dd></div>
-          <div><dt>Rollen</dt><dd id="authRoles">—</dd></div>
-          <div><dt>permission remote.view</dt><dd id="permissionAllowed">—</dd></div>
-          <div><dt>reason</dt><dd id="permissionReason">—</dd></div>
-        </dl>
-      </article>
-    </section>
-
-    <footer class="footer">
-      <span>AUTH1 · Twitch-Login gated · Remote-Steuerung bleibt aus</span>
-      <button class="refreshButton" type="button" id="refreshButton">Diagnose neu laden</button>
-    </footer>
   </main>
 
   <script src="/assets/remote-modboard.js" defer></script>
