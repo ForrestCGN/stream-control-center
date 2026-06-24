@@ -1,15 +1,14 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
+Stand: RDAP_ADMIN_USERS2_MANAGEMENT_PLAN  
 Datum: 2026-06-24
 
 ## Sofort
 
-1. `RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS.zip` lokal einspielen.
-2. Prüfen, dass im Profilpanel nur noch `Profil aktualisieren` und `Ausloggen` sichtbar sind.
-3. `stepdone.cmd` ausführen.
-4. Danach Webserver-Deploy.
-5. Browser-Test auf `https://mods.forrestcgn.de/`.
+1. `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN.zip` lokal einspielen.
+2. Prüfen, dass nur Doku-/Projektstatus-Dateien geändert wurden.
+3. `stepdone.cmd` ausführen, wenn sauber.
+4. Optional danach Webserver-Deploy, weil Doku in GitHub/dev sauber sein soll.
 
 ## Danach empfohlen
 
@@ -26,24 +25,21 @@ systemctl restart scc-remote-modboard.service
 
 Danach Login erneut testen.
 
-### 2. Admin User Management planen
+### 2. Admin User Management Foundation planen
 
 Nächster Planungs-Step:
 
 ```text
-RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
+RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN_OR_BACKUP_SCOPE
 ```
 
-Scope nur Planung/Design, bevor Writes gebaut werden:
+Scope weiterhin vorsichtig:
 
-- Welche Rollen dürfen User verwalten?
-- Welche Aktionen brauchen Owner-only?
-- Welche Aktionen darf ein Admin?
-- Wie wird `Sound-Profi` gesetzt/entfernt?
-- Welche Confirm-Write-Mechanik?
-- Welche Audit-Felder?
-- Welche Locking-Regeln?
-- Wie wird Rollback/Backup umgesetzt?
+- echten DB-/Tabellenstand prüfen
+- vorhandene Auth-/Permission-/Audit-/Locking-Dateien prüfen
+- Backup-/Rollback konkret definieren
+- kleinsten sicheren Write-Scope festlegen
+- noch keine breite UI-Verwaltung bauen
 
 ### 3. Spätere Admin-Writes nur mit eigenem Scope
 
@@ -77,3 +73,17 @@ Nicht verwenden:
 ```
 
 `/opt/stream-control-center` ist kein Git-Repository.
+
+Nach Restart immer Readiness abwarten:
+
+```bash
+systemctl restart scc-remote-modboard.service
+
+for i in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
+    echo "ready_after=${i}s"
+    break
+  fi
+  sleep 1
+done
+```

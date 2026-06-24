@@ -1,5 +1,17 @@
 # CHANGELOG - stream-control-center
 
+## 2026-06-24 - RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
+
+Zusammenfassung:
+
+- Plan für spätere Admin-Userverwaltung erstellt
+- klare Trennung Self-Profil vs. Admin-Verwaltung dokumentiert
+- Owner/Admin-Permission als Pflicht für spätere Writes festgelegt
+- Confirm-Write, Audit-Log, Locking und Backup/Rollback als Pflichtgrundlage dokumentiert
+- `Sound-Profi` als Spezialgruppe/Freigabe eingeordnet, nicht als globale Systemrolle
+- Doku, TODO, NEXT_STEPS, FILES, CURRENT_STATUS und Handoff aktualisiert
+- Keine Backend-/Frontend-/DB-/Remote-Action-Änderungen
+
 ## 2026-06-24 - RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
 
 Zusammenfassung:

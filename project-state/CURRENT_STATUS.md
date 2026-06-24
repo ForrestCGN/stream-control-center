@@ -1,6 +1,6 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
+Stand: RDAP_ADMIN_USERS2_MANAGEMENT_PLAN  
 Datum: 2026-06-24
 
 ## Aktueller bestätigter RDAP-/Remote-Modboard-Stand
@@ -11,32 +11,44 @@ Remote-Modboard/Auth:
 - Twitch Login funktioniert live.
 - Dashboard-Zugriff wird serverseitig geprüft.
 - ForrestCGN kann sich anmelden und das Dashboard nutzen.
-- EngelCGN kann nach Allowlist-Erweiterung mittesten und ist als User sichtbar.
+- EngelCGN ist als User sichtbar bzw. für Tests vorgesehen.
 - Avatar oben rechts wird angezeigt.
 - Profilpanel oben rechts ist vorhanden.
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
+- Profilpanel zeigt nur noch `Profil aktualisieren` und `Ausloggen`.
 - Login-/Denied-Layout ist zentriert.
 - Dashboard-Karten/Grid-Abstände sind nach V13-Fix sauberer.
 - Topbar-Ausloggen wurde entfernt; Logout bleibt im Profilpanel.
-- Profilpanel ist auf die Self-Service-Aktionen `Profil aktualisieren` und `Ausloggen` reduziert.
 - Admin -> User & Rollen zeigt eine read-only Übersicht bekannter Dashboard-User, Rollen, Gruppen, Permissions und Sessions.
 
 ## Aktueller Arbeitsstand
 
-`RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS` ist der nächste einzuspielende/abzuschließende Step.
+`RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` ist ein reiner Doku-/Plan-Step.
 
-Funktional vorhanden:
+Neu dokumentiert:
 
-- Twitch-Avatar wird beim Login gespeichert, wenn DB-Spalten vorhanden sind.
-- DB-Spalten für Avatar wurden produktiv angelegt:
-  - `dashboard_users.profile_image_url`
-  - `dashboard_identities.provider_profile_image_url`
-- `/api/remote/auth/me` liefert Avatar-/Profilbilddaten.
-- Im Self-Profilpanel gibt es `Profil aktualisieren`.
-- Der Sync aktualisiert nur den aktuell eingeloggten User.
-- `/api/remote/auth/model` liefert read-only Auth-/Rollenmodell inklusive Userliste für Admin-Übersicht.
+- spätere Admin-Userverwaltung zuerst planen, nicht direkt schreiben
+- Self-Profil oben rechts bleibt getrennt von Admin-Verwaltung
+- Admin-Verwaltung bleibt unter `Admin -> User & Rollen`
+- Owner/Admin-Permission als Pflicht für spätere Writes
+- Confirm-Write für produktive Aktionen
+- Audit-Log für jede Admin-Schreibaktion
+- Locking gegen gleichzeitige Bearbeitung
+- Backup/Rollback vor DB-/Write-Steps
+- `Sound-Profi` als Spezialgruppe/Freigabe, nicht als globale System-/Owner-Rolle
 
-## Weiterhin deaktiviert
+## In diesem Step nicht geändert
+
+- kein Backend-Code
+- kein Frontend-Code
+- keine DB
+- keine Routen
+- keine Services
+- keine Migrationen
+- keine produktiven Admin-Writes
+- keine Remote-Agent-Actions
+
+## Weiterhin deaktiviert/verboten ohne eigenen Scope
 
 - Remote-Writes außerhalb Auth-/Session-/Self-Profil-Scope
 - Agent-Actions
@@ -46,6 +58,8 @@ Funktional vorhanden:
 - Command-Steuerung
 - Admin-Userverwaltung mit Writes
 - Rollen-/Freigabe-Writes
+- DB-Migration ohne Backup/Rollback/Go
+- Secrets im Repo/Frontend/Chat/Logs
 
 ## Wichtige offene Sicherheitsaufgabe
 
@@ -54,10 +68,10 @@ Funktional vorhanden:
 
 ## Nächster sinnvoller Block
 
-Nach Abschluss dieses Steps:
+Nach Abschluss dieses Plan-Steps:
 
 ```text
-RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
+RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN_OR_BACKUP_SCOPE
 ```
 
-Ziel: echte Admin-Userverwaltung zuerst planen, nicht direkt schreiben. Benötigt Owner/Admin-Permission, Confirm-Write, Audit-Log, Locking, Rollback und klare UI-Trennung.
+Ziel: noch keine große Admin-UI bauen, sondern zuerst DB-Tabellenstand, Backup-/Rollback, Permission-Middleware, Confirm-Write, Audit und Locking als Grundlage planen.

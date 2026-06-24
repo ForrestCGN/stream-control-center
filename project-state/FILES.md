@@ -1,20 +1,31 @@
 # FILES - stream-control-center
 
-Stand: RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
+Stand: RDAP_ADMIN_USERS2_MANAGEMENT_PLAN  
 Datum: 2026-06-24
 
 ## In diesem Step geändert
 
 ```text
-remote-modboard/backend/public/index.html
-docs/current/RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS.md
+docs/current/RDAP_ADMIN_USERS2_MANAGEMENT_PLAN.md
 docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
-docs/current/PROMPT_FOR_NEW_CHAT_RDAP_2026-06-24.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
+```
+
+## In diesem Step nicht geändert
+
+```text
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/public/assets/remote-modboard.css
+remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/services/auth-profile-sync.service.js
+remote-modboard/backend/src/routes/auth-status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+tools/remote-modboard-deploy.sh
 ```
 
 ## Relevante aktuelle RDAP-Frontend-Dateien

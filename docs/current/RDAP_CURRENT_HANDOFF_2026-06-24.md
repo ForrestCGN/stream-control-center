@@ -29,28 +29,21 @@ Aktuell vorhanden:
 - Avatar/Name oben rechts sichtbar.
 - Self-Profilpanel oben rechts vorhanden.
 - `Profil aktualisieren` synchronisiert eigene Twitch-Daten.
-- Topbar hat keinen doppelten Ausloggen-Button mehr.
 - Profilpanel ist auf `Profil aktualisieren` und `Ausloggen` reduziert.
+- Topbar hat keinen doppelten Ausloggen-Button mehr.
 - Admin -> User & Rollen zeigt eine read-only Übersicht vorhandener User/Rollen/Gruppen/Sessions.
 
-## Zuletzt gebaut
+## Zuletzt geplant/dokumentiert
 
 ```text
-RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS_AND_DOCS
+RDAP_ADMIN_USERS2_MANAGEMENT_PLAN
 ```
 
 Änderung:
 
 ```text
-remote-modboard/backend/public/index.html
-```
-
-Doku/Projektstand:
-
-```text
-docs/current/RDAP_USERMENU2_CLEAN_PROFILE_ACTIONS.md
+docs/current/RDAP_ADMIN_USERS2_MANAGEMENT_PLAN.md
 docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
-docs/current/PROMPT_FOR_NEW_CHAT_RDAP_2026-06-24.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -58,19 +51,43 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
+Dieser Step ist absichtlich nur Doku/Planung.
+
+Nicht geändert:
+
+- kein Backend-Code
+- kein Frontend-Code
+- keine DB
+- keine Routen
+- keine Services
+- keine Admin-Writes
+- keine Remote-Agent-Actions
+
+## Admin-Userverwaltung: Planungsstand
+
+`RDAP_ADMIN_USERS2_MANAGEMENT_PLAN.md` legt den Rahmen für spätere User-/Rollenverwaltung fest:
+
+- klare Trennung Self-Profil oben rechts vs. Admin-Verwaltung unter `Admin -> User & Rollen`
+- Owner/Admin-Permission als Pflicht
+- Confirm-Write für jede produktive Aktion
+- Audit-Log für jede Änderung
+- Locking mit Heartbeat/Timeout/Override
+- Backup-/Rollback vor DB-/Write-Steps
+- `Sound-Profi` als Spezialgruppe/Freigabe, nicht als globale Systemrolle
+
 ## Wichtige Sicherheitsregeln
 
 Bis eigener Scope geplant/gebaut ist, bleiben verboten:
 
-- keine Remote-Writes außerhalb freigegebener Auth-/Self-Profil-Funktion,
-- keine Agent-Actions,
-- keine OBS-Steuerung,
-- keine Sound-Steuerung,
-- keine Overlay-Steuerung,
-- keine Command-Steuerung,
-- keine DB-Migration ohne Backup/Rollback/Go,
-- keine Secrets ins Repo/Frontend/Chat/Logs,
-- keine User-/Rollen-Writes ohne eigene Admin-Permission/Confirm/Audit/Locking.
+- keine Remote-Writes außerhalb freigegebener Auth-/Self-Profil-Funktion
+- keine Agent-Actions
+- keine OBS-Steuerung
+- keine Sound-Steuerung
+- keine Overlay-Steuerung
+- keine Command-Steuerung
+- keine DB-Migration ohne Backup/Rollback/Go
+- keine Secrets ins Repo/Frontend/Chat/Logs
+- keine User-/Rollen-Writes ohne eigene Admin-Permission/Confirm/Audit/Locking
 
 ## Webserver-Deploy-Muster
 
@@ -102,7 +119,14 @@ done
 
 ## Nächste sinnvolle Schritte
 
-1. aktuellen Usermenu2-Step einspielen, testen, `stepdone.cmd` ausführen, deployen.
-2. Danach Doku/Status prüfen.
-3. Danach planen: echte Admin-Userverwaltung nur mit Owner/Admin-Permission, Confirm-Write, Audit und Locking.
-4. Secrets rotieren, falls noch nicht erledigt: `SESSION_SECRET`, `OAUTH_STATE_SECRET`.
+1. `RDAP_ADMIN_USERS2_MANAGEMENT_PLAN` lokal einspielen.
+2. Doku-Dateien prüfen.
+3. `stepdone.cmd` ausführen, wenn sauber.
+4. Danach optional Webserver-Deploy, weil es nur Doku ist nicht zwingend kritisch.
+5. Danach als nächstes planen:
+
+```text
+RDAP_ADMIN_USERS3_WRITE_FOUNDATION_PLAN_OR_BACKUP_SCOPE
+```
+
+Ziel des nächsten Schritts: noch keine große UI, sondern zuerst DB-Tabellen prüfen, Backup-/Rollback und kleinsten sicheren Write-Scope festlegen.
