@@ -7,7 +7,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check src/app.js && node --check src/routes/health.routes.js && node --check src/routes/status.routes.js && node --check src/routes/routes.routes.js && node --check src/routes/auth-model.routes.js && node --check src/routes/auth-status.routes.js && node --check src/routes/auth-twitch.routes.js && node --check src/services/config.service.js && node --check src/services/db-health.service.js && node --check src/services/db.service.js && node --check src/services/auth-db-read.service.js && node --check src/services/auth-session-read.service.js && node --check src/services/auth-status.service.js && node --check src/security/safety.js"
+    "check": "node --check server.js && node --check src/app.js && node --check src/routes/health.routes.js && node --check src/routes/status.routes.js && node --check src/routes/routes.routes.js && node --check src/routes/auth-model.routes.js && node --check src/routes/auth-status.routes.js && node --check src/routes/auth-twitch.routes.js && node --check src/services/config.service.js && node --check src/services/db-health.service.js && node --check src/services/db.service.js && node --check src/services/auth-db-read.service.js && node --check src/services/auth-session-read.service.js && node --check src/services/auth-status.service.js && node --check src/services/auth-permission-read.service.js && node --check src/security/permissions.js && node --check src/security/safety.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

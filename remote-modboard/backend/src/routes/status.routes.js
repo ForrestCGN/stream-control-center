@@ -14,7 +14,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap7i.v1',
+      statusApiVersion: 'rdap8a.v1',
       readOnly: true,
       writeEnabled: false,
       actionEnabled: false,
@@ -56,9 +56,20 @@ function registerStatusRoutes(app, context) {
           databaseWriteEnabled: false,
           effectiveEnabled: false
         },
+        permissions: {
+          middlewarePlanned: true,
+          readOnlyResolverPrepared: true,
+          diagnosticCheckRoutePrepared: true,
+          checkRouteEnabled: true,
+          productiveAuthorizationEnabled: false,
+          backendMustDecideRights: true,
+          frontendIsDisplayOnly: true,
+          writesRequirePermissionLockAudit: true
+        },
         notes: [
-          'RDAP7I bereitet den Session-Store-/Validation-Layer read-only vor.',
-          'dashboard_sessions wird nur per SELECT fuer Diagnose/Validierung gelesen.',
+          'RDAP8A bereitet einen read-only Permission-Resolver fuer Diagnose vor.',
+          'Der Permission-Check aktiviert keinen Login und erlaubt keine produktiven Aktionen.',
+          'dashboard_sessions, Rollen, Gruppen und Permissions werden nur per SELECT gelesen.',
           'OAuth bleibt effektiv deaktiviert.',
           'Start und Callback loesen keinen Redirect zu Twitch und keinen Token-Tausch aus.',
           'Es werden keine Cookies gesetzt, keine Sessions erstellt und keine Session-Zeilen aktualisiert.'
@@ -74,11 +85,13 @@ function registerStatusRoutes(app, context) {
       },
       permissionsModel: {
         active: false,
+        diagnosticReadOnlyResolverPrepared: true,
         plannedModel: 'RDAP5C3 roles-and-groups-separated',
         rolesAreSeparateFromGroups: true,
         soundProfiIsRole: false,
         soundProfiIsGroupMarker: true,
-        modulePermissionMatrixUsesTargetTypeAndTargetKey: true
+        modulePermissionMatrixUsesTargetTypeAndTargetKey: true,
+        productivePermissionEnforcementEnabled: false
       },
       safety: context.safety
     });

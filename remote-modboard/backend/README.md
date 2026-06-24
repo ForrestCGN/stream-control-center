@@ -1,6 +1,6 @@
 # Remote Modboard Backend
 
-Stand: RDAP7I_SESSION_STORE_READONLY_VALIDATION_LAYER
+Stand: RDAP8A_READONLY_PERMISSION_RESOLVER_DIAGNOSTIC
 
 This package is the read-only base for the future remote modboard service on `web.cgn.community` / `mods.forrestcgn.de`.
 
@@ -12,6 +12,7 @@ This package is the read-only base for the future remote modboard service on `we
 - Reports Twitch OAuth and session ENV readiness without activating login.
 - Provides disabled/read-only Twitch OAuth start and callback skeleton endpoints.
 - Provides RDAP7I read-only session-store validation diagnostics against `dashboard_sessions`.
+- Provides RDAP8A read-only permission diagnostics for the future server-side permission middleware.
 - Keeps all productive capabilities disabled.
 
 ## What it does not do
@@ -26,6 +27,7 @@ This package is the read-only base for the future remote modboard service on `we
 - No session refresh/extension.
 - No `last_seen_at` update.
 - No cookies.
+- No productive permission enforcement.
 - No WSS agent runtime.
 - No agent actions.
 - No OBS/Sound/Overlay/Command control.
@@ -53,7 +55,7 @@ TWITCH_OAUTH_ENABLED=false
 SESSION_ENABLED=false
 ```
 
-Even if these are accidentally changed on the server, RDAP7I still reports effective auth/session state as disabled. The skeleton routes respond with disabled/read-only JSON and do not redirect or exchange tokens.
+Even if these are accidentally changed on the server, RDAP8A still reports effective auth/session state as disabled. The skeleton routes respond with disabled/read-only JSON and do not redirect or exchange tokens.
 
 ## Disabled OAuth skeleton routes
 
@@ -101,6 +103,49 @@ activate login
 
 Cookie values are never returned. The API may return a short SHA-256 fingerprint for diagnostics.
 
+## RDAP8A read-only permission diagnostics
+
+```text
+GET /api/remote/auth/permissions/check?permission=remote.view
+GET /api/remote/auth/permissions/check?permission=sound.manage&targetType=module&targetKey=sound
+```
+
+This route prepares the later permission middleware model.
+
+It may read, only when a valid session is diagnostically found:
+
+```text
+dashboard_users
+dashboard_user_roles
+dashboard_user_groups
+dashboard_groups
+dashboard_role_permissions
+dashboard_module_permissions
+```
+
+It still returns productive access as denied:
+
+```text
+allowed=false
+authEnabled=false
+loginEnabled=false
+loggedIn=false
+```
+
+Without a session cookie, expected reason:
+
+```text
+auth_disabled_or_not_logged_in
+```
+
+With a diagnostically valid session, expected productive reason:
+
+```text
+auth_disabled_readonly_permission_denied
+```
+
+The diagnostic result may show whether the future effective permission evaluation would allow access, but this is not yet productive authorization.
+
 ## Planned later redirect URI
 
 ```text
@@ -132,5 +177,7 @@ node --check .\remote-modboard\backend\src\services\db.service.js
 node --check .\remote-modboard\backend\src\services\auth-db-read.service.js
 node --check .\remote-modboard\backend\src\services\auth-session-read.service.js
 node --check .\remote-modboard\backend\src\services\auth-status.service.js
+node --check .\remote-modboard\backend\src\services\auth-permission-read.service.js
+node --check .\remote-modboard\backend\src\security\permissions.js
 node --check .\remote-modboard\backend\src\security\safety.js
 ```

@@ -7,13 +7,14 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap7i.v1',
+      statusApiVersion: 'rdap8a.v1',
       readOnly: true,
       writeEnabled: false,
       authPrepared: true,
       authEnabled: false,
       sessionCreationEnabled: false,
       sessionStoreReadOnlyValidationPrepared: true,
+      permissionReadOnlyResolverPrepared: true,
       routes: [
         {
           method: 'GET',
@@ -23,7 +24,7 @@ function registerRoutesRoutes(app, context) {
         {
           method: 'GET',
           path: '/api/remote/status',
-          description: 'Read-only service status, safety flags, DB config state, OAuth disabled state, session-store read-only validation state and planned agent state.'
+          description: 'Read-only service status, safety flags, DB config state, OAuth disabled state, session-store read-only validation state, permission diagnostic state and planned agent state.'
         },
         {
           method: 'GET',
@@ -39,6 +40,11 @@ function registerRoutesRoutes(app, context) {
           method: 'GET',
           path: '/api/remote/auth/session-status',
           description: 'RDAP7I read-only Session-Store-Validation gegen dashboard_sessions. Keine Session-Erstellung, keine Cookies, keine DB-Writes.'
+        },
+        {
+          method: 'GET',
+          path: '/api/remote/auth/permissions/check',
+          description: 'RDAP8A read-only Permission-Diagnose. Ohne aktiven Login bleibt allowed=false. Keine produktive Autorisierung, keine DB-Writes.'
         },
         {
           method: 'GET',
@@ -63,6 +69,7 @@ function registerRoutesRoutes(app, context) {
       disabled: [
         'POST/PUT/PATCH/DELETE remote writes',
         'auth/session creation',
+        'productive permission enforcement',
         'productive Twitch OAuth start activation',
         'productive Twitch OAuth callback activation',
         'Redirect to Twitch',
