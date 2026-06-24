@@ -1,41 +1,31 @@
 # TODO - stream-control-center
 
-Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
+Stand: RDAP_UI2_READONLY_COMFORT
 Datum: 2026-06-24
 
 ## Erledigt
 
-- [x] RDAP9 Lock-/Audit-Konzept fuer spaetere Writes dokumentiert
-- [x] RDAP10 Lock-/Audit-Implementierungsplan read-only dokumentiert
-- [x] RDAP11 Lock-/Audit read-only Skeleton vorbereitet
-- [x] RDAP11B Lock-/Audit read-only Skeleton live deployed und getestet
-- [x] RDAP11C Live-Test dokumentiert
-- [x] RDAP12 Schema-Kompatibilitaetsplan dokumentiert
-- [x] RDAP13 Schema-Adapter read-only Plan dokumentiert
-- [x] RDAP14 Schema-Adapter read-only Skeleton vorbereitet
-- [x] RDAP14B Schema-Adapter read-only Skeleton live deployed und getestet
-- [x] RDAP14C Live-Test dokumentiert
-- [x] RDAP15 Lock resourceType Decision Plan dokumentiert
-- [x] RDAP16 Handoff Visible Next vorbereitet
 - [x] RDAP_UI1 Remote-Modboard erste sichtbare read-only UI-Seite geplant
-- [x] RDAP_UI1 echte Frontend-/htdocs-/remote-modboard-Struktur geprüft
 - [x] RDAP_UI1 vorhandenes Remote-Modboard-Backend erweitert statt neues Modul gebaut
 - [x] RDAP_UI1 UI nur read-only Diagnose anzeigen lassen
-- [x] RDAP_UI1 keine Login-/OAuth-/Write-/Agent-Aktivierung
 - [x] RDAP_UI1 live unter `https://mods.forrestcgn.de/` sichtbar getestet
-- [x] RDAP_UI1 SSL/Let's Encrypt für `mods.forrestcgn.de` bestätigt
-- [x] RDAP_UI1 OAuth Start/Callback bleiben HTTP 403
 - [x] RDAP Deploy-Runbook oder Server-Deploy-Script für Remote-Modboard erstellt/dokumentiert
-- [x] Festhalten: `/opt/stream-control-center` ist kein Git-Repo
-- [x] Festhalten: Deploy läuft über GitHub/dev Clone nach `_deploy_tmp` und `rsync` nach `remote-modboard`
 - [x] RDAP Deploy-Script live getestet
-- [x] RDAP Deploy-Script Readiness-Wait bestätigt
 - [x] RDAP Deploy-Script OAuth-403-Safety bestätigt
 
-## Als nächstes
+## Aktuell
 
-- [ ] RDAP_UI2_READONLY_COMFORT planen und umsetzen
-- [ ] UI2 nach Live-Deploy mit `tools/remote-modboard-deploy.sh` testen
+- [ ] RDAP_UI2_READONLY_COMFORT lokal installieren/testdeploy
+- [ ] RDAP_UI2_READONLY_COMFORT mit `tools/remote-modboard-deploy.sh` auf Webserver deployen
+- [ ] UI2 im Browser unter `https://mods.forrestcgn.de/` prüfen
+- [ ] OAuth Start/Callback weiter HTTP 403 prüfen
+- [ ] UI2 Live-Test dokumentieren
+
+## Später
+
+- [ ] UI3 read-only Details/Filter planen
+- [ ] Auth/Login/OAuth separat planen, aber erst mit eigenem Scope
+- [ ] Remote-Writes/Agent-Actions separat planen, aber erst mit eigenem Scope
 
 ## Dauerhafte Verbote bis eigener Scope
 

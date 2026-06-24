@@ -1,48 +1,21 @@
 # FILES - stream-control-center
 
-Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
+Stand: RDAP_UI2_READONLY_COMFORT
 Datum: 2026-06-24
+
+## RDAP UI2 relevante Dateien
+
+```text
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.css
+remote-modboard/backend/public/assets/remote-modboard.js
+```
 
 ## RDAP Deploy relevante Dateien
 
 ```text
 tools/remote-modboard-deploy.sh
 docs/current/RDAP_DEPLOY_RUNBOOK.md
-```
-
-## RDAP UI1 relevante Dateien
-
-```text
-remote-modboard/backend/src/app.js
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/public/assets/remote-modboard.js
-```
-
-## Wichtige Remote-Modboard Backend-Dateien
-
-```text
-remote-modboard/backend/package.json
-remote-modboard/backend/server.js
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/health.routes.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/routes/auth-model.routes.js
-remote-modboard/backend/src/routes/auth-status.routes.js
-remote-modboard/backend/src/routes/auth-twitch.routes.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/services/db-health.service.js
-remote-modboard/backend/src/services/db.service.js
-remote-modboard/backend/src/services/auth-db-read.service.js
-remote-modboard/backend/src/services/auth-session-read.service.js
-remote-modboard/backend/src/services/auth-status.service.js
-remote-modboard/backend/src/services/auth-permission-read.service.js
-remote-modboard/backend/src/services/lock-read.service.js
-remote-modboard/backend/src/services/audit-read.service.js
-remote-modboard/backend/src/security/permissions.js
-remote-modboard/backend/src/security/safety.js
 ```
 
 ## RDAP aktuelle Doku-/Projektdateien
@@ -66,7 +39,6 @@ project-state/CHANGELOG.md
 /opt/stream-control-center/remote-modboard/backend
 /opt/stream-control-center/_deploy_tmp/
 /opt/stream-control-center/_runtime_tmp/
-/var/backups/stream-control-center/
 ```
 
 Wichtig:
@@ -89,15 +61,3 @@ https://mods.forrestcgn.de/api/remote/
 Interner Service:
 http://127.0.0.1:3010/
 ```
-
-## ISPConfig/Nginx
-
-`mods.forrestcgn.de` ist als eigener ISPConfig-Web-vHost angelegt.
-
-Nginx/ISPConfig proxyt den vHost vollständig auf:
-
-```text
-http://127.0.0.1:3010/
-```
-
-Die alte normale Subdomain unter `forrestcgn.de` darf nicht wieder als normale Subdomain angelegt werden.

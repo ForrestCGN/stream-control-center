@@ -1,56 +1,60 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
+Stand: RDAP_UI2_READONLY_COMFORT
 Datum: 2026-06-24
 
-## Aktueller Abschluss
-
-```text
-RDAP_DEPLOY_SCRIPT_LIVE_TEST_CONFIRMED
-```
-
-ist abgeschlossen.
-
-Bestätigt:
-
-- `tools/remote-modboard-deploy.sh` live auf dem Webserver getestet
-- Clone nach `_deploy_tmp`
-- Backup nach `_runtime_tmp`
-- `rsync` nach `/opt/stream-control-center/remote-modboard`
-- Rechte gesetzt
-- JS-Syntaxcheck ok
-- Service restart ok
-- Readiness ok
-- Public UI ok
-- Public API ok
-- OAuth Start/Callback bleiben HTTP 403
-
-## Nächster sinnvoller Schritt
+## Aktueller Schritt
 
 ```text
 RDAP_UI2_READONLY_COMFORT
 ```
 
-Ziel:
+## Test nach Einspielen
 
-- erste UI bleibt read-only
-- Auto-Refresh für Diagnosekarten
+Lokal/Windows nach `installstep.cmd`:
+
+```powershell
+cd D:\Git\stream-control-center
+node --check .\remote-modboard\backend\public\assets\remote-modboard.js
+```
+
+Danach Webserver-Deploy mit dem bestätigten Script:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf RDAP_UI2_READONLY_COMFORT
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_UI2_READONLY_COMFORT
+cd RDAP_UI2_READONLY_COMFORT
+sudo bash tools/remote-modboard-deploy.sh RDAP_UI2_READONLY_COMFORT dev
+```
+
+Dann im Browser prüfen:
+
+```text
+https://mods.forrestcgn.de/
+```
+
+Erwartung:
+
+- UI zeigt weiterhin read-only Diagnose
+- Auto-Refresh-Zähler sichtbar
 - letzte Aktualisierung sichtbar
-- bessere Fehleranzeige bei API-Ausfall
-- kompaktere Routen-/Security-Details
-- keine Steuerbuttons
-- keine POST/PUT/PATCH/DELETE Calls
-- kein Login
-- kein OAuth
-- keine Cookies
-- keine Sessions
-- keine Writes
-- keine Agent-Actions
+- Schnellstatus sichtbar
+- Endpoint-Status sichtbar
+- manueller Refresh funktioniert
+- OAuth Start/Callback bleiben HTTP 403
 
 ## Danach
 
-Erst nach UI2 erneut prüfen:
+Wenn UI2 live bestätigt ist:
 
-- ob Login/Auth/OAuth separat geplant werden soll
-- ob Lock-/Audit-UI nur read-only sichtbar gemacht wird
-- ob User-/Rollenplanung als eigener großer Scope gestartet wird
+```text
+RDAP_UI2_READONLY_COMFORT_LIVE_CONFIRMED
+```
+
+dokumentieren und danach erst nächsten Scope planen.
+
+Möglicher nächster Scope danach:
+
+- UI3 read-only Details/Filter
+- oder Auth/Login-Konzept separat planen, aber noch nicht aktivieren

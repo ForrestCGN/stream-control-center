@@ -9,8 +9,28 @@ const endpoints = {
   schemaAdapter: '/api/remote/lock-audit/schema-adapter/status?db=1'
 };
 
+const endpointLabels = {
+  status: 'Status',
+  routes: 'Routen',
+  authMe: 'Auth/me',
+  permission: 'Permission remote.view',
+  lockAudit: 'Lock-/Audit',
+  schemaAdapter: 'Schema-Adapter'
+};
+
 const ids = {
   serviceOnlineBadge: 'serviceOnlineBadge',
+  lastUpdatedText: 'lastUpdatedText',
+  autoRefreshText: 'autoRefreshText',
+  quickService: 'quickService',
+  quickWrites: 'quickWrites',
+  quickOAuth: 'quickOAuth',
+  quickAgent: 'quickAgent',
+  errorBox: 'errorBox',
+  errorText: 'errorText',
+  clearErrorsButton: 'clearErrorsButton',
+  endpointPill: 'endpointPill',
+  endpointList: 'endpointList',
   statusPill: 'statusPill',
   statusOk: 'statusOk',
   statusReadOnly: 'statusReadOnly',
@@ -36,29 +56,71 @@ const ids = {
   refreshButton: 'refreshButton'
 };
 
+const AUTO_REFRESH_SECONDS = 30;
+let refreshTimer = null;
+let refreshCountdown = AUTO_REFRESH_SECONDS;
+let isLoading = false;
+
 document.addEventListener('DOMContentLoaded', () => {
-  el(ids.refreshButton).addEventListener('click', loadDashboard);
-  loadDashboard();
+  el(ids.refreshButton).addEventListener('click', () => loadDashboard('manual'));
+  el(ids.clearErrorsButton).addEventListener('click', hideErrors);
+  startAutoRefresh();
+  loadDashboard('initial');
 });
 
-async function loadDashboard() {
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshCountdown = AUTO_REFRESH_SECONDS;
+  updateAutoRefreshText();
+
+  refreshTimer = window.setInterval(() => {
+    refreshCountdown -= 1;
+    if (refreshCountdown <= 0) {
+      loadDashboard('auto');
+      refreshCountdown = AUTO_REFRESH_SECONDS;
+    }
+    updateAutoRefreshText();
+  }, 1000);
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+}
+
+async function loadDashboard(reason) {
+  if (isLoading) return;
+  isLoading = true;
+  refreshCountdown = AUTO_REFRESH_SECONDS;
+  updateAutoRefreshText('lädt…');
+
   setText(ids.serviceOnlineBadge, 'prüfe Service…');
   el(ids.serviceOnlineBadge).className = 'modeBadge';
+  el(ids.refreshButton).disabled = true;
 
-  const [status, routes, authMe, permission, lockAudit, schemaAdapter] = await Promise.all([
-    getJson(endpoints.status),
-    getJson(endpoints.routes),
-    getJson(endpoints.authMe),
-    getJson(endpoints.permission),
-    getJson(endpoints.lockAudit),
-    getJson(endpoints.schemaAdapter)
-  ]);
+  const entries = await Promise.all(Object.entries(endpoints).map(async ([key, url]) => {
+    const result = await getJson(url);
+    return [key, result];
+  }));
 
-  renderStatus(status);
-  renderSecurity(status, lockAudit);
-  renderRoutes(routes);
-  renderAuth(authMe, permission);
-  renderLockAudit(lockAudit, schemaAdapter);
+  const results = Object.fromEntries(entries);
+
+  renderStatus(results.status);
+  renderSecurity(results.status, results.lockAudit);
+  renderRoutes(results.routes);
+  renderAuth(results.authMe, results.permission);
+  renderLockAudit(results.lockAudit, results.schemaAdapter);
+  renderEndpoints(results);
+  renderQuickStatus(results);
+  renderErrors(results);
+
+  setText(ids.lastUpdatedText, `Aktualisiert: ${new Date().toLocaleString('de-DE')} · ${reason || 'load'}`);
+
+  isLoading = false;
+  el(ids.refreshButton).disabled = false;
+  updateAutoRefreshText();
 }
 
 async function getJson(url) {
@@ -95,7 +157,7 @@ function renderStatus(result) {
 
   setBadge(ids.statusPill, result.ok, result.ok ? 'online' : 'Fehler');
   setText(ids.serviceOnlineBadge, result.ok ? 'Service online' : 'Service nicht erreichbar');
-  el(ids.serviceOnlineBadge).className = result.ok ? 'modeBadge online' : 'modeBadge';
+  el(ids.serviceOnlineBadge).className = result.ok ? 'modeBadge online' : 'modeBadge bad';
 
   setValue(ids.statusOk, body.ok);
   setValue(ids.statusReadOnly, body.readOnly);
@@ -103,6 +165,19 @@ function renderStatus(result) {
   setText(ids.statusApiVersion, body.statusApiVersion || '—');
   setText(ids.statusModuleBuild, body.moduleBuild || '—');
   setText(ids.statusGeneratedAt, formatDate(body.generatedAt));
+}
+
+function renderQuickStatus(results) {
+  const statusBody = (results.status && results.status.body) || {};
+  const lockBody = (results.lockAudit && results.lockAudit.body) || {};
+  const auth = statusBody.auth || {};
+  const oauth = auth.twitchOAuth || {};
+  const agent = statusBody.agent || {};
+
+  setQuick(ids.quickService, results.status && results.status.ok, results.status && results.status.ok ? 'online' : 'prüfen');
+  setQuick(ids.quickWrites, statusBody.writeEnabled === false && lockBody.writeEnabled === false, statusBody.writeEnabled === false ? 'disabled' : 'prüfen');
+  setQuick(ids.quickOAuth, oauth.startRouteEnabled === false && oauth.callbackRouteEnabled === false, oauth.startRouteEnabled === false ? 'disabled' : 'prüfen');
+  setQuick(ids.quickAgent, agent.actionsEnabled === false || lockBody.agentActionsEnabled === false, 'disabled');
 }
 
 function renderSecurity(status, lockAudit) {
@@ -148,7 +223,7 @@ function renderLockAudit(lockAudit, schemaAdapter) {
 
 function renderRoutes(result) {
   const routes = (result.body && Array.isArray(result.body.routes)) ? result.body.routes : [];
-  setBadge(ids.routesPill, result.ok, `${routes.length} Routen`);
+  setBadge(ids.routesPill, result.ok, result.ok ? `${routes.length} Routen` : 'Fehler');
 
   const preferred = [
     '/api/remote/health',
@@ -182,10 +257,63 @@ function renderAuth(authMe, permission) {
   setText(ids.permissionReason, permissionBody.reason || authBody.reason || '—');
 }
 
+function renderEndpoints(results) {
+  const values = Object.entries(results);
+  const okCount = values.filter(([, result]) => result.ok).length;
+
+  setBadge(ids.endpointPill, okCount === values.length, `${okCount}/${values.length} ok`);
+
+  el(ids.endpointList).innerHTML = values.map(([key, result]) => {
+    const label = endpointLabels[key] || key;
+    const status = result.httpStatus || 'fetch';
+    const cls = result.ok ? 'endpoint ok' : 'endpoint bad';
+    const detail = result.error || (result.body && result.body.error) || (result.ok ? 'ok' : 'prüfen');
+    return `
+      <div class="${cls}">
+        <span>${escapeHtml(label)}</span>
+        <strong>HTTP ${escapeHtml(status)}</strong>
+        <small>${escapeHtml(detail)}</small>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderErrors(results) {
+  const failed = Object.entries(results).filter(([, result]) => !result.ok);
+
+  if (!failed.length) {
+    hideErrors();
+    return;
+  }
+
+  const text = failed.map(([key, result]) => {
+    const label = endpointLabels[key] || key;
+    const detail = result.error || (result.body && result.body.error) || `HTTP ${result.httpStatus || 0}`;
+    return `${label}: ${detail}`;
+  }).join(' · ');
+
+  setText(ids.errorText, text);
+  el(ids.errorBox).hidden = false;
+}
+
+function hideErrors() {
+  el(ids.errorBox).hidden = true;
+}
+
+function updateAutoRefreshText(override) {
+  setText(ids.autoRefreshText, override || `Auto-Refresh in ${refreshCountdown}s`);
+}
+
 function setBadge(id, ok, text) {
   const node = el(id);
   node.textContent = text;
   node.className = ok ? 'pill ok' : 'pill bad';
+}
+
+function setQuick(id, ok, text) {
+  const node = el(id);
+  node.textContent = text;
+  node.className = ok ? 'quickGood' : 'quickBad';
 }
 
 function setValue(id, value) {
