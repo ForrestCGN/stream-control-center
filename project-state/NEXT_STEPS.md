@@ -1,48 +1,79 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP  
+Stand: RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN  
 Datum: 2026-06-24
 
-## Aktuell erledigt
-
-`RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP` ist deployed und remote getestet.
-
-Bestätigt:
-
-```text
-moduleBuild: RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
-statusApiVersion: rdap_admin_users7b.v1
-adminUsersWriteFoundation.confirmWriteHelperPrepared: true
-auth.permissions.confirmWriteHelperPrepared: true
-auth.permissions.adminUsersConfirmWriteHelperPrepared: true
-confirmWriteDiagnostic.helperPrepared: true
-writeEnabled: false
-writesStillBlocked: true
-```
-
-## Nächster empfohlener Step
+## Aktueller Step
 
 ```text
 RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 ```
 
-Scope klein:
+Scope:
 
-- Audit-Helper vorbereiten.
-- Produktive Audit-Writes weiter deaktiviert lassen.
-- Keine DB-Migration.
-- Keine echten Admin-Writes.
-- Keine User-/Rollen-/Gruppen-/Session-Writes.
-- Keine UI-Schreibbuttons.
-- Read-only Diagnose/Planung erweitern.
+```text
+Audit-Helper vorbereitet
+Audit-Writes bleiben deaktiviert
+keine DB-Migration
+keine echten Admin-Writes
+keine User-/Rollen-/Gruppen-/Session-Writes
+keine UI-Schreibbuttons
+```
 
-## Danach sinnvoll
+## Nach lokalem installstep
+
+```powershell
+cd D:\Git\stream-control-center
+npm --prefix .\remote-modboard\backend run check
+git status --short
+```
+
+Wenn sauber:
+
+```powershell
+.\stepdone.cmd "RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN abgeschlossen: Audit-Helper vorbereitet; Audit-/Admin-Writes bleiben deaktiviert"
+```
+
+## Nach stepdone: Webserver-Deploy
+
+Immer frischer Clone:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
+cd RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
+sudo bash tools/remote-modboard-deploy.sh RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN dev
+```
+
+Restart + Readiness:
+
+```bash
+sudo systemctl restart scc-remote-modboard.service
+for i in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
+    echo "ready_after=${i}s"
+    break
+  fi
+  sleep 1
+done
+```
+
+Tests:
+
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.moduleBuild,.statusApiVersion,.adminUsersWriteFoundation.auditHelperPrepared,.adminUsersWriteFoundation.auditWriteEnabled,.adminUsersWriteFoundation.writesStillBlocked'
+
+curl -fsS http://127.0.0.1:3010/api/remote/admin/users/write-foundation-diagnostic | jq '.moduleBuild,.statusApiVersion,.auditHelperPrepared,.auditWriteEnabled,.auditDiagnostic.helperPrepared,.auditDiagnostic.writeEnabled,.writeEnabled,.writesStillBlocked'
+```
+
+## Danach empfohlen
 
 ```text
 RDAP_ADMIN_USERS9_LOCK_HELPER_DISABLED_PLAN
 ```
 
-Scope klein:
+Scope:
 
 - Locking-Helper vorbereiten.
 - Noch keine echten Locks erwerben/freigeben.
@@ -68,14 +99,3 @@ separates Go
 ```text
 RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
-
-Ziel später:
-
-- Online + Lokal/LAN-Betrieb.
-- ForrestCGN und EngelCGN lokal im LAN.
-- Lokaler Login ebenfalls über Twitch.
-- Erst weiterführen, wenn Web-Dashboard stabiler ist.
-
-## Webserver-Deploy-Regel
-
-`/opt/stream-control-center` ist kein Git-Repository. Nie dort `git pull` empfehlen. Immer frischer Clone in `_deploy_tmp`.

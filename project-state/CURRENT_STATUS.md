@@ -11,13 +11,13 @@ Remote-Modboard läuft produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller bestätigter Stand:
+Aktueller Zielstand dieses Steps:
 
 ```text
-RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
+RDAP_ADMIN_USERS8_AUDIT_HELPER_DISABLED_PLAN
 ```
 
-## Bestätigt
+## Bestätigt vor RDAP8
 
 - Twitch Login ist live.
 - Dashboard-Zugriff wird serverseitig geprüft.
@@ -28,38 +28,22 @@ RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP
 - RDAP6 Write-Foundation-Diagnose ist aktiv und read-only.
 - RDAP7 Confirm-Write-Helper ist vorbereitet, aber produktive Writes bleiben deaktiviert.
 - RDAP7B Confirm-Write-Metadaten sind remote bestätigt.
-- Build/Header:
-  - `moduleBuild: RDAP_ADMIN_USERS7B_CONFIRM_METADATA_CLEANUP`
-  - `statusApiVersion: rdap_admin_users7b.v1`
-- Confirm-Metadaten bestätigt:
-  - `adminUsersWriteFoundation.confirmWriteHelperPrepared:true`
-  - `auth.permissions.confirmWriteHelperPrepared:true`
-  - `auth.permissions.adminUsersConfirmWriteHelperPrepared:true`
-  - `confirmWriteDiagnostic.helperPrepared:true`
 - Sicherheitsstatus bestätigt:
   - `writeEnabled:false`
   - `writesStillBlocked:true`
-- Profilpanel oben rechts ist Self-Service:
-  - `Profil aktualisieren`
-  - `Ausloggen`
-- Topbar hat keinen doppelten Ausloggen-Button mehr.
-- Dashboard-v2/V13-Look ist portiert.
-- Login-/Denied-Seite ist zentriert.
-- Grid-/Spacing ist korrigiert.
 
-## Hinweis zu RDAP7B Diagnose
+## Neu mit RDAP8
 
-Der Testwert:
-
-```text
-.confirmWriteHelper.helperPrepared = null
-```
-
-ist kein Funktionsfehler. Das reale Objekt heißt aktuell:
-
-```text
-.confirmWriteDiagnostic.helperPrepared = true
-```
+- Audit-Helper vorbereitet:
+  - `remote-modboard/backend/src/services/admin-audit-write.service.js`
+- Audit-Helper baut/prueft nur sichere Audit-Drafts.
+- Audit-Writes bleiben deaktiviert:
+  - `auditWriteEnabled:false`
+  - `auditInsertEnabled:false`
+  - `auditUpdateEnabled:false`
+- Keine produktiven Admin-Writes.
+- Keine DB-Migration.
+- Keine UI-Schreibbuttons.
 
 ## Weiterhin nicht aktiv
 
@@ -92,8 +76,6 @@ RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN
 ```
 
 ## Workflow-Regel
-
-Korrekte Reihenfolge:
 
 ```text
 GitHub/dev + Docs prüfen
