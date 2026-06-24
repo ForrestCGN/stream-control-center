@@ -1,39 +1,74 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_AUTH1_TWITCH_LOGIN_GATED
+Stand: RDAP_AUTH1_TWITCH_LOGIN_LIVE_CONFIRMED
 Datum: 2026-06-24
 
-## Aktueller Arbeitsstand
+## Aktueller bestätigter Stand
 
 ```text
-RDAP_AUTH1_TWITCH_LOGIN_GATED
+RDAP_AUTH1_TWITCH_LOGIN_LIVE_CONFIRMED
 ```
 
-## Inhalt
+## Live bestätigt
 
-Twitch-Login ist technisch vorbereitet, bleibt aber ohne Env-Gates und Secrets deaktiviert.
-
-## Betroffene Dateien
+Remote-Modboard:
 
 ```text
-remote-modboard/backend/src/routes/auth-twitch.routes.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/services/db.service.js
-remote-modboard/backend/src/services/auth-status.service.js
-remote-modboard/backend/src/services/auth-session-write.service.js
-remote-modboard/backend/src/services/auth-twitch-oauth.service.js
-remote-modboard/backend/package.json
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.css
-remote-modboard/backend/public/assets/remote-modboard.js
+https://mods.forrestcgn.de/
 ```
 
-## Weiterhin verboten
+Twitch-Login ist live aktiv und erfolgreich getestet.
+
+Browseranzeige:
+
+```text
+Angemeldet als ForrestCGN
+```
+
+API-Status:
+
+```text
+.auth.enabled = true
+.auth.loginEnabled = true
+.auth.twitchOAuth.effectiveEnabled = true
+.auth.sessions.effectiveEnabled = true
+```
+
+## AUTH1 aktiv
+
+AUTH1 umfasst:
+
+- Twitch OAuth Start
+- Twitch OAuth Callback
+- OAuth State/CSRF-Schutz
+- Session-Cookie
+- Session-Erkennung über `/api/remote/auth/me`
+- UI-Loginstatus
+- Logout-Button
+
+## Wichtiger Sicherheitsstatus
+
+Die im Chat sichtbaren `SESSION_SECRET` und `OAUTH_STATE_SECRET` müssen rotiert werden.
+
+```bash
+openssl rand -base64 48
+openssl rand -base64 48
+nano /etc/stream-control-center/remote-modboard.env
+systemctl restart scc-remote-modboard.service
+```
+
+## Weiterhin nicht aktiv
 
 - keine Remote-Writes
 - keine Agent-Actions
 - keine OBS-/Sound-/Overlay-/Command-Steuerung
+- keine produktive Permission-Middleware für Writes
 - keine Migration
-- keine Secrets ins Repo
+
+## Nächster Fokus
+
+```text
+RDAP_DASHBOARD1_PROTECTED_SHELL
+```
+
+Geschützte Dashboard-Shell mit Navigation und Loginanzeige, aber weiter ohne gefährliche Steueraktionen.

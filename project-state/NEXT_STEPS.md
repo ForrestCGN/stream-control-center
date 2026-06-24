@@ -1,26 +1,49 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_AUTH1_TWITCH_LOGIN_GATED
+Stand: RDAP_AUTH1_TWITCH_LOGIN_LIVE_CONFIRMED
 Datum: 2026-06-24
 
-## Test nach Einspielen
+## Sofort erledigen
 
-Lokal:
+### Secrets rotieren
 
-```powershell
-cd D:\Git\stream-control-center
-node --check .\remote-modboard\backend\src\services\auth-twitch-oauth.service.js
-node --check .\remote-modboard\backend\src\services\auth-session-write.service.js
-node --check .\remote-modboard\backend\src\routes\auth-twitch.routes.js
-node --check .\remote-modboard\backend\public\assets\remote-modboard.js
-```
-
-Webserver nach Deploy ohne Secrets/Flags:
+Da `SESSION_SECRET` und `OAUTH_STATE_SECRET` im Chat sichtbar waren:
 
 ```bash
-curl -i https://mods.forrestcgn.de/api/remote/auth/twitch/start
+openssl rand -base64 48
+openssl rand -base64 48
+nano /etc/stream-control-center/remote-modboard.env
+systemctl restart scc-remote-modboard.service
 ```
 
-Erwartung: HTTP 403, weil Gates noch aus sind.
+Danach erneut im Browser anmelden.
 
-Danach Env bewusst setzen und Login separat testen.
+## Nächster Entwicklungsstep
+
+```text
+RDAP_DASHBOARD1_PROTECTED_SHELL
+```
+
+Ziel:
+
+- Dashboard-Shell hinter Login
+- eingeloggter User oben rechts
+- Sidebar/Navigation
+- geschützte read-only Seiten
+- Status/Diagnose als erste geschützte Module
+- Logout sauber sichtbar
+- kein Agent/OBS/Sound/Overlay/Command-Control
+
+## Danach
+
+```text
+RDAP_PERMISSIONS1_READONLY_ROLE_VIEW
+```
+
+oder
+
+```text
+RDAP_DASHBOARD2_MODULE_NAVIGATION
+```
+
+je nachdem, ob zuerst Rechteansicht oder Dashboardstruktur ausgebaut wird.

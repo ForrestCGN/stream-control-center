@@ -1,36 +1,79 @@
 # START HERE FOR NEW CHAT - stream-control-center / Remote Dashboard Agent Planung
 
-Stand: RDAP_AUTH1_TWITCH_LOGIN_GATED
+Stand: RDAP_AUTH1_TWITCH_LOGIN_LIVE_CONFIRMED
 Datum: 2026-06-24
 
-## Aktueller Fokus
+## Zuerst lesen
 
 ```text
-RDAP_AUTH1_TWITCH_LOGIN_GATED
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+docs/current/RDAP_AUTH1_TWITCH_LOGIN_GATED.md
+docs/current/RDAP_AUTH1_TWITCH_LOGIN_LIVE_CONFIRMED.md
 ```
 
-Twitch-Login ist vorbereitet, aber ohne Env-Gates/Secrets deaktiviert.
-
-## Wichtig
-
-Ohne bewusste Env-Aktivierung bleibt OAuth HTTP 403.
-
-Aktivierung braucht:
+## Aktueller Stand
 
 ```text
-AUTH_ENABLED=true
-TWITCH_OAUTH_ENABLED=true
-SESSION_ENABLED=true
-AUTH_SESSION_WRITE_ENABLED=true
-TWITCH_CLIENT_ID=...
-TWITCH_CLIENT_SECRET=...
-SESSION_SECRET=...
-OAUTH_STATE_SECRET=...
+RDAP_AUTH1_TWITCH_LOGIN_LIVE_CONFIRMED
 ```
 
-## Weiterhin nicht erlaubt
+## Live bestätigt
 
-- keine Remote-Writes
-- keine Agent-Actions
-- keine OBS-/Sound-/Overlay-/Command-Steuerung
-- keine Secrets ins Repo
+```text
+https://mods.forrestcgn.de/
+```
+
+Browser zeigte:
+
+```text
+Angemeldet als ForrestCGN
+```
+
+API-Status bestätigte:
+
+```text
+.auth.enabled = true
+.auth.loginEnabled = true
+.auth.twitchOAuth.effectiveEnabled = true
+.auth.sessions.effectiveEnabled = true
+```
+
+## Sofort beachten
+
+`SESSION_SECRET` und `OAUTH_STATE_SECRET` wurden im Chat sichtbar und müssen rotiert werden.
+
+```bash
+openssl rand -base64 48
+openssl rand -base64 48
+nano /etc/stream-control-center/remote-modboard.env
+systemctl restart scc-remote-modboard.service
+```
+
+## Nächster Schritt
+
+```text
+RDAP_DASHBOARD1_PROTECTED_SHELL
+```
+
+Ziel:
+
+- geschützte Dashboard-Shell
+- eingeloggter User oben rechts
+- Sidebar/Navigation
+- erste read-only Seiten geschützt hinter Login
+- Logout sichtbar
+- keine Remote-Writes/Agent-Actions/OBS/Sound/Overlay/Command-Steuerung
+
+## Dauerregeln
+
+- GitHub/dev ist Source of Truth.
+- Webserver Deploy über `tools/remote-modboard-deploy.sh`.
+- `/opt/stream-control-center` ist kein Git-Repository.
+- Keine Secrets ins Repo, Frontend, Logs oder Chat.
+- Keine gefährlichen Actions nebenbei aktivieren.
