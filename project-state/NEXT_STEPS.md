@@ -1,75 +1,48 @@
 # NEXT STEPS - stream-control-center
 
-Stand: RDAP_DESIGN1_REAL_CGN_BASE
+Stand: RDAP_DESIGN1B_LAYOUT_FIX
 Datum: 2026-06-24
 
-## Reihenfolge
+## Sofort
 
-1. ZIP lokal einspielen:
+1. ZIP lokal einspielen
+2. Browser-Design prüfen
+3. Bei Erfolg `stepdone.cmd`
+4. Danach Webserver-Deploy aus frischem GitHub/dev-Clone
 
-```powershell
-cd D:\Git\stream-control-center
-.\installstep.cmd "$env:USERPROFILE\Downloads\RDAP_DESIGN1_REAL_CGN_BASE.zip" "RDAP Design1 echte CGN-Neon-Galaxy-Basis eingebaut"
-```
+## Webserver-Deploy-Regel
 
-2. Lokal prüfen:
+Erst nach lokalem `installstep.cmd`, Test und `stepdone.cmd`.
 
-```powershell
-Test-Path .\remote-modboard\backend\public\index.html
-Test-Path .\remote-modboard\backend\public\assets\remote-modboard.css
-node --check .\remote-modboard\backend\public\assets\remote-modboard.js
-```
-
-3. Browser lokal/live prüfen, falls testdeploy den Stand nach Live kopiert hat.
-
-4. Bei Erfolg:
-
-```powershell
-.\stepdone.cmd "RDAP_DESIGN1 echte CGN-/Neon-Galaxy-Designbasis eingebaut: Remote-Modboard Frontend optisch erneuert, Auth/Login/Diagnose bleiben erhalten, keine Remote-Writes/Agent-Actions"
-```
-
-5. Erst danach Webserver-Deploy:
+Auf dem Webserver immer frisch klonen:
 
 ```bash
 cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP_DESIGN1_REAL_CGN_BASE
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP_DESIGN1_REAL_CGN_BASE
-cd RDAP_DESIGN1_REAL_CGN_BASE
-sudo bash tools/remote-modboard-deploy.sh RDAP_DESIGN1_REAL_CGN_BASE dev
+rm -rf STEP_NAME
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
+cd STEP_NAME
+sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
 ```
 
-## Danach testen
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.ok,.moduleBuild,.auth.enabled,.auth.loginEnabled,.writeEnabled'
-curl -fsSI https://mods.forrestcgn.de/ | head
-curl -fsS https://mods.forrestcgn.de/api/remote/status | jq '.ok,.auth.enabled,.auth.loginEnabled,.writeEnabled'
-```
-
-Browser:
+Nicht verwenden:
 
 ```text
-https://mods.forrestcgn.de/
+/opt/stream-control-center/tools/remote-modboard-deploy.sh
 ```
 
-## Danach nächste mögliche Steps
+## Danach
 
-### RDAP_AUTH2_CENTRAL_LOGIN_READY prüfen/fortführen
+### Secrets rotieren
 
-Falls noch nicht sauber live getestet:
+```bash
+openssl rand -base64 48
+openssl rand -base64 48
+nano /etc/stream-control-center/remote-modboard.env
+systemctl restart scc-remote-modboard.service
+```
 
-- neutraler Login-Einstieg prüfen
-- `/api/remote/auth/login/plan` prüfen
-- zentrale DB-Session-Zielarchitektur weiter vorbereiten
+### Nächste geplante Arbeit
 
-### RDAP_PERMISSIONS1_ROLE_ALLOWLIST_UI
-
-- Owner/Streamer/Mods/Sound-Profi sichtbar und verwaltbar planen
-- noch keine produktiven Actions
-
-## Weiterhin offen
-
-- `SESSION_SECRET` rotieren
-- `OAUTH_STATE_SECRET` rotieren
-- Service nach Rotation neu starten
-- Browser-Login nach Rotation prüfen
+- Design im Browser final bewerten
+- falls Design passt: Auth-/Rollen-/Rechte-UI planen
+- falls Design noch nicht passt: nur gezielte Layout-Korrektur, keine Backend-Arbeit

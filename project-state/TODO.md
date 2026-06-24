@@ -1,35 +1,30 @@
 # TODO - stream-control-center
 
-Stand: RDAP_DESIGN1_REAL_CGN_BASE
+Stand: RDAP_DESIGN1B_LAYOUT_FIX
 Datum: 2026-06-24
 
 ## Erledigt
 
 - [x] Remote-Modboard auf `mods.forrestcgn.de` live
-- [x] Deploy-Script live getestet
-- [x] UI1 sichtbar
-- [x] UI2 Read-only Komfort sichtbar
 - [x] Twitch OAuth Start aktiviert
 - [x] Twitch Login live erfolgreich
 - [x] Browser zeigte `Angemeldet als ForrestCGN`
 - [x] Auth/OAuth/Sessions aktiv
-- [x] RDAP-Webserver-Deploy-Arbeitsweise korrigiert und dokumentiert: frischer GitHub/dev-Clone nach `_deploy_tmp`, kein fester `/opt/stream-control-center/tools/...`-Pfad
-- [x] Echte CGN-/Vision-UI-/Neon-Galaxy-Designbasis aus Design-Test v13 geprüft und für RDAP_DESIGN1 verwendet
+- [x] RDAP-Webserver-Deploy-Arbeitsweise korrigiert und dokumentiert
+- [x] Ersten RDAP-Designstand gebaut
+- [x] Layoutproblem aus erstem Designstand erkannt: Navigation zu gross / falsche Content-Wirkung
+- [x] `RDAP_DESIGN1B_LAYOUT_FIX` vorbereitet
 
 ## Sofort offen
 
+- [ ] `RDAP_DESIGN1B_LAYOUT_FIX` lokal installieren/testen
+- [ ] Wenn sauber: `stepdone.cmd`
+- [ ] Danach Webserver-Deploy aus frischem GitHub/dev-Clone
+- [ ] Browser-Test auf `https://mods.forrestcgn.de/`
 - [ ] `SESSION_SECRET` rotieren
 - [ ] `OAUTH_STATE_SECRET` rotieren
 - [ ] Service nach Rotation neu starten
 - [ ] Browser-Login nach Rotation prüfen
-- [ ] `RDAP_DESIGN1_REAL_CGN_BASE` lokal einspielen und testen
-- [ ] `RDAP_DESIGN1_REAL_CGN_BASE` nach erfolgreichem `stepdone.cmd` auf Webserver deployen
-- [ ] Browser-Test auf `https://mods.forrestcgn.de/`
-
-## Design offen
-
-- [ ] Nach Server-Deploy prüfen: Login-Seite, Access-Denied, Dashboard, Mobile/kleines Fenster
-- [ ] Optische Feinkorrekturen erst nach Screenshot/konkreter Rückmeldung
 
 ## Auth/Access offen
 

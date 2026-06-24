@@ -18,18 +18,18 @@
 
   <main class="appShell">
     <section class="loginScene" id="loginScene">
-      <div class="loginCard neonPanel">
+      <div class="loginCard neonCard">
         <div class="brandBadge">CGN</div>
         <p class="eyebrow">ForrestCGN · Remote Modboard</p>
         <h1>Willkommen im Modboard</h1>
-        <p class="lead">Bitte melde dich an. Der Einstieg kann später über forrestcgn.de oder direkt über mods.forrestcgn.de laufen; die Session wird zentral und serverseitig geprüft.</p>
+        <p class="lead">Bitte melde dich an. Später kann der Einstieg über forrestcgn.de oder direkt über mods.forrestcgn.de laufen; die Session wird zentral geprüft.</p>
         <a class="primaryButton" id="loginStartLink" href="/api/remote/auth/login/start">Einloggen</a>
         <p class="tinyHint">Zentrale Auth vorbereitet · Keine Remote-Writes · Keine Agent-Actions · Keine OBS-/Sound-/Overlay-/Command-Steuerung</p>
       </div>
     </section>
 
     <section class="deniedScene" id="deniedScene" hidden>
-      <div class="loginCard denied neonPanel">
+      <div class="loginCard neonCard denied">
         <div class="brandBadge warning">!</div>
         <p class="eyebrow">Zugriff nicht freigeschaltet</p>
         <h1>Du bist angemeldet, aber noch nicht fürs Modboard freigegeben.</h1>
@@ -41,21 +41,21 @@
     <section class="dashboardScene" id="dashboardScene" hidden>
       <header class="topbar">
         <div class="topLeft">
-          <div class="brandMark">CGN</div>
-          <div class="cgnBreadcrumb">
+          <div class="brandMini">CGN</div>
+          <div class="breadcrumb">
             <span>Remote Modboard</span>
-            <strong><span id="pageTitle">Übersicht</span></strong>
+            <strong><span id="pageTitle">Übersicht</span><em>RDAP · geschützt · read-only</em></strong>
           </div>
         </div>
 
-        <div class="topCenter">
-          <span class="cgnChip" id="quickService">Service</span>
-          <span class="cgnChip" id="quickLogin">Login</span>
-          <span class="cgnChip" id="quickOAuth">OAuth</span>
-          <span class="cgnChip" id="quickAgent">Agent</span>
+        <div class="topCenter" aria-label="Kurzstatus">
+          <span class="chip" id="quickService">—</span>
+          <span class="chip" id="quickLogin">—</span>
+          <span class="chip" id="quickOAuth">—</span>
+          <span class="chip" id="quickAgent">—</span>
         </div>
 
-        <div class="userBox">
+        <div class="topRight">
           <div class="userAvatar">F</div>
           <div class="userText">
             <span id="loginStateText">Angemeldet</span>
@@ -65,17 +65,17 @@
         </div>
       </header>
 
-      <div class="layoutShell">
+      <div class="layout">
         <aside class="sidebar">
           <div class="sidebarHead">
             <strong>Navigation</strong>
-            <span>RDAP · geschützt · read-only</span>
+            <span>nur Diagnose · keine Steuerung</span>
           </div>
 
-          <nav class="navGroups">
+          <nav class="navGroups" aria-label="Remote-Modboard Navigation">
             <section class="navGroup isOpen">
               <button class="navGroupButton" type="button" data-nav-toggle="system">
-                <span class="navIcon">◆</span><b>System</b><span class="navArrow">⌄</span>
+                <span class="navIcon">◆</span><b>System</b><i class="navArrow">⌄</i>
               </button>
               <div class="navItems" data-nav-group="system">
                 <button class="navItem active" type="button" data-page="overview">Übersicht</button>
@@ -84,9 +84,9 @@
               </div>
             </section>
 
-            <section class="navGroup isOpen">
+            <section class="navGroup">
               <button class="navGroupButton" type="button" data-nav-toggle="auth">
-                <span class="navIcon">✦</span><b>Benutzer & Rechte</b><span class="navArrow">⌄</span>
+                <span class="navIcon">✦</span><b>Benutzer & Rechte</b><i class="navArrow">⌄</i>
               </button>
               <div class="navItems" data-nav-group="auth">
                 <button class="navItem" type="button" data-page="account">Mein Login</button>
@@ -94,9 +94,9 @@
               </div>
             </section>
 
-            <section class="navGroup isOpen">
+            <section class="navGroup">
               <button class="navGroupButton" type="button" data-nav-toggle="modules">
-                <span class="navIcon">◇</span><b>Module</b><span class="navArrow">⌄</span>
+                <span class="navIcon">◇</span><b>Module</b><i class="navArrow">⌄</i>
               </button>
               <div class="navItems" data-nav-group="modules">
                 <button class="navItem locked" type="button" data-page="modules">Module</button>
@@ -110,18 +110,25 @@
           </div>
         </aside>
 
-        <section class="mainArea">
-          <section class="pageHeader neonPanel">
+        <section class="contentArea">
+          <section class="heroCard neonCard">
             <div>
-              <p class="eyebrow">Dashboard v2 · Remote-Modboard</p>
-              <h1>Geschütztes Modboard mit zentraler Login-Vorbereitung.</h1>
-              <p>Ruhiger Galaxy-Hintergrund, feste Topbar, Accordion-Navigation und kompakte Diagnosekarten. Steueraktionen bleiben deaktiviert.</p>
+              <p class="eyebrow">Remote Dashboard · Design-Fix</p>
+              <h1>Modboard-Übersicht mit geschütztem Auth-Gate und read-only Diagnose.</h1>
+              <p>Optik nach Dashboard-v2 Design-Test v13: feste Topbar, kompakte Sidebar, ruhige Glass-Karten und klare Statusbereiche.</p>
             </div>
           </section>
 
           <section class="notice compact">
             <strong>Modboard geschützt</strong>
             <span>Zentrale Login-Schicht vorbereitet · Nur freigeschaltete User · read-only Diagnose · keine Remote-Writes · keine Agent-Actions</span>
+          </section>
+
+          <section class="statusStrip">
+            <div class="statusTile"><span>Service</span><strong id="quickServiceMirror">siehe Topbar</strong></div>
+            <div class="statusTile"><span>Login</span><strong id="quickLoginMirror">serverseitig</strong></div>
+            <div class="statusTile"><span>OAuth</span><strong id="quickOAuthMirror">gated/aktiv</strong></div>
+            <div class="statusTile"><span>Agent</span><strong id="quickAgentMirror">disabled</strong></div>
           </section>
 
           <section class="errorBox" id="errorBox" hidden>
@@ -131,7 +138,7 @@
 
           <section class="page activePage" data-page-panel="overview">
             <div class="grid">
-              <article class="card metricCard">
+              <article class="card">
                 <div class="cardHead"><h2>Service-Status</h2><span class="pill" id="statusPill">lädt</span></div>
                 <dl class="kv">
                   <div><dt>ok</dt><dd id="statusOk">—</dd></div>
@@ -142,18 +149,18 @@
                 </dl>
               </article>
 
-              <article class="card metricCard">
+              <article class="card">
                 <div class="cardHead"><h2>Safety</h2><span class="pill safe">geschützt</span></div>
                 <ul class="checkList" id="securityList"><li>Login wird geprüft</li></ul>
               </article>
 
-              <article class="card wide heroCard">
+              <article class="card wide accentCard">
                 <div>
                   <p class="eyebrow">Nächste Ausbaustufe</p>
                   <h2>Aus der Diagnose wird Schritt für Schritt ein echtes Modboard.</h2>
                 </div>
                 <div class="infoGrid">
-                  <div><strong>Zentraler Login</strong><p>forrestcgn.de und mods.forrestcgn.de sollen dieselbe serverseitige Session-/User-Wahrheit nutzen.</p></div>
+                  <div><strong>Zentraler Login</strong><p>forrestcgn.de und mods.forrestcgn.de sollen dieselbe Session-/User-Wahrheit nutzen.</p></div>
                   <div><strong>Rollen & Rechte</strong><p>Owner, Mods und Spezialrollen wie Sound-Profi sichtbar machen.</p></div>
                   <div><strong>Actions später</strong><p>Steueraktionen erst mit Permission, Locking und Audit.</p></div>
                 </div>

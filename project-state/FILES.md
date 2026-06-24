@@ -1,52 +1,28 @@
 # FILES - stream-control-center
 
-Stand: RDAP_DESIGN1_REAL_CGN_BASE
+Stand: RDAP_DESIGN1B_LAYOUT_FIX
 Datum: 2026-06-24
 
-## Wichtige Doku-Dateien
-
-```text
-docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
-docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
-docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/RDAP_WORKFLOW_MASTERPROMPT_FIX.md
-docs/current/RDAP_DESIGN1_REAL_CGN_BASE.md
-docs/current/RDAP_HANDOFF_AUTH_DASHBOARD2_STOCKT.md
-docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AUTH_DASHBOARD_DESIGN.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
-
-## Relevante Remote-Modboard Dateien zuletzt bearbeitet / geprüft
+## In diesem Step geändert
 
 ```text
 remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.css
+docs/current/RDAP_DESIGN1B_LAYOUT_FIX.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+## Nicht geändert, aber relevant
+
+```text
 remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/auth-status.service.js
 remote-modboard/backend/src/routes/status.routes.js
-```
-
-## In RDAP_DESIGN1_REAL_CGN_BASE geändert
-
-```text
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.css
-docs/current/RDAP_DESIGN1_REAL_CGN_BASE.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
-
-## Relevante Auth-Dateien
-
-```text
 remote-modboard/backend/src/routes/auth-twitch.routes.js
 remote-modboard/backend/src/services/auth-twitch-oauth.service.js
 remote-modboard/backend/src/services/auth-session-write.service.js

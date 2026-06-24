@@ -1,6 +1,6 @@
 # CURRENT STATUS - stream-control-center
 
-Stand: RDAP_DESIGN1_REAL_CGN_BASE
+Stand: RDAP_DESIGN1B_LAYOUT_FIX
 Datum: 2026-06-24
 
 ## Aktueller bestätigter Stand
@@ -8,45 +8,42 @@ Datum: 2026-06-24
 Remote-Modboard/Auth:
 
 - `mods.forrestcgn.de` läuft
-- Deploy-Script liegt im Repo unter `tools/remote-modboard-deploy.sh`
 - Twitch Login funktioniert live
 - ForrestCGN konnte sich im Browser anmelden
 - Auth/OAuth/Sessions aktiv
-- RDAP-Webserver-Deploy-Arbeitsweise ist dokumentiert: frischer GitHub/dev-Clone nach `_deploy_tmp`, kein fester `/opt/stream-control-center/tools/...`-Pfad
+- Workflow-Fix ist auf GitHub/dev dokumentiert
 
-## Neuer Arbeitsstand
+## Aktueller Arbeitsstand
 
-`RDAP_DESIGN1_REAL_CGN_BASE` wurde als Design-ZIP vorbereitet.
+`RDAP_DESIGN1B_LAYOUT_FIX` korrigiert den ersten Designstand:
 
-Geändert:
+- feste Topbar nach Dashboard-v2 Design-Test v13
+- kompakte linke Sidebar
+- Navigation nicht mehr als grosse aufgeblasene Content-Karten
+- Content-Bereich sauber neben der Sidebar
+- Galaxy-/Glassmorphism-Look bleibt erhalten
+
+## Geändert
 
 ```text
 remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.css
 ```
 
-Ziel:
+## Nicht geändert
 
-- Remote-Modboard optisch auf CGN-/Vision-UI-/Neon-Galaxy-Designbasis bringen
-- Design-Test v13 als echte Vorlage nutzen
-- bestehende Auth-/Login-/Diagnose-Funktion erhalten
-
-Nicht geändert:
-
-- keine Backend-/Auth-Routen
-- keine DB
-- keine Remote-Writes
-- keine Agent-Actions
-- keine OBS/Sound/Overlay/Command-Steuerung
+- Backend/Auth/DB/Routen
+- `remote-modboard/backend/public/assets/remote-modboard.js`
+- Remote-Writes
+- Agent-Actions
+- OBS/Sound/Overlay/Command-Steuerung
 
 ## Sofort offen
 
-- ZIP lokal mit `installstep.cmd` einspielen
-- lokal/live prüfen
-- erst danach `stepdone.cmd`
-- danach Webserver-Deploy aus frischem GitHub/dev-Clone
-- Browser-Test auf `https://mods.forrestcgn.de/`
-- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, falls noch nicht erledigt
+- `SESSION_SECRET` und `OAUTH_STATE_SECRET` rotieren, da sie im Chat sichtbar waren
+- Nach Rotation Service neu starten
+- Browser ggf. erneut einloggen
+- `RDAP_DESIGN1B_LAYOUT_FIX` lokal installieren, testen, `stepdone.cmd`, danach Webserver-Deploy aus frischem Clone
 
 ## Weiterhin deaktiviert
 
