@@ -460,3 +460,77 @@ body.nav-collapsed .cgn-sidebar{opacity:0;pointer-events:none;transform:translat
   .self-profile-avatar{width:56px;height:56px;border-radius:19px;font-size:23px}
   .self-profile-grid .kv-row{grid-template-columns:1fr}
 }
+
+
+/* RDAP_LOGIN1_CENTER_LAYOUT_FIX: Login-/Denied-Seite nicht oben links quetschen */
+.loginScene,
+.deniedScene{
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  padding:calc(var(--topbar-h) + 34px) 18px 34px;
+}
+.loginScene .login-wrap,
+.deniedScene .login-wrap{
+  width:min(560px,calc(100vw - 36px));
+  margin:0 auto;
+}
+.loginScene .login-card,
+.deniedScene .login-card{
+  position:relative;
+  overflow:hidden;
+  padding:34px;
+  text-align:center;
+  border-color:rgba(27,216,255,.24);
+  box-shadow:
+    0 18px 54px rgba(0,0,0,.34),
+    0 0 44px rgba(155,77,255,.13),
+    0 0 36px rgba(27,216,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.055);
+}
+.loginScene .login-card:before,
+.deniedScene .login-card:before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 18% 0%,rgba(27,216,255,.16),transparent 34%),
+    radial-gradient(circle at 84% 8%,rgba(155,77,255,.18),transparent 36%);
+  opacity:.95;
+}
+.loginScene .login-card > *,
+.deniedScene .login-card > *{
+  position:relative;
+  z-index:1;
+}
+.loginScene .twitch-login,
+.deniedScene .twitch-login{
+  width:100%;
+  max-width:360px;
+  margin-left:auto;
+  margin-right:auto;
+}
+.loginScene .cgn-toast,
+.deniedScene .cgn-toast{
+  text-align:left;
+}
+@media(max-width:820px){
+  .loginScene,
+  .deniedScene{
+    align-items:center;
+    padding:34px 14px;
+  }
+  .loginScene .login-wrap,
+  .deniedScene .login-wrap{
+    width:100%;
+  }
+  .loginScene .login-card,
+  .deniedScene .login-card{
+    padding:24px 18px;
+  }
+  .loginScene .login-card h1,
+  .deniedScene .login-card h1{
+    font-size:clamp(28px,9vw,38px);
+  }
+}
