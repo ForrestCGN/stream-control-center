@@ -1,9 +1,9 @@
 # CHANGELOG
 
-Stand: RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS  
+Stand: RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
-## RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS
+## RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS
 
 Typ: Doku-/Status-Sync  
 DB: keine neue Aenderung in diesem Doku-Step  
@@ -14,55 +14,62 @@ Workflow-Tools: nein
 
 ### Ergebnis
 
-RDAP26 Option B ist live bestaetigt.
+RDAP27 echte Admin-Notiztext-Read-Route ist live bestaetigt.
 
-Forrest hat entschieden:
+Live-Service:
 
 ```text
-Option B: echte Rollen und Permissions in der DB.
-Keine Allowlist-Abkuerzung fuer Admin-Rechte.
+moduleBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
+writeEnabled: false
+actionEnabled: false
+productiveAgentRuntime: false
 ```
 
-Backup vor SQL-Seed:
+Routenuebersicht:
 
 ```text
-/opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap26_before_owner_permission_seed_20260625_080740.sql
+statusApiVersion: rdap_admin_users27.v1
+adminUserAdminNoteRealReadAuthed.prepared: true
+adminUserAdminNoteRealReadAuthed.requiresValidSession: true
+adminUserAdminNoteRealReadAuthed.requiresDashboardAccess: true
+adminUserAdminNoteRealReadAuthed.requiresEffectiveReadPermission: true
+adminUserAdminNoteRealReadAuthed.usesDbPermissionOnlyForAdminRead: true
+adminUserAdminNoteRealReadAuthed.allowlistOwnerDoesNotGrantAdminRead: true
+adminUserAdminNoteRealReadAuthed.returnsNoteTextWhenAuthorized: true
+adminUserAdminNoteRealReadAuthed.uiWriteButtonsEnabled: false
 ```
 
-SQL-Read-back erfolgreich:
+Sicherheitstest ohne Browser-Session:
 
 ```text
-User:
-  tw:127709954 | ForrestCGN | forrestcgn | active
-
-Rolle:
-  owner
-
-Permissions:
-  owner | admin.users.note.read | allow
-  owner | remote.view           | allow
+HTTP 401
+reason: not_logged_in_or_session_invalid
+noteTextReturned: false
 ```
 
-Browser-/API-Test erfolgreich:
+Browser-Test mit gueltiger Session:
 
 ```text
-remote.view:
-  diagnostics.effectivePermissionWouldAllow: true
-  diagnostics.effectivePermissionReason: explicit_allow
-  diagnostics.roles: ["owner"]
-  diagnostics.permissionRows.rolePermissions: 1
-
-admin.users.note.read:
-  diagnostics.effectivePermissionWouldAllow: true
-  diagnostics.effectivePermissionReason: explicit_allow
-  diagnostics.roles: ["owner"]
-  diagnostics.permissionRows.rolePermissions: 1
+ok: true
+loggedIn: true
+dashboardAccess: true
+canReadAdminNotes: true
+reason: admin_note_real_read_ready
+effectiveReadPermissionWouldAllow: true
+readReason: explicit_allow
+canWriteAdminNotes: false
+effectiveWritePermissionWouldAllow: false
+writeReason: no_matching_permission
+tableExists: true
+schemaReady: true
+rowCount: 0
+notes: []
 ```
 
 ### Dieser Doku-Sync aktualisiert
 
 ```text
-docs/current/RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS.md
+docs/current/RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -73,11 +80,10 @@ project-state/CHANGELOG.md
 ### Nicht geaendert
 
 ```text
-Keine Backend-Code-Aenderung
+Keine Backend-Code-Aenderung in diesem Doku-Step
 Keine DB-Migration in diesem Doku-Step
 Keine SQL-Ausfuehrung in diesem Doku-Step
 Keine Admin-Notiz-Write-Route
-Keine Notiztext-Ausgabe
 Keine UI-Schreibbuttons
 Keine User-/Rollen-/Session-Aenderung in diesem Doku-Step
 Keine Agent-Actions
@@ -87,18 +93,11 @@ Keine Workflow-Tools
 
 ## Vorheriger Stand
 
-RDAP24B war live bestaetigt:
+RDAP26B war live bestaetigt:
 
 ```text
-moduleBuild: RDAP_ADMIN_USERS24_AUTH_SESSION_OAUTH_READINESS_DIAGNOSTIC
-readyForLoginSmokeTest: true
-blockers: []
-```
-
-RDAP25 war live getestet:
-
-```text
-Login erfolgreich
-Session gueltig
-DashboardAccess true
+ForrestCGN / tw:127709954 -> owner
+owner -> remote.view -> allow
+owner -> admin.users.note.read -> allow
+Permission-Diagnose effectivePermissionWouldAllow: true
 ```

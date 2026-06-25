@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS  
+Stand: RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## RDAP / Remote-Modboard
@@ -29,11 +29,14 @@ Datum: 2026-06-25
 - [x] RDAP26 `owner -> remote.view -> allow` geseeded.
 - [x] RDAP26 `owner -> admin.users.note.read -> allow` geseeded.
 - [x] RDAP26 Browser-/API-Test bestaetigt: `effectivePermissionWouldAllow: true`.
+- [x] RDAP27 echte Admin-Notiz-Read-Route mit Auth/Session/DB-Permission gebaut.
+- [x] RDAP27 Webserver-Deploy live bestaetigt.
+- [x] RDAP27 Sicherheitstest ohne Session: HTTP 401.
+- [x] RDAP27 Browser-Test mit Session: `noteTextReturned: true`, `notes: []`, keine Writes.
 
 ## Weiterhin offen
 
-- [ ] RDAP27 echte Admin-Notiz-Read-Route mit Auth/Session/Permission bauen.
-- [ ] Noch keine produktive Admin-Notiz-Anzeige ohne `admin.users.note.read`.
+- [ ] RDAP28 read-only Admin-Notiz-Panel im Dashboard bauen.
 - [ ] Noch keinen Admin-Notiz-Write bauen.
 - [ ] Noch keine UI-Schreibbuttons fuer Admin-Notizen.
 - [ ] Permission `admin.users.note.write` fuer spaeteren Write getrennt klaeren.
@@ -65,5 +68,6 @@ Datum: 2026-06-25
 - [ ] Workflow-Tools nicht in Fach-/Frontend-/Diagnose-Steps ueberschreiben.
 - [ ] Fehlende Dateien gezielt anfordern; nicht raten.
 - [ ] ZIPs immer mit echten Zielpfaden bauen, ohne extra Oberordner.
+- [ ] Keine unnoetigen Root-README-Dateien in ZIPs legen.
 - [ ] Bei RDAP unterscheiden: Repo-Root, Deploy-Clone und Live-Ordner `/remote-modboard` sind nicht dasselbe.
 - [ ] Steps so gross wie moeglich und so klein wie noetig halten.

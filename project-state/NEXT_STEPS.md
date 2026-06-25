@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS  
+Stand: RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## Erledigt / live bestaetigt
@@ -8,18 +8,12 @@ Datum: 2026-06-25
 ```text
 RDAP16 Admin-Notiz-Tabelle dashboard_user_admin_notes angelegt
 RDAP17 Admin-Notiz Read-Diagnostic read-only gebaut und live bestaetigt
-RDAP17B Routenuebersicht fuer Admin-Notiz Read-Diagnostic synchronisiert und live bestaetigt
-RDAP18 Admin-Notiz Display-Scope geplant
-RDAP19 Auth-/Permission-Read-Check fuer Admin-Notizen geplant
+RDAP17B Routenuebersicht fuer Admin-Notiz Read-Diagnostic synchronisiert
 RDAP20 Admin-Notiz Read-Permission-Diagnostic gebaut und live bestaetigt
-RDAP20 unauthentifizierter Zugriff korrekt mit HTTP 401 blockiert
-RDAP21 Admin-Notiz Display-Readiness geplant
-RDAP22 echte Admin-Notiz Read-Route geplant, aber nicht gebaut
-RDAP23 Auth-/Session-/Login-Aktivierung groesser gebuendelt geplant
 RDAP24 Auth-/Session-/OAuth-Readiness-Diagnostic gebaut und live bestaetigt
-RDAP24 Readiness: readyForLoginSmokeTest true, blockers []
 RDAP25 Login-/OAuth-/Session-Smoke-Test erfolgreich
 RDAP26 Option B DB-Rollen/Permissions live geseeded und bestaetigt
+RDAP27 echte read-only Admin-Notiztext-Route gebaut, deployed und live bestaetigt
 ```
 
 ## Aktueller Rechte-Stand
@@ -28,26 +22,43 @@ RDAP26 Option B DB-Rollen/Permissions live geseeded und bestaetigt
 ForrestCGN / tw:127709954 -> Rolle owner
 owner -> remote.view -> allow
 owner -> admin.users.note.read -> allow
+owner -> admin.users.note.write -> NICHT vergeben
 ```
+
+## Aktueller Admin-Notiz-Read-Stand
+
+```text
+Route: GET /api/remote/admin/users/admin-notes/read?targetUserUid=<USER_UID>
+
+Ohne Session:
+  HTTP 401
+  noteTextReturned: false
+
+Mit Session + DashboardAccess + admin.users.note.read:
+  HTTP 200
+  noteTextReturned: true
+  notes: []
+```
+
+`notes: []` ist aktuell korrekt, weil noch keine Admin-Notiz existiert.
 
 ## Naechster sinnvoller Fachstep
 
 ```text
-RDAP27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
+RDAP28_ADMIN_NOTE_READONLY_UI_PANEL
 ```
 
-RDAP27 darf echte Admin-Notiztexte nur read-only liefern, wenn serverseitig gilt:
+Ziel:
 
 ```text
-gueltige Session
-Dashboard-Zugriff erlaubt
-admin.users.note.read effectivePermissionWouldAllow true
-Community-Seiten ausgeschlossen
-keine Write-Funktion
-keine UI-Schreibbuttons
+Admin-Notizen im Dashboard read-only anzeigen
+nur fuer eingeloggte User mit admin.users.note.read
+keine Schreibbuttons
+keine Write-Route
+keine Community-Seiten-Anbindung
 ```
 
-## RDAP27 harte Grenzen
+## RDAP28 harte Grenzen
 
 ```text
 Kein admin.users.note.write
@@ -56,20 +67,10 @@ Keine Admin-Notiz-Aenderung
 Keine Admin-Notiz-Loeschung
 Keine UI-Schreibbuttons
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung
-Keine Community-Seiten-Anbindung
+Keine Community-Seiten-Anbindung fuer Admin-Notizen
 ```
 
-## Danach moeglich
-
-Nach RDAP27:
-
-```text
-RDAP28_ADMIN_NOTE_READONLY_UI_PANEL
-```
-
-Das waere eine reine read-only Dashboard-Anzeige fuer Admin-Notizen, ohne Schreibbuttons.
-
-## Admin-Notiz-Write bleibt spaeter getrennt
+## Spaeterer Write-Step bleibt getrennt
 
 Ein echter Admin-Notiz-Write darf erst gebaut werden, wenn separat geplant und freigegeben ist:
 
@@ -87,5 +88,5 @@ separates Go von Forrest
 
 ```text
 Deploy-Safety-Check anpassen: 403/403 nur bei deaktiviertem Login erwarten, 302/403 bei bewusst aktiviertem Login erlauben.
-Base moduleBuild/statusApiVersion bei echten Backend-Steps aktualisieren und nicht auf alten RDAP14B-Werten stehen lassen.
+Base moduleBuild/statusApiVersion bei echten Backend-Steps aktuell halten.
 ```

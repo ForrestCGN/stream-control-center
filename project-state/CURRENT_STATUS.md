@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS  
+Stand: RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
@@ -31,46 +31,6 @@ Backup vor RDAP16-Migration:
 
 ```text
 /opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap16_before_admin_note_table_20260625_070106.sql
-```
-
-RDAP17 / RDAP17B sind live bestaetigt:
-
-```text
-GET /api/remote/admin/users/admin-note-read-diagnostic?targetUserUid=test
-ok: true
-readOnly: true
-writesStillBlocked: true
-returnsNoteText: false
-noteTextIsRedacted: true
-totalCount: 0
-
-GET /api/remote/routes
-statusApiVersion: rdap_admin_users17b.v1
-adminUserAdminNoteReadDiagnostic.routeListKeySynced: true
-```
-
-RDAP18 / RDAP19 / RDAP21 / RDAP22 / RDAP23 sind Plan- und Scope-Steps:
-
-```text
-RDAP18: Admin-Notiz Display-Scope geplant
-RDAP19: Auth-/Permission-Read-Check fuer Admin-Notizen geplant
-RDAP21: Display-Readiness geplant
-RDAP22: echte Read-Route geplant, aber nicht gebaut
-RDAP23: Auth-/Session-/Login-Aktivierung groesser gebuendelt geplant
-```
-
-RDAP20 ist live bestaetigt:
-
-```text
-GET /api/remote/routes
-statusApiVersion: rdap_admin_users20.v1
-adminUserAdminNoteReadPermissionDiagnostic.prepared: true
-adminUserAdminNoteReadPermissionDiagnostic.routeListKeySynced: true
-adminUserAdminNoteReadPermissionDiagnostic.permissionKey: admin.users.note.read
-adminUserAdminNoteReadPermissionDiagnostic.readOnly: true
-adminUserAdminNoteReadPermissionDiagnostic.writesStillBlocked: true
-adminUserAdminNoteReadPermissionDiagnostic.returnsNoteText: false
-adminUserAdminNoteReadPermissionDiagnostic.noteTextIsRedacted: true
 ```
 
 RDAP24 ist live bestaetigt:
@@ -135,6 +95,54 @@ admin.users.note.read:
   diagnostics.permissionRows.rolePermissions: 1
 ```
 
+RDAP27 echte read-only Admin-Notiztext-Route ist live bestaetigt:
+
+```text
+moduleBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
+writeEnabled: false
+actionEnabled: false
+productiveAgentRuntime: false
+
+GET /api/remote/routes
+statusApiVersion: rdap_admin_users27.v1
+adminUserAdminNoteRealReadAuthed.prepared: true
+adminUserAdminNoteRealReadAuthed.route: /api/remote/admin/users/admin-notes/read
+adminUserAdminNoteRealReadAuthed.requiresValidSession: true
+adminUserAdminNoteRealReadAuthed.requiresDashboardAccess: true
+adminUserAdminNoteRealReadAuthed.requiresEffectiveReadPermission: true
+adminUserAdminNoteRealReadAuthed.usesDbPermissionOnlyForAdminRead: true
+adminUserAdminNoteRealReadAuthed.allowlistOwnerDoesNotGrantAdminRead: true
+adminUserAdminNoteRealReadAuthed.returnsNoteTextWhenAuthorized: true
+adminUserAdminNoteRealReadAuthed.uiWriteButtonsEnabled: false
+```
+
+Sicherheitstest ohne Browser-Session:
+
+```text
+HTTP 401
+reason: not_logged_in_or_session_invalid
+noteTextReturned: false
+```
+
+Browser-Test mit gueltiger Session:
+
+```text
+ok: true
+loggedIn: true
+dashboardAccess: true
+canReadAdminNotes: true
+reason: admin_note_real_read_ready
+effectiveReadPermissionWouldAllow: true
+readReason: explicit_allow
+canWriteAdminNotes: false
+effectiveWritePermissionWouldAllow: false
+writeReason: no_matching_permission
+tableExists: true
+schemaReady: true
+rowCount: 0
+notes: []
+```
+
 ## OAuth-Safety-Klaerung
 
 ```text
@@ -149,18 +157,17 @@ Der Deploy-Safety-Check muss spaeter an diese Unterscheidung angepasst werden.
 ## Weiterhin nicht aktiv
 
 ```text
+Admin-Notiz schreiben
+Admin-Notiz aendern
+Admin-Notiz loeschen
+Permission admin.users.note.write
+UI-Schreibbuttons
 User freigeben/sperren
 Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
-Admin-Notiz schreiben
-Admin-Notiztexte produktiv anzeigen
-Admin-Notiz aendern
-Admin-Notiz loeschen
-Permission admin.users.note.write
 Audit-Inserts oder Audit-Updates
 Lock acquire/heartbeat/release/force-takeover
-UI-Schreibbuttons
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 ```
