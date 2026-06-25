@@ -1,110 +1,80 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION  
+Stand: RDAP29B_ADMIN_NOTE_MARIADB_SEED_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
-## Erledigt / live bestaetigt
+## Aktuell erledigt
 
 ```text
-RDAP25 Login-/OAuth-/Session-Smoke-Test erfolgreich.
-RDAP26 Option B DB-Rollen/Permissions live geseeded und bestaetigt.
-RDAP27 echte read-only Admin-Notiztext-Route gebaut, deployed und live bestaetigt.
-RDAP28 read-only Admin-Notiz-UI-Panel gebaut, deployed und im Browser bestaetigt.
+RDAP25 Login/OAuth/Session funktioniert.
+RDAP26 Option B DB-Rollen/Permissions funktioniert.
+RDAP27 echte read-only Admin-Notiztext-Route ist live.
+RDAP28 read-only Admin-Notiz-UI ist live.
+RDAP29 Admin-Notiz Test-Seed wurde live gegen MariaDB validiert.
+RDAP29B dokumentiert die MariaDB-Korrektur und den Live-Erfolg.
 ```
 
-## Aktueller Rechte-Stand
+## RDAP29 Live-Ergebnis
 
 ```text
-ForrestCGN / tw:127709954 -> Rolle owner
-owner -> remote.view -> allow
-owner -> admin.users.note.read -> allow
-owner -> admin.users.note.write -> NICHT vergeben
+DB: c3stream_control
+Engine: MariaDB 11.8.6
+Tabelle: dashboard_user_admin_notes
+note_count nach Seed: 1
+UI: 1 Admin-Notiz read-only geladen
+Schreibbuttons: nicht sichtbar
 ```
 
-## RDAP29 vorbereitet
+## Sofort noch pruefen
 
-```text
-RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
+Backup-Datei pruefen:
+
+```bash
+sudo ls -lah /opt/stream-control-center/_db_backups
 ```
 
-Vorbereitet:
+Falls kein valides Backup vorhanden ist, Tabelle nachtraeglich sichern:
 
-```text
-tools/rdap29_admin_note_test_seed_readonly_validation.sql
-docs/current/RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION.md
+```bash
+sudo mysqldump --defaults-extra-file=/root/rdap29_mysql_client.cnf \
+  c3stream_control dashboard_user_admin_notes \
+  > /opt/stream-control-center/_db_backups/rdap29_dashboard_user_admin_notes_after_live_seed_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-Ziel:
-
-```text
-Eine kontrollierte Test-Notiz fuer tw:127709954 per SQL-Seed anlegen,
-damit die bestehende read-only UI echten Text anzeigt.
-```
-
-Nicht automatisch:
-
-```text
-Keine automatische SQL-Ausfuehrung durch installstep/deploy.
-Keine Backend-/UI-Code-Aenderung.
-Kein normaler Webserver-Service-Deploy noetig.
-```
-
-## Naechster praktischer Schritt
-
-Nach lokalem Install + stepdone:
-
-```text
-RDAP29 SQL-Seed auf dem Webserver aus frischem GitHub/dev-Clone ausfuehren.
-```
-
-Pflicht davor:
-
-```text
-DB-Env maskiert pruefen
-Backup erstellen
-Read-only Vorpruefung per INFORMATION_SCHEMA
-```
-
-Pflicht danach:
-
-```text
-Read-Back SQL pruefen
-Browser: Admin -> Admin-Notizen zeigt mindestens 1 Test-Notiz
-Write bleibt false
-Keine Schreibbuttons sichtbar
-```
-
-## Danach sinnvoll
+## Naechster Fach-Step
 
 ```text
 RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN
 ```
 
-Ziel:
+Ziel: Write-Scope sauber planen, aber noch nicht bauen.
+
+RDAP30 klaert:
 
 ```text
-Write-Scope fuer Admin-Notizen sauber planen, aber noch nicht direkt bauen.
-```
-
-## Harte Grenzen fuer naechste Steps
-
-```text
-Kein admin.users.note.write ohne separaten Plan.
-Keine Schreibbuttons ohne separaten Plan.
-Keine Write-Route ohne Confirm/Audit/Lock/Backup/Rollback.
-Keine Community-Seiten-Anbindung fuer Admin-Notizen.
-Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-Keine Workflow-Tools ueberschreiben.
-```
-
-## Spaeterer Write-Step muss enthalten
-
-```text
+Welche Rollen duerfen Admin-Notizen schreiben?
 Permission admin.users.note.write
 Confirm-Write Pflicht
 Audit-Payload
-Lock-Scope admin:user-note:<targetUserUid>
-Read-Back-Pruefung
-Backup/Rollback-Konzept
-separates Go von Forrest
+Lock-Scope
+Read-Back nach Write
+Fehler-/Abbruchfaelle
+UI-Regeln fuer Schreibbuttons
+Rollback-/Backup-Regel
+```
+
+## Nicht blind bauen
+
+Vor einem echten Write-Step braucht es ein separates Go von Forrest.
+
+Weiterhin nicht automatisch aktivieren:
+
+```text
+POST/PUT/PATCH/DELETE fuer Admin-Notizen
+UI-Schreibbuttons
+admin.users.note.write Vergabe
+Audit-Writes
+Lock-Writes
+User-/Rollen-/Session-Writes
+Agent-/OBS-/Sound-/Overlay-Steuerung
 ```

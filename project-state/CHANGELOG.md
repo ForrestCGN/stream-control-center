@@ -1,40 +1,71 @@
 # CHANGELOG
 
-Stand: RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION  
+Stand: RDAP29B_ADMIN_NOTE_MARIADB_SEED_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
-## RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
+## RDAP29B_ADMIN_NOTE_MARIADB_SEED_LIVE_CONFIRMED_DOCS
 
-Typ: SQL-/Doku-Step fuer read-only Validierung  
-DB: SQL-Seed vorbereitet, aber nicht automatisch ausgefuehrt  
+Typ: Doku-/Projektstatus-Korrektur nach Live-Seed  
+DB: MariaDB-Live-Befund dokumentiert  
 Secrets: nein  
 Produktive Dashboard-Writes: nein  
 UI-Schreibbuttons: nein  
-Backend-Code: nein  
-Frontend-Code: nein  
-Workflow-Tools: nein
+Workflow-Tools: nein  
+Backend-Code-Aenderung: nein
 
 ### Ergebnis
 
-RDAP29 bereitet eine kontrollierte Test-Admin-Notiz fuer ForrestCGN vor:
+RDAP29 wurde live erfolgreich validiert:
 
 ```text
-note_uid: rdap29_test_note_forrestcgn_readonly_validation
+DB: c3stream_control
+Engine: MariaDB 11.8.6
+Tabelle: dashboard_user_admin_notes
+Vor Seed: note_count 0
+Nach Seed: note_count 1
+Browser: 1 Admin-Notiz read-only sichtbar
+```
+
+### Korrektur
+
+Die urspruengliche SQLite-Annahme aus RDAP29 wurde korrigiert.
+
+Echte Live-Wahrheit:
+
+```text
+Nicht SQLite
+Nicht admin_user_notes
+Sondern MariaDB / dashboard_user_admin_notes
+```
+
+### Live-Seed
+
+Eingefuegt wurde:
+
+```text
+note_uid: rdap29-test-note-forrestcgn-readonly-validation
 target_user_uid: tw:127709954
 status: active
+created_by_user_uid: tw:127709954
+updated_by_user_uid: tw:127709954
 ```
 
-Zweck:
+### Browser-Test
+
+Bestaetigt:
 
 ```text
-Die bestehende read-only Admin-Notiz-UI soll echten Text anzeigen koennen.
+ForrestCGN / tw:127709954
+1 Admin-Notiz(en) read-only geladen
+Test-Notiz sichtbar
+Keine Schreibbuttons sichtbar
 ```
 
-### Geaendert / hinzugefuegt
+### Geaendert
 
 ```text
-tools/rdap29_admin_note_test_seed_readonly_validation.sql
 docs/current/RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION.md
+docs/current/RDAP29B_ADMIN_NOTE_MARIADB_SEED_LIVE_CONFIRMED_DOCS.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -45,49 +76,24 @@ project-state/CHANGELOG.md
 ### Nicht geaendert
 
 ```text
-Keine Backend-Code-Aenderung
-Keine Frontend-Code-Aenderung
-Keine remote-modboard/ Datei geaendert
-Keine automatische SQL-Ausfuehrung
-Keine DB-Migration durch installstep/deploy
-Keine Admin-Notiz-Write-Route
-Keine admin.users.note.write Permission
-Keine UI-Schreibbuttons
-Keine User-/Rollen-/Session-Aenderung
-Keine Agent-Actions
-Keine OBS-/Sound-/Overlay-/Command-Steuerung
+Keine Backend-Code-Dateien
+Keine UI-Dateien
 Keine Workflow-Tools
+Keine Secrets
+Keine DB-Dateien
+Keine Backups im Repo
+Keine Write-Route
+Keine POST/PUT/PATCH/DELETE-Route
+Keine Permission admin.users.note.write
+Keine UI-Schreibbuttons
+Keine Audit-Inserts ueber Dashboard
+Keine Lock-Writes
 ```
 
-### Pflicht vor SQL-Ausfuehrung
+### Naechster sinnvoller Schritt
 
 ```text
-DB-Env maskiert pruefen
-Backup erstellen
-Read-only Vorpruefung per INFORMATION_SCHEMA
+RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN
 ```
 
-### Pflicht nach SQL-Ausfuehrung
-
-```text
-Read-Back per SQL pruefen
-Browser-Test: Admin -> Admin-Notizen
-Read true
-Write false
-Notizen mindestens 1
-Test-Notiz sichtbar
-Keine Schreibbuttons sichtbar
-```
-
-## Vorheriger Stand
-
-RDAP28B war live bestaetigt:
-
-```text
-Admin -> Admin-Notizen sichtbar
-Read true
-Write false
-Notizen 0
-Tabelle true
-Keine Schreibbuttons sichtbar
-```
+RDAP30 plant den Write-Scope, ohne direkt produktive Writes zu bauen.

@@ -1,45 +1,50 @@
 # TODO - stream-control-center
 
-Stand: RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION  
+Stand: RDAP29B_ADMIN_NOTE_MARIADB_SEED_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## RDAP / Remote-Modboard
 
-- [x] RDAP25 Login-/OAuth-/Session-Smoke-Test erfolgreich.
-- [x] RDAP26 Option B entschieden: echte Rollen/Permissions aus DB.
-- [x] RDAP26 Owner-Rolle fuer ForrestCGN geseeded.
-- [x] RDAP26 `owner -> remote.view -> allow` geseeded.
-- [x] RDAP26 `owner -> admin.users.note.read -> allow` geseeded.
-- [x] RDAP26 Browser-/API-Test bestaetigt: `effectivePermissionWouldAllow: true`.
-- [x] RDAP27 echte Admin-Notiz-Read-Route mit Auth/Session/DB-Permission gebaut.
-- [x] RDAP27 Webserver-Deploy live bestaetigt.
-- [x] RDAP27 Sicherheitstest ohne Session: HTTP 401.
-- [x] RDAP27 Browser-Test mit Session: `noteTextReturned: true`, `notes: []`, keine Writes.
-- [x] RDAP28 read-only Admin-Notiz-UI-Panel gebaut.
-- [x] RDAP28 Webserver-Deploy live bestaetigt.
-- [x] RDAP28 Browser-Test bestaetigt: Admin -> Admin-Notizen sichtbar, Read true, Write false, Notizen 0, Tabelle true.
-- [x] RDAP29 Admin-Notiz-Test-Seed fuer read-only Anzeige vorbereitet.
-- [x] RDAP29 Doku fuer Backup/Vorpruefung/Seed/Read-Back vorbereitet.
+- [x] RDAP25 Login/OAuth/Session bestaetigt.
+- [x] RDAP26 Option B DB-Rollen/Permissions bestaetigt.
+- [x] RDAP27 echte read-only Admin-Notiztext-Route live bestaetigt.
+- [x] RDAP28 read-only Admin-Notiz-UI live bestaetigt.
+- [x] RDAP29 Admin-Notiz Test-Seed lokal vorbereitet und nach GitHub/dev uebernommen.
+- [x] RDAP29 Live-DB als MariaDB bestaetigt, nicht SQLite.
+- [x] RDAP29 echte Tabelle `dashboard_user_admin_notes` bestaetigt.
+- [x] RDAP29 ForrestCGN User `tw:127709954` in `dashboard_users`/`dashboard_identities` bestaetigt.
+- [x] RDAP29 kontrollierte Testnotiz in `dashboard_user_admin_notes` eingefuegt.
+- [x] RDAP29 Browser-Test bestaetigt: 1 Admin-Notiz read-only sichtbar.
+- [x] RDAP29B Doku-/Projektstatus-Korrektur erstellt.
 
-## Naechstes offen
+## Noch pruefen / nachziehen
 
-- [ ] RDAP29 lokal einspielen und pruefen.
-- [ ] RDAP29 `stepdone.cmd` ausfuehren, wenn lokaler Stand sauber ist.
-- [ ] RDAP29 frischen GitHub/dev-Clone auf dem Webserver erstellen.
-- [ ] RDAP29 DB-Env maskiert pruefen, keine Secrets posten.
-- [ ] RDAP29 DB-Backup vor Seed erstellen und Dateigroesse pruefen.
-- [ ] RDAP29 Read-only Vorpruefung per INFORMATION_SCHEMA ausfuehren.
-- [ ] RDAP29 SQL-Seed manuell ausfuehren.
-- [ ] RDAP29 Read-Back pruefen: Test-Notiz fuer `tw:127709954` vorhanden.
-- [ ] RDAP29 Browser pruefen: Admin-Notizen zeigt echten Text, Write false, keine Schreibbuttons.
-- [ ] Danach RDAP30 Admin-Notiz-Write-Scope-Plan vorbereiten.
-- [ ] Noch keinen Admin-Notiz-Write bauen.
-- [ ] Noch keine UI-Schreibbuttons fuer Admin-Notizen.
-- [ ] Permission `admin.users.note.write` fuer spaeteren Write getrennt klaeren.
-- [ ] Confirm-Write Pflicht fuer spaeteren Admin-Notiz-Write vorbereiten.
-- [ ] Audit-Payload fuer spaeteren Admin-Notiz-Write vorbereiten.
-- [ ] Lock-Scope fuer spaeteren Admin-Notiz-Write vorbereiten.
-- [ ] Deploy-Safety-Check anpassen: `302/403` bei bewusst aktivem Login erlauben.
+- [ ] Backup-Datei unter `/opt/stream-control-center/_db_backups` pruefen.
+- [ ] Falls kein valides Backup vorhanden ist: `dashboard_user_admin_notes` nachtraeglich per `mysqldump` sichern.
+- [ ] RDAP29B lokal einspielen und `stepdone.cmd` ausfuehren.
+
+## Naechster Fach-Step
+
+- [ ] RDAP30 Admin-Notiz Write-Scope planen.
+- [ ] Rollen-/Rechteentscheidung fuer `admin.users.note.write` treffen.
+- [ ] Confirm-Write-Pflicht fuer spaeteren Admin-Notiz-Write definieren.
+- [ ] Audit-Payload fuer spaeteren Admin-Notiz-Write definieren.
+- [ ] Lock-Scope fuer spaeteren Admin-Notiz-Write definieren.
+- [ ] Read-Back-Pruefung nach spaeterem Write definieren.
+- [ ] Fehler-/Abbruchfaelle fuer Write definieren.
+- [ ] UI-Regeln fuer Schreibbuttons planen.
+
+## Weiterhin verboten ohne separaten Fachstep
+
+- [ ] Admin-Notiz schreiben/aendern/loeschen ueber UI oder API aktivieren.
+- [ ] Permission `admin.users.note.write` vergeben.
+- [ ] UI-Schreibbuttons anzeigen.
+- [ ] User freigeben/sperren.
+- [ ] Rollen vergeben/entziehen.
+- [ ] Gruppen/Freigaben setzen/entfernen.
+- [ ] Sessions widerrufen.
+- [ ] Audit-/Lock-Writes produktiv ausfuehren.
+- [ ] Agent-/OBS-/Sound-/Overlay-/Command-Steuerung aktivieren.
 
 ## Community-Seite / forrestcgn.de / .info
 
@@ -47,24 +52,10 @@ Datum: 2026-06-25
 - [ ] Community-Profile/Inhalte strikt von Dashboard-/Security-/Admin-Daten trennen.
 - [ ] Dashboard-Link auf Community-Seite spaeter serverseitig ueber Rollen/Rechte entscheiden, nicht ueber Community-Profilfelder.
 - [ ] Admin-Notizen niemals oeffentlich ueber Community-Seiten sichtbar machen.
-- [ ] Rollen wie Owner/Admin/Mod/Sound-Profi langfristig zentral und dashboardfaehig planen.
-
-## Weiterhin verboten ohne separaten Fachstep
-
-- [ ] User freigeben/sperren.
-- [ ] Rollen vergeben/entziehen.
-- [ ] Gruppen/Freigaben setzen/entfernen.
-- [ ] Sessions widerrufen.
-- [ ] Admin-Notiz schreiben.
-- [ ] Audit-/Lock-Writes produktiv ueber Dashboard ausfuehren.
-- [ ] Agent-/OBS-/Sound-/Overlay-/Command-Steuerung aktivieren.
 
 ## Workflow-Schutz
 
 - [ ] Workflow-Tools nicht in Fach-/Frontend-/Diagnose-Steps ueberschreiben.
 - [ ] Fehlende Dateien gezielt anfordern; nicht raten.
 - [ ] ZIPs immer mit echten Zielpfaden bauen, ohne extra Oberordner.
-- [ ] Keine unnoetigen Root-README-Dateien in ZIPs legen.
-- [ ] Bei RDAP unterscheiden: Repo-Root, Deploy-Clone und Live-Ordner `/remote-modboard` sind nicht dasselbe.
-- [ ] Steps so gross wie moeglich und so klein wie noetig halten.
-- [ ] Nach `go` nicht denselben Befehlsklotz wiederholen, sondern naechsten sinnvollen Step liefern.
+- [ ] Doku-only Steps nicht als Webserver-Service-Deploy behandeln.

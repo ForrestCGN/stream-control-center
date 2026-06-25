@@ -1,145 +1,64 @@
 # CURRENT_STATUS
 
-Stand: RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION  
+Stand: RDAP29B_ADMIN_NOTE_MARIADB_SEED_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25  
-Projekt: `stream-control-center` / Remote-Modboard
+Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ## Produktiv
 
 ```text
-URL: https://mods.forrestcgn.de/
-Live-Pfad: /opt/stream-control-center/remote-modboard
-Service: scc-remote-modboard.service
-Repo: https://github.com/ForrestCGN/stream-control-center
-Branch: dev
-Lokales Repo: D:\Git\stream-control-center
+https://mods.forrestcgn.de/
 ```
 
-## Aktueller bestaetigter Stand
+## Aktueller bestaetigter RDAP-Status
 
-### RDAP25 Login/OAuth/Session
+RDAP25 bis RDAP28 sind funktional bestaetigt:
 
 ```text
-Login erfolgreich: ja
-loggedIn: true
-dashboardAccess: true
-accessReason: allowed_login
-User: ForrestCGN / tw:127709954
-Session-Cookie: scc_remote_session
-Session gueltig: true
-Session-Reason: session_valid_readonly
+RDAP25 Login/OAuth/Session funktioniert.
+RDAP26 Option B DB-Rollen/Permissions funktioniert.
+RDAP27 echte read-only Admin-Notiztext-Route ist live.
+RDAP28 read-only Admin-Notiz-UI ist live.
 ```
 
-### RDAP26 Option B Rollen/Permissions
-
-Forrest hat entschieden:
+RDAP29 ist live validiert:
 
 ```text
-Option B bitte, direkt richtig.
+MariaDB-Seed erfolgreich
+dashboard_user_admin_notes: 1 Eintrag
+ForrestCGN / tw:127709954
+Admin-Notiz wird read-only in der UI angezeigt
+Keine Schreibbuttons sichtbar
 ```
 
-Live bestaetigt:
+## Wichtige RDAP29B-Korrektur
+
+Die Live-DB ist MariaDB, nicht SQLite:
 
 ```text
-ForrestCGN / tw:127709954 -> Rolle owner
-owner -> remote.view -> allow
-owner -> admin.users.note.read -> allow
-owner -> admin.users.note.write -> nicht vergeben
+DB_ENGINE: MariaDB 11.8.6
+DB_NAME: c3stream_control
+Tabelle: dashboard_user_admin_notes
 ```
 
-Backup vor RDAP26-Seed:
+Die urspruengliche SQLite-Annahme aus RDAP29 gilt nicht als Live-Wahrheit.
+
+## Bestaetigter Testinhalt
 
 ```text
-/opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap26_before_owner_permission_seed_20260625_080740.sql
+note_uid: rdap29-test-note-forrestcgn-readonly-validation
+target_user_uid: tw:127709954
+status: active
+created_by_user_uid: tw:127709954
+updated_by_user_uid: tw:127709954
 ```
 
-### RDAP27 echte read-only Admin-Notiztext-Route
-
-Live bestaetigt:
+Browser bestaetigt:
 
 ```text
-moduleBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
-GET /api/remote/admin/users/admin-notes/read?targetUserUid=tw:127709954
-```
-
-Ohne Session:
-
-```text
-HTTP 401
-reason: not_logged_in_or_session_invalid
-noteTextReturned: false
-```
-
-Mit gueltiger Browser-Session:
-
-```text
-ok: true
-loggedIn: true
-dashboardAccess: true
-canReadAdminNotes: true
-reason: admin_note_real_read_ready
-permissions.effectiveReadPermissionWouldAllow: true
-permissions.readReason: explicit_allow
-permissions.canWriteAdminNotes: false
-permissions.effectiveWritePermissionWouldAllow: false
-permissions.writeReason: no_matching_permission
-tableExists: true
-schemaReady: true
-rowCount: 0
-notes: []
-```
-
-### RDAP28 read-only Admin-Notiz-UI
-
-Live bestaetigt:
-
-```text
-Admin -> Admin-Notizen sichtbar
-GET /assets/rdap28-admin-notes.js -> HTTP 200
-HTML enthaelt /assets/rdap28-admin-notes.js
-```
-
-Browser-Sicht:
-
-```text
-Read: true
-Write: false
-Notizen: 0
-Tabelle: true
-Keine Admin-Notizen vorhanden.
-Neu laden Button sichtbar.
+1 Admin-Notiz(en) read-only geladen.
+Test-Notiz sichtbar.
 Keine Schreibbuttons sichtbar.
-Sicherheitsbereich sichtbar.
-```
-
-### RDAP29 Admin-Notiz Test-Seed vorbereitet
-
-Vorbereitet, aber nicht automatisch ausgefuehrt:
-
-```text
-tools/rdap29_admin_note_test_seed_readonly_validation.sql
-docs/current/RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION.md
-```
-
-Zweck:
-
-```text
-Eine kontrollierte Test-Notiz fuer tw:127709954 anlegen,
-damit die read-only Admin-Notiz-UI echten Inhalt anzeigen kann.
-```
-
-Wichtig:
-
-```text
-RDAP29 ist kein UI-/Backend-Schreibstep.
-Keine UI-Schreibbuttons.
-Keine Write-Route.
-Keine admin.users.note.write Permission.
-Die SQL-Datei wird nicht automatisch ausgefuehrt.
-Vor Ausfuehrung: Backup + Read-only Vorpruefung + Read-Back nach Ausfuehrung.
 ```
 
 ## Weiterhin nicht aktiv
@@ -154,21 +73,17 @@ User freigeben/sperren
 Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
-Audit-Inserts oder Audit-Updates ueber das Dashboard
+Audit-Inserts oder Audit-Updates ueber Dashboard
 Lock acquire/heartbeat/release/force-takeover
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 Community-Seiten-Anbindung fuer Admin-Notizen
 ```
 
-## Arbeitsweise, die weiter gilt
+## Naechster sinnvoller Schritt
 
 ```text
-Steps so gross wie moeglich und so klein wie noetig.
-Keine kuenstlichen Mini-Schritte.
-Bei go: echten naechsten Step bauen, nicht alles wiederholen.
-Nach Stepdone: lokalen Stand als erledigt behandeln.
-Bei Doku-/SQL-only ohne remote-modboard-Code: kein normaler Service-Deploy.
-Fehlende Dateien gezielt anfragen, nicht raten.
-ZIPs ohne unnoetige Root-README-Dateien.
+RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN
 ```
+
+RDAP30 soll den Write-Scope planen, aber noch keine produktive Schreibfunktion bauen.

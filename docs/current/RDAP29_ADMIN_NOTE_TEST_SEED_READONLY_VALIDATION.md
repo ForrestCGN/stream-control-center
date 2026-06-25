@@ -2,13 +2,14 @@
 
 Stand: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP  
-Typ: SQL-/Doku-Step fuer read-only Validierung
+Typ: SQL-/Doku-Step fuer read-only Validierung  
+Status: Live validiert, nach RDAP29B korrigiert
 
 ---
 
 ## 1. Zweck
 
-RDAP29 legt eine kontrollierte Test-Admin-Notiz fuer ForrestCGN per SQL-Seed an, damit die bereits live bestaetigte read-only Admin-Notiz-UI echten Inhalt anzeigen kann.
+RDAP29 legt eine kontrollierte Test-Admin-Notiz fuer ForrestCGN an, damit die bereits live bestaetigte read-only Admin-Notiz-UI echten Inhalt anzeigen kann.
 
 Zieluser:
 
@@ -16,21 +17,36 @@ Zieluser:
 tw:127709954 / ForrestCGN / forrestcgn
 ```
 
-Betroffene Tabelle:
+Echte Live-Tabelle:
 
 ```text
 dashboard_user_admin_notes
 ```
 
-Seed-Datei:
+---
+
+## 2. Wichtige Korrektur nach Live-Pruefung
+
+Beim Live-Check wurde bestaetigt:
 
 ```text
-tools/rdap29_admin_note_test_seed_readonly_validation.sql
+Live-DB: MariaDB 11.8.6
+DB: c3stream_control
+Tabelle: dashboard_user_admin_notes
 ```
+
+Nicht korrekt fuer den Live-Stand:
+
+```text
+SQLite
+admin_user_notes
+```
+
+Der urspruenglich vorbereitete Seed darf nicht als SQLite-Seed gegen den Webserver interpretiert werden. Fuer Live wurde ein kontrollierter MariaDB-Insert gegen `dashboard_user_admin_notes` ausgefuehrt.
 
 ---
 
-## 2. Sicherheitsgrenzen
+## 3. Sicherheitsgrenzen
 
 RDAP29 ist keine Admin-Notiz-Schreibfunktion im Dashboard.
 
@@ -52,23 +68,15 @@ Keine Community-Seiten-Anbindung fuer Admin-Notizen
 Keine Workflow-Tool-Aenderung
 ```
 
-Der SQL-Seed fuehrt nur einen gezielten Insert/Update fuer genau diese Testnotiz aus:
-
-```text
-note_uid: rdap29_test_note_forrestcgn_readonly_validation
-target_user_uid: tw:127709954
-status: active
-created_by_user_uid/updated_by_user_uid: system:rdap29_seed
-```
-
 ---
 
-## 3. Lokales Einspielen
+## 4. Lokales Einspielen
 
 ZIP im lokalen Repo einspielen:
 
 ```powershell
 cd D:\Git\stream-control-center
+
 .\installstep.cmd "$env:USERPROFILE\Downloads\RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION.zip" "RDAP29 Admin-Notiz Test-Seed read-only Validierung vorbereitet"
 ```
 
@@ -76,6 +84,7 @@ Lokale Checks:
 
 ```powershell
 cd D:\Git\stream-control-center
+
 git status --short
 git diff --stat
 git diff -- tools/rdap29_admin_note_test_seed_readonly_validation.sql
@@ -87,12 +96,13 @@ Wenn lokal sauber:
 
 ```powershell
 cd D:\Git\stream-control-center
+
 .\stepdone.cmd "RDAP29 Admin-Notiz Test-Seed read-only Validierung vorbereitet; keine UI-Writes, keine Write-Permission, keine Backend-Aenderung"
 ```
 
 ---
 
-## 4. Webserver-Hinweis
+## 5. Webserver-Hinweis
 
 RDAP29 aendert keine Dateien unter:
 
@@ -102,151 +112,101 @@ remote-modboard/
 
 Darum ist fuer diesen ZIP-Step kein normaler Remote-Modboard-Service-Deploy noetig.
 
-Wichtig: Die SQL-Datei liegt im Repo-Root unter `tools/` und wird nicht nach `/opt/stream-control-center/remote-modboard/tools/` deployed.
-
-Wenn der Seed auf dem Webserver ausgefuehrt wird, dann aus einem frischen GitHub/dev-Clone unter `_deploy_tmp`, nicht aus dem Live-Remote-Modboard-Ordner.
+Wichtig: Die SQL-/Doku-Dateien liegen im Repo und werden nicht automatisch auf die Live-App deployed. Fuer Server-Pruefungen wurde ein frischer GitHub/dev-Clone unter `_deploy_tmp` genutzt.
 
 ---
 
-## 5. Seed auf dem Webserver vorbereiten
+## 6. Live-DB-Befund
 
-Nach erfolgreichem `stepdone.cmd` liegt RDAP29 in GitHub/dev. Dann auf dem Webserver frisch clonen:
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
-cd RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
-```
-
-DB-Env-Datei pruefen, ohne Secrets zu posten:
-
-```bash
-sudo test -f /etc/stream-control-center/remote-modboard.env && echo "env_exists=yes"
-sudo grep -E '^(DB_|MYSQL_|MARIADB_)' /etc/stream-control-center/remote-modboard.env | sed -E 's/(PASSWORD|PASS|SECRET|TOKEN)=.*/\1=***MASKED***/'
-```
-
-Backup erstellen. Der konkrete MySQL/MariaDB-Aufruf muss zu den vorhandenen Env-Variablen passen. Keine Secrets im Chat posten.
-
-Backup-Ziel:
+Bestaetigte DB-Umgebung:
 
 ```text
-/opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap29_before_admin_note_test_seed_YYYYMMDD_HHMMSS.sql
+EnvironmentFile: /etc/stream-control-center/remote-modboard.env
+DB_HOST: localhost
+DB_PORT: 3306
+DB_NAME: c3stream_control
+DB_USER: c1stream_control
+DB_ENGINE: MariaDB 11.8.6
 ```
 
----
+Secrets bleiben maskiert und duerfen nicht ins Repo.
 
-## 6. Read-only Vorpruefung vor SQL-Ausfuehrung
-
-Vor dem Seed pruefen:
-
-```sql
-SELECT DATABASE() AS current_database;
-
-SELECT COUNT(*) AS table_exists
-FROM INFORMATION_SCHEMA.TABLES
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME = 'dashboard_user_admin_notes';
-
-SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME = 'dashboard_user_admin_notes'
-ORDER BY ORDINAL_POSITION;
-
-SELECT COUNT(*) AS before_count
-FROM dashboard_user_admin_notes
-WHERE target_user_uid = 'tw:127709954';
-
-SELECT note_uid, target_user_uid, status, created_by_user_uid, updated_by_user_uid, created_at, updated_at
-FROM dashboard_user_admin_notes
-WHERE note_uid = 'rdap29_test_note_forrestcgn_readonly_validation';
-```
-
-Erwartung vor dem ersten Seed:
+Bestaetigte Tabelle:
 
 ```text
-table_exists: 1
-before_count: 0 oder vorhandene echte Notizen
-Test-note SELECT: leer, falls noch nicht geseeded
+dashboard_user_admin_notes
 ```
 
----
-
-## 7. SQL-Seed ausfuehren
-
-Erst nach Backup und Vorpruefung:
-
-```bash
-# Beispiel, konkreter mysql-Aufruf muss zur vorhandenen Server-Env passen.
-mysql ... < tools/rdap29_admin_note_test_seed_readonly_validation.sql
-```
-
----
-
-## 8. Read-Back nach SQL-Ausfuehrung
-
-Nach dem Seed pruefen:
-
-```sql
-SELECT note_uid, target_user_uid, status, created_by_user_uid, updated_by_user_uid, created_at, updated_at
-FROM dashboard_user_admin_notes
-WHERE note_uid = 'rdap29_test_note_forrestcgn_readonly_validation';
-
-SELECT COUNT(*) AS after_count
-FROM dashboard_user_admin_notes
-WHERE target_user_uid = 'tw:127709954'
-  AND status = 'active';
-```
-
-Erwartung:
+Schema:
 
 ```text
-note_uid: rdap29_test_note_forrestcgn_readonly_validation
+id
+note_uid
+target_user_uid
+note_text
+status
+created_by_user_uid
+updated_by_user_uid
+created_at
+updated_at
+```
+
+Vor Seed:
+
+```text
+note_count = 0
+```
+
+---
+
+## 7. Live-Seed
+
+Ausgefuehrter kontrollierter MariaDB-Insert:
+
+```text
+note_uid: rdap29-test-note-forrestcgn-readonly-validation
 target_user_uid: tw:127709954
 status: active
-after_count: mindestens 1
+created_by_user_uid: tw:127709954
+updated_by_user_uid: tw:127709954
+```
+
+Notiztext:
+
+```text
+RDAP29 Test-Notiz: Diese Notiz wurde kontrolliert per MariaDB-Seed angelegt, damit die read-only Admin-Notiz-UI echten Inhalt anzeigen kann. Keine UI-Schreibfunktion, keine Write-Permission, keine produktiven Schreibbuttons.
+```
+
+Nach Seed:
+
+```text
+note_count = 1
 ```
 
 ---
 
-## 9. API-/Browser-Pruefung
+## 8. Browser-Pruefung
 
-Ohne Browser-Session bleibt die Route weiterhin gesperrt:
-
-```bash
-curl -i 'http://127.0.0.1:3010/api/remote/admin/users/admin-notes/read?targetUserUid=tw:127709954'
-```
-
-Erwartung ohne Session:
-
-```text
-HTTP 401
-noteTextReturned: false
-```
-
-Im Browser mit gueltiger Session:
+Browser mit gueltiger Session:
 
 ```text
 https://mods.forrestcgn.de/
 Admin -> Admin-Notizen
 ```
 
-Erwartung:
+Bestaetigt:
 
 ```text
-Read true
-Write false
-Notizen mindestens 1
-Tabelle true
+ForrestCGN / tw:127709954
+1 Admin-Notiz(en) read-only geladen.
 Test-Notiz sichtbar
+Write false
 Keine Schreibbuttons sichtbar
-Sicherheitsbereich sichtbar
 ```
 
 ---
 
-## 10. Naechster sinnvoller Schritt danach
+## 9. Naechster sinnvoller Schritt danach
 
 Nach erfolgreicher RDAP29-Validierung:
 
