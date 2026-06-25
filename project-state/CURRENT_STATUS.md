@@ -1,47 +1,36 @@
 # CURRENT_STATUS
 
-Stand: RDAP35B_ADMIN_AUDIT_SCHEMA_MIGRATION_LIVE_CONFIRMED_DOCS  
+Stand: RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
 ## Bestaetigter Stand
 
 ```text
-RDAP34 Entscheidung: Option B.
-RDAP35 SQL-/Doku-Vorbereitung erstellt.
-RDAP35 Audit-Schema-Migration live erfolgreich ausgefuehrt.
-RDAP35B Live-Ergebnis dokumentiert.
+RDAP35B Audit-Schema-Migration live bestaetigt.
+dashboard_audit_log ist fuer Testinsert vorbereitet.
+RDAP36 kontrollierte Audit-Testinsert-Route gebaut.
 ```
 
-## RDAP35B Live-Befund
+## RDAP36
 
-Backup:
+Neue Routen:
 
 ```text
-/opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap35_before_audit_schema_20260625_094607.sql
+GET  /api/remote/admin/audit/test-insert/status
+POST /api/remote/admin/audit/test-insert
 ```
 
-RDAP33 Route nach Migration:
+Sicherheitsgrenzen:
 
 ```text
-audit.table.schemaReady: true
-audit.compatibleForWriteCandidate: true
-audit.missingWriteCandidateColumns: []
-audit.rowCount: 0
-writeEnabled: false
-databaseWriteEnabled: false
-productiveWritesEnabled: false
-writesStillBlocked: true
-audit.auditInsertEnabled: false
-```
-
-## Status
-
-```text
-dashboard_audit_log ist jetzt fuer kontrollierten Audit-Testinsert vorbereitet.
-Keine produktiven Writes aktiv.
-Keine Audit-Testinsert-Route aktiv.
-Keine Admin-Notiz-Writes aktiv.
+localOnly true
+confirmWrite im JSON-Body Pflicht
+testOnly=true Pflicht
+keine Query-Confirm-Nutzung
+keine Admin-Notiz-Writes
+keine Lock-Writes
+keine UI-Schreibbuttons
 ```
 
 ## Weiterhin blockiert
@@ -50,7 +39,6 @@ Keine Admin-Notiz-Writes aktiv.
 Admin-Notiz produktiv schreiben/aendern/deaktivieren
 admin.users.note.write Permission
 UI-Schreibbuttons
-Audit-Testinsert-Route
 Lock acquire/heartbeat/release/force-takeover
 physisches Delete
 Agent-/OBS-/Sound-/Overlay-/Command-Steuerung

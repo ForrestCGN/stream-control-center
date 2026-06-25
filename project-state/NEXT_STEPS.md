@@ -1,33 +1,25 @@
 # NEXT_STEPS
 
-Stand: RDAP35B_ADMIN_AUDIT_SCHEMA_MIGRATION_LIVE_CONFIRMED_DOCS  
+Stand: RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED  
 Datum: 2026-06-25
 
-## Naechster empfohlener Step
+## Nach lokalem stepdone
+
+Da RDAP36 Backend-Dateien aendert:
 
 ```text
-RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED
+Webserver-Deploy aus frischem GitHub/dev-Clone
+Service-Restart durch Deploy-Script
+Readiness abwarten
+Backup dashboard_audit_log
+Testinsert ausfuehren
+Readback pruefen
 ```
 
-Ziel:
+## Danach
 
 ```text
-Kontrollierter Audit-Testinsert in dashboard_audit_log.
-Keine Admin-Notiz-Writes.
-Keine Lock-Writes.
-Keine UI-Schreibbuttons.
-```
-
-## RDAP36 Pflicht
-
-```text
-Backup dashboard_audit_log erstellen.
-Backup-Datei existiert und ist nicht 0 Byte.
-confirmWrite nur im JSON-Body verwenden.
-Audit-Testeintrag eindeutig als RDAP36-Test markieren.
-Read-Back nach Insert.
-Keine Secrets speichern.
-Keine produktive Admin-Aktion ausloesen.
+RDAP36B_ADMIN_AUDIT_TEST_INSERT_LIVE_CONFIRMED_DOCS
 ```
 
 ## Danach
@@ -35,5 +27,3 @@ Keine produktive Admin-Aktion ausloesen.
 ```text
 RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED
 ```
-
-Erst nach erfolgreichem Audit-Testinsert.

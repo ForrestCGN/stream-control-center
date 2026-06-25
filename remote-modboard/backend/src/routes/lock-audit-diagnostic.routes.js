@@ -3,6 +3,10 @@
 const { buildLockReadStatus } = require('../services/lock-read.service');
 const { buildAuditReadStatus } = require('../services/audit-read.service');
 const { buildAdminAuditLockSchemaStatusReadonly } = require('../services/admin-audit-lock-schema-status-readonly.service');
+const {
+  buildAdminAuditTestInsertStatus,
+  runAdminAuditTestInsert
+} = require('../services/admin-audit-test-insert.service');
 
 function registerLockAuditDiagnosticRoutes(app, context) {
   app.get('/api/remote/lock-audit/status', async (req, res) => {
@@ -30,6 +34,16 @@ function registerLockAuditDiagnosticRoutes(app, context) {
 
   app.get('/api/remote/lock-audit/schema-status', async (req, res) => {
     const result = await buildAdminAuditLockSchemaStatusReadonly({ context, req });
+    res.status(result.status || 200).json(result.body || result);
+  });
+
+  app.get('/api/remote/admin/audit/test-insert/status', async (req, res) => {
+    const result = await buildAdminAuditTestInsertStatus({ context, req });
+    res.status(result.status || 200).json(result.body || result);
+  });
+
+  app.post('/api/remote/admin/audit/test-insert', async (req, res) => {
+    const result = await runAdminAuditTestInsert({ context, req });
     res.status(result.status || 200).json(result.body || result);
   });
 }
@@ -76,6 +90,21 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
       productiveWritesEnabled: false,
       writesStillBlocked: true
     },
+    rdap36AuditTestInsert: {
+      prepared: true,
+      statusRoute: '/api/remote/admin/audit/test-insert/status',
+      route: '/api/remote/admin/audit/test-insert',
+      method: 'POST',
+      localOnly: true,
+      confirmWriteRequired: true,
+      bodyConfirmOnly: true,
+      testOnlyRequired: true,
+      auditTestInsertEnabled: true,
+      productiveWritesEnabled: false,
+      adminNoteWritesEnabled: false,
+      lockWritesEnabled: false,
+      uiWriteButtonsEnabled: false
+    },
     locks: adapterOnly ? buildAdapterOnlyLockBlock(locks) : locks,
     audit: adapterOnly ? buildAdapterOnlyAuditBlock(audit) : audit,
     safety: context.safety,
@@ -84,7 +113,8 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
       'Ohne db=1 werden keine DB-Abfragen ausgefuehrt.',
       'Mit db=1 werden nur INFORMATION_SCHEMA-SELECTs ueber read-only Connection ausgefuehrt.',
       'RDAP33 ergaenzt eine separate read-only Schema-/Runtime-Statusroute mit Counts und sicheren Previews.',
-      'Es gibt keine Lock-Writes, keine Audit-Writes, keine Remote-Writes und keine Agent-Actions.',
+      'RDAP36 ergaenzt einen lokalen, bestaetigten Audit-Testinsert; produktive Writes bleiben gesperrt.',
+      'Es gibt keine Lock-Writes, keine Remote-Writes und keine Agent-Actions.',
       'compatibleForWrite bleibt in RDAP14 immer false.'
     ]
   };

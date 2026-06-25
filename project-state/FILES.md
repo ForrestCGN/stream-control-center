@@ -1,27 +1,21 @@
 # FILES
 
-Stand: RDAP35B_ADMIN_AUDIT_SCHEMA_MIGRATION_LIVE_CONFIRMED_DOCS  
+Stand: RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED  
 Datum: 2026-06-25
 
-## Geaendert in RDAP35B
+## Geaendert in RDAP36
 
 ```text
-docs/current/RDAP35B_ADMIN_AUDIT_SCHEMA_MIGRATION_LIVE_CONFIRMED_DOCS.md
-docs/current/RDAP35_ADMIN_AUDIT_SCHEMA_MIGRATION_PREPARED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP35B_2026-06-25.md
+remote-modboard/backend/src/services/admin-audit-test-insert.service.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+docs/current/RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP36_2026-06-25.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-```
-
-## RDAP35 SQL-Dateien
-
-```text
-tools/rdap35_admin_audit_schema_precheck.sql
-tools/rdap35_admin_audit_schema_migration.sql
-tools/rdap35_admin_audit_schema_readback.sql
 ```
 
 ## Live-DB relevant
@@ -31,5 +25,3 @@ dashboard_audit_log
 dashboard_locks
 dashboard_user_admin_notes
 ```
-
-Secrets und DB-Dumps gehoeren nicht ins Repo.

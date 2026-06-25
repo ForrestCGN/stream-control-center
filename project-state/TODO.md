@@ -1,24 +1,23 @@
 # TODO
 
-Stand: RDAP35B_ADMIN_AUDIT_SCHEMA_MIGRATION_LIVE_CONFIRMED_DOCS  
+Stand: RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED  
 Datum: 2026-06-25
 
 ## Offen
 
-- [ ] RDAP35B lokal einspielen und stepdone.
-- [ ] RDAP36 Audit-Testinsert bauen/testen.
-- [ ] Vor RDAP36 Backup von `dashboard_audit_log` erstellen und Dateigroesse pruefen.
-- [ ] RDAP36 Testinsert nur mit Body-confirmWrite.
-- [ ] RDAP36 Read-Back nach Insert pruefen.
-- [ ] Audit-Testinsert eindeutig als RDAP36-Test markieren.
+- [ ] RDAP36 lokal einspielen und stepdone.
+- [ ] RDAP36 Webserver-Deploy.
+- [ ] Vor RDAP36 Testinsert Backup von `dashboard_audit_log` erstellen.
+- [ ] Backup-Datei pruefen, nicht 0 Byte.
+- [ ] Ohne Confirm testen -> muss blocken.
+- [ ] Mit Body-confirmWrite und testOnly=true Testinsert ausfuehren.
+- [ ] Read-Back pruefen.
+- [ ] RDAP36B Live-Ergebnis dokumentieren.
 - [ ] Lock-Testwrite erst nach Audit-Testinsert.
 - [ ] Keine Admin-Notiz-Writes vor erfolgreichem Audit-/Lock-Fundament.
 - [ ] Kein physisches Delete bauen.
 
 ## Erledigt
 
-- [x] RDAP35 SQL-/Doku-Vorbereitung erstellt.
-- [x] RDAP35 Backup erstellt und geprueft.
-- [x] RDAP35 Migration ausgefuehrt.
-- [x] RDAP35 RDAP33 Route nach Migration geprueft.
-- [x] Audit-Schema ist write-kandidaten-kompatibel.
+- [x] RDAP35B Audit-Schema-Migration live bestaetigt.
+- [x] RDAP36 Audit-Testinsert-Route gebaut.
