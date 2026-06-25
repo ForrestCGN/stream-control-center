@@ -1,5 +1,7 @@
 'use strict';
 
+const { ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY } = require('../services/admin-user-admin-note-write-confirmed.service');
+
 function registerRoutesRoutes(app, context) {
   app.get('/api/remote/routes', (req, res) => {
     res.json({
@@ -7,14 +9,14 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_routes',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_admin_note_write38.v1',
-      readOnly: true,
+      statusApiVersion: 'rdap_admin_note_write39.v1',
+      readOnly: false,
       writeEnabled: false,
       authEnabled: Boolean(context.config && context.config.auth && context.config.auth.authEnabled),
       routes: [
         { method: 'GET', path: '/api/remote/health', description: 'Read-only Healthcheck' },
-        { method: 'GET', path: '/api/remote/status', description: 'Read-only Service-/Security-/Auth-Status' },
-        { method: 'GET', path: '/api/remote/routes', description: 'Read-only Routenuebersicht' },
+        { method: 'GET', path: '/api/remote/status', description: 'Service-/Security-/Auth-/RDAP39-Status' },
+        { method: 'GET', path: '/api/remote/routes', description: 'Routenuebersicht' },
         { method: 'GET', path: '/api/remote/auth/model', description: 'Read-only Auth-/Rechte-Modell' },
         { method: 'GET', path: '/api/remote/auth/me', description: 'Aktueller Login-/Session-Status' },
         { method: 'POST', path: '/api/remote/auth/me/sync-twitch', description: 'Self-Service: eigenes Twitch-Profil synchronisieren' },
@@ -23,9 +25,9 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/admin/users/permission-diagnostic', description: 'Read-only Admin-User-Permission-Diagnose; keine User-/Rollen-Writes' },
         { method: 'GET', path: '/api/remote/admin/users/write-foundation-diagnostic', description: 'Read-only Confirm-/Audit-/Locking-Foundation inkl. disabled Confirm-/Audit-/Lock-Helper; schreibt nichts' },
         { method: 'GET', path: '/api/remote/admin/users/mini-write-foundation-diagnostic', description: 'Read-only RDAP11 Mini-Write-Foundation; Permission/Confirm/Audit/Lock/Backup/Rollback vorbereitet, Writes bleiben blockiert' },
-        { method: 'GET', path: '/api/remote/admin/users/admin-note-diagnostic', description: 'Read-only RDAP14 Admin-Notiz-Tabellen-Diagnose; keine Migration, keine Notiz-Writes' },
-        { method: 'GET', path: '/api/remote/admin/users/admin-notes/write-plan', description: 'RDAP38 read-only Admin-Notiz Write-Plan mit Audit/Lock; schreibt nichts' },
-        { method: 'POST', path: '/api/remote/admin/users/admin-notes/create', description: 'RDAP31 Admin-Notiz Create-Validierung; bleibt read-only, schreibt nichts' },
+        { method: 'GET', path: '/api/remote/admin/users/admin-note-diagnostic', description: 'Read-only Admin-Notiz-Tabellen-Diagnose; keine Migration, keine Notiz-Writes' },
+        { method: 'GET', path: '/api/remote/admin/users/admin-notes/write-plan', description: 'RDAP38 Admin-Notiz Write-Plan; read-only' },
+        { method: 'POST', path: '/api/remote/admin/users/admin-notes/create', description: 'RDAP39 kontrollierter Admin-Notiz Create-Backend-Write mit Permission/Confirm/Audit/Lock/Readback; keine UI-Schreibbuttons' },
         { method: 'POST', path: '/api/remote/admin/users/admin-notes/update', description: 'RDAP31 Admin-Notiz Update-Validierung; bleibt read-only, schreibt nichts' },
         { method: 'POST', path: '/api/remote/admin/users/admin-notes/deactivate', description: 'RDAP31 Admin-Notiz Deactivate-Validierung; bleibt read-only, schreibt nichts' },
         { method: 'GET', path: '/api/remote/auth/login/plan', description: 'Read-only Plan fuer zentrale Login-Schicht' },
@@ -40,47 +42,11 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/admin/audit/test-insert/status', description: 'RDAP36 Audit-Testinsert-Status; schreibt nichts' },
         { method: 'POST', path: '/api/remote/admin/audit/test-insert', description: 'RDAP36 lokaler Audit-Testinsert mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
         { method: 'GET', path: '/api/remote/admin/locks/test/status', description: 'RDAP37 Lock-Test-Status; schreibt nichts' },
-        { method: 'POST', path: '/api/remote/admin/locks/test-cycle', description: 'RDAP37 lokaler Lock-Testcycle mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
+        { method: 'POST', path: '/api/remote/admin/locks/test-cycle', description: 'RDAP37 lokaler Lock-Test mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
         { method: 'GET', path: '/', description: 'Remote-Modboard UI' },
         { method: 'GET', path: '/remote', description: 'Remote-Modboard UI Alias' },
         { method: 'GET', path: '/modboard', description: 'Remote-Modboard UI Alias' }
       ],
-      adminUsersWriteFoundation: {
-        confirmWriteHelperPrepared: true,
-        auditHelperPrepared: true,
-        lockHelperPrepared: true,
-        lockWriteEnabled: false,
-        productiveWritesEnabled: false,
-        writesStillBlocked: true,
-        routeRemainsReadOnly: true
-      },
-      adminUserAdminNoteDiagnostic: {
-        prepared: true,
-        route: '/api/remote/admin/users/admin-note-diagnostic',
-        tableName: 'dashboard_user_admin_notes',
-        readOnly: true,
-        writeEnabled: false,
-        productiveWritesEnabled: false,
-        writesStillBlocked: true,
-        migrationEnabled: false,
-        routeRemainsReadOnly: true,
-        uiWriteButtonsEnabled: false,
-        routeListKeySynced: true,
-        aliasOf: 'adminUsersAdminNoteDiagnostic'
-      },
-      adminUsersAdminNoteDiagnostic: {
-        prepared: true,
-        route: '/api/remote/admin/users/admin-note-diagnostic',
-        tableName: 'dashboard_user_admin_notes',
-        readOnly: true,
-        writeEnabled: false,
-        productiveWritesEnabled: false,
-        writesStillBlocked: true,
-        migrationEnabled: false,
-        routeRemainsReadOnly: true,
-        uiWriteButtonsEnabled: false,
-        routeListKeySynced: true
-      },
       adminNoteWritePlan: {
         prepared: true,
         route: '/api/remote/admin/users/admin-notes/write-plan',
@@ -100,38 +66,26 @@ function registerRoutesRoutes(app, context) {
         adminNoteWritesEnabled: false,
         uiWriteButtonsEnabled: false,
         physicalDeleteEnabled: false,
-        routeRemainsReadOnly: true,
-        plannedNextStep: 'RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED'
+        routeRemainsReadOnly: true
       },
+      adminNoteWriteConfirmed: ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY,
       adminUsersAdminNoteWriteDisabled: {
         prepared: true,
         routes: [
-          '/api/remote/admin/users/admin-notes/create',
           '/api/remote/admin/users/admin-notes/update',
           '/api/remote/admin/users/admin-notes/deactivate'
         ],
         tableName: 'dashboard_user_admin_notes',
         permissionRequired: 'admin.users.note.write',
         confirmWriteRequired: true,
-        validatesInput: true,
-        validatesSession: true,
-        validatesPermissions: true,
-        validatesSchemaReadOnly: true,
-        validatesTargetUserReadOnly: true,
-        auditDraftPrepared: true,
-        lockDraftPrepared: true,
-        lockWriteEnabled: false,
-        auditWriteEnabled: false,
+        validatatesInput: true,
         readOnly: true,
         writeEnabled: false,
         databaseWriteEnabled: false,
         productiveWritesEnabled: false,
-        writesStillBlocked: true,
         uiWriteButtonsEnabled: false,
-        createsNote: false,
         updatesNote: false,
         deactivatesNote: false,
-        deletesNote: false,
         physicalDeleteEnabled: false,
         routeRemainsReadOnly: true
       },
@@ -139,7 +93,7 @@ function registerRoutesRoutes(app, context) {
         prepared: true,
         route: '/api/remote/admin/audit-lock/schema-status',
         aliasRoute: '/api/remote/lock-audit/schema-status',
-        statusApiVersion: 'rdap_admin_note_write38.v1',
+        statusApiVersion: 'rdap_audit36.v1',
         tables: ['dashboard_audit_log', 'dashboard_locks'],
         readOnly: true,
         writeEnabled: false,

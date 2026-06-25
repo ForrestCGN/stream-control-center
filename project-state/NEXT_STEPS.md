@@ -1,82 +1,52 @@
 # NEXT_STEPS
 
-Stand: RDAP38B_ADMIN_NOTE_WRITE_PLAN_LIVE_CONFIRMED_DOCS  
+Stand: RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
+RDAP39 lokal einspielen, testen, stepdone, danach Webserver-Deploy aus frischem GitHub/dev-Clone.
 ```
 
-## Ziel RDAP39
+## Lokale Pflichtchecks
 
 ```text
-Erster kontrollierter Backend-Write fuer Admin-Notizen mit Audit- und Lock-Fundament.
-Noch keine UI-Schreibbuttons.
-Noch kein physisches Delete.
-Keine Community-Seiten-Anbindung.
+node --check .\remote-modboard\backend\server.js
+node --check .\remote-modboard\backend\src\routes\admin-users.routes.js
+node --check .\remote-modboard\backend\src\routes\routes.routes.js
+node --check .\remote-modboard\backend\src\routes\status.routes.js
+node --check .\remote-modboard\backend\src\services\admin-user-admin-note-write-confirmed.service.js
 ```
 
-## RDAP39 Pflicht vor Umsetzung
+## Webserver-Pflicht vor erstem Live-Write
 
 ```text
-Erst echte Dateien/Repo/Dokus pruefen.
-Dann Plan nennen.
-Dann auf Forrests ausdrueckliches go warten.
-
-Vor Live-Test:
-- Backup von dashboard_user_admin_notes erstellen.
-- Backup-Datei muss existieren und nicht 0 Byte sein.
+Backup von dashboard_user_admin_notes erstellen.
+Backup-Datei muss existieren und nicht 0 Byte sein.
 ```
 
-## RDAP39 Backend-Pflicht
+## Webserver-Tests
 
 ```text
-Kein Admin-Notiz-Write ohne:
-- gueltige Session
-- Dashboard-Zugriff
-- remote.view
-- admin.users.note.write
-- confirmWrite im JSON-Body
-- Zieluser-Pruefung
-- Schema-Pruefung dashboard_user_admin_notes
-- Lock-Acquire
-- Audit-Attempt
-- Admin-Notiz-Write
-- Readback
-- Audit-Success/Failure
-- Lock-Release
-- klaren Fehlerpfad
+GET /api/remote/status
+GET /api/remote/routes
+POST /api/remote/admin/users/admin-notes/create
 ```
 
-## RDAP39 Sicherheitsgrenzen
+Ohne gueltige Session/Permission muss Create blockieren.
+
+Echter Write-Test erst mit:
 
 ```text
-Keine UI-Schreibbuttons.
-Kein physisches Delete.
-Keine Permission automatisch vergeben.
-Keine Community-Seiten-Anbindung.
-Keine freie Shell-/Datei-/Prozessausfuehrung.
-Keine Secrets loggen.
+gueltiger Session
+admin.users.note.write
+existierendem targetUserUid
+confirmWrite=true im JSON-Body
 ```
 
-## Relevante Live-Bestaetigungen aus RDAP38B
-
-```text
-RDAP38 Planroute live bestaetigt.
-writeEnabled: false
-productiveWritesEnabled: false
-adminNoteWritesEnabled: false
-uiWriteButtonsEnabled: false
-physicalDeleteEnabled: false
-plannedNextStep: RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
-```
-
-## Nach RDAP39
+## Danach
 
 ```text
 RDAP39B_ADMIN_NOTE_WRITE_BACKEND_LIVE_CONFIRMED_DOCS
 ```
-
-Erst nach erfolgreichem kontrolliertem Backend-Write und Readback.

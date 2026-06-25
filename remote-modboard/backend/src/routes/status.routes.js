@@ -3,6 +3,7 @@
 const os = require('os');
 const { buildPublicConfigSummary } = require('../services/config.service');
 const { checkDatabaseHealth } = require('../services/db-health.service');
+const { ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY } = require('../services/admin-user-admin-note-write-confirmed.service');
 
 function registerStatusRoutes(app, context) {
   app.get('/api/remote/status', async (req, res) => {
@@ -17,8 +18,8 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_admin_note_write38.v1',
-      readOnly: !authEnabled,
+      statusApiVersion: 'rdap_admin_note_write39.v1',
+      readOnly: false,
       writeEnabled: false,
       actionEnabled: false,
       productiveAgentRuntime: false,
@@ -95,37 +96,12 @@ function registerStatusRoutes(app, context) {
           writesRequirePermissionLockAudit: true
         },
         notes: [
-          'RDAP_ADMIN_USERS9 bereitet einen Locking-Helper vor, aber Lock-/Audit-/Admin-Writes bleiben deaktiviert.',
+          'RDAP39 aktiviert nur den kontrollierten Backend-Create-Write fuer Admin-Notizen.',
           'Twitch Login und Session-Handling bleiben aktiv und unveraendert.',
-          'RDAP5 Admin-User-Permission-Diagnose bleibt read-only verfuegbar.',
-          'RDAP6/RDAP7/RDAP8 Write-Foundation/Confirm/Audit-Diagnosen bleiben read-only verfuegbar.',
-          'Login-Daten, Twitch-Tokens oder Sessionwerte duerfen nicht im Frontend oder in Links weitergereicht werden.',
-          'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.',
-          'RDAP14 Admin-Notiz-Diagnose prueft nur lesend, ob die spaetere Notiz-Tabelle vorbereitet ist.',
-          'RDAP14B synchronisiert die Routenuebersicht fuer adminUserAdminNoteDiagnostic ohne Writes.',
-          'RDAP38 ergaenzt nur eine read-only Planroute fuer spaetere Admin-Notiz-Writes mit Audit/Lock.'
+          'Admin-Notiz Update/Deactivate bleiben deaktiviert.',
+          'UI-Schreibbuttons bleiben deaktiviert.',
+          'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.'
         ]
-      },
-      adminUsersWriteFoundation: {
-        routePrepared: true,
-        confirmWriteHelperPrepared: true,
-        confirmWriteHelperEnabledForRealWrites: false,
-        auditHelperPrepared: true,
-        auditWriteEnabled: false,
-        auditInsertEnabled: false,
-        auditUpdateEnabled: false,
-        lockHelperPrepared: true,
-        lockingHelperPrepared: true,
-        lockWriteEnabled: false,
-        lockAcquireEnabled: false,
-        lockHeartbeatEnabled: false,
-        lockReleaseEnabled: false,
-        lockForceTakeoverEnabled: false,
-        productiveWritesEnabled: false,
-        writesStillBlocked: true,
-        auditRequiredForFutureWrites: true,
-        lockingRequiredForFutureWrites: true,
-        backupRequiredBeforeFutureWrites: true
       },
       adminNoteWritePlan: {
         prepared: true,
@@ -141,13 +117,33 @@ function registerStatusRoutes(app, context) {
         backupRequiredBeforeProductiveWrite: true,
         readBackRequired: true,
         writeEnabled: false,
-        databaseWriteEnabled: false,
         productiveWritesEnabled: false,
         adminNoteWritesEnabled: false,
         uiWriteButtonsEnabled: false,
         physicalDeleteEnabled: false,
-        routeRemainsReadOnly: true,
-        plannedNextStep: 'RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED'
+        routeRemainsReadOnly: true
+      },
+      adminNoteWriteConfirmed: ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY,
+      adminUsersWriteFoundation: {
+        routePrepared: true,
+        confirmWriteHelperPrepared: true,
+        confirmWriteHelperEnabledForRealWrites: false,
+        auditHelperPrepared: true,
+        auditWriteEnabled: true,
+        auditInsertEnabled: true,
+        auditUpdateEnabled: false,
+        lockHelperPrepared: true,
+        lockingHelperPrepared: true,
+        lockWriteEnabled: true,
+        lockAcquireEnabled: true,
+        lockHeartbeatEnabled: false,
+        lockReleaseEnabled: true,
+        lockForceTakeoverEnabled: false,
+        productiveWritesEnabled: false,
+        writesStillBlockedForNonCreateActions: true,
+        auditRequiredForFutureWrites: true,
+        lockingRequiredForFutureWrites: true,
+        backupRequiredBeforeFutureWrites: true
       },
       database: db,
       agent: {
@@ -170,7 +166,7 @@ function registerStatusRoutes(app, context) {
         soundProfiIsRole: false,
         soundProfiIsGroupMarker: true,
         modulePermissionMatrixUsesTargetTypeAndTargetKey: true,
-        productivePermissionEnforcementEnabled: false
+        productivePermissionEnforcementEnabled: true
       },
       localLanMode: {
         planned: true,

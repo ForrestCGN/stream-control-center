@@ -5,6 +5,7 @@ const { buildAdminUserWriteFoundationDiagnostic } = require('../services/admin-u
 const { buildAdminUserAdminNoteDiagnostic } = require('../services/admin-user-admin-note-diagnostic.service');
 const { buildAdminUserAdminNoteWriteDisabled } = require('../services/admin-user-admin-note-write-disabled.service');
 const { buildAdminUserAdminNoteWritePlan } = require('../services/admin-user-admin-note-write-plan.service');
+const { buildAdminUserAdminNoteWriteConfirmed } = require('../services/admin-user-admin-note-write-confirmed.service');
 
 function registerAdminUsersRoutes(app, context) {
   app.get('/api/remote/admin/users/permission-diagnostic', async (req, res) => {
@@ -28,7 +29,7 @@ function registerAdminUsersRoutes(app, context) {
   });
 
   app.post('/api/remote/admin/users/admin-notes/create', async (req, res) => {
-    const result = await buildAdminUserAdminNoteWriteDisabled({ context, req, action: 'create' });
+    const result = await buildAdminUserAdminNoteWriteConfirmed({ context, req, action: 'create' });
     res.status(result.status || 200).json(result.body || result);
   });
 
