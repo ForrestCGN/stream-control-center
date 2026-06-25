@@ -2,6 +2,9 @@
 
 const { ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY } = require('../services/admin-user-admin-note-write-confirmed.service');
 
+const RDAP42_STATUS_API_VERSION = 'rdap_admin_note_ui_status42.v1';
+const RDAP42_BUILD = 'RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP';
+
 function registerRoutesRoutes(app, context) {
   app.get('/api/remote/routes', (req, res) => {
     res.json({
@@ -9,13 +12,13 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_routes',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_admin_note_read_restore39c.v1',
+      statusApiVersion: RDAP42_STATUS_API_VERSION,
       readOnly: false,
       writeEnabled: false,
       authEnabled: Boolean(context.config && context.config.auth && context.config.auth.authEnabled),
       routes: [
         { method: 'GET', path: '/api/remote/health', description: 'Read-only Healthcheck' },
-        { method: 'GET', path: '/api/remote/status', description: 'Service-/Security-/Auth-/RDAP39-Status' },
+        { method: 'GET', path: '/api/remote/status', description: 'Service-/Security-/Auth-/RDAP42-Status-Semantik' },
         { method: 'GET', path: '/api/remote/routes', description: 'Routenuebersicht' },
         { method: 'GET', path: '/api/remote/auth/model', description: 'Read-only Auth-/Rechte-Modell' },
         { method: 'GET', path: '/api/remote/auth/me', description: 'Aktueller Login-/Session-Status' },
@@ -28,7 +31,7 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/admin/users/admin-note-diagnostic', description: 'Read-only Admin-Notiz-Tabellen-Diagnose; keine Migration, keine Notiz-Writes' },
         { method: 'GET', path: '/api/remote/admin/users/admin-notes/read', description: 'RDAP39C wiederhergestellte echte Admin-Notiz-Read-Route mit Session, DashboardAccess und admin.users.note.read; schreibt nichts' },
         { method: 'GET', path: '/api/remote/admin/users/admin-notes/write-plan', description: 'RDAP38 Admin-Notiz Write-Plan; read-only' },
-        { method: 'POST', path: '/api/remote/admin/users/admin-notes/create', description: 'RDAP39 kontrollierter Admin-Notiz Create-Backend-Write mit Permission/Confirm/Audit/Lock/Readback; keine UI-Schreibbuttons' },
+        { method: 'POST', path: '/api/remote/admin/users/admin-notes/create', description: 'RDAP39 kontrollierter Admin-Notiz Create-Backend-Write mit Permission/Confirm/Audit/Lock/Readback; RDAP40-Create-UI zeigt Button nur bei Schreibrecht' },
         { method: 'POST', path: '/api/remote/admin/users/admin-notes/update', description: 'RDAP31 Admin-Notiz Update-Validierung; bleibt read-only, schreibt nichts' },
         { method: 'POST', path: '/api/remote/admin/users/admin-notes/deactivate', description: 'RDAP31 Admin-Notiz Deactivate-Validierung; bleibt read-only, schreibt nichts' },
         { method: 'GET', path: '/api/remote/auth/login/plan', description: 'Read-only Plan fuer zentrale Login-Schicht' },
@@ -88,7 +91,8 @@ function registerRoutesRoutes(app, context) {
         physicalDeleteEnabled: false,
         routeRemainsReadOnly: true
       },
-      adminNoteWriteConfirmed: ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY,
+      adminNoteWriteConfirmed: buildAdminNoteWriteConfirmedUiSemantics(),
+      adminNoteUiStatusSemantics: buildAdminNoteUiStatusSemantics(),
       adminUsersAdminNoteWriteDisabled: {
         prepared: true,
         routes: [
@@ -196,6 +200,57 @@ function registerRoutesRoutes(app, context) {
       safety: context.safety
     });
   });
+}
+
+function buildAdminNoteWriteConfirmedUiSemantics() {
+  return {
+    ...ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY,
+    statusApiVersion: RDAP42_STATUS_API_VERSION,
+    routeStatusCleanupBuild: RDAP42_BUILD,
+    backendAutoUiWriteButtonsEnabled: false,
+    uiWriteButtonsEnabled: true,
+    uiWriteButtonsEnabledMeaning: 'RDAP40 hat bewusst einen Create-Button fuer write-berechtigte Admins vorbereitet; Backend aktiviert keine UI automatisch.',
+    adminNoteCreateUiPrepared: true,
+    adminNoteCreateButtonVisibleForWritePermission: true,
+    adminNoteUpdateUiPrepared: false,
+    adminNoteDeactivateUiPrepared: false,
+    adminNoteDeleteUiPrepared: false,
+    adminNoteCreateButtonUsesExistingRoute: '/api/remote/admin/users/admin-notes/create',
+    adminNoteCreateUiRequiresServerPermission: 'admin.users.note.write',
+    adminNoteCreateUiRequiresBodyConfirmWrite: true,
+    adminNoteUiReadbackRoute: '/api/remote/admin/users/admin-notes/read',
+    noNewWriteFunctionInRdap42: true
+  };
+}
+
+function buildAdminNoteUiStatusSemantics() {
+  return {
+    prepared: true,
+    statusApiVersion: RDAP42_STATUS_API_VERSION,
+    routeStatusCleanupBuild: RDAP42_BUILD,
+    purpose: 'RDAP42 bereinigt nur die Status-Semantik nach RDAP40; keine neue Funktion.',
+    backendAutoUiWriteButtonsEnabled: false,
+    adminNoteCreateUiPrepared: true,
+    adminNoteCreateButtonVisibleForWritePermission: true,
+    adminNoteCreateRoutePrepared: true,
+    adminNoteCreateRoute: '/api/remote/admin/users/admin-notes/create',
+    adminNoteReadbackRoute: '/api/remote/admin/users/admin-notes/read',
+    adminNoteUpdateUiPrepared: false,
+    adminNoteDeactivateUiPrepared: false,
+    adminNoteDeleteUiPrepared: false,
+    adminNoteUpdateEnabled: false,
+    adminNoteDeactivateEnabled: false,
+    physicalDeleteEnabled: false,
+    communityPagesMayReadAdminNotes: false,
+    databaseMigrationExecuted: false,
+    permissionChangesExecuted: false,
+    newWriteFunctionEnabled: false,
+    notes: [
+      'RDAP40 hat die Create-UI bewusst freigegeben, aber nur fuer write-berechtigte Admins.',
+      'RDAP42 aendert keine Backend-Write-Logik.',
+      'Update, Deactivate und Delete bleiben deaktiviert.'
+    ]
+  };
 }
 
 module.exports = { registerRoutesRoutes };
