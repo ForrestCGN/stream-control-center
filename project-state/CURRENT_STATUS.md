@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Stand: RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN  
+Stand: RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller bestätigter RDAP-Status
+## Aktueller bestaetigter RDAP-Status
 
 Produktiv unter:
 
@@ -12,13 +12,13 @@ Produktiv unter:
 https://mods.forrestcgn.de/
 ```
 
-Aktueller Backend-/Security-Code-Stand nach Webserver-Deploy:
+Letzter live bestaetigter Backend-/Security-Code-Stand vor RDAP16:
 
 ```text
 RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
 ```
 
-Live bestätigt auf dem Webserver:
+Bestaetigte Werte:
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
@@ -28,66 +28,62 @@ actionEnabled: false
 productiveAgentRuntime: false
 ```
 
-## RDAP14/RDAP14B Ergebnis
+RDAP15 wurde lokal sauber abgeschlossen und nach GitHub/dev uebernommen.
 
-RDAP14 hat die read-only Admin-Notiz-Diagnose eingeführt:
-
-```text
-GET /api/remote/admin/users/admin-note-diagnostic
-```
-
-RDAP14B hat die Routenübersicht synchronisiert:
+RDAP15 Ergebnis:
 
 ```text
-/api/remote/routes -> adminUserAdminNoteDiagnostic
-routeListKeySynced: true
-aliasOf: adminUsersAdminNoteDiagnostic
+Admin-Notiz-Tabellen-Migration geplant.
+Keine Migration.
+Keine SQL-Ausfuehrung.
+Keine produktiven Writes.
 ```
 
-Die Admin-Notiz-Diagnose ist live erreichbar und bleibt vollständig read-only/disabled:
+## RDAP16 Status
+
+RDAP16 stellt bereit:
 
 ```text
-ok: true
-routeRemainsReadOnly: true
-writeEnabled: false
-productiveWritesEnabled: false
-writesStillBlocked: true
+docs/current/RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION.md
+tools/rdap16_admin_note_table_migration.sql
 ```
 
-Aktueller Schema-Befund:
+RDAP16 fuehrt durch Install/Deploy weiterhin kein SQL automatisch aus.
+
+Die echte Tabellenanlage erfolgt nur manuell auf dem Webserver nach:
+
+```text
+Readiness-Check
+Status-/Diagnose-Pruefung
+DB-Kontext-Klaerung
+Backup
+Backup-Pruefung
+Read-only SQL-Vorpruefung
+```
+
+## Erwartung vor Migration
 
 ```text
 tableName: dashboard_user_admin_notes
 tableExists: false
 schemaReady: false
 migrationRequired: true
-reason: admin_note_table_missing_or_incomplete
+writesStillBlocked: true
+writeEnabled: false
+productiveWritesEnabled: false
 ```
 
-Das ist kein Fehler. Die Tabelle für Admin-Notizen existiert noch nicht.
-
-## RDAP15 Ergebnis
-
-RDAP15 dokumentiert den Migrationsplan für:
+## Erwartung nach erfolgreicher Migration
 
 ```text
-dashboard_user_admin_notes
+tableName: dashboard_user_admin_notes
+tableExists: true
+schemaReady: true
+migrationRequired: false
+writesStillBlocked: true
+writeEnabled: false
+productiveWritesEnabled: false
 ```
-
-RDAP15 enthält:
-
-```text
-- exakten SQL-Entwurf
-- Backup-Befehl
-- Rollback-Befehl
-- Read-only Vorprüfung vor Migration
-- Read-Back-Prüfung nach Migration
-- harte Abbruchbedingungen
-- klare Grenze: echte Migration erst mit separatem Go
-- Zukunftshinweis für gemeinsame User-/Auth-/Rollen-Basis für forrestcgn.de/.info und Modboard
-```
-
-RDAP15 hat keine Code-Dateien geändert und keine Migration ausgeführt.
 
 ## Weiterhin nicht aktiv
 
@@ -96,35 +92,10 @@ User freigeben/sperren
 Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
-DB-Migration
-SQL-Ausführung
-CREATE TABLE Ausführung
+Admin-Notiz schreiben
 Audit-Inserts oder Audit-Updates
 Lock acquire/heartbeat/release/force-takeover
-Backup-Ausführung
-Rollback-Ausführung
 UI-Schreibbuttons
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
-Admin-Notiz-Write
-```
-
-## Nächster sinnvoller Schritt
-
-```text
-RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION
-```
-
-RDAP16 darf erst nach separatem Go gebaut werden.
-
-Empfohlener RDAP16-Scope:
-
-```text
-- echte DB-/Env-Werte prüfen
-- Read-only Vorprüfung
-- Backup erstellen und prüfen
-- Migration exakt nach freigegebenem SQL ausführen
-- Read-Back prüfen
-- Diagnose prüfen
-- Writes weiterhin disabled lassen
 ```

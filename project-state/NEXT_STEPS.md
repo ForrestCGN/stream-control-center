@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN  
+Stand: RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION  
 Datum: 2026-06-25
 
 ## Aktuell erledigt
@@ -10,67 +10,60 @@ RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
 RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
 RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
 RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
-RDAP14B Webserver-Deploy live bestätigt
 RDAP15 Admin-Notiz-Tabellen-Migration geplant
 ```
 
-## RDAP15 Ergebnis
+## RDAP16 aktueller Step
 
-RDAP15 hat nur geplant/dokumentiert:
-
-```text
-- SQL für dashboard_user_admin_notes
-- Backup-Befehl
-- Rollback-Befehl
-- Read-only Vorprüfung
-- Read-Back-Prüfung
-- harte Abbruchbedingungen
-- keine echte Migration ohne separates Go
-- Community-/Modboard-Zukunft: gemeinsame User-/Auth-/Rollen-Basis, aber getrennte Community- und Dashboard-Daten
-```
-
-## Nächster empfohlener Fach-Step
+RDAP16 stellt eine kontrollierte Migration bereit:
 
 ```text
-RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION
+tools/rdap16_admin_note_table_migration.sql
+docs/current/RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION.md
 ```
 
-Scope nur nach separatem Go:
+Wichtig:
 
 ```text
-- echte Server-DB-/Env-Werte prüfen
-- Backup erstellen und Backup-Datei prüfen
-- CREATE TABLE IF NOT EXISTS dashboard_user_admin_notes ausführen
-- Read-Back-Prüfung durchführen
-- /api/remote/admin/users/admin-note-diagnostic prüfen
-- writesStillBlocked muss true bleiben
-- writeEnabled muss false bleiben
-- productiveWritesEnabled muss false bleiben
+installstep/deploy fuehren kein SQL aus.
+Die Migration muss manuell auf dem Webserver nach Backup und Vorpruefung ausgefuehrt werden.
 ```
 
-## Erst nach bestätigter Tabelle
+## Naechste Aktionen fuer Forrest
 
-Ein echter Admin-Notiz-Write darf erst gebaut werden, wenn:
+1. ZIP lokal einspielen.
+2. Lokale Checks ausfuehren.
+3. `stepdone.cmd` ausfuehren.
+4. Webserver-Deploy aus frischem GitHub/dev-Clone.
+5. Readiness abwarten.
+6. Status-/Diagnose pruefen.
+7. DB-Kontext klaeren.
+8. Backup erstellen und pruefen.
+9. Read-only SQL-Vorpruefung.
+10. Migration mit SQL-Datei ausfuehren.
+11. Read-Back pruefen.
+12. Diagnose pruefen.
+
+## Erst nach erfolgreicher Tabelle
+
+Ein Admin-Notiz-Write darf erst gebaut werden, wenn:
 
 ```text
 Tabelle existiert
 schemaReady true
-Backup/Rollback geklärt
-Permission admin.users.note.write geklärt
+Backup/Rollback geklaert
+Permission admin.users.note.write geklaert
 Confirm-Write Pflicht umgesetzt
 Audit-Payload umgesetzt
 Lock-Scope umgesetzt
-Read-Back-Prüfung umgesetzt
+Read-Back-Pruefung umgesetzt
 separates Go von Forrest
 ```
 
-## Workflow-Regel bleibt
+## Naechster moeglicher Fach-Step nach RDAP16
 
 ```text
-Erst echte Dateien/Repo/Dokus prüfen.
-Dann Plan nennen.
-Dann auf ausdrückliches go warten.
-Keine Funktionalität entfernen.
-Keine Workflow-Tools überschreiben.
-Keine Parallelstrukturen bauen.
+RDAP_ADMIN_USERS17_ADMIN_NOTE_WRITE_DISABLED_FOUNDATION
 ```
+
+RDAP17 darf nicht blind produktive Writes aktivieren.

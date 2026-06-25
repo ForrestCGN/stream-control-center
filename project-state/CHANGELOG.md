@@ -1,84 +1,62 @@
 # CHANGELOG
 
-Stand: RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN  
+Stand: RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION  
 Datum: 2026-06-25
 
-## RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN
+## RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION
 
-Typ: Doku-/Plan-Step  
-DB: nein  
+Typ: DB-Migration vorbereitet / SQL-Datei + Anleitung  
+DB: SQL-Datei bereitgestellt, aber keine automatische Ausfuehrung  
 Secrets: nein  
 Produktive Writes: nein  
 UI-Schreibbuttons: nein  
 Workflow-Tools: nein  
-Code-Änderung: nein
+Code-Aenderung: nein
 
-### Ausgangslage
+### Ergebnis
 
-RDAP14B ist live bestätigt.
-
-Statusroute:
+RDAP16 stellt die SQL-Datei fuer die Tabelle bereit:
 
 ```text
-moduleBuild: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
-statusApiVersion: rdap_admin_users14b.v1
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
+tools/rdap16_admin_note_table_migration.sql
 ```
 
-Routenübersicht:
+Die begleitende Anleitung liegt unter:
 
 ```text
-adminUserAdminNoteDiagnostic:
-prepared: true
-route: /api/remote/admin/users/admin-note-diagnostic
-readOnly: true
-writeEnabled: false
-productiveWritesEnabled: false
-writesStillBlocked: true
-routeListKeySynced: true
-aliasOf: adminUsersAdminNoteDiagnostic
+docs/current/RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION.md
 ```
 
-Admin-Notiz-Diagnose:
+Der Install-/Deploy-Workflow fuehrt kein SQL automatisch aus.
 
-```text
-ok: true
-routeRemainsReadOnly: true
-writeEnabled: false
-productiveWritesEnabled: false
-writesStillBlocked: true
-tableExists: false
-schemaReady: false
-migrationRequired: true
-```
-
-### Änderung
-
-RDAP15 ergänzt die Planung für die spätere Migration der Tabelle:
+### Geplante Tabelle
 
 ```text
 dashboard_user_admin_notes
 ```
 
-Dokumentiert wurden:
+Zweck:
 
 ```text
-- SQL-Entwurf
-- Backup-Befehl
-- Rollback-Befehl
-- Read-only Vorprüfung
-- Read-Back-Prüfung
-- harte Abbruchbedingungen
-- Grenze: echte Migration erst nach separatem Go
-- Zukunftshinweis: gemeinsame User-/Auth-/Rollen-Basis für forrestcgn.de/.info und Modboard
+Interne Admin-/Mod-Notizen zu Dashboard-Usern.
 ```
 
-### Geändert
+### Erwartung nach manueller Server-Migration
 
 ```text
-docs/current/RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN.md
+tableExists: true
+schemaReady: true
+migrationRequired: false
+writesStillBlocked: true
+writeEnabled: false
+productiveWritesEnabled: false
+```
+
+### Geaendert
+
+```text
+docs/current/RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION.md
+tools/rdap16_admin_note_table_migration.sql
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -86,38 +64,17 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-### Nicht geändert
+### Nicht geaendert
 
 ```text
-Keine Code-Dateien.
-Keine DB-Migration.
-Keine SQL-Ausführung.
-Keine CREATE TABLE Ausführung.
+Keine Backend-Code-Dateien.
+Keine DB-Dateien.
+Keine automatische SQL-Ausfuehrung.
+Keine CREATE TABLE Ausfuehrung durch Install/Deploy.
 Keine Admin-Notiz-Writes.
 Keine POST/PUT/PATCH/DELETE-Route.
 Keine Audit-Inserts.
 Keine Lock-Writes.
 Keine UI-Schreibbuttons.
 Keine Workflow-Tools.
-Keine Secrets.
 ```
-
----
-
-## RDAP_ADMIN_USERS14B_ROUTE_LIST_SYNC_LIVE_CONFIRMED
-
-Typ: Doku/Projektstatus nach Webserver-Deploy  
-DB: nein  
-Secrets: nein  
-Produktive Writes: nein  
-UI-Schreibbuttons: nein  
-Workflow-Tools: nein  
-Code-Änderung: nein
-
-### Ergebnis
-
-- RDAP14B ist live bestätigt.
-- Der vorher fehlende Key `.adminUserAdminNoteDiagnostic` in `/api/remote/routes` ist vorhanden.
-- Die Admin-Notiz-Diagnose bleibt vollständig read-only/disabled.
-- Die geplante Tabelle `dashboard_user_admin_notes` existiert noch nicht.
-- RDAP15 musste die Migration planen; keine Migration wurde ausgeführt.

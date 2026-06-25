@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN  
+Stand: RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION  
 Datum: 2026-06-25
 
 ## Zentrale RDAP-Dokumente
@@ -16,6 +16,19 @@ docs/current/RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC.md
 docs/current/RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC.md
 docs/current/RDAP_ADMIN_USERS14B_ROUTE_LIST_SYNC_LIVE_CONFIRMED.md
 docs/current/RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN.md
+docs/current/RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION.md
+```
+
+## RDAP16 SQL-Datei
+
+```text
+tools/rdap16_admin_note_table_migration.sql
+```
+
+Wichtig:
+
+```text
+Diese SQL-Datei wird nicht automatisch durch installstep, stepdone oder deploy ausgefuehrt.
 ```
 
 ## Projektstatus-Dateien
@@ -28,31 +41,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## RDAP15 geänderte Dateien
-
-```text
-docs/current/RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
-
-## RDAP15 nicht geändert
-
-```text
-Keine Backend-Code-Dateien
-Keine Frontend-Code-Dateien
-Keine Workflow-Tools
-Keine DB-Dateien
-Keine .env
-Keine Secrets
-Keine SQL-Ausführung
-Keine Migration
-```
-
-## RDAP14B relevante Code-Dateien bleiben unverändert
+## Relevante Backend-Dateien fuer Diagnose
 
 ```text
 remote-modboard/backend/server.js
@@ -62,7 +51,7 @@ remote-modboard/backend/src/routes/admin-users.routes.js
 remote-modboard/backend/src/services/admin-user-admin-note-diagnostic.service.js
 ```
 
-## Live bestätigte Routen
+## Live relevante Routen
 
 ```text
 GET /api/remote/status
@@ -70,7 +59,7 @@ GET /api/remote/routes
 GET /api/remote/admin/users/admin-note-diagnostic
 ```
 
-## Workflow-Tools geschützt
+## Workflow-Tools geschuetzt
 
 ```text
 installstep.cmd
@@ -79,4 +68,13 @@ testdeploy.cmd
 tools/remote-modboard-deploy.sh
 ```
 
-Diese Dateien wurden in RDAP15 nicht geändert.
+Diese Dateien werden in RDAP16 nicht geaendert.
+
+## Keine Secrets / keine DB im Repo
+
+```text
+Keine .env
+Keine DB-Dateien
+Keine Backups
+Keine Secrets
+```
