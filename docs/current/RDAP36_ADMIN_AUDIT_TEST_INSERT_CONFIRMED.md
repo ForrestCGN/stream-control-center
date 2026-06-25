@@ -2,7 +2,8 @@
 
 Stand: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP  
-Typ: Backend-Step mit kontrolliertem Audit-Testinsert
+Typ: Backend-Step mit kontrolliertem Audit-Testinsert  
+Status: Live erfolgreich bestaetigt durch RDAP36B
 
 ---
 
@@ -23,7 +24,62 @@ POST /api/remote/admin/audit/test-insert
 
 ---
 
-## 3. Sicherheitsgrenzen
+## 3. Live-Bestaetigung
+
+RDAP36 wurde live deployt und getestet.
+
+Bestaetigt:
+
+```text
+statusApiVersion: rdap_audit36.v1
+routeBuild: RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED
+localOnly: true
+confirmWriteRequired: true
+bodyConfirmOnly: true
+testOnlyRequired: true
+auditTestInsertEnabled: true
+productiveWritesEnabled: false
+adminNoteWritesEnabled: false
+lockWritesEnabled: false
+uiWriteButtonsEnabled: false
+```
+
+Ohne Confirm:
+
+```text
+HTTP 400
+reason: confirm_write_required
+writeExecuted: false
+```
+
+Mit Body-confirmWrite und testOnly:
+
+```text
+reason: audit_test_insert_executed
+writeExecuted: true
+databaseWriteExecuted: true
+readBackPerformed: true
+```
+
+Readback:
+
+```text
+audit.rowCount: 1
+latest[0].action: admin.audit.test_insert
+writeEnabled: false
+productiveWritesEnabled: false
+writesStillBlocked: true
+```
+
+Details stehen in:
+
+```text
+docs/current/RDAP36B_ADMIN_AUDIT_TEST_INSERT_LIVE_CONFIRMED_DOCS.md
+```
+
+---
+
+## 4. Sicherheitsgrenzen
 
 Der POST-Testinsert ist begrenzt durch:
 
@@ -32,15 +88,6 @@ localOnly: true
 confirmWriteRequired: true
 bodyConfirmOnly: true
 testOnlyRequired: true
-```
-
-Das bedeutet:
-
-```text
-nur lokale Requests von 127.0.0.1/::1
-confirmWrite muss im JSON-Body stehen
-testOnly=true muss im JSON-Body stehen
-keine Query-Confirm-Nutzung
 ```
 
 Weiterhin nicht aktiv:
@@ -56,7 +103,7 @@ keine Agent-/OBS-/Sound-/Overlay-Steuerung
 
 ---
 
-## 4. Geschriebener Testeintrag
+## 5. Geschriebener Testeintrag
 
 Der Testeintrag ist eindeutig markiert:
 
@@ -65,108 +112,14 @@ source: remote-modboard/rdap36
 action: admin.audit.test_insert
 resource_type: admin_audit_test
 permission_key: admin.audit.test
-resource_key: audit:test:<audit_uid>
 status: success
-new_value_summary: RDAP36 kontrollierter Audit-Testinsert; keine produktive Admin-Aktion.
 ```
 
-`safe_metadata_json` enthaelt nur sichere Test-Metadaten:
-
-```text
-step
-testOnly
-purpose
-productiveAction: false
-adminNoteWrite: false
-lockWrite: false
-generatedAt
-```
-
-Keine Secrets werden gespeichert.
+Keine produktive Admin-Aktion wurde ausgefuehrt.
 
 ---
 
-## 5. Geaenderte Dateien
-
-```text
-remote-modboard/backend/src/services/admin-audit-test-insert.service.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-```
-
----
-
-## 6. Lokale Checks
-
-```powershell
-node --check .\remote-modboard\backend\src\services\admin-audit-test-insert.service.js
-node --check .\remote-modboard\backend\src\routes\lock-audit-diagnostic.routes.js
-node --check .\remote-modboard\backend\src\routes\routes.routes.js
-node --check .\remote-modboard\backend\src\app.js
-```
-
----
-
-## 7. Tests nach Webserver-Deploy
-
-Backup vor Testinsert:
-
-```bash
-sudo mysqldump --defaults-extra-file=/root/rdap29_mysql_client.cnf c3stream_control dashboard_audit_log > /opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap36_before_audit_test_insert_$(date +%Y%m%d_%H%M%S).sql
-sudo ls -lah /opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap36_before_audit_test_insert_*.sql
-```
-
-Routenliste:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.statusApiVersion, .adminAuditTestInsert'
-```
-
-Statusroute:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/admin/audit/test-insert/status | jq
-```
-
-Ohne Confirm muss blocken:
-
-```bash
-curl -i -sS -X POST "http://127.0.0.1:3010/api/remote/admin/audit/test-insert" -H "Content-Type: application/json" -d '{"testOnly":true}'
-```
-
-Mit Confirm und TestOnly:
-
-```bash
-curl -fsS -X POST "http://127.0.0.1:3010/api/remote/admin/audit/test-insert" -H "Content-Type: application/json" -d '{"confirmWrite":true,"testOnly":true}' | jq
-```
-
-Readback/Route:
-
-```bash
-curl -fsS "http://127.0.0.1:3010/api/remote/admin/audit-lock/schema-status?limit=5" | jq '.audit.rowCount, .audit.latest[0], .writeEnabled, .productiveWritesEnabled, .writesStillBlocked'
-```
-
-Erwartung nach genau einem Testinsert:
-
-```text
-audit.rowCount >= 1
-latest[0].action = admin.audit.test_insert
-writeEnabled false
-productiveWritesEnabled false
-writesStillBlocked true
-```
-
----
-
-## 8. Naechster sinnvoller Step
-
-Nach Live-Bestaetigung:
-
-```text
-RDAP36B_ADMIN_AUDIT_TEST_INSERT_LIVE_CONFIRMED_DOCS
-```
-
-Danach:
+## 6. Naechster sinnvoller Step
 
 ```text
 RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED
