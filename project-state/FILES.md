@@ -1,16 +1,14 @@
 # FILES
 
-Stand: RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC  
+Stand: RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED  
 Datum: 2026-06-25
 
-## Geaendert in RDAP39C
+## Geaendert in RDAP40
 
 ```text
-remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-docs/current/RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP39C.md
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+docs/current/RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP40.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -18,39 +16,40 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Zweck der Code-Dateien
+## Zweck der Code-Datei
 
 ```text
-admin-user-admin-note-real-read-authed.service.js
-- Echte read-only Admin-Notiz-Readlogik.
-- Erfordert Session, DashboardAccess und admin.users.note.read.
-- Schreibt nicht.
-
-admin-users.routes.js
-- Registriert wieder GET /api/remote/admin/users/admin-notes/read.
-- Create/Update/Deactivate bleiben wie vorher.
-
-routes.routes.js
-- Dokumentiert die Readroute wieder in /api/remote/routes.
-- Ergaenzt adminNoteReadRestored als Sicherheits-/Statusblock.
+rdap28-admin-notes.js
+- Bestehende Admin-Notizen-Anzeige bleibt erhalten.
+- Navigation/Admin-Notizen-Panel bleibt erhalten.
+- Reload bleibt erhalten.
+- Neu: Create-Button/Dialog nur bei serverseitig erkennbarem admin.users.note.write.
+- Neu: POST an RDAP39-Create-Route mit confirmWrite=true.
+- Neu: Nach erfolgreichem Create Refresh ueber RDAP39C-Readroute.
 ```
 
-## Relevante Admin-Notiz-Routen
+## Genutzte Routen
 
 ```text
-GET  /api/remote/admin/users/admin-notes/read
-GET  /api/remote/admin/users/admin-notes/write-plan
+GET  /api/remote/admin/users/admin-notes/read?targetUserUid=tw:127709954
 POST /api/remote/admin/users/admin-notes/create
-POST /api/remote/admin/users/admin-notes/update       // bleibt disabled
-POST /api/remote/admin/users/admin-notes/deactivate   // bleibt disabled
 ```
 
-## Naechster Dateibereich fuer RDAP40
+## Nicht geaendert
 
 ```text
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/public/index.html
 remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
 remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
+remote-modboard/backend/public/index.html
+```
+
+## Weiter relevante Admin-Notiz-Dateien
+
+```text
+remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
+remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
+remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```

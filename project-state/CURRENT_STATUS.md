@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC  
+Stand: RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -9,8 +9,8 @@ Projekt: `stream-control-center` / Remote-Modboard / RDAP
 ```text
 RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED ist live erfolgreich getestet.
 Der erste kontrollierte produktive Backend-Create-Write fuer Admin-Benutzernotizen wurde ausgefuehrt.
-RDAP39B dokumentierte den Live-Stand.
-RDAP39C stellt die fehlende echte Admin-Notiz-Readroute im Repo wieder her/synchronisiert sie.
+RDAP39C hat die echte Admin-Notiz-Readroute wiederhergestellt und wurde live bestaetigt.
+RDAP40 bereitet die kontrollierte Create-UI fuer Admin-Notizen vor.
 ```
 
 ## Live-System
@@ -33,33 +33,30 @@ statusApiVersion: rdap_admin_note_write39.v1
 confirmWrite: Pflicht, nur JSON-Body
 ```
 
-## RDAP39 erstellte Test-Notiz
-
-```text
-note_uid: admin_note_20260625104920_5fec9726d7a3
-target_user_uid: tw:127709954
-status: active
-created_by_user_uid: tw:127709954
-updated_by_user_uid: tw:127709954
-created_at: 2026-06-25 12:49:20
-updated_at: 2026-06-25 12:49:20
-```
-
-## RDAP39C Read-Restore
+## RDAP39C Read-Stand live bestaetigt
 
 ```text
 Route: GET /api/remote/admin/users/admin-notes/read
-Service: buildAdminUserAdminNoteRealReadAuthed
-Service-Datei: remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
 routeBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
 statusApiVersion: rdap_admin_users27.v1
+Live-Ergebnis: ok=true, reason=admin_note_real_read_ready, notes=2
+```
+
+## RDAP40 UI-Stand
+
+```text
+Datei: remote-modboard/backend/public/assets/rdap28-admin-notes.js
+Neue UI: Create-Dialog/Button fuer interne Admin-Notiz.
+Button nur sichtbar, wenn admin.users.note.write serverseitig erkennbar erlaubt ist.
+Create nutzt bestehende RDAP39-Route.
+Nach erfolgreichem Create: Refresh ueber RDAP39C-Readroute.
 ```
 
 ## Sicherheitsstand
 
 ```text
 Readroute bleibt read-only.
-Create ist backendseitig bestaetigt, aber UI-Create ist noch nicht gebaut.
+Create ist backendseitig bestaetigt und UI-seitig kontrolliert vorbereitet.
 Update bleibt deaktiviert.
 Deactivate bleibt deaktiviert.
 Physisches Delete bleibt verboten.
@@ -67,8 +64,8 @@ Community-Read fuer Admin-Notizen bleibt verboten.
 Agent/OBS/Sound/Overlay/Command/Channelpoints-Control bleibt deaktiviert.
 ```
 
-## Naechster empfohlener Step
+## Naechster empfohlener Step nach Live-Test
 
 ```text
-RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED
+RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS
 ```

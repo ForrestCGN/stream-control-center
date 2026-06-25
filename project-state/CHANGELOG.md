@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED - 2026-06-25
+
+- Admin-Notizen-UI um kontrollierten Create-Dialog erweitert.
+- Datei geaendert:
+  - `remote-modboard/backend/public/assets/rdap28-admin-notes.js`
+- Create-Button nur sichtbar, wenn `admin.users.note.write` serverseitig erkennbar erlaubt ist.
+- Create nutzt bestehende RDAP39-Route:
+  - `POST /api/remote/admin/users/admin-notes/create`
+- Body sendet `confirmWrite: true`, `targetUserUid` und `noteText`.
+- Nach erfolgreichem Create laedt die UI die Notizliste ueber RDAP39C-Readroute neu.
+- Keine Backend-Create-Logik geaendert.
+- Kein Update aktiviert.
+- Kein Deactivate aktiviert.
+- Kein physisches Delete aktiviert.
+- Keine Permission-Vergabe in der UI.
+- Keine Community-Seiten-Anbindung.
+- Keine DB-Migration.
+- Neue Doku erstellt:
+  - `docs/current/RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED.md`
+  - `docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP40.md`
+- Projektstatus, NEXT_STEPS, TODO und FILES aktualisiert.
+
 ## RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC - 2026-06-25
 
 - Fehlende echte Admin-Notiz-Readroute im aktuellen Arbeitsstand identifiziert.
