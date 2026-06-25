@@ -1,80 +1,55 @@
-# NEXT_STEPS - stream-control-center
+# NEXT_STEPS
 
-Stand: RDAP29B_ADMIN_NOTE_MARIADB_SEED_LIVE_CONFIRMED_DOCS  
+Stand: RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN  
 Datum: 2026-06-25
 
-## Aktuell erledigt
+## Naechster empfohlener Step
 
 ```text
-RDAP25 Login/OAuth/Session funktioniert.
-RDAP26 Option B DB-Rollen/Permissions funktioniert.
-RDAP27 echte read-only Admin-Notiztext-Route ist live.
-RDAP28 read-only Admin-Notiz-UI ist live.
-RDAP29 Admin-Notiz Test-Seed wurde live gegen MariaDB validiert.
-RDAP29B dokumentiert die MariaDB-Korrektur und den Live-Erfolg.
+RDAP31_ADMIN_NOTE_WRITE_BACKEND_CREATE_UPDATE_DEACTIVATE_DISABLED_UI
 ```
 
-## RDAP29 Live-Ergebnis
+Ziel:
 
 ```text
-DB: c3stream_control
-Engine: MariaDB 11.8.6
-Tabelle: dashboard_user_admin_notes
-note_count nach Seed: 1
-UI: 1 Admin-Notiz read-only geladen
-Schreibbuttons: nicht sichtbar
+Backend-Write-Routen fuer Admin-Notizen bauen oder vorbereiten:
+- create
+- update note_text
+- deactivate
+
+UI-Schreibbuttons bleiben weiterhin unsichtbar/deaktiviert.
+Test nur per Curl und nur mit confirmWrite=true.
 ```
 
-## Sofort noch pruefen
-
-Backup-Datei pruefen:
-
-```bash
-sudo ls -lah /opt/stream-control-center/_db_backups
-```
-
-Falls kein valides Backup vorhanden ist, Tabelle nachtraeglich sichern:
-
-```bash
-sudo mysqldump --defaults-extra-file=/root/rdap29_mysql_client.cnf \
-  c3stream_control dashboard_user_admin_notes \
-  > /opt/stream-control-center/_db_backups/rdap29_dashboard_user_admin_notes_after_live_seed_$(date +%Y%m%d_%H%M%S).sql
-```
-
-## Naechster Fach-Step
+## Vor RDAP31 zwingend pruefen
 
 ```text
-RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN
+remote-modboard/backend/src/services/admin-audit-write.service.js
+remote-modboard/backend/src/services/admin-lock-write.service.js
+remote-modboard/backend/src/services/admin-confirm-write.service.js
+remote-modboard/backend/src/services/auth-permission-read.service.js
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/security/permissions.js
+remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```
 
-Ziel: Write-Scope sauber planen, aber noch nicht bauen.
+Keine Annahmen treffen: Wenn Audit-/Lock-Write aktuell nur Diagnostic/Prepared ist, darf Admin-Notiz-Write nicht produktiv freigeschaltet werden, bevor das sauber geloest ist.
 
-RDAP30 klaert:
+## Empfohlene RDAP31-Grenze
 
 ```text
-Welche Rollen duerfen Admin-Notizen schreiben?
-Permission admin.users.note.write
-Confirm-Write Pflicht
-Audit-Payload
-Lock-Scope
-Read-Back nach Write
-Fehler-/Abbruchfaelle
-UI-Regeln fuer Schreibbuttons
-Rollback-/Backup-Regel
+Backend ja
+UI-Schreibbuttons nein
+Permission-Vergabe nein
+physisches Delete nein
+Community-Seiten nein
 ```
 
-## Nicht blind bauen
-
-Vor einem echten Write-Step braucht es ein separates Go von Forrest.
-
-Weiterhin nicht automatisch aktivieren:
+## Danach moeglich
 
 ```text
-POST/PUT/PATCH/DELETE fuer Admin-Notizen
-UI-Schreibbuttons
-admin.users.note.write Vergabe
-Audit-Writes
-Lock-Writes
-User-/Rollen-/Session-Writes
-Agent-/OBS-/Sound-/Overlay-Steuerung
+RDAP32_ADMIN_NOTE_WRITE_PERMISSION_OWNER_SEED
+RDAP33_ADMIN_NOTE_WRITE_UI_GATED_BUTTONS
+RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN spaeter, nicht jetzt
 ```

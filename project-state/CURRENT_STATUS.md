@@ -1,67 +1,98 @@
 # CURRENT_STATUS
 
-Stand: RDAP29B_ADMIN_NOTE_MARIADB_SEED_LIVE_CONFIRMED_DOCS  
+Stand: RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN  
 Datum: 2026-06-25  
-Projekt: `stream-control-center` / Remote-Modboard / RDAP
+Projekt: `stream-control-center` / Remote-Modboard
 
 ## Produktiv
 
 ```text
-https://mods.forrestcgn.de/
+URL: https://mods.forrestcgn.de/
+Live-Pfad: /opt/stream-control-center/remote-modboard
+Service: scc-remote-modboard.service
+Repo: https://github.com/ForrestCGN/stream-control-center
+Branch: dev
+Lokales Repo: D:\Git\stream-control-center
 ```
 
-## Aktueller bestaetigter RDAP-Status
+## Aktueller bestaetigter Stand
 
-RDAP25 bis RDAP28 sind funktional bestaetigt:
+### RDAP25 Login/OAuth/Session
 
 ```text
-RDAP25 Login/OAuth/Session funktioniert.
-RDAP26 Option B DB-Rollen/Permissions funktioniert.
-RDAP27 echte read-only Admin-Notiztext-Route ist live.
-RDAP28 read-only Admin-Notiz-UI ist live.
+Login erfolgreich: ja
+loggedIn: true
+dashboardAccess: true
+accessReason: allowed_login
+User: ForrestCGN / tw:127709954
+Session-Cookie: scc_remote_session
+Session gueltig: true
+Session-Reason: session_valid_readonly
 ```
 
-RDAP29 ist live validiert:
+### RDAP26 Option B Rollen/Permissions
 
 ```text
-MariaDB-Seed erfolgreich
-dashboard_user_admin_notes: 1 Eintrag
-ForrestCGN / tw:127709954
-Admin-Notiz wird read-only in der UI angezeigt
+ForrestCGN / tw:127709954 -> Rolle owner
+owner -> remote.view -> allow
+owner -> admin.users.note.read -> allow
+owner -> admin.users.note.write -> nicht vergeben
+```
+
+### RDAP27 echte read-only Admin-Notiztext-Route
+
+```text
+GET /api/remote/admin/users/admin-notes/read?targetUserUid=tw:127709954
+Ohne Session: HTTP 401
+Mit gueltiger Session + admin.users.note.read: HTTP 200
+writeEnabled: false
+canWriteAdminNotes: false
+```
+
+### RDAP28 read-only Admin-Notiz-UI
+
+```text
+Admin -> Admin-Notizen sichtbar
+GET /assets/rdap28-admin-notes.js -> HTTP 200
+Read true
+Write false
 Keine Schreibbuttons sichtbar
 ```
 
-## Wichtige RDAP29B-Korrektur
-
-Die Live-DB ist MariaDB, nicht SQLite:
+### RDAP29/RDAP29B MariaDB-Testnotiz live bestaetigt
 
 ```text
-DB_ENGINE: MariaDB 11.8.6
-DB_NAME: c3stream_control
+Live-DB: MariaDB 11.8.6
+DB-Name: c3stream_control
 Tabelle: dashboard_user_admin_notes
-```
-
-Die urspruengliche SQLite-Annahme aus RDAP29 gilt nicht als Live-Wahrheit.
-
-## Bestaetigter Testinhalt
-
-```text
+ForrestCGN user_uid: tw:127709954
+note_count nach Seed: 1
 note_uid: rdap29-test-note-forrestcgn-readonly-validation
-target_user_uid: tw:127709954
-status: active
-created_by_user_uid: tw:127709954
-updated_by_user_uid: tw:127709954
+Browser: 1 Admin-Notiz read-only geladen
 ```
 
-Browser bestaetigt:
+### RDAP30 Write-Scope geplant
+
+RDAP30 plant den ersten sinnvollen Write-Scope fuer Admin-Notizen:
 
 ```text
-1 Admin-Notiz(en) read-only geladen.
-Test-Notiz sichtbar.
-Keine Schreibbuttons sichtbar.
+create note
+update note_text
+deactivate note
 ```
 
-## Weiterhin nicht aktiv
+Nicht Teil des ersten Write-Scope:
+
+```text
+physisches DELETE
+UI-Schreibbuttons
+Permission-Vergabe
+Community-Seiten-Anbindung
+Bulk-Aktionen
+User-/Rollen-/Session-Verwaltung
+```
+
+## Weiterhin blockiert
 
 ```text
 Admin-Notiz schreiben
@@ -79,11 +110,3 @@ Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 Community-Seiten-Anbindung fuer Admin-Notizen
 ```
-
-## Naechster sinnvoller Schritt
-
-```text
-RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN
-```
-
-RDAP30 soll den Write-Scope planen, aber noch keine produktive Schreibfunktion bauen.
