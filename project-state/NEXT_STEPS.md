@@ -1,48 +1,79 @@
 # NEXT_STEPS
 
-Stand: RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED  
+Stand: RDAP37B_ADMIN_LOCK_TEST_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP37 lokal einspielen, testen, stepdone, danach Webserver-Deploy aus frischem GitHub/dev-Clone.
-```
-
-## RDAP37 lokale Pflichtchecks
-
-```text
-node --check .\remote-modboard\backend\server.js
-node --check .\remote-modboard\backend\src\routes\status.routes.js
-node --check .\remote-modboard\backend\src\routes\lock-audit-diagnostic.routes.js
-node --check .\remote-modboard\backend\src\routes\routes.routes.js
-node --check .\remote-modboard\backend\src\services\admin-lock-test.service.js
-```
-
-## RDAP37 Webserver-Pflicht vor Test
-
-```text
-Backup dashboard_locks erstellen.
-Backup-Datei existiert und ist nicht 0 Byte.
-```
-
-## RDAP37 Webserver-Test
-
-```text
-GET /api/remote/admin/locks/test/status
-POST /api/remote/admin/locks/test-cycle mit {"confirmWrite":true,"testOnly":true}
-Readback nach Acquire/Heartbeat/Release pruefen.
-Lock muss am Ende released sein.
-```
-
-## Danach
-
-```text
-RDAP37B_ADMIN_LOCK_TEST_LIVE_CONFIRMED_DOCS
-```
-
-Erst nach erfolgreichem RDAP37B:
-
-```text
 RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN
 ```
+
+## Ziel RDAP38
+
+```text
+Plan fuer den ersten echten Admin-Notiz-Write mit Audit- und Lock-Fundament.
+Noch keine UI-Schreibbuttons.
+Noch kein physisches Delete.
+Keine Community-Seiten-Anbindung.
+```
+
+## RDAP38 muss vor Umsetzung klaeren
+
+```text
+Welche Permission wird benoetigt?
+Voraussichtlich: admin.users.note.write
+
+Wie wird die Zielperson gelesen/geprueft?
+Wie wird der Lock resource_key gebaut?
+Wie wird der Lock acquired/heartbeat/released?
+Wie wird Audit vor/nach dem Write geschrieben?
+Was passiert bei Fehlern zwischen Lock und Write?
+Welche Rollback-/Backup-Pflicht gilt?
+Welche Felder der Tabelle dashboard_user_admin_notes duerfen geschrieben werden?
+```
+
+## Pflicht-Sicherheitsregeln fuer RDAP38
+
+```text
+Erst echte Dateien/Repo/Dokus pruefen.
+Dann Plan nennen.
+Dann auf Forrests ausdrueckliches go warten.
+
+Kein Admin-Notiz-Write ohne:
+- Permission-Pruefung
+- confirmWrite im JSON-Body
+- Lock-Acquire
+- Audit
+- Readback
+- klaren Fehlerpfad
+- Backup-Hinweis
+
+Keine UI-Schreibbuttons, bis Backend sicher bestaetigt ist.
+Kein physisches Delete.
+Keine freie Shell-/Datei-/Prozessausfuehrung.
+```
+
+## Relevante Live-Bestaetigungen aus RDAP37B
+
+```text
+dashboard_audit_log:
+rowCount: 2
+actionSummary: admin.audit.test_insert = 2
+
+dashboard_locks:
+rowCount: 1
+activeCount: 0
+expiredCount: 0
+released: 1
+latest lock_uid: rdap37_lock_test_20260625100908_42dbbd555e49
+latest status: released
+```
+
+## Nach RDAP38 Plan
+
+```text
+RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
+```
+
+Nur wenn RDAP38 Plan sauber bestaetigt wurde.

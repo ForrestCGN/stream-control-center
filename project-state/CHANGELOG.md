@@ -1,5 +1,55 @@
 # CHANGELOG
 
+## RDAP37B_ADMIN_LOCK_TEST_LIVE_CONFIRMED_DOCS - 2026-06-25
+
+- RDAP37 Live-Deploy bestaetigt.
+- `/api/remote/status` meldet:
+  - `moduleBuild = RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED`
+  - `statusApiVersion = rdap_lock37.v1`
+  - `adminLockTest.prepared = true`
+- `/api/remote/routes` meldet:
+  - `statusApiVersion = rdap_lock37.v1`
+  - `adminLockTest.prepared = true`
+- Ohne-Confirm-Schutztest erfolgreich:
+  - `ok = false`
+  - `reason = confirm_write_required`
+  - `writeExecuted = false`
+  - `readBackPerformed = false`
+- Kontrollierter Lock-Test erfolgreich:
+  - `ok = true`
+  - `reason = lock_test_cycle_executed`
+  - `writeExecuted = true`
+  - `databaseWriteExecuted = true`
+  - `readBackPerformed = true`
+  - `readBackFoundAfterAcquire = true`
+  - `readBackFoundAfterHeartbeat = true`
+  - `readBackFoundAfterRelease = true`
+- Test-Lock:
+  - `lock_uid = rdap37_lock_test_20260625100908_42dbbd555e49`
+  - `resource_key = rdap37:test:rdap37_lock_test_20260625100908_42dbbd555e49`
+  - `owner_user_uid = system:rdap37-local-test`
+  - finaler Status: `released`
+- Operationen erfolgreich:
+  - Acquire
+  - Heartbeat
+  - Release
+- Finaler Readback:
+  - `locks.rowCount = 1`
+  - `locks.activeCount = 0`
+  - `locks.expiredCount = 0`
+  - `locks.statusSummary.released = 1`
+- Audit-Readback:
+  - `audit.rowCount = 2`
+  - `admin.audit.test_insert = 2`
+- Sicherheitsbestaetigung:
+  - keine Admin-Notiz-Writes
+  - keine produktiven Audit-Writes
+  - keine UI-Schreibbuttons
+  - kein physisches Delete
+  - kein aktiver Test-Lock haengen geblieben
+- Naechster Step:
+  - `RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN`
+
 ## RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED - 2026-06-25
 
 - Kontrollierten Lock-Test fuer `dashboard_locks` vorbereitet.
