@@ -39,7 +39,58 @@ GET /api/remote/lock-audit/schema-status
 
 ---
 
-## 3. Geaenderte Dateien
+## 3. Live-Bestaetigung
+
+RDAP33 wurde live deployt und getestet.
+
+Bestaetigt:
+
+```text
+statusApiVersion: rdap_audit_lock33.v1
+routeBuild: RDAP33_ADMIN_AUDIT_LOCK_SCHEMA_STATUS_READONLY
+readOnly: true
+writeEnabled: false
+databaseWriteEnabled: false
+productiveWritesEnabled: false
+writesStillBlocked: true
+```
+
+Audit-Befund:
+
+```text
+dashboard_audit_log existiert.
+rowCount: 0
+compatibleForWriteCandidate: false
+Blocker: audit_write_candidate_columns_missing / resource_type
+```
+
+Lock-Befund:
+
+```text
+dashboard_locks existiert.
+rowCount: 0
+activeCount: 0
+expiredCount: 0
+compatibleForRead: true
+compatibleForWriteCandidate: true
+```
+
+Recommended Next Step live:
+
+```text
+RDAP34_ADMIN_AUDIT_LOCK_SCHEMA_DECISION_OR_MIGRATION_PLAN
+writesMayBeBuiltNow: false
+```
+
+Details stehen in:
+
+```text
+docs/current/RDAP33B_ADMIN_AUDIT_LOCK_SCHEMA_STATUS_READONLY_LIVE_CONFIRMED_DOCS.md
+```
+
+---
+
+## 4. Geaenderte Dateien
 
 ```text
 remote-modboard/backend/src/services/admin-audit-lock-schema-status-readonly.service.js
@@ -49,7 +100,7 @@ remote-modboard/backend/src/routes/routes.routes.js
 
 ---
 
-## 4. Sicherheitsgrenzen
+## 5. Sicherheitsgrenzen
 
 RDAP33 bleibt read-only:
 
@@ -77,52 +128,7 @@ Preview-Strings sind begrenzt
 
 ---
 
-## 5. Erwartete Checks lokal
-
-```powershell
-node --check .\remote-modboard\backend\src\services\admin-audit-lock-schema-status-readonly.service.js
-node --check .\remote-modboard\backend\src\routes\lock-audit-diagnostic.routes.js
-node --check .\remote-modboard\backend\src\routes\routes.routes.js
-node --check .\remote-modboard\backend\src\app.js
-```
-
----
-
-## 6. Erwartete Checks nach Webserver-Deploy
-
-Readiness:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null && echo ready
-```
-
-Routenliste:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.statusApiVersion, .adminAuditLockSchemaStatusReadonly'
-```
-
-Schema-/Statusroute:
-
-```bash
-curl -fsS "http://127.0.0.1:3010/api/remote/admin/audit-lock/schema-status?limit=5" | jq
-```
-
-Erwartung:
-
-```text
-statusApiVersion: rdap_audit_lock33.v1
-audit.table.name: dashboard_audit_log
-locks.table.name: dashboard_locks
-writeEnabled false
-databaseWriteEnabled false
-productiveWritesEnabled false
-writesStillBlocked true
-```
-
----
-
-## 7. Nicht Teil von RDAP33
+## 6. Nicht Teil von RDAP33
 
 ```text
 Keine Audit-Inserts
@@ -136,22 +142,15 @@ Keine DB-Migration
 
 ---
 
-## 8. Naechster sinnvoller Step nach Live-Bestaetigung
-
-Nach RDAP33 Live-Test muss dokumentiert werden:
-
-```text
-RDAP33B_ADMIN_AUDIT_LOCK_SCHEMA_STATUS_READONLY_LIVE_CONFIRMED_DOCS
-```
-
-Danach, je nach Schema-Befund:
-
-```text
-RDAP34_ADMIN_AUDIT_TEST_INSERT_CONFIRMED
-```
-
-oder:
+## 7. Naechster sinnvoller Step
 
 ```text
 RDAP34_ADMIN_AUDIT_LOCK_SCHEMA_DECISION_OR_MIGRATION_PLAN
+```
+
+Grund:
+
+```text
+Audit-Tabelle ist noch nicht kompatibel fuer geplante Audit-Writes.
+Erst Mapping/Migration entscheiden, keine Writes bauen.
 ```
