@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS  
+Stand: RDAP41_ADMIN_NOTE_UI_STATUS_CLEANUP_PLAN  
 Datum: 2026-06-25
 
-## Geaendert in RDAP40B
+## Geaendert in RDAP41
 
 ```text
-docs/current/RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP40B.md
+docs/current/RDAP41_ADMIN_NOTE_UI_STATUS_CLEANUP_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP41.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,10 +15,10 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Keine Code-Dateien in RDAP40B
+## Keine Code-Dateien in RDAP41
 
 ```text
-RDAP40B ist Doku-only.
+RDAP41 ist Doku-/Plan-only.
 Kein Backend-Code.
 Kein Frontend-Code.
 Keine DB-Migration.
@@ -63,7 +63,7 @@ dashboard_sessions
 dashboard_users
 ```
 
-## Naechster Dateibereich fuer RDAP41
+## Naechster Dateibereich fuer RDAP41B
 
 Bei Status-Semantik-Cleanup:
 
@@ -73,7 +73,7 @@ remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
 ```
 
-Bei Zieluser-/Detailseiten-Planung:
+## Danach moeglicher Dateibereich fuer Zieluser-/Detailseiten-Planung
 
 ```text
 remote-modboard/backend/public/assets/remote-modboard.js

@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS  
+Stand: RDAP41_ADMIN_NOTE_UI_STATUS_CLEANUP_PLAN  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -10,7 +10,8 @@ Projekt: `stream-control-center` / Remote-Modboard / RDAP
 RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED ist live erfolgreich getestet.
 RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC ist live erfolgreich getestet.
 RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED ist live erfolgreich getestet.
-RDAP40B dokumentiert den Live-Stand und aktualisiert Projektstatus/TODO/NEXT_STEPS/CHANGELOG.
+RDAP40B dokumentiert den Live-Stand.
+RDAP41 dokumentiert die Status-/Routes-Semantik fuer den naechsten Cleanup.
 ```
 
 ## Live-System
@@ -24,7 +25,7 @@ DB-Client: /root/rdap29_mysql_client.cnf
 Branch: dev
 ```
 
-## RDAP40 UI-Stand
+## RDAP40 bestaetigter UI-Stand
 
 ```text
 Admin -> Admin-Notizen zeigt Notizen fuer tw:127709954.
@@ -100,7 +101,7 @@ Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 Permission-Vergabe in der UI
 ```
 
-## Bekannte Semantik-Unsauberkeit
+## RDAP41 Plan-Befund
 
 ```text
 /api/remote/routes zeigt in adminNoteWriteConfirmed noch uiWriteButtonsEnabled: false.
@@ -108,8 +109,20 @@ Das stammt aus RDAP39 und ist nach RDAP40 semantisch ungenau, weil RDAP40 bewuss
 Kein akuter Funktionsfehler.
 ```
 
+## Empfohlene RDAP41B/RDAP42 Umsetzung
+
+```text
+Status-/Routes-Summary sauber trennen:
+- backendAutoUiWriteButtonsEnabled: false
+- adminNoteCreateUiPrepared: true
+- adminNoteCreateButtonVisibleForWritePermission: true
+- adminNoteUpdateUiPrepared: false
+- adminNoteDeactivateUiPrepared: false
+- adminNoteDeleteUiPrepared: false
+```
+
 ## Naechster empfohlener Step
 
 ```text
-RDAP41_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP
+RDAP41B_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP
 ```

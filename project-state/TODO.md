@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS  
+Stand: RDAP41_ADMIN_NOTE_UI_STATUS_CLEANUP_PLAN  
 Datum: 2026-06-25
 
 ## Erledigt
@@ -25,14 +25,16 @@ Datum: 2026-06-25
 - [x] RDAP40 neue Testnotiz erstellt: `admin_note_20260625171342_d1f871dd6370`.
 - [x] RDAP40 Readback/Refresh nach Create erfolgreich.
 - [x] Bestaetigt: Keine Update-/Deactivate-/Delete-Buttons sichtbar.
-- [x] RDAP40B Doku-only erstellt.
+- [x] RDAP40B Doku-only erstellt und per stepdone nach GitHub/dev gebracht.
+- [x] RDAP41 Status-Semantik-Cleanup geplant.
 
 ## Offen / Naechstes
 
-- [ ] RDAP40B lokal per `installstep.cmd` einspielen.
-- [ ] RDAP40B `git status` pruefen.
-- [ ] RDAP40B per `stepdone.cmd` nach GitHub/dev bringen.
-- [ ] Kein Webserver-Deploy fuer RDAP40B noetig, da Doku-only.
-- [ ] RDAP41 planen: Status-Semantik fuer `uiWriteButtonsEnabled` nach RDAP40 bereinigen.
-- [ ] Alternativ RDAP41 planen: Admin-Note Zieluser-Auswahl / echte Admin-User-Detailseite statt fixem `tw:127709954`.
+- [ ] RDAP41 lokal per `installstep.cmd` einspielen.
+- [ ] RDAP41 `git status` pruefen.
+- [ ] RDAP41 per `stepdone.cmd` nach GitHub/dev bringen.
+- [ ] Kein Webserver-Deploy fuer RDAP41 noetig, da Doku-only.
+- [ ] RDAP41B bauen: Status-/Routes-Summary fuer UI-Create-Semantik bereinigen.
+- [ ] RDAP41B darf keine neue Schreibfunktion, keine DB-Migration und keine Update-/Deactivate-/Delete-UI enthalten.
+- [ ] Danach planen: Admin-Note Zieluser-Auswahl / echte Admin-User-Detailseite statt fixem `tw:127709954`.
 - [ ] Spaeter: Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.

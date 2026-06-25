@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## RDAP41_ADMIN_NOTE_UI_STATUS_CLEANUP_PLAN - 2026-06-25
+
+- Status-/Routes-Semantik nach RDAP40 geplant.
+- Bestaetigt: RDAP40 Create-UI funktioniert live und erstellt Admin-Notizen ueber die bestehende RDAP39-Create-Route.
+- Problem dokumentiert:
+  - `adminNoteWriteConfirmed.uiWriteButtonsEnabled: false` ist nach RDAP40 semantisch ungenau.
+  - Gemeint war in RDAP39: Backend aktiviert nicht automatisch UI-Schreibbuttons.
+  - Nach RDAP40 gibt es bewusst einen UI-Create-Button fuer write-berechtigte Admins.
+- Gewuenschte neue Status-Semantik vorbereitet:
+  - `backendAutoUiWriteButtonsEnabled: false`
+  - `adminNoteCreateUiPrepared: true`
+  - `adminNoteCreateButtonVisibleForWritePermission: true`
+  - `adminNoteUpdateUiPrepared: false`
+  - `adminNoteDeactivateUiPrepared: false`
+  - `adminNoteDeleteUiPrepared: false`
+- Naechsten technischen Cleanup-Step vorbereitet:
+  - `RDAP41B_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP`
+- Keine Code-Aenderung.
+- Kein Backend.
+- Kein Frontend.
+- Keine DB-Migration.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS - 2026-06-25
 
 - RDAP40 Live-Bestaetigung dokumentiert.
