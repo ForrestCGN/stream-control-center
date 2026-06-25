@@ -1,9 +1,9 @@
 # CHANGELOG
 
-Stand: RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS  
+Stand: RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
-## RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS
+## RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS
 
 Typ: Doku-/Status-Sync  
 DB: keine Aenderung  
@@ -14,46 +14,57 @@ Workflow-Tools: nein
 
 ### Ergebnis
 
-RDAP20 ist live bestaetigt.
+RDAP24 ist live bestaetigt.
+
+`/api/remote/status` liefert:
+
+```text
+moduleBuild: RDAP_ADMIN_USERS24_AUTH_SESSION_OAUTH_READINESS_DIAGNOSTIC
+writeEnabled: false
+actionEnabled: false
+productiveAgentRuntime: false
+```
 
 `/api/remote/routes` liefert:
 
 ```text
-statusApiVersion: rdap_admin_users20.v1
-adminUserAdminNoteReadPermissionDiagnostic.prepared: true
-adminUserAdminNoteReadPermissionDiagnostic.route: /api/remote/admin/users/admin-note-read-permission-diagnostic
-adminUserAdminNoteReadPermissionDiagnostic.permissionKey: admin.users.note.read
-adminUserAdminNoteReadPermissionDiagnostic.tableName: dashboard_user_admin_notes
-adminUserAdminNoteReadPermissionDiagnostic.readOnly: true
-adminUserAdminNoteReadPermissionDiagnostic.writeEnabled: false
-adminUserAdminNoteReadPermissionDiagnostic.productiveWritesEnabled: false
-adminUserAdminNoteReadPermissionDiagnostic.writesStillBlocked: true
-adminUserAdminNoteReadPermissionDiagnostic.returnsNoteText: false
-adminUserAdminNoteReadPermissionDiagnostic.noteTextIsRedacted: true
-adminUserAdminNoteReadPermissionDiagnostic.routeListKeySynced: true
+statusApiVersion: rdap_admin_users24.v1
+authSessionOauthReadinessDiagnostic.prepared: true
+authSessionOauthReadinessDiagnostic.route: /api/remote/auth/readiness-diagnostic
+authSessionOauthReadinessDiagnostic.readOnly: true
+authSessionOauthReadinessDiagnostic.writeEnabled: false
+authSessionOauthReadinessDiagnostic.sessionWriteExecuted: false
+authSessionOauthReadinessDiagnostic.createsSession: false
+authSessionOauthReadinessDiagnostic.setsCookie: false
+authSessionOauthReadinessDiagnostic.tokenExchangeExecuted: false
+authSessionOauthReadinessDiagnostic.callsTwitchApi: false
+authSessionOauthReadinessDiagnostic.redirectsToTwitch: false
+authSessionOauthReadinessDiagnostic.routeListKeySynced: true
 ```
 
-Unauthentifizierter Zugriff auf die Permission-Diagnostic liefert korrekt:
+`/api/remote/auth/readiness-diagnostic` liefert:
 
 ```text
-HTTP/1.1 401 Unauthorized
-ok: false
-loggedIn: false
-dashboardAccess: false
-canReadAdminNotes: false
-reason: not_logged_in_or_session_invalid
+ok: true
 readOnly: true
-writesStillBlocked: true
-returnsNoteText: false
-noteTextReturned: false
-noteTextIsRedacted: true
-communityPagesMayReadAdminNotes: false
+statusApiVersion: rdap_admin_users24.v1
+readiness.readyForLoginSmokeTest: true
+readiness.blockers: []
+```
+
+### OAuth-Safety geklaert
+
+```text
+403/403 ist nur bei deaktiviertem Login/OAuth korrekt.
+302/403 ist bei bewusst aktiviertem Login/OAuth korrekt:
+  start -> 302 Redirect zu Twitch
+  callback ohne gueltigen Code/State -> 403
 ```
 
 ### Dieser Doku-Sync aktualisiert
 
 ```text
-docs/current/RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS.md
+docs/current/RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -79,19 +90,12 @@ Keine OBS-/Sound-/Overlay-/Command-Steuerung
 Keine Workflow-Tools
 ```
 
-### Offene separate Punkte
-
-```text
-OAuth-Safety-Check im Deploy-Script pruefen: twitch/start liefert aktuell HTTP 302, callback HTTP 403.
-Base moduleBuild/statusApiVersion spaeter kosmetisch/diagnostisch anheben, aber nur in eigenem Mini-Scope.
-```
-
 ## Vorheriger Stand
 
-RDAP17B war live bestaetigt:
+RDAP20B war live bestaetigt:
 
 ```text
-statusApiVersion: rdap_admin_users17b.v1
-adminUserAdminNoteReadDiagnostic.prepared: true
-adminUserAdminNoteReadDiagnostic.routeListKeySynced: true
+statusApiVersion: rdap_admin_users20.v1
+adminUserAdminNoteReadPermissionDiagnostic.prepared: true
+HTTP 401 ohne Session korrekt
 ```

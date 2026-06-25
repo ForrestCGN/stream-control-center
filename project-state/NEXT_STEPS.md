@@ -1,52 +1,61 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS  
+Stand: RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## Erledigt / live bestaetigt
 
 ```text
 RDAP16 Admin-Notiz-Tabelle dashboard_user_admin_notes angelegt
-RDAP16 Diagnose: tableExists true, schemaReady true, migrationRequired false, rowCount 0
 RDAP17 Admin-Notiz Read-Diagnostic read-only gebaut und live bestaetigt
 RDAP17B Routenuebersicht fuer Admin-Notiz Read-Diagnostic synchronisiert und live bestaetigt
 RDAP18 Admin-Notiz Display-Scope geplant
 RDAP19 Auth-/Permission-Read-Check fuer Admin-Notizen geplant
 RDAP20 Admin-Notiz Read-Permission-Diagnostic gebaut und live bestaetigt
 RDAP20 unauthentifizierter Zugriff korrekt mit HTTP 401 blockiert
+RDAP21 Admin-Notiz Display-Readiness geplant
+RDAP22 echte Admin-Notiz Read-Route geplant, aber nicht gebaut
+RDAP23 Auth-/Session-/Login-Aktivierung groesser gebuendelt geplant
+RDAP24 Auth-/Session-/OAuth-Readiness-Diagnostic gebaut und live bestaetigt
+RDAP24 Readiness: readyForLoginSmokeTest true, blockers []
 ```
 
 ## Naechster sinnvoller Fachstep
 
 ```text
-RDAP21_ADMIN_NOTE_DISPLAY_READINESS_PLAN
+RDAP25_AUTH_SESSION_LOGIN_SMOKE_TEST
 ```
 
-RDAP21 soll zuerst nur planen bzw. sehr vorsichtig vorbereiten, wie echte Admin-Notiztexte spaeter angezeigt werden duerfen.
-
-Wichtige Punkte fuer RDAP21:
+RDAP25 soll groesser, aber klar begrenzt sein:
 
 ```text
-Keine produktiven Writes
-Keine Notiz-Erstellung
-Keine Notiz-Aenderung
-Keine Notiz-Loeschung
-Keine UI-Schreibbuttons
-Keine Notiztexte ohne echte Session/Permission
-Permission admin.users.note.read serverseitig erzwingen
-Community-Seiten duerfen Admin-Notizen niemals lesen
-Dashboard-UI nur read-only planen
+Login/OAuth/Session-Smoke-Test bewusst aktivieren/testen
+Twitch-Start/Callback-Verhalten kontrolliert pruefen
+Session-Cookie und /api/remote/auth/me pruefen
+/api/remote/auth/session-status pruefen
+/api/remote/auth/permissions/check pruefen
+Keine Admin-Notiztexte anzeigen
+Keine Admin-Notiz-Writes bauen
+Keine User-/Rollenverwaltung
+Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
-## Danach moeglich, aber getrennt
+## Danach moeglich
 
-Erst nach RDAP21-Planung und separatem Go:
+Erst nach erfolgreichem RDAP25-Smoke-Test:
 
 ```text
-RDAP22_ADMIN_NOTE_DISPLAY_READONLY_AUTHED
+RDAP26_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
 ```
 
-Dieser Step duerfte echte Notiztexte nur dann anzeigen, wenn Auth/Session/Permission serverseitig sauber aktiv und getestet sind.
+Dieser Step darf echte Admin-Notiztexte nur dann anzeigen, wenn serverseitig gilt:
+
+```text
+gueltige Session
+Dashboard-Zugriff erlaubt
+Permission admin.users.note.read vorhanden
+Community-Seiten ausgeschlossen
+```
 
 ## Admin-Notiz-Write bleibt spaeter getrennt
 
@@ -65,6 +74,6 @@ separates Go von Forrest
 ## Offene Diagnose-/Workflow-Punkte
 
 ```text
-OAuth-Safety-Check im Deploy-Script separat pruefen: twitch/start liefert aktuell HTTP 302 statt erwarteter 403.
-Base moduleBuild/statusApiVersion spaeter kosmetisch/diagnostisch anheben, aber nur in eigenem Mini-Scope.
+Deploy-Safety-Check anpassen: 403/403 nur bei deaktiviertem Login erwarten, 302/403 bei bewusst aktiviertem Login erlauben.
+Base moduleBuild/statusApiVersion bei echten Backend-Steps aktualisieren und nicht auf alten RDAP14B-Werten stehen lassen.
 ```

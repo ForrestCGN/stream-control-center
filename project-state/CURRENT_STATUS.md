@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS  
+Stand: RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
@@ -33,7 +33,7 @@ Backup vor Migration:
 /opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap16_before_admin_note_table_20260625_070106.sql
 ```
 
-RDAP17 ist live bestaetigt:
+RDAP17 / RDAP17B sind live bestaetigt:
 
 ```text
 GET /api/remote/admin/users/admin-note-read-diagnostic?targetUserUid=test
@@ -43,35 +43,20 @@ writesStillBlocked: true
 returnsNoteText: false
 noteTextIsRedacted: true
 totalCount: 0
-```
 
-RDAP17B ist live bestaetigt:
-
-```text
 GET /api/remote/routes
 statusApiVersion: rdap_admin_users17b.v1
-adminUserAdminNoteReadDiagnostic.prepared: true
 adminUserAdminNoteReadDiagnostic.routeListKeySynced: true
-adminUserAdminNoteReadDiagnostic.readOnly: true
-adminUserAdminNoteReadDiagnostic.writesStillBlocked: true
-adminUserAdminNoteReadDiagnostic.returnsNoteText: false
-adminUserAdminNoteReadDiagnostic.noteTextIsRedacted: true
 ```
 
-RDAP18 ist abgeschlossen:
+RDAP18 / RDAP19 / RDAP21 / RDAP22 / RDAP23 sind Plan- und Scope-Steps:
 
 ```text
-Admin-Notiz Display-Scope geplant
-admin.users.note.read fuer spaetere Anzeige vorgesehen
-admin.users.note.write bleibt separater Write-Scope
-Community-Seiten duerfen Admin-Notizen niemals anzeigen
-```
-
-RDAP19 ist abgeschlossen:
-
-```text
-Auth-/Permission-Read-Check fuer Admin-Notizen geplant
-Keine Backend-/DB-/UI-Aenderung
+RDAP18: Admin-Notiz Display-Scope geplant
+RDAP19: Auth-/Permission-Read-Check fuer Admin-Notizen geplant
+RDAP21: Display-Readiness geplant
+RDAP22: echte Read-Route geplant, aber nicht gebaut
+RDAP23: Auth-/Session-/Login-Aktivierung groesser gebuendelt geplant
 ```
 
 RDAP20 ist live bestaetigt:
@@ -100,19 +85,37 @@ canReadAdminNotes: false
 reason: not_logged_in_or_session_invalid
 ```
 
-## Service-Status
-
-Der Status-Endpunkt kann weiterhin den aelteren Service-Build anzeigen, wenn nur Diagnose-/Routen-/Doku-/SQL-nahe Steps betroffen waren:
+RDAP24 ist live bestaetigt:
 
 ```text
-moduleBuild: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
-statusApiVersion: rdap_admin_users14b.v1
+GET /api/remote/status
+moduleBuild: RDAP_ADMIN_USERS24_AUTH_SESSION_OAUTH_READINESS_DIAGNOSTIC
 writeEnabled: false
 actionEnabled: false
 productiveAgentRuntime: false
+
+GET /api/remote/routes
+statusApiVersion: rdap_admin_users24.v1
+authSessionOauthReadinessDiagnostic.prepared: true
+authSessionOauthReadinessDiagnostic.routeListKeySynced: true
+
+GET /api/remote/auth/readiness-diagnostic
+ok: true
+readOnly: true
+readiness.readyForLoginSmokeTest: true
+readiness.blockers: []
 ```
 
-Das ist aktuell kein Fehler, solange die konkreten RDAP20-Routen korrekt antworten.
+## OAuth-Safety-Klaerung
+
+```text
+403/403 ist korrekt, wenn Login/OAuth deaktiviert bleiben soll.
+302/403 ist korrekt, wenn Login/OAuth bewusst aktiviert ist:
+  twitch/start -> 302 Redirect zu Twitch
+  twitch/callback ohne gueltigen Code/State -> 403
+```
+
+Der Deploy-Safety-Check muss spaeter an diese Unterscheidung angepasst werden.
 
 ## Weiterhin nicht aktiv
 
