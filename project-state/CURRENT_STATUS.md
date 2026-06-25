@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS  
+Stand: RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
@@ -27,7 +27,7 @@ writeEnabled: false
 productiveWritesEnabled: false
 ```
 
-Backup vor Migration:
+Backup vor RDAP16-Migration:
 
 ```text
 /opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap16_before_admin_note_table_20260625_070106.sql
@@ -73,18 +73,6 @@ adminUserAdminNoteReadPermissionDiagnostic.returnsNoteText: false
 adminUserAdminNoteReadPermissionDiagnostic.noteTextIsRedacted: true
 ```
 
-Unauthentifizierter Zugriff auf die Permission-Diagnostic ist korrekt blockiert:
-
-```text
-GET /api/remote/admin/users/admin-note-read-permission-diagnostic?targetUserUid=test
-HTTP/1.1 401 Unauthorized
-ok: false
-loggedIn: false
-dashboardAccess: false
-canReadAdminNotes: false
-reason: not_logged_in_or_session_invalid
-```
-
 RDAP24 ist live bestaetigt:
 
 ```text
@@ -94,16 +82,57 @@ writeEnabled: false
 actionEnabled: false
 productiveAgentRuntime: false
 
-GET /api/remote/routes
-statusApiVersion: rdap_admin_users24.v1
-authSessionOauthReadinessDiagnostic.prepared: true
-authSessionOauthReadinessDiagnostic.routeListKeySynced: true
-
 GET /api/remote/auth/readiness-diagnostic
 ok: true
 readOnly: true
 readiness.readyForLoginSmokeTest: true
 readiness.blockers: []
+```
+
+RDAP25 Login-Smoke-Test ist live bestaetigt:
+
+```text
+Login erfolgreich: ja
+loggedIn: true
+dashboardAccess: true
+accessReason: allowed_login
+User: ForrestCGN / tw:127709954
+Session-Cookie: scc_remote_session
+Session gueltig: true
+Session-Reason: session_valid_readonly
+```
+
+RDAP26 Option B Permission-Seed ist live bestaetigt:
+
+```text
+Backup:
+  /opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap26_before_owner_permission_seed_20260625_080740.sql
+
+User:
+  tw:127709954 | ForrestCGN | forrestcgn | active
+
+Rolle:
+  owner
+
+Permissions:
+  owner -> admin.users.note.read -> allow
+  owner -> remote.view           -> allow
+```
+
+Browser-/API-Test nach RDAP26 erfolgreich:
+
+```text
+remote.view:
+  diagnostics.effectivePermissionWouldAllow: true
+  diagnostics.effectivePermissionReason: explicit_allow
+  diagnostics.roles: ["owner"]
+  diagnostics.permissionRows.rolePermissions: 1
+
+admin.users.note.read:
+  diagnostics.effectivePermissionWouldAllow: true
+  diagnostics.effectivePermissionReason: explicit_allow
+  diagnostics.roles: ["owner"]
+  diagnostics.permissionRows.rolePermissions: 1
 ```
 
 ## OAuth-Safety-Klaerung
@@ -126,6 +155,9 @@ Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
 Admin-Notiz schreiben
 Admin-Notiztexte produktiv anzeigen
+Admin-Notiz aendern
+Admin-Notiz loeschen
+Permission admin.users.note.write
 Audit-Inserts oder Audit-Updates
 Lock acquire/heartbeat/release/force-takeover
 UI-Schreibbuttons

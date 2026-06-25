@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS  
+Stand: RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## Zentrale RDAP-Dokumente
@@ -11,14 +11,15 @@ docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
 docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
 docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-24.md
-docs/current/RDAP_ADMIN_USERS16B_DOCS_WORKFLOW_SYNC.md
-docs/current/RDAP_ADMIN_USERS17B_ROUTE_LIST_SYNC_LIVE_CONFIRMED.md
 docs/current/RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS.md
 docs/current/RDAP_ADMIN_USERS21_ADMIN_NOTE_DISPLAY_READINESS_PLAN.md
 docs/current/RDAP_ADMIN_USERS22_ADMIN_NOTE_REAL_READ_ROUTE_PLAN.md
 docs/current/RDAP_ADMIN_USERS23_AUTH_SESSION_LOGIN_ACTIVATION_SCOPE.md
 docs/current/RDAP_ADMIN_USERS24_AUTH_SESSION_OAUTH_READINESS_DIAGNOSTIC.md
 docs/current/RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS.md
+docs/current/RDAP_ADMIN_USERS25_AUTH_SESSION_LOGIN_SMOKE_TEST.md
+docs/current/RDAP26_PERMISSION_DB_SEED_OPTION_B.md
+docs/current/RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS.md
 ```
 
 ## Projektstatus-Dateien
@@ -31,7 +32,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Relevante Backend-Dateien fuer RDAP24
+## Relevante Backend-Dateien fuer Auth/Permission/Admin-Notes
 
 ```text
 remote-modboard/backend/server.js
@@ -50,6 +51,21 @@ remote-modboard/backend/src/services/auth-session-oauth-readiness-diagnostic.ser
 remote-modboard/backend/src/services/admin-user-admin-note-read-permission-diagnostic.service.js
 ```
 
+## Relevante SQL-/Tool-Dateien
+
+```text
+tools/rdap16_admin_note_table_migration.sql
+tools/rdap26_owner_permission_seed_option_b.sql
+```
+
+Wichtig:
+
+```text
+Repo-Root-Dateien unter docs/, project-state/ und tools/ werden nicht nach /opt/stream-control-center/remote-modboard/ deployed.
+Sie liegen nach Webserver-Clone im Deploy-Clone unter /opt/stream-control-center/_deploy_tmp/<STEP>/.
+SQL-Dateien werden nicht automatisch durch installstep, stepdone oder deploy ausgefuehrt.
+```
+
 ## Live relevante Routen
 
 ```text
@@ -58,9 +74,8 @@ GET /api/remote/routes
 GET /api/remote/auth/readiness-diagnostic
 GET /api/remote/auth/me
 GET /api/remote/auth/session-status
-GET /api/remote/auth/permissions/check
-GET /api/remote/auth/twitch/start
-GET /api/remote/auth/twitch/callback
+GET /api/remote/auth/permissions/check?permission=remote.view
+GET /api/remote/auth/permissions/check?permission=admin.users.note.read
 GET /api/remote/admin/users/admin-note-read-permission-diagnostic?targetUserUid=test
 ```
 
@@ -69,9 +84,13 @@ GET /api/remote/admin/users/admin-note-read-permission-diagnostic?targetUserUid=
 ```text
 MariaDB: c3stream_control
 Tabelle: dashboard_user_admin_notes
+Tabelle: dashboard_users
+Tabelle: dashboard_user_roles
+Tabelle: dashboard_role_permissions
+Tabelle: dashboard_module_permissions
 ```
 
-Bestaetigt:
+Bestaetigt Admin-Notiz-Tabelle:
 
 ```text
 tableExists: true
@@ -80,30 +99,19 @@ migrationRequired: false
 rowCount: 0
 ```
 
-Backup vor RDAP16-Migration:
+Bestaetigt Owner-Permission-Seed:
+
+```text
+ForrestCGN / tw:127709954 -> owner
+owner -> remote.view -> allow
+owner -> admin.users.note.read -> allow
+```
+
+Backups:
 
 ```text
 /opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap16_before_admin_note_table_20260625_070106.sql
-```
-
-## RDAP24 live bestaetigt
-
-```text
-/api/remote/status
-moduleBuild: RDAP_ADMIN_USERS24_AUTH_SESSION_OAUTH_READINESS_DIAGNOSTIC
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
-
-/api/remote/routes
-statusApiVersion: rdap_admin_users24.v1
-authSessionOauthReadinessDiagnostic.routeListKeySynced: true
-
-/api/remote/auth/readiness-diagnostic
-ok: true
-readOnly: true
-readiness.readyForLoginSmokeTest: true
-readiness.blockers: []
+/opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap26_before_owner_permission_seed_20260625_080740.sql
 ```
 
 ## Workflow-Tools geschuetzt
@@ -115,7 +123,7 @@ testdeploy.cmd
 tools/remote-modboard-deploy.sh
 ```
 
-Diese Dateien wurden in RDAP24B nicht geaendert.
+Diese Dateien wurden in RDAP26B nicht geaendert.
 
 ## Keine Secrets / keine DB im Repo
 

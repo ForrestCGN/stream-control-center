@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS  
+Stand: RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## RDAP / Remote-Modboard
@@ -23,19 +23,24 @@ Datum: 2026-06-25
 - [x] RDAP23 Auth-/Session-/Login-Aktivierung groesser gebuendelt geplant.
 - [x] RDAP24 Auth-/Session-/OAuth-Readiness-Diagnostic gebaut und live bestaetigt.
 - [x] RDAP24 Readiness: `readyForLoginSmokeTest: true`, `blockers: []`.
+- [x] RDAP25 Login-/OAuth-/Session-Smoke-Test erfolgreich.
+- [x] RDAP26 Option B entschieden: echte Rollen/Permissions aus DB.
+- [x] RDAP26 Owner-Rolle fuer ForrestCGN geseeded.
+- [x] RDAP26 `owner -> remote.view -> allow` geseeded.
+- [x] RDAP26 `owner -> admin.users.note.read -> allow` geseeded.
+- [x] RDAP26 Browser-/API-Test bestaetigt: `effectivePermissionWouldAllow: true`.
 
 ## Weiterhin offen
 
-- [ ] RDAP25 Auth-/Session-/OAuth Login-Smoke-Test kontrolliert durchfuehren.
-- [ ] Deploy-Safety-Check anpassen: 403/403 nur bei deaktiviertem Login erwarten, 302/403 bei bewusst aktiviertem Login erlauben.
-- [ ] Noch keine produktive Admin-Notiz-Anzeige mit Notiztexten bauen, bevor Auth/Session/Permission aktiv und getestet ist.
+- [ ] RDAP27 echte Admin-Notiz-Read-Route mit Auth/Session/Permission bauen.
+- [ ] Noch keine produktive Admin-Notiz-Anzeige ohne `admin.users.note.read`.
 - [ ] Noch keinen Admin-Notiz-Write bauen.
 - [ ] Noch keine UI-Schreibbuttons fuer Admin-Notizen.
-- [ ] Permission `admin.users.note.read` fuer spaetere Anzeige serverseitig erzwingen.
 - [ ] Permission `admin.users.note.write` fuer spaeteren Write getrennt klaeren.
 - [ ] Confirm-Write Pflicht fuer spaeteren Admin-Notiz-Write vorbereiten.
 - [ ] Audit-Payload fuer spaeteren Admin-Notiz-Write vorbereiten.
 - [ ] Lock-Scope fuer spaeteren Admin-Notiz-Write vorbereiten.
+- [ ] Deploy-Safety-Check anpassen: `302/403` bei bewusst aktivem Login erlauben.
 
 ## Community-Seite / forrestcgn.de / .info
 

@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS24B_LIVE_CONFIRMED_DOCS  
+Stand: RDAP26B_OWNER_PERMISSION_SEED_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## Erledigt / live bestaetigt
@@ -18,44 +18,56 @@ RDAP22 echte Admin-Notiz Read-Route geplant, aber nicht gebaut
 RDAP23 Auth-/Session-/Login-Aktivierung groesser gebuendelt geplant
 RDAP24 Auth-/Session-/OAuth-Readiness-Diagnostic gebaut und live bestaetigt
 RDAP24 Readiness: readyForLoginSmokeTest true, blockers []
+RDAP25 Login-/OAuth-/Session-Smoke-Test erfolgreich
+RDAP26 Option B DB-Rollen/Permissions live geseeded und bestaetigt
+```
+
+## Aktueller Rechte-Stand
+
+```text
+ForrestCGN / tw:127709954 -> Rolle owner
+owner -> remote.view -> allow
+owner -> admin.users.note.read -> allow
 ```
 
 ## Naechster sinnvoller Fachstep
 
 ```text
-RDAP25_AUTH_SESSION_LOGIN_SMOKE_TEST
+RDAP27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
 ```
 
-RDAP25 soll groesser, aber klar begrenzt sein:
-
-```text
-Login/OAuth/Session-Smoke-Test bewusst aktivieren/testen
-Twitch-Start/Callback-Verhalten kontrolliert pruefen
-Session-Cookie und /api/remote/auth/me pruefen
-/api/remote/auth/session-status pruefen
-/api/remote/auth/permissions/check pruefen
-Keine Admin-Notiztexte anzeigen
-Keine Admin-Notiz-Writes bauen
-Keine User-/Rollenverwaltung
-Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung
-```
-
-## Danach moeglich
-
-Erst nach erfolgreichem RDAP25-Smoke-Test:
-
-```text
-RDAP26_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
-```
-
-Dieser Step darf echte Admin-Notiztexte nur dann anzeigen, wenn serverseitig gilt:
+RDAP27 darf echte Admin-Notiztexte nur read-only liefern, wenn serverseitig gilt:
 
 ```text
 gueltige Session
 Dashboard-Zugriff erlaubt
-Permission admin.users.note.read vorhanden
+admin.users.note.read effectivePermissionWouldAllow true
 Community-Seiten ausgeschlossen
+keine Write-Funktion
+keine UI-Schreibbuttons
 ```
+
+## RDAP27 harte Grenzen
+
+```text
+Kein admin.users.note.write
+Keine Admin-Notiz-Erstellung
+Keine Admin-Notiz-Aenderung
+Keine Admin-Notiz-Loeschung
+Keine UI-Schreibbuttons
+Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung
+Keine Community-Seiten-Anbindung
+```
+
+## Danach moeglich
+
+Nach RDAP27:
+
+```text
+RDAP28_ADMIN_NOTE_READONLY_UI_PANEL
+```
+
+Das waere eine reine read-only Dashboard-Anzeige fuer Admin-Notizen, ohne Schreibbuttons.
 
 ## Admin-Notiz-Write bleibt spaeter getrennt
 
