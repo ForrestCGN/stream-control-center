@@ -1,9 +1,10 @@
 # CURRENT_STATUS
 
-Stand: 2026-06-24  
+Stand: RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN  
+Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller bestätigter RDAP-/Design-/UX-Status
+## Aktueller bestätigter RDAP-Status
 
 Produktiv unter:
 
@@ -63,7 +64,30 @@ migrationRequired: true
 reason: admin_note_table_missing_or_incomplete
 ```
 
-Das ist kein Fehler. Die Tabelle für Admin-Notizen existiert noch nicht und muss später in einem separaten Migration-Step mit Backup/Rollback geplant bzw. ausgeführt werden.
+Das ist kein Fehler. Die Tabelle für Admin-Notizen existiert noch nicht.
+
+## RDAP15 Ergebnis
+
+RDAP15 dokumentiert den Migrationsplan für:
+
+```text
+dashboard_user_admin_notes
+```
+
+RDAP15 enthält:
+
+```text
+- exakten SQL-Entwurf
+- Backup-Befehl
+- Rollback-Befehl
+- Read-only Vorprüfung vor Migration
+- Read-Back-Prüfung nach Migration
+- harte Abbruchbedingungen
+- klare Grenze: echte Migration erst mit separatem Go
+- Zukunftshinweis für gemeinsame User-/Auth-/Rollen-Basis für forrestcgn.de/.info und Modboard
+```
+
+RDAP15 hat keine Code-Dateien geändert und keine Migration ausgeführt.
 
 ## Weiterhin nicht aktiv
 
@@ -88,7 +112,19 @@ Admin-Notiz-Write
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN
+RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION
 ```
 
-RDAP15 darf zunächst nur die Migration für `dashboard_user_admin_notes` sauber planen. Eine echte Migration braucht weiterhin separaten Backup-/Rollback-Plan und ausdrückliches Go.
+RDAP16 darf erst nach separatem Go gebaut werden.
+
+Empfohlener RDAP16-Scope:
+
+```text
+- echte DB-/Env-Werte prüfen
+- Read-only Vorprüfung
+- Backup erstellen und prüfen
+- Migration exakt nach freigegebenem SQL ausführen
+- Read-Back prüfen
+- Diagnose prüfen
+- Writes weiterhin disabled lassen
+```

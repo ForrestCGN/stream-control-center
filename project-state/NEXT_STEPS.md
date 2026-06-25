@@ -1,7 +1,7 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC_LIVE_CONFIRMED  
-Datum: 2026-06-24
+Stand: RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN  
+Datum: 2026-06-25
 
 ## Aktuell erledigt
 
@@ -11,62 +11,42 @@ RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
 RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
 RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
 RDAP14B Webserver-Deploy live bestätigt
+RDAP15 Admin-Notiz-Tabellen-Migration geplant
 ```
 
-## RDAP14B Live-Ergebnis
+## RDAP15 Ergebnis
 
-Statusroute bestätigt:
-
-```text
-moduleBuild: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
-statusApiVersion: rdap_admin_users14b.v1
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
-```
-
-Routenübersicht bestätigt:
+RDAP15 hat nur geplant/dokumentiert:
 
 ```text
-/adminUserAdminNoteDiagnostic vorhanden
-route: /api/remote/admin/users/admin-note-diagnostic
-readOnly: true
-writeEnabled: false
-writesStillBlocked: true
-routeListKeySynced: true
-```
-
-Admin-Notiz-Diagnose bestätigt:
-
-```text
-ok: true
-routeRemainsReadOnly: true
-writeEnabled: false
-productiveWritesEnabled: false
-writesStillBlocked: true
-tableExists: false
-schemaReady: false
-migrationRequired: true
+- SQL für dashboard_user_admin_notes
+- Backup-Befehl
+- Rollback-Befehl
+- Read-only Vorprüfung
+- Read-Back-Prüfung
+- harte Abbruchbedingungen
+- keine echte Migration ohne separates Go
+- Community-/Modboard-Zukunft: gemeinsame User-/Auth-/Rollen-Basis, aber getrennte Community- und Dashboard-Daten
 ```
 
 ## Nächster empfohlener Fach-Step
 
 ```text
-RDAP_ADMIN_USERS15_ADMIN_NOTE_TABLE_MIGRATION_PLAN
+RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION
 ```
 
-Scope:
+Scope nur nach separatem Go:
 
-- Migration für `dashboard_user_admin_notes` planen.
-- Exakten SQL-Entwurf dokumentieren.
-- Backup-Befehl dokumentieren.
-- Rollback-Befehl dokumentieren.
-- Read-only Vorprüfung vor Migration definieren.
-- Read-Back-Prüfung nach Migration definieren.
-- Harte Abbruchbedingungen definieren.
-- Noch keine echte Migration ohne separates Go.
-- Noch keinen Admin-Notiz-Write bauen.
-- Keine UI-Schreibbuttons.
+```text
+- echte Server-DB-/Env-Werte prüfen
+- Backup erstellen und Backup-Datei prüfen
+- CREATE TABLE IF NOT EXISTS dashboard_user_admin_notes ausführen
+- Read-Back-Prüfung durchführen
+- /api/remote/admin/users/admin-note-diagnostic prüfen
+- writesStillBlocked muss true bleiben
+- writeEnabled muss false bleiben
+- productiveWritesEnabled muss false bleiben
+```
 
 ## Erst nach bestätigter Tabelle
 
