@@ -1,6 +1,6 @@
 # RDAP / stream-control-center – exakte Arbeitsweise
 
-Stand: 2026-06-25  
+Stand: 2026-06-25 – aktualisiert nach RDAP28  
 Projekt: `stream-control-center` / `remote-modboard`  
 Branch: `dev`
 
@@ -17,7 +17,10 @@ Diese Datei beschreibt die verbindliche Arbeitsweise für weitere RDAP-/Remote-M
 - Fehlende Dateien gezielt anfordern.
 - Keine Funktionalität entfernen.
 - Bestehende Systeme nutzen, keine Parallelstrukturen bauen.
-- Kleine, prüfbare Steps bevorzugen.
+- Steps so groß wie möglich und so klein wie nötig.
+- Keine künstlichen Mini-Schritte.
+- Bei `go` nicht denselben Plan oder dieselben Befehle endlos wiederholen.
+- Wenn der Ablauf im Chat bereits klar ist, kompakt bleiben und den nächsten echten Schritt liefern.
 - Produktive Writes nur mit separatem Scope, Permission, Confirm-Write, Audit, Lock, Backup, Rollback und Read-Back-Prüfung.
 
 ---
@@ -76,18 +79,16 @@ Vor jedem neuen RDAP-/Remote-Modboard-Step zuerst diese Dateien lesen/anwenden:
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
-docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
-docs/current/RDAP_CURRENT_HANDOFF_2026-06-24.md
-docs/current/RDAP_ADMIN_USERS10_BACKUP_ROLLBACK_MINI_WRITE_PLAN.md
-docs/current/RDAP_ADMIN_USERS10B_PROJECT_STATE_SYNC.md
-docs/current/RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED.md
-docs/current/RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP28_2026-06-25.md
+docs/current/RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
 ```
+
+Wenn ein neuerer `docs/current/NEXT_CHAT_PROMPT_*.md` oder eine neuere RDAP-Handoff-Datei existiert, ist immer die neueste passende Datei zu verwenden. Alte RDAP10/RDAP11-Dateien sind historische Referenz und nicht mehr der aktuelle Startfokus.
 
 ---
 
@@ -174,6 +175,14 @@ git status --short
 ```
 
 Erwartung: sauberer Stand oder nur bewusst dokumentierte Reständerungen.
+
+Wichtig für die Chat-Arbeitsweise:
+
+```text
+Wenn Forrest nach einem erfolgreichen Step nur `go`, `ok`, `weiter` oder Statusausgaben postet,
+nicht den ganzen vorherigen Befehlsklotz wiederholen.
+Dann knapp auswerten und den nächsten echten Schritt liefern.
+```
 
 ---
 
@@ -306,42 +315,51 @@ https://mods.forrestcgn.de/
 
 ---
 
-## 10. Aktueller Sicherheitsstand RDAP11
+## 10. Aktueller Sicherheitsstand nach RDAP28
 
-Bestätigter Stand:
+Bestätigter Stand am 2026-06-25:
 
 ```text
-RDAP_ADMIN_USERS11_MINI_WRITE_FOUNDATION_DISABLED
-RDAP_ADMIN_USERS11B_DEPLOY_CONFIRMED_DOCS
+RDAP25 Login/OAuth/Session erfolgreich.
+RDAP26 Option B DB-Rollen/Permissions erfolgreich.
+RDAP27 echte read-only Admin-Notiztext-Route live.
+RDAP28 read-only Admin-Notiz-UI live.
 ```
 
-Aktiv vorbereitet, aber Writes deaktiviert:
+Aktuell erlaubt:
 
 ```text
-Permission-Read-Diagnose
-Confirm-Write-Helper
-Audit-Helper
-Lock-Helper
-Mini-Write-Foundation
+ForrestCGN / tw:127709954 -> Rolle owner
+owner -> remote.view -> allow
+owner -> admin.users.note.read -> allow
+Admin -> Admin-Notizen read-only sichtbar
+RDAP27-Route liefert Notiztexte nur mit gültiger Session + DashboardAccess + admin.users.note.read
 ```
 
 Weiterhin nicht aktiv:
 
 ```text
+Admin-Notiz schreiben
+Admin-Notiz ändern
+Admin-Notiz löschen
+Permission admin.users.note.write
+UI-Schreibbuttons
 User freigeben/sperren
 Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
-DB-Migration
+DB-Migration ohne separates Go
 Audit-Inserts oder Audit-Updates
 Lock acquire/heartbeat/release/force-takeover
-Backup-Ausführung
-Rollback-Ausführung
-UI-Schreibbuttons
+Backup-Ausführung ohne DB-Step
+Rollback-Ausführung ohne Bedarf
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
+Community-Seiten-Anbindung für Admin-Notizen
 ```
 
+Hinweis:
+`RDAP11` bleibt historische Referenz für Mini-Write-Foundation, ist aber nicht mehr der aktuelle Startstand.
 ---
 
 ## 11. Mini-Write-Regel
@@ -445,3 +463,57 @@ Live ausgeführt:
 Wichtig:
 Der laufende Service-Status kann weiterhin `moduleBuild: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC` anzeigen, weil RDAP16 nur Repo-Root-Doku/SQL und die Datenbankmigration betraf, aber keinen laufenden Backend-Code unter `remote-modboard/` geändert hat.
 
+
+
+---
+
+## 15. Aktueller bestätigter RDAP28-Stand
+
+Bestätigt am 2026-06-25:
+
+```text
+RDAP28 Admin-Notiz Readonly-UI-Panel
+```
+
+Live bestätigt:
+
+```text
+GET /assets/rdap28-admin-notes.js -> HTTP 200
+HTML enthält /assets/rdap28-admin-notes.js
+Admin -> Admin-Notizen im Browser sichtbar
+Read: true
+Write: false
+Notizen: 0
+Tabelle: true
+Keine Admin-Notizen vorhanden
+Keine Schreibbuttons sichtbar
+```
+
+Backend-Grundlage:
+
+```text
+RDAP27 echte read-only Admin-Notiztext-Route
+GET /api/remote/admin/users/admin-notes/read?targetUserUid=tw:127709954
+```
+
+Sicherheitsstand:
+
+```text
+Ohne Browser-Session: HTTP 401
+Mit gültiger Session + DashboardAccess + admin.users.note.read: HTTP 200
+admin.users.note.write ist nicht vergeben
+Schreiben bleibt gesperrt
+```
+
+Nächste sinnvolle Entscheidung:
+
+```text
+A) RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
+   Eine kontrollierte Test-Notiz per SQL/DB-Seed anlegen, damit die read-only Anzeige echten Text zeigt.
+   Keine UI-Schreibfunktion.
+
+B) RDAP29_ADMIN_NOTE_WRITE_SCOPE_PLAN
+   Write-Scope sauber planen, aber noch nicht bauen.
+```
+
+Empfehlung: A zuerst, danach Write-Scope planen.

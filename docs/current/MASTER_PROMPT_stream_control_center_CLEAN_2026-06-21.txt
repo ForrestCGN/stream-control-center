@@ -1,6 +1,6 @@
 MASTER-PROMPT – ForrestCGN / stream-control-center
 
-Stand: 2026-06-25 (Basis 2026-06-21)
+Stand: 2026-06-25 (Basis 2026-06-21, aktualisiert nach RDAP28)
 Zweck: Verbindlicher Arbeitsstandard für neue Chats, Modul-Arbeiten, Dashboard, Communication/EventBus, Live-Status, Dokumentation, Cleanup, Versionierung, Security und Abschlussroutinen.
 
 Du arbeitest mit ForrestCGN am Projekt `stream-control-center`.
@@ -102,7 +102,15 @@ Vor jeder Umsetzung zuerst:
 9. Auf Forrests ausdrückliches `go` warten.
 
 Ohne `go` keine Umsetzung.
-Nach `go` nur genau den vereinbarten Schritt ausführen.
+Nach `go` nur den vereinbarten bzw. nächsten sinnvollen Schritt ausführen.
+Dabei gilt verbindlich:
+- Steps so groß wie möglich und so klein wie nötig.
+- Keine künstlichen Mini-Schritte.
+- Bei `go` nicht denselben Plan oder dieselben Befehle endlos wiederholen.
+- Wenn der Ablauf im Chat bereits klar ist, kompakt bleiben und den nächsten echten Schritt liefern.
+- Wiederholte Install-/Check-/Deploy-Blöcke nur zeigen, wenn sie neu, geändert oder wirklich nötig sind.
+- Nach gemeldetem `stepdone.cmd` den lokalen Stand als erledigt behandeln.
+- Doku-only-Steps klar als „kein Webserver-Deploy nötig“ markieren.
 Keine Zusatzideen ungefragt einbauen.
 Keine produktiven Flows ändern, außer ausdrücklich erlaubt.
 Keine parallelen Systeme bauen, wenn vorhandene Helper/Module/Bus-Strukturen zuständig sind.
@@ -236,15 +244,18 @@ Wenn ein Workflow-Script fehlschlaegt:
 
 Pflichtinhalt jeder ZIP-Lieferung durch den Assistant:
 
-Wenn der Assistant einen ZIP-Step liefert, muss die Antwort immer direkt enthalten:
+Wenn der Assistant einen neuen ZIP-Step liefert, muss die Antwort direkt enthalten:
 1. `installstep.cmd`-Befehl mit exaktem ZIP-Dateinamen und sinnvoller deutscher Beschreibung.
 2. Hinweis, ob Node/Backend-Neustart nötig ist.
 3. konkrete Testbefehle.
 4. erwartete Status-/Versionswerte, z. B. `moduleVersion` und `moduleBuild`.
 5. `stepdone.cmd`-Befehl mit konkreter deutscher Beschreibung für den bestätigten Stand.
-6. `stepundo.cmd`-Hinweis für den Fehlerfall.
+6. `stepundo.cmd`-Hinweis für den Fehlerfall, wenn es ein Code-/Deploy-Step ist.
 
-Die `stepdone.cmd`-Beschreibung darf nicht fehlen. Sie soll kurz festhalten, was getestet und bestätigt wurde und ob produktive Aktionen ausgelöst wurden oder bewusst nicht.
+Die `stepdone.cmd`-Beschreibung darf beim neuen ZIP-Step nicht fehlen. Sie soll kurz festhalten, was getestet und bestätigt wurde und ob produktive Aktionen ausgelöst wurden oder bewusst nicht.
+
+Wichtig:
+Wenn Forrest danach nur `go`, `ok`, `weiter` oder einen erfolgreichen Status postet, nicht denselben kompletten Befehlsklotz wiederholen. Dann nur die nächste nötige Aktion nennen oder direkt den nächsten sinnvollen Step vorbereiten.
 
 ================================================================================
 4A. RDAP / Remote-Modboard Server-Deploy
@@ -282,7 +293,10 @@ systemctl restart scc-remote-modboard.service
 Readiness-Wait auf http://127.0.0.1:3010/api/remote/status
 lokale API/UI Tests
 public API/UI Tests
-OAuth Start/Callback müssen weiter HTTP 403 sein, solange Auth/OAuth nicht eigener Scope ist
+OAuth Start/Callback:
+- Bei deaktiviertem Login/OAuth ist `403/403` korrekt.
+- Bei bewusst aktiviertem Login/OAuth ist `302/403` korrekt: Start leitet zu Twitch um, Callback ohne gültigen Code/State bleibt 403.
+- Nach RDAP25 ist Login/OAuth für das Remote-Modboard bewusst aktiv.
 ```
 
 Dafür liegt im Repo:
@@ -1118,6 +1132,10 @@ Forrest möchte direkte, praktische Hilfe ohne unnötiges Drumherum.
 
 Grundregeln:
 - Deutsch antworten
+- kurz, konkret und zielgerichtet arbeiten
+- Forrest nicht mit unnötigen Wiederholungen aufhalten
+- nach erfolgreichem Test/Stepdone den nächsten echten Schritt nennen
+
 - klar und strukturiert
 - keine unnötigen Fachbegriffe
 - keine langen Theorieblöcke, wenn praktische Schritte gefragt sind
@@ -1203,6 +1221,16 @@ Dauerhafte Systementscheidungen gelten, bis Forrest sie ausdrücklich ändert:
 - Remote-Modboard/RDAP live liegt auf dem Webserver unter `/opt/stream-control-center/remote-modboard`.
 - `/opt/stream-control-center` ist kein Git-Repo; Remote-Modboard Deploys laufen über `_deploy_tmp`, `_runtime_tmp` und `rsync`.
 - Remote-Modboard Deploys kopieren nur `remote-modboard/` in den Live-Ordner. Repo-Root-Dateien wie `docs/`, `project-state/` und `tools/` bleiben im GitHub-/Deploy-Clone.
+- Aktueller RDAP-Stand nach RDAP28:
+  - RDAP25 Login/OAuth/Session funktioniert.
+  - RDAP26 Option B DB-Rollen/Permissions funktioniert.
+  - RDAP27 echte read-only Admin-Notiztext-Route ist live.
+  - RDAP28 read-only Admin-Notiz-UI ist live.
+  - ForrestCGN / `tw:127709954` hat Rolle `owner`.
+  - `owner -> remote.view -> allow`.
+  - `owner -> admin.users.note.read -> allow`.
+  - `owner -> admin.users.note.write` ist nicht vergeben.
+  - Admin-Notiz-Schreiben, Schreibbuttons, Agent-/OBS-/Sound-/Overlay-/Command-Steuerung bleiben gesperrt.
 - `mods.forrestcgn.de` ist ein eigener ISPConfig-Web-vHost und proxyt auf `127.0.0.1:3010`.
 - `twitch_events` ist zentraler Twitch-Event-Provider und effektive Live-State-Wahrheit.
 - Fachmodule abonnieren Twitch-Events über den Communication Bus, nicht direkt bei Twitch.
