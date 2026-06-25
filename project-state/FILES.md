@@ -1,14 +1,17 @@
 # FILES
 
-Stand: RDAP36B_ADMIN_AUDIT_TEST_INSERT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED  
 Datum: 2026-06-25
 
-## Geaendert in RDAP36B
+## Geaendert in RDAP37
 
 ```text
-docs/current/RDAP36B_ADMIN_AUDIT_TEST_INSERT_LIVE_CONFIRMED_DOCS.md
-docs/current/RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP36B_2026-06-25.md
+remote-modboard/backend/server.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/services/admin-lock-test.service.js
+docs/current/RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -16,7 +19,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## RDAP36 Backend-Dateien
+## RDAP36 Backend-Dateien bleiben relevant
 
 ```text
 remote-modboard/backend/src/services/admin-audit-test-insert.service.js
@@ -30,6 +33,15 @@ remote-modboard/backend/src/routes/routes.routes.js
 dashboard_audit_log
 dashboard_locks
 dashboard_user_admin_notes
+```
+
+## Webserver Cleanup Stand
+
+```text
+/opt/stream-control-center jetzt ca. 479M
+_deploy_tmp: letzte 6 Deploy-Clones behalten
+_runtime_tmp: letzte 5 remote-modboard Backups behalten
+DB-/SQL-Backups behalten
 ```
 
 Secrets und DB-Dumps gehoeren nicht ins Repo.

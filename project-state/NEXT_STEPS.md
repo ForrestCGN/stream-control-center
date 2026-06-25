@@ -1,40 +1,48 @@
 # NEXT_STEPS
 
-Stand: RDAP36B_ADMIN_AUDIT_TEST_INSERT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED
+RDAP37 lokal einspielen, testen, stepdone, danach Webserver-Deploy aus frischem GitHub/dev-Clone.
 ```
 
-Ziel:
+## RDAP37 lokale Pflichtchecks
 
 ```text
-Kontrollierter Lock-Test fuer dashboard_locks.
-Acquire / Heartbeat / Release testen.
-Keine Admin-Notiz-Writes.
-Keine UI-Schreibbuttons.
-Keine produktiven externen Aktionen.
+node --check .\remote-modboard\backend\server.js
+node --check .\remote-modboard\backend\src\routes\status.routes.js
+node --check .\remote-modboard\backend\src\routes\lock-audit-diagnostic.routes.js
+node --check .\remote-modboard\backend\src\routes\routes.routes.js
+node --check .\remote-modboard\backend\src\services\admin-lock-test.service.js
 ```
 
-## RDAP37 Pflicht
+## RDAP37 Webserver-Pflicht vor Test
 
 ```text
 Backup dashboard_locks erstellen.
 Backup-Datei existiert und ist nicht 0 Byte.
-local-only.
-confirmWrite im JSON-Body verwenden.
-testOnly=true verwenden.
-Read-Back nach Lock-Operationen.
-Lock am Ende sauber released oder eindeutig als Test-Lock dokumentiert.
+```
+
+## RDAP37 Webserver-Test
+
+```text
+GET /api/remote/admin/locks/test/status
+POST /api/remote/admin/locks/test-cycle mit {"confirmWrite":true,"testOnly":true}
+Readback nach Acquire/Heartbeat/Release pruefen.
+Lock muss am Ende released sein.
 ```
 
 ## Danach
 
 ```text
-RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN
+RDAP37B_ADMIN_LOCK_TEST_LIVE_CONFIRMED_DOCS
 ```
 
-Erst nach erfolgreichem Lock-Test.
+Erst nach erfolgreichem RDAP37B:
+
+```text
+RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN
+```

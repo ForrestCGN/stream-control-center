@@ -3,14 +3,14 @@
 const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 
-const MODULE_BUILD = 'RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED';
+const MODULE_BUILD = 'RDAP37_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_TEST_CONFIRMED';
 
 async function main() {
   const config = loadConfig();
   const app = createApp({ config, moduleBuild: MODULE_BUILD });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] ${MODULE_BUILD} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] admin-note-real-read-authed=true auth-session-oauth-readiness-diagnostic=true read-only-ui=true remoteWrites=false agentActions=false');
+    console.log('[remote-modboard] rdap37-lock-test=true admin-note-writes=false ui-write-buttons=false remoteWrites=false agentActions=false');
   });
 
   process.on('SIGTERM', () => shutdown(server, 'SIGTERM'));

@@ -7,6 +7,10 @@ const {
   buildAdminAuditTestInsertStatus,
   runAdminAuditTestInsert
 } = require('../services/admin-audit-test-insert.service');
+const {
+  buildAdminLockTestStatus,
+  runAdminLockTestCycle
+} = require('../services/admin-lock-test.service');
 
 function registerLockAuditDiagnosticRoutes(app, context) {
   app.get('/api/remote/lock-audit/status', async (req, res) => {
@@ -46,6 +50,16 @@ function registerLockAuditDiagnosticRoutes(app, context) {
     const result = await runAdminAuditTestInsert({ context, req });
     res.status(result.status || 200).json(result.body || result);
   });
+
+  app.get('/api/remote/admin/locks/test/status', async (req, res) => {
+    const result = await buildAdminLockTestStatus({ context, req });
+    res.status(result.status || 200).json(result.body || result);
+  });
+
+  app.post('/api/remote/admin/locks/test-cycle', async (req, res) => {
+    const result = await runAdminLockTestCycle({ context, req });
+    res.status(result.status || 200).json(result.body || result);
+  });
 }
 
 function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
@@ -56,7 +70,7 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
     service: 'remote-modboard',
     module: adapterOnly ? 'remote_lock_audit_schema_adapter_diagnostic' : 'remote_lock_audit_diagnostic',
     moduleBuild: context.moduleBuild,
-    statusApiVersion: 'rdap14.v1',
+    statusApiVersion: 'rdap_lock37.v1',
     readOnly: true,
     writeEnabled: false,
     databaseWriteEnabled: false,
@@ -105,6 +119,22 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
       lockWritesEnabled: false,
       uiWriteButtonsEnabled: false
     },
+    rdap37LockTest: {
+      prepared: true,
+      statusRoute: '/api/remote/admin/locks/test/status',
+      route: '/api/remote/admin/locks/test-cycle',
+      method: 'POST',
+      localOnly: true,
+      confirmWriteRequired: true,
+      bodyConfirmOnly: true,
+      testOnlyRequired: true,
+      lockTestCycleEnabled: true,
+      productiveWritesEnabled: false,
+      adminNoteWritesEnabled: false,
+      auditProductiveWritesEnabled: false,
+      uiWriteButtonsEnabled: false,
+      physicalDeleteEnabled: false
+    },
     locks: adapterOnly ? buildAdapterOnlyLockBlock(locks) : locks,
     audit: adapterOnly ? buildAdapterOnlyAuditBlock(audit) : audit,
     safety: context.safety,
@@ -114,7 +144,8 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
       'Mit db=1 werden nur INFORMATION_SCHEMA-SELECTs ueber read-only Connection ausgefuehrt.',
       'RDAP33 ergaenzt eine separate read-only Schema-/Runtime-Statusroute mit Counts und sicheren Previews.',
       'RDAP36 ergaenzt einen lokalen, bestaetigten Audit-Testinsert; produktive Writes bleiben gesperrt.',
-      'Es gibt keine Lock-Writes, keine Remote-Writes und keine Agent-Actions.',
+      'RDAP37 ergaenzt einen lokalen, bestaetigten Lock-Test fuer Acquire/Heartbeat/Release.',
+      'Es gibt keine Admin-Notiz-Writes, keine Remote-Writes und keine Agent-Actions.',
       'compatibleForWrite bleibt in RDAP14 immer false.'
     ]
   };
