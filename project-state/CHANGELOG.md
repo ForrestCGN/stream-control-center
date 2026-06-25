@@ -1,16 +1,18 @@
 # CHANGELOG
 
-## RDAP34_ADMIN_AUDIT_SCHEMA_MIGRATION_DECISION_PLAN - 2026-06-25
+## RDAP35_ADMIN_AUDIT_SCHEMA_MIGRATION_PREPARED - 2026-06-25
 
-- Audit-Schema-Entscheidung dokumentiert.
-- RDAP33B Live-Befund ausgewertet:
-  - `dashboard_audit_log` existiert, aber generischer Write-Kandidat blockiert wegen fehlendem `resource_type`.
-  - `dashboard_locks` existiert und wirkt fuer ersten Lock-Write-Kandidaten brauchbar.
-- Entscheidung:
-  - Direkt richtig = Option B.
-  - Bestehende `dashboard_audit_log` sanft erweitern.
-  - Keine neue Parallelstruktur.
-  - Keine reine Mapping-Abkuerzung als Dauerloesung.
-- Naechster Step:
-  - `RDAP35_ADMIN_AUDIT_SCHEMA_MIGRATION_PREPARED`.
-- Keine Backend-/UI-/DB-Aenderung.
+- SQL-Dateien fuer sanfte Erweiterung von `dashboard_audit_log` vorbereitet:
+  - `tools/rdap35_admin_audit_schema_precheck.sql`
+  - `tools/rdap35_admin_audit_schema_migration.sql`
+  - `tools/rdap35_admin_audit_schema_readback.sql`
+- Geplante Spalten:
+  - `actor_login`
+  - `resource_type`
+  - `error_code`
+  - `safe_metadata_json`
+  - `completed_at`
+- Server-Ausfuehrungsdoku erstellt.
+- Keine Backend-/UI-Aenderung.
+- Keine DB-Migration durch ZIP-Installation.
+- Keine produktiven Writes aktiviert.

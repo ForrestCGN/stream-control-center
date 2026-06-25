@@ -1,59 +1,43 @@
 # CURRENT_STATUS
 
-Stand: RDAP34_ADMIN_AUDIT_SCHEMA_MIGRATION_DECISION_PLAN  
+Stand: RDAP35_ADMIN_AUDIT_SCHEMA_MIGRATION_PREPARED  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
 ## Bestaetigter Stand
 
 ```text
-RDAP31 live bestaetigt.
-RDAP31B dokumentiert.
-RDAP32 Audit-/Lock-Write-Foundation geplant.
-RDAP33 read-only Audit-/Lock-Schema-/Statusroute gebaut.
-RDAP33B RDAP33 live bestaetigt und dokumentiert.
-RDAP34 Audit-Schema-Migration-Entscheidung erstellt.
+RDAP34 Entscheidung: Option B.
+Bestehende dashboard_audit_log soll sanft erweitert werden.
+RDAP35 SQL-/Doku-Vorbereitung erstellt.
 ```
 
-## RDAP33 Live-Befund
+## RDAP35 vorbereitet
 
-Audit:
+SQL-Dateien:
 
 ```text
-dashboard_audit_log exists: true
-rowCount: 0
-compatibleForWriteCandidate: false
-Blocker: missing resource_type
+tools/rdap35_admin_audit_schema_precheck.sql
+tools/rdap35_admin_audit_schema_migration.sql
+tools/rdap35_admin_audit_schema_readback.sql
 ```
 
-Locks:
+Geplante neue Spalten:
 
 ```text
-dashboard_locks exists: true
-rowCount: 0
-activeCount: 0
-expiredCount: 0
-compatibleForRead: true
-compatibleForWriteCandidate: true
-```
-
-## RDAP34 Entscheidung
-
-```text
-Direkt richtig: Option B.
-Bestehende dashboard_audit_log sanft erweitern.
-Keine neue Parallelstruktur.
-Keine Mapping-Abkuerzung als Dauerloesung.
-```
-
-Geplante Spalten fuer spaetere Migration:
-
-```text
-resource_type
 actor_login
+resource_type
 error_code
 safe_metadata_json
 completed_at
+```
+
+Status:
+
+```text
+Noch keine DB-Migration ausgefuehrt.
+Noch keine Audit-Testinserts.
+Noch keine Admin-Notiz-Writes.
 ```
 
 ## Weiterhin blockiert
