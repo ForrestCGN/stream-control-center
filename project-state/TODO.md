@@ -1,28 +1,10 @@
 # TODO - stream-control-center
 
-Stand: RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS  
+Stand: RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## RDAP / Remote-Modboard
 
-- [x] RDAP12 First-Mini-Write-Scope-Plan erstellt.
-- [x] RDAP13 Admin-Notiz-Table/Disabled-Route-Plan erstellt.
-- [x] RDAP14 Admin-Notiz-Table-Diagnose gebaut.
-- [x] RDAP14B Routenuebersicht fuer `adminUserAdminNoteDiagnostic` synchronisiert.
-- [x] RDAP15 Admin-Notiz-Tabellen-Migration geplant.
-- [x] RDAP16 `dashboard_user_admin_notes` manuell migriert und read-back geprueft.
-- [x] RDAP17 Admin-Notiz Read-Diagnostic read-only gebaut und live bestaetigt.
-- [x] RDAP17B Routenuebersicht fuer Admin-Notiz Read-Diagnostic synchronisiert.
-- [x] RDAP18 Admin-Notiz Display-Scope geplant.
-- [x] RDAP19 Auth-Permission-Read-Check fuer Admin-Notizen geplant.
-- [x] RDAP20 Admin-Notiz Read-Permission-Diagnostic read-only gebaut.
-- [x] RDAP20 Webserver-Deploy live bestaetigt.
-- [x] RDAP20 unauthentifizierter Zugriff korrekt mit HTTP 401 blockiert.
-- [x] RDAP21 Admin-Notiz Display-Readiness geplant.
-- [x] RDAP22 echte Admin-Notiz Read-Route geplant, aber nicht gebaut.
-- [x] RDAP23 Auth-/Session-/Login-Aktivierung groesser gebuendelt geplant.
-- [x] RDAP24 Auth-/Session-/OAuth-Readiness-Diagnostic gebaut und live bestaetigt.
-- [x] RDAP24 Readiness: `readyForLoginSmokeTest: true`, `blockers: []`.
 - [x] RDAP25 Login-/OAuth-/Session-Smoke-Test erfolgreich.
 - [x] RDAP26 Option B entschieden: echte Rollen/Permissions aus DB.
 - [x] RDAP26 Owner-Rolle fuer ForrestCGN geseeded.
@@ -33,10 +15,15 @@ Datum: 2026-06-25
 - [x] RDAP27 Webserver-Deploy live bestaetigt.
 - [x] RDAP27 Sicherheitstest ohne Session: HTTP 401.
 - [x] RDAP27 Browser-Test mit Session: `noteTextReturned: true`, `notes: []`, keine Writes.
+- [x] RDAP28 read-only Admin-Notiz-UI-Panel gebaut.
+- [x] RDAP28 Webserver-Deploy live bestaetigt.
+- [x] RDAP28 Browser-Test bestaetigt: Admin -> Admin-Notizen sichtbar, Read true, Write false, Notizen 0, Tabelle true.
 
-## Weiterhin offen
+## Naechstes offen
 
-- [ ] RDAP28 read-only Admin-Notiz-Panel im Dashboard bauen.
+- [ ] Entscheidung im neuen Chat: Test-Notiz seed oder Write-Scope planen.
+- [ ] Optional RDAP29 Admin-Notiz-Test-Seed fuer read-only Anzeige.
+- [ ] Optional RDAP29 Admin-Notiz-Write-Scope-Plan.
 - [ ] Noch keinen Admin-Notiz-Write bauen.
 - [ ] Noch keine UI-Schreibbuttons fuer Admin-Notizen.
 - [ ] Permission `admin.users.note.write` fuer spaeteren Write getrennt klaeren.
@@ -71,3 +58,4 @@ Datum: 2026-06-25
 - [ ] Keine unnoetigen Root-README-Dateien in ZIPs legen.
 - [ ] Bei RDAP unterscheiden: Repo-Root, Deploy-Clone und Live-Ordner `/remote-modboard` sind nicht dasselbe.
 - [ ] Steps so gross wie moeglich und so klein wie noetig halten.
+- [ ] Nach `go` nicht denselben Befehlsklotz wiederholen, sondern naechsten sinnvollen Step liefern.

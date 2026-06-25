@@ -1,9 +1,9 @@
 # CHANGELOG
 
-Stand: RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS  
+Stand: RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
-## RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS
+## RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS
 
 Typ: Doku-/Status-Sync  
 DB: keine neue Aenderung in diesem Doku-Step  
@@ -14,9 +14,9 @@ Workflow-Tools: nein
 
 ### Ergebnis
 
-RDAP27 echte Admin-Notiztext-Read-Route ist live bestaetigt.
+RDAP28 read-only Admin-Notiz-UI ist live bestaetigt.
 
-Live-Service:
+Server-Status:
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
@@ -25,51 +25,37 @@ actionEnabled: false
 productiveAgentRuntime: false
 ```
 
-Routenuebersicht:
+Script:
 
 ```text
-statusApiVersion: rdap_admin_users27.v1
-adminUserAdminNoteRealReadAuthed.prepared: true
-adminUserAdminNoteRealReadAuthed.requiresValidSession: true
-adminUserAdminNoteRealReadAuthed.requiresDashboardAccess: true
-adminUserAdminNoteRealReadAuthed.requiresEffectiveReadPermission: true
-adminUserAdminNoteRealReadAuthed.usesDbPermissionOnlyForAdminRead: true
-adminUserAdminNoteRealReadAuthed.allowlistOwnerDoesNotGrantAdminRead: true
-adminUserAdminNoteRealReadAuthed.returnsNoteTextWhenAuthorized: true
-adminUserAdminNoteRealReadAuthed.uiWriteButtonsEnabled: false
+GET /assets/rdap28-admin-notes.js -> HTTP 200
 ```
 
-Sicherheitstest ohne Browser-Session:
+HTML-Injection:
 
 ```text
-HTTP 401
-reason: not_logged_in_or_session_invalid
-noteTextReturned: false
+<script src="/assets/rdap28-admin-notes.js" defer></script>
 ```
 
-Browser-Test mit gueltiger Session:
+Browser-Test:
 
 ```text
-ok: true
-loggedIn: true
-dashboardAccess: true
-canReadAdminNotes: true
-reason: admin_note_real_read_ready
-effectiveReadPermissionWouldAllow: true
-readReason: explicit_allow
-canWriteAdminNotes: false
-effectiveWritePermissionWouldAllow: false
-writeReason: no_matching_permission
-tableExists: true
-schemaReady: true
-rowCount: 0
-notes: []
+Admin -> Admin-Notizen sichtbar
+Read: true
+Write: false
+Notizen: 0
+Tabelle: true
+Keine Admin-Notizen vorhanden
+Reload-Button sichtbar
+Keine Schreibbuttons sichtbar
+Sicherheitsbereich sichtbar
 ```
 
 ### Dieser Doku-Sync aktualisiert
 
 ```text
-docs/current/RDAP27B_ADMIN_NOTE_REAL_READ_ROUTE_LIVE_CONFIRMED_DOCS.md
+docs/current/RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP28_2026-06-25.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -93,11 +79,12 @@ Keine Workflow-Tools
 
 ## Vorheriger Stand
 
-RDAP26B war live bestaetigt:
+RDAP27B war live bestaetigt:
 
 ```text
-ForrestCGN / tw:127709954 -> owner
-owner -> remote.view -> allow
-owner -> admin.users.note.read -> allow
-Permission-Diagnose effectivePermissionWouldAllow: true
+Echte read-only Admin-Notiztext-Route live
+Ohne Session HTTP 401
+Mit Session + admin.users.note.read HTTP 200
+noteTextReturned true
+notes []
 ```
