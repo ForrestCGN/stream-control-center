@@ -3,9 +3,7 @@
 const { buildAdminUserPermissionDiagnostic } = require('../services/admin-user-permission-read.service');
 const { buildAdminUserWriteFoundationDiagnostic } = require('../services/admin-user-write-foundation.service');
 const { buildAdminUserAdminNoteDiagnostic } = require('../services/admin-user-admin-note-diagnostic.service');
-const { buildAdminUserAdminNoteReadDiagnostic } = require('../services/admin-user-admin-note-read-diagnostic.service');
-const { buildAdminUserAdminNoteReadPermissionDiagnostic } = require('../services/admin-user-admin-note-read-permission-diagnostic.service');
-const { buildAdminUserAdminNoteRealReadAuthed } = require('../services/admin-user-admin-note-real-read-authed.service');
+const { buildAdminUserAdminNoteWriteDisabled } = require('../services/admin-user-admin-note-write-disabled.service');
 
 function registerAdminUsersRoutes(app, context) {
   app.get('/api/remote/admin/users/permission-diagnostic', async (req, res) => {
@@ -23,18 +21,18 @@ function registerAdminUsersRoutes(app, context) {
     res.status(result.status || 200).json(result.body || result);
   });
 
-  app.get('/api/remote/admin/users/admin-note-read-diagnostic', async (req, res) => {
-    const result = await buildAdminUserAdminNoteReadDiagnostic({ context, req });
+  app.post('/api/remote/admin/users/admin-notes/create', async (req, res) => {
+    const result = await buildAdminUserAdminNoteWriteDisabled({ context, req, action: 'create' });
     res.status(result.status || 200).json(result.body || result);
   });
 
-  app.get('/api/remote/admin/users/admin-note-read-permission-diagnostic', async (req, res) => {
-    const result = await buildAdminUserAdminNoteReadPermissionDiagnostic({ context, req });
+  app.post('/api/remote/admin/users/admin-notes/update', async (req, res) => {
+    const result = await buildAdminUserAdminNoteWriteDisabled({ context, req, action: 'update' });
     res.status(result.status || 200).json(result.body || result);
   });
 
-  app.get('/api/remote/admin/users/admin-notes/read', async (req, res) => {
-    const result = await buildAdminUserAdminNoteRealReadAuthed({ context, req });
+  app.post('/api/remote/admin/users/admin-notes/deactivate', async (req, res) => {
+    const result = await buildAdminUserAdminNoteWriteDisabled({ context, req, action: 'deactivate' });
     res.status(result.status || 200).json(result.body || result);
   });
 }

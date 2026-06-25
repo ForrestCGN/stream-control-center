@@ -1,55 +1,29 @@
 # NEXT_STEPS
 
-Stand: RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN  
+Stand: RDAP31_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP31_ADMIN_NOTE_WRITE_BACKEND_CREATE_UPDATE_DEACTIVATE_DISABLED_UI
+RDAP32_ADMIN_AUDIT_LOCK_WRITE_REAL_FOUNDATION_PLAN_OR_BUILD
 ```
 
 Ziel:
 
 ```text
-Backend-Write-Routen fuer Admin-Notizen bauen oder vorbereiten:
-- create
-- update note_text
-- deactivate
-
-UI-Schreibbuttons bleiben weiterhin unsichtbar/deaktiviert.
-Test nur per Curl und nur mit confirmWrite=true.
+Audit- und Lock-Writes anhand echter Dateien sauber planen oder bauen.
+Keine Admin-Notiz-Writes produktiv aktivieren, bevor Audit und Lock wirklich funktionieren.
 ```
 
-## Vor RDAP31 zwingend pruefen
+## Danach
 
 ```text
-remote-modboard/backend/src/services/admin-audit-write.service.js
-remote-modboard/backend/src/services/admin-lock-write.service.js
-remote-modboard/backend/src/services/admin-confirm-write.service.js
-remote-modboard/backend/src/services/auth-permission-read.service.js
-remote-modboard/backend/src/services/db.service.js
-remote-modboard/backend/src/security/permissions.js
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
+RDAP33_ADMIN_NOTE_WRITE_PERMISSION_OWNER_SEED
+RDAP34_ADMIN_NOTE_WRITE_BACKEND_REAL_CONFIRM_AUDIT_LOCK
+RDAP35_ADMIN_NOTE_WRITE_UI_GATED_BUTTONS
 ```
 
-Keine Annahmen treffen: Wenn Audit-/Lock-Write aktuell nur Diagnostic/Prepared ist, darf Admin-Notiz-Write nicht produktiv freigeschaltet werden, bevor das sauber geloest ist.
+## Wichtige Grenze
 
-## Empfohlene RDAP31-Grenze
-
-```text
-Backend ja
-UI-Schreibbuttons nein
-Permission-Vergabe nein
-physisches Delete nein
-Community-Seiten nein
-```
-
-## Danach moeglich
-
-```text
-RDAP32_ADMIN_NOTE_WRITE_PERMISSION_OWNER_SEED
-RDAP33_ADMIN_NOTE_WRITE_UI_GATED_BUTTONS
-RDAP_LOCAL_MODE2_ENV_AND_START_SCRIPT_PLAN spaeter, nicht jetzt
-```
+RDAP31-Routen duerfen auch nach Deploy nicht schreiben. Sie sind nur Validierung/Blocker.
