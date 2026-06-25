@@ -1,16 +1,16 @@
 # CURRENT_STATUS
 
-Stand: RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED  
+Stand: RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
-## Aktuell bestaetigt / vorbereitet
+## Aktuell bestaetigt
 
 ```text
 RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED ist live erfolgreich getestet.
-Der erste kontrollierte produktive Backend-Create-Write fuer Admin-Benutzernotizen wurde ausgefuehrt.
-RDAP39C hat die echte Admin-Notiz-Readroute wiederhergestellt und wurde live bestaetigt.
-RDAP40 bereitet die kontrollierte Create-UI fuer Admin-Notizen vor.
+RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC ist live erfolgreich getestet.
+RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED ist live erfolgreich getestet.
+RDAP40B dokumentiert den Live-Stand und aktualisiert Projektstatus/TODO/NEXT_STEPS/CHANGELOG.
 ```
 
 ## Live-System
@@ -24,48 +24,92 @@ DB-Client: /root/rdap29_mysql_client.cnf
 Branch: dev
 ```
 
-## RDAP39 Create-Stand
-
-```text
-Route: POST /api/remote/admin/users/admin-notes/create
-moduleBuild: RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
-statusApiVersion: rdap_admin_note_write39.v1
-confirmWrite: Pflicht, nur JSON-Body
-```
-
-## RDAP39C Read-Stand live bestaetigt
-
-```text
-Route: GET /api/remote/admin/users/admin-notes/read
-routeBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
-statusApiVersion: rdap_admin_users27.v1
-Live-Ergebnis: ok=true, reason=admin_note_real_read_ready, notes=2
-```
-
 ## RDAP40 UI-Stand
 
 ```text
-Datei: remote-modboard/backend/public/assets/rdap28-admin-notes.js
-Neue UI: Create-Dialog/Button fuer interne Admin-Notiz.
-Button nur sichtbar, wenn admin.users.note.write serverseitig erkennbar erlaubt ist.
-Create nutzt bestehende RDAP39-Route.
-Nach erfolgreichem Create: Refresh ueber RDAP39C-Readroute.
+Admin -> Admin-Notizen zeigt Notizen fuer tw:127709954.
+Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
+Create nutzt bestehende RDAP39 Backend-Route.
+Nach erfolgreichem Create laedt die UI die Notizliste ueber RDAP39C-Readback neu.
 ```
 
-## Sicherheitsstand
+## RDAP40 Live-Ergebnis
 
 ```text
-Readroute bleibt read-only.
-Create ist backendseitig bestaetigt und UI-seitig kontrolliert vorbereitet.
-Update bleibt deaktiviert.
-Deactivate bleibt deaktiviert.
-Physisches Delete bleibt verboten.
-Community-Read fuer Admin-Notizen bleibt verboten.
-Agent/OBS/Sound/Overlay/Command/Channelpoints-Control bleibt deaktiviert.
+Browser-UI: 3 Admin-Notiz(en) geladen.
+Create-Button sichtbar.
+Neue Notiz wurde erstellt.
+Liste wurde danach automatisch aktualisiert.
+Keine Update-/Deactivate-/Delete-Buttons sichtbar.
 ```
 
-## Naechster empfohlener Step nach Live-Test
+## Erstellte RDAP40 Test-Notiz
 
 ```text
-RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS
+note_uid: admin_note_20260625171342_d1f871dd6370
+target_user_uid: tw:127709954
+status: active
+note_text: —test
+updated_at im UI: 2026-06-25T17:13:42.000Z
+```
+
+## Aktive Admin-Notizen im UI-Readback
+
+```text
+1. admin_note_20260625171342_d1f871dd6370
+2. admin_note_20260625104920_5fec9726d7a3
+3. rdap29-test-note-forrestcgn-readonly-validation
+```
+
+## Relevante API-Staende
+
+```text
+GET  /api/remote/admin/users/admin-notes/read
+POST /api/remote/admin/users/admin-notes/create
+```
+
+Read-Route:
+
+```text
+statusApiVersion: rdap_admin_users27.v1
+routeRestoreBuild: RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC
+serviceBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
+readOnly: true
+writeEnabled: false
+```
+
+Create-Route:
+
+```text
+statusApiVersion: rdap_admin_note_write39.v1
+moduleBuild: RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
+adminNoteCreateEnabled: true
+adminNoteUpdateEnabled: false
+adminNoteDeactivateEnabled: false
+physicalDeleteEnabled: false
+```
+
+## Weiterhin deaktiviert
+
+```text
+Admin-Note Update
+Admin-Note Deactivate
+Physisches Delete
+Community-Read fuer Admin-Notizen
+Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
+Permission-Vergabe in der UI
+```
+
+## Bekannte Semantik-Unsauberkeit
+
+```text
+/api/remote/routes zeigt in adminNoteWriteConfirmed noch uiWriteButtonsEnabled: false.
+Das stammt aus RDAP39 und ist nach RDAP40 semantisch ungenau, weil RDAP40 bewusst einen Create-Button fuer write-berechtigte Admins zeigt.
+Kein akuter Funktionsfehler.
+```
+
+## Naechster empfohlener Step
+
+```text
+RDAP41_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP
 ```

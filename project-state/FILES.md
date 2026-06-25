@@ -1,14 +1,13 @@
 # FILES
 
-Stand: RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED  
+Stand: RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
-## Geaendert in RDAP40
+## Geaendert in RDAP40B
 
 ```text
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-docs/current/RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP40.md
+docs/current/RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP40B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -16,40 +15,68 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Zweck der Code-Datei
+## Keine Code-Dateien in RDAP40B
 
 ```text
-rdap28-admin-notes.js
-- Bestehende Admin-Notizen-Anzeige bleibt erhalten.
-- Navigation/Admin-Notizen-Panel bleibt erhalten.
-- Reload bleibt erhalten.
-- Neu: Create-Button/Dialog nur bei serverseitig erkennbarem admin.users.note.write.
-- Neu: POST an RDAP39-Create-Route mit confirmWrite=true.
-- Neu: Nach erfolgreichem Create Refresh ueber RDAP39C-Readroute.
+RDAP40B ist Doku-only.
+Kein Backend-Code.
+Kein Frontend-Code.
+Keine DB-Migration.
+Keine Config-Aenderung.
+Kein Webserver-Deploy noetig.
 ```
 
-## Genutzte Routen
+## RDAP40 geaenderte Code-Datei
 
 ```text
-GET  /api/remote/admin/users/admin-notes/read?targetUserUid=tw:127709954
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+```
+
+## RDAP39C relevante Code-Dateien
+
+```text
+remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
+remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+```
+
+## Aktuelle relevante Admin-Note-Routen
+
+```text
+GET  /api/remote/admin/users/admin-notes/read
 POST /api/remote/admin/users/admin-notes/create
+POST /api/remote/admin/users/admin-notes/update      -> disabled
+POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
 
-## Nicht geaendert
+## Relevante DB-Tabellen
 
 ```text
-remote-modboard/backend/src/routes/admin-users.routes.js
+dashboard_user_admin_notes
+dashboard_audit_log
+dashboard_locks
+dashboard_permissions
+dashboard_role_permissions
+dashboard_roles
+dashboard_user_roles
+dashboard_sessions
+dashboard_users
+```
+
+## Naechster Dateibereich fuer RDAP41
+
+Bei Status-Semantik-Cleanup:
+
+```text
 remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
-remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
+```
+
+Bei Zieluser-/Detailseiten-Planung:
+
+```text
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
 remote-modboard/backend/public/index.html
-```
-
-## Weiter relevante Admin-Notiz-Dateien
-
-```text
-remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
-remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
 ```

@@ -1,47 +1,53 @@
 # CHANGELOG
 
+## RDAP40B_ADMIN_NOTE_CREATE_UI_LIVE_CONFIRMED_DOCS - 2026-06-25
+
+- RDAP40 Live-Bestaetigung dokumentiert.
+- Browser-Befund dokumentiert:
+  - Admin -> Admin-Notizen zeigt 3 Notizen.
+  - Button "Neue Notiz" ist sichtbar.
+  - Create funktioniert.
+  - Liste aktualisiert sich nach Create automatisch.
+  - Keine Update-/Deactivate-/Delete-Buttons sichtbar.
+- RDAP40 Testnotiz dokumentiert:
+  - `admin_note_20260625171342_d1f871dd6370`
+  - Zieluser `tw:127709954`
+  - Status `active`
+  - Text `—test`
+- Routes-Status nach RDAP40 dokumentiert.
+- Bekannte Semantik-Unsauberkeit dokumentiert:
+  - `adminNoteWriteConfirmed.uiWriteButtonsEnabled: false` stammt aus RDAP39 und ist nach RDAP40 ungenau.
+- Projektstatus, TODO, NEXT_STEPS und FILES aktualisiert.
+- Neuen Next-Chat-Prompt erstellt:
+  - `docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP40B.md`
+- Keine Code-Aenderung.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED - 2026-06-25
 
-- Admin-Notizen-UI um kontrollierten Create-Dialog erweitert.
-- Datei geaendert:
-  - `remote-modboard/backend/public/assets/rdap28-admin-notes.js`
-- Create-Button nur sichtbar, wenn `admin.users.note.write` serverseitig erkennbar erlaubt ist.
-- Create nutzt bestehende RDAP39-Route:
-  - `POST /api/remote/admin/users/admin-notes/create`
-- Body sendet `confirmWrite: true`, `targetUserUid` und `noteText`.
-- Nach erfolgreichem Create laedt die UI die Notizliste ueber RDAP39C-Readroute neu.
-- Keine Backend-Create-Logik geaendert.
-- Kein Update aktiviert.
-- Kein Deactivate aktiviert.
-- Kein physisches Delete aktiviert.
-- Keine Permission-Vergabe in der UI.
+- Admin-Notizen-UI um Create-Dialog/Button erweitert.
+- Create-Button nur sichtbar, wenn Schreibrecht serverseitig erkannt wird.
+- POST nutzt bestehende RDAP39-Route:
+  - `/api/remote/admin/users/admin-notes/create`
+- Body-confirmWrite bleibt Pflicht.
+- Nach erfolgreichem Create wird die Liste ueber RDAP39C-Readback neu geladen.
+- Kein Update.
+- Kein Deactivate.
+- Kein Delete.
 - Keine Community-Seiten-Anbindung.
-- Keine DB-Migration.
-- Neue Doku erstellt:
-  - `docs/current/RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED.md`
-  - `docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP40.md`
-- Projektstatus, NEXT_STEPS, TODO und FILES aktualisiert.
+- Keine Permission-Vergabe in der UI.
 
 ## RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC - 2026-06-25
 
-- Fehlende echte Admin-Notiz-Readroute im aktuellen Arbeitsstand identifiziert.
-- Service-Datei wieder als echte Repo-Zieldatei vorbereitet:
-  - `remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js`
-- `admin-users.routes.js` ergaenzt:
+- Fehlende echte Admin-Note-Read-Route im Repo wiederhergestellt/synchronisiert.
+- Service eingebunden:
+  - `admin-user-admin-note-real-read-authed.service.js`
+- Route registriert:
   - `GET /api/remote/admin/users/admin-notes/read`
-- `/api/remote/routes` ergaenzt:
-  - Route in der Routenliste
-  - Block `adminNoteReadRestored`
-- Keine Create-Route geaendert.
-- Kein Update aktiviert.
-- Kein Deactivate aktiviert.
-- Kein physisches Delete aktiviert.
-- Keine UI-Schreibbuttons aktiviert.
-- Keine DB-Migration.
-- Neue Doku erstellt:
-  - `docs/current/RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC.md`
-  - `docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP39C.md`
-- Projektstatus, NEXT_STEPS, TODO und FILES aktualisiert.
+- `/api/remote/routes` um `adminNoteReadRestored` erweitert.
+- Keine Writes geaendert.
+- Create-Route unveraendert.
+- Update/Deactivate/Delete bleiben deaktiviert.
 
 ## RDAP39B_ADMIN_NOTE_WRITE_BACKEND_LIVE_CONFIRMED_DOCS - 2026-06-25
 
@@ -64,8 +70,6 @@
   - `owner -> admin.users.note.write -> allow`
 - Dokumentiert, dass `dashboard_locks` keine Spalte `released_at` besitzt.
 - Projektstatus, TODO, NEXT_STEPS und FILES aktualisiert.
-- Neuen Next-Chat-Prompt erstellt:
-  - `docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP39B.md`
 - Keine Code-Aenderung.
 - Kein Webserver-Deploy noetig.
 
@@ -95,5 +99,5 @@
 
 ## RDAP36B_ADMIN_AUDIT_TEST_INSERT_LIVE_CONFIRMED_DOCS - 2026-06-25
 
-- Audit-Testinsert live bestaetigt.
+- Audit-Testinsert live bestaetigt und dokumentiert.
 - Zwei RDAP36-Testeintraege in `dashboard_audit_log` dokumentiert.
