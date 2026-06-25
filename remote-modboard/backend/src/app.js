@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { buildSafetyBlock } = require('./security/safety');
@@ -27,6 +28,7 @@ function createApp({ config, moduleBuild }) {
   });
 
   const context = { config, moduleBuild, safety: buildSafetyBlock() };
+  const publicDir = path.join(__dirname, '..', 'public');
 
   registerHealthRoutes(app, context);
   registerStatusRoutes(app, context);
@@ -39,7 +41,25 @@ function createApp({ config, moduleBuild }) {
   registerAdminMiniWriteFoundationRoutes(app, context);
   registerRoutesRoutes(app, context);
 
-  const publicDir = path.join(__dirname, '..', 'public');
+  app.get(['/', '/remote', '/modboard'], (req, res) => {
+    const indexPath = path.join(publicDir, 'index.html');
+    fs.readFile(indexPath, 'utf8', (err, html) => {
+      if (err) {
+        res.sendFile(indexPath, {
+          headers: {
+            'X-Remote-Modboard-Ui': 'readonly',
+            'Cache-Control': 'no-store'
+          }
+        });
+        return;
+      }
+
+      res.setHeader('X-Remote-Modboard-Ui', 'readonly');
+      res.setHeader('Cache-Control', 'no-store');
+      res.type('html').send(injectRdap28AdminNotesUi(html));
+    });
+  });
+
   app.use(express.static(publicDir, {
     index: 'index.html',
     extensions: ['html'],
@@ -50,15 +70,6 @@ function createApp({ config, moduleBuild }) {
       res.setHeader('Cache-Control', 'public, max-age=300');
     }
   }));
-
-  app.get(['/', '/remote', '/modboard'], (req, res) => {
-    res.sendFile(path.join(publicDir, 'index.html'), {
-      headers: {
-        'X-Remote-Modboard-Ui': 'readonly',
-        'Cache-Control': 'no-store'
-      }
-    });
-  });
 
   app.use((req, res) => {
     res.status(404).json({
@@ -92,4 +103,12 @@ function createApp({ config, moduleBuild }) {
   return app;
 }
 
-module.exports = { createApp };
+function injectRdap28AdminNotesUi(html) {
+  const scriptTag = '<script src="/assets/rdap28-admin-notes.js" defer></script>';
+  if (typeof html !== 'string') return html;
+  if (html.includes('/assets/rdap28-admin-notes.js')) return html;
+  if (html.includes('</body>')) return html.replace('</body>', `  ${scriptTag}\n</body>`);
+  return `${html}\n${scriptTag}\n`;
+}
+
+module.exports = { createApp, injectRdap28AdminNotesUi };
