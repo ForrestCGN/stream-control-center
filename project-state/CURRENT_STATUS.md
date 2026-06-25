@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP33B_ADMIN_AUDIT_LOCK_SCHEMA_STATUS_READONLY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP34_ADMIN_AUDIT_SCHEMA_MIGRATION_DECISION_PLAN  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
@@ -12,27 +12,10 @@ RDAP31B dokumentiert.
 RDAP32 Audit-/Lock-Write-Foundation geplant.
 RDAP33 read-only Audit-/Lock-Schema-/Statusroute gebaut.
 RDAP33B RDAP33 live bestaetigt und dokumentiert.
+RDAP34 Audit-Schema-Migration-Entscheidung erstellt.
 ```
 
 ## RDAP33 Live-Befund
-
-Routen:
-
-```text
-GET /api/remote/admin/audit-lock/schema-status
-GET /api/remote/lock-audit/schema-status
-```
-
-Status:
-
-```text
-statusApiVersion: rdap_audit_lock33.v1
-readOnly: true
-writeEnabled: false
-databaseWriteEnabled: false
-productiveWritesEnabled: false
-writesStillBlocked: true
-```
 
 Audit:
 
@@ -54,12 +37,23 @@ compatibleForRead: true
 compatibleForWriteCandidate: true
 ```
 
-Recommended Next Step:
+## RDAP34 Entscheidung
 
 ```text
-RDAP34_ADMIN_AUDIT_LOCK_SCHEMA_DECISION_OR_MIGRATION_PLAN
-writesMayBeBuiltNow: false
-blockers: audit_write_candidate_columns_missing
+Direkt richtig: Option B.
+Bestehende dashboard_audit_log sanft erweitern.
+Keine neue Parallelstruktur.
+Keine Mapping-Abkuerzung als Dauerloesung.
+```
+
+Geplante Spalten fuer spaetere Migration:
+
+```text
+resource_type
+actor_login
+error_code
+safe_metadata_json
+completed_at
 ```
 
 ## Weiterhin blockiert
@@ -68,9 +62,8 @@ blockers: audit_write_candidate_columns_missing
 Admin-Notiz produktiv schreiben/aendern/deaktivieren
 admin.users.note.write Permission
 UI-Schreibbuttons
-Audit-Inserts
+Audit-Testinsert
 Lock acquire/heartbeat/release/force-takeover
-DB-Migrationen
 physisches Delete
 Agent-/OBS-/Sound-/Overlay-/Command-Steuerung
 ```

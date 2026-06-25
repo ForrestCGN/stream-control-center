@@ -1,46 +1,41 @@
 # NEXT_STEPS
 
-Stand: RDAP33B_ADMIN_AUDIT_LOCK_SCHEMA_STATUS_READONLY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP34_ADMIN_AUDIT_SCHEMA_MIGRATION_DECISION_PLAN  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP34_ADMIN_AUDIT_LOCK_SCHEMA_DECISION_OR_MIGRATION_PLAN
+RDAP35_ADMIN_AUDIT_SCHEMA_MIGRATION_PREPARED
 ```
 
 Ziel:
 
 ```text
-Entscheiden, wie dashboard_audit_log fuer kuenftige Audit-Writes genutzt wird.
-Keine Writes.
-Keine DB-Migration ohne separaten bestaetigten Migrationsstep.
+Sanfte Migration fuer dashboard_audit_log vorbereiten.
+Keine produktiven Writes.
+Keine Admin-Notiz-Writes.
+Keine UI-Schreibbuttons.
 ```
 
-## Zu entscheiden
+## RDAP35 Pflicht
 
 ```text
-Option A: vorhandenes Audit-Schema mappen.
-Option B: dashboard_audit_log sanft erweitern, z. B. resource_type, error_code, safe_metadata_json, completed_at.
-Option C: neue Parallelstruktur vermeiden, nur wenn zwingend noetig.
+Backup dashboard_audit_log erstellen.
+Backup-Datei existiert und ist nicht 0 Byte.
+INFORMATION_SCHEMA read-only pruefen.
+SQL nur fuer fehlende Spalten vorbereiten.
+Keine bestehende Spalte loeschen/umbenennen.
+Keine Daten veraendern.
+Nach Migration Read-Back pruefen.
+RDAP33 Route erneut pruefen.
+Writes bleiben weiter blockiert.
 ```
 
-## Wichtig
+## Danach
 
 ```text
-RDAP34 darf kein Audit-Testwrite-Step sein.
-writesMayBeBuiltNow ist false.
-Blocker: audit_write_candidate_columns_missing.
+RDAP36_ADMIN_AUDIT_TEST_INSERT_CONFIRMED
 ```
 
-## Danach je nach Entscheidung
-
-```text
-RDAP35_ADMIN_AUDIT_SCHEMA_MIGRATION_PREPARED
-```
-
-oder:
-
-```text
-RDAP35_ADMIN_AUDIT_WRITE_MAPPING_CONFIRMED_PLAN
-```
+Erst nach erfolgreicher Migration.
