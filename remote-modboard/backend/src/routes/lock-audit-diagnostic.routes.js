@@ -2,6 +2,7 @@
 
 const { buildLockReadStatus } = require('../services/lock-read.service');
 const { buildAuditReadStatus } = require('../services/audit-read.service');
+const { buildAdminAuditLockSchemaStatusReadonly } = require('../services/admin-audit-lock-schema-status-readonly.service');
 
 function registerLockAuditDiagnosticRoutes(app, context) {
   app.get('/api/remote/lock-audit/status', async (req, res) => {
@@ -20,6 +21,16 @@ function registerLockAuditDiagnosticRoutes(app, context) {
     ]);
 
     res.json(buildLockAuditResponse({ context, req, locks, audit, adapterOnly: true }));
+  });
+
+  app.get('/api/remote/admin/audit-lock/schema-status', async (req, res) => {
+    const result = await buildAdminAuditLockSchemaStatusReadonly({ context, req });
+    res.status(result.status || 200).json(result.body || result);
+  });
+
+  app.get('/api/remote/lock-audit/schema-status', async (req, res) => {
+    const result = await buildAdminAuditLockSchemaStatusReadonly({ context, req });
+    res.status(result.status || 200).json(result.body || result);
   });
 }
 
@@ -56,6 +67,15 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
     overlayControlEnabled: false,
     commandControlEnabled: false,
     schemaInspectionRequested,
+    rdap33SchemaStatusReadonly: {
+      prepared: true,
+      route: '/api/remote/admin/audit-lock/schema-status',
+      aliasRoute: '/api/remote/lock-audit/schema-status',
+      readOnly: true,
+      writeEnabled: false,
+      productiveWritesEnabled: false,
+      writesStillBlocked: true
+    },
     locks: adapterOnly ? buildAdapterOnlyLockBlock(locks) : locks,
     audit: adapterOnly ? buildAdapterOnlyAuditBlock(audit) : audit,
     safety: context.safety,
@@ -63,6 +83,7 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
       'RDAP14 erweitert die bestehende Lock-/Audit-Diagnose um read-only Schema-Adapter-Ausgaben.',
       'Ohne db=1 werden keine DB-Abfragen ausgefuehrt.',
       'Mit db=1 werden nur INFORMATION_SCHEMA-SELECTs ueber read-only Connection ausgefuehrt.',
+      'RDAP33 ergaenzt eine separate read-only Schema-/Runtime-Statusroute mit Counts und sicheren Previews.',
       'Es gibt keine Lock-Writes, keine Audit-Writes, keine Remote-Writes und keine Agent-Actions.',
       'compatibleForWrite bleibt in RDAP14 immer false.'
     ]
