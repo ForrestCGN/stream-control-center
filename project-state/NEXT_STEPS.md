@@ -1,38 +1,70 @@
 # NEXT_STEPS
 
-Stand: RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN  
+Stand: RDAP38B_ADMIN_NOTE_WRITE_PLAN_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP38 lokal einspielen, testen, stepdone, danach Webserver-Deploy aus frischem GitHub/dev-Clone.
+RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
 ```
 
-## RDAP38 lokale Pflichtchecks
+## Ziel RDAP39
 
 ```text
-node --check .\remote-modboard\backend\server.js
-node --check .\remote-modboard\backend\src\routes\admin-users.routes.js
-node --check .\remote-modboard\backend\src\routes\routes.routes.js
-node --check .\remote-modboard\backend\src\routes\status.routes.js
-node --check .\remote-modboard\backend\src\services\admin-user-admin-note-write-plan.service.js
+Erster kontrollierter Backend-Write fuer Admin-Notizen mit Audit- und Lock-Fundament.
+Noch keine UI-Schreibbuttons.
+Noch kein physisches Delete.
+Keine Community-Seiten-Anbindung.
 ```
 
-## RDAP38 Webserver-Test
+## RDAP39 Pflicht vor Umsetzung
 
 ```text
-GET /api/remote/status
-GET /api/remote/routes
-GET /api/remote/admin/users/admin-notes/write-plan
+Erst echte Dateien/Repo/Dokus pruefen.
+Dann Plan nennen.
+Dann auf Forrests ausdrueckliches go warten.
+
+Vor Live-Test:
+- Backup von dashboard_user_admin_notes erstellen.
+- Backup-Datei muss existieren und nicht 0 Byte sein.
 ```
 
-Erwartung:
+## RDAP39 Backend-Pflicht
 
 ```text
-moduleBuild: RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN
-statusApiVersion: rdap_admin_note_write38.v1
-adminNoteWritePlan.prepared: true
+Kein Admin-Notiz-Write ohne:
+- gueltige Session
+- Dashboard-Zugriff
+- remote.view
+- admin.users.note.write
+- confirmWrite im JSON-Body
+- Zieluser-Pruefung
+- Schema-Pruefung dashboard_user_admin_notes
+- Lock-Acquire
+- Audit-Attempt
+- Admin-Notiz-Write
+- Readback
+- Audit-Success/Failure
+- Lock-Release
+- klaren Fehlerpfad
+```
+
+## RDAP39 Sicherheitsgrenzen
+
+```text
+Keine UI-Schreibbuttons.
+Kein physisches Delete.
+Keine Permission automatisch vergeben.
+Keine Community-Seiten-Anbindung.
+Keine freie Shell-/Datei-/Prozessausfuehrung.
+Keine Secrets loggen.
+```
+
+## Relevante Live-Bestaetigungen aus RDAP38B
+
+```text
+RDAP38 Planroute live bestaetigt.
 writeEnabled: false
 productiveWritesEnabled: false
 adminNoteWritesEnabled: false
@@ -41,25 +73,10 @@ physicalDeleteEnabled: false
 plannedNextStep: RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
 ```
 
-## Danach
+## Nach RDAP39
 
 ```text
-RDAP38B_ADMIN_NOTE_WRITE_PLAN_LIVE_CONFIRMED_DOCS
+RDAP39B_ADMIN_NOTE_WRITE_BACKEND_LIVE_CONFIRMED_DOCS
 ```
 
-Erst nach erfolgreichem RDAP38B:
-
-```text
-RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
-```
-
-## RDAP39 darf erst starten, wenn geklaert ist
-
-```text
-Backup dashboard_user_admin_notes erstellt und nicht 0 Byte.
-Permission-Pfad admin.users.note.write bestaetigt.
-Lock-/Audit-/Write-/Readback-/Release-Ablauf akzeptiert.
-Fehlerpfad akzeptiert.
-Keine UI-Schreibbuttons vor Backend-Bestaetigung.
-Kein physisches Delete.
-```
+Erst nach erfolgreichem kontrolliertem Backend-Write und Readback.
