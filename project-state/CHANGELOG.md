@@ -1,11 +1,11 @@
 # CHANGELOG
 
-Stand: RDAP_ADMIN_USERS17B_ROUTE_LIST_SYNC_LIVE_CONFIRMED  
+Stand: RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
-## RDAP_ADMIN_USERS17B_ROUTE_LIST_SYNC
+## RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS
 
-Typ: Backend-Routenuebersicht / Doku-Status-Sync  
+Typ: Doku-/Status-Sync  
 DB: keine Aenderung  
 Secrets: nein  
 Produktive Writes: nein  
@@ -14,45 +14,46 @@ Workflow-Tools: nein
 
 ### Ergebnis
 
-RDAP17B ist live bestaetigt.
+RDAP20 ist live bestaetigt.
 
-`/api/remote/routes` liefert jetzt:
+`/api/remote/routes` liefert:
 
 ```text
-statusApiVersion: rdap_admin_users17b.v1
-adminUserAdminNoteReadDiagnostic.prepared: true
-adminUserAdminNoteReadDiagnostic.route: /api/remote/admin/users/admin-note-read-diagnostic
-adminUserAdminNoteReadDiagnostic.tableName: dashboard_user_admin_notes
-adminUserAdminNoteReadDiagnostic.readOnly: true
-adminUserAdminNoteReadDiagnostic.writeEnabled: false
-adminUserAdminNoteReadDiagnostic.productiveWritesEnabled: false
-adminUserAdminNoteReadDiagnostic.writesStillBlocked: true
-adminUserAdminNoteReadDiagnostic.returnsNoteText: false
-adminUserAdminNoteReadDiagnostic.noteTextIsRedacted: true
-adminUserAdminNoteReadDiagnostic.routeListKeySynced: true
+statusApiVersion: rdap_admin_users20.v1
+adminUserAdminNoteReadPermissionDiagnostic.prepared: true
+adminUserAdminNoteReadPermissionDiagnostic.route: /api/remote/admin/users/admin-note-read-permission-diagnostic
+adminUserAdminNoteReadPermissionDiagnostic.permissionKey: admin.users.note.read
+adminUserAdminNoteReadPermissionDiagnostic.tableName: dashboard_user_admin_notes
+adminUserAdminNoteReadPermissionDiagnostic.readOnly: true
+adminUserAdminNoteReadPermissionDiagnostic.writeEnabled: false
+adminUserAdminNoteReadPermissionDiagnostic.productiveWritesEnabled: false
+adminUserAdminNoteReadPermissionDiagnostic.writesStillBlocked: true
+adminUserAdminNoteReadPermissionDiagnostic.returnsNoteText: false
+adminUserAdminNoteReadPermissionDiagnostic.noteTextIsRedacted: true
+adminUserAdminNoteReadPermissionDiagnostic.routeListKeySynced: true
 ```
 
-Die Read-Diagnostic-Route liefert weiterhin:
+Unauthentifizierter Zugriff auf die Permission-Diagnostic liefert korrekt:
 
 ```text
-ok: true
+HTTP/1.1 401 Unauthorized
+ok: false
+loggedIn: false
+dashboardAccess: false
+canReadAdminNotes: false
+reason: not_logged_in_or_session_invalid
 readOnly: true
 writesStillBlocked: true
 returnsNoteText: false
+noteTextReturned: false
 noteTextIsRedacted: true
-totalCount: 0
-```
-
-### Geaendert durch RDAP17B
-
-```text
-remote-modboard/backend/src/routes/routes.routes.js
+communityPagesMayReadAdminNotes: false
 ```
 
 ### Dieser Doku-Sync aktualisiert
 
 ```text
-docs/current/RDAP_ADMIN_USERS17B_ROUTE_LIST_SYNC_LIVE_CONFIRMED.md
+docs/current/RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -63,6 +64,7 @@ project-state/CHANGELOG.md
 ### Nicht geaendert
 
 ```text
+Keine Backend-Code-Aenderung
 Keine DB-Migration
 Keine SQL-Ausfuehrung
 Keine Inserts
@@ -77,10 +79,19 @@ Keine OBS-/Sound-/Overlay-/Command-Steuerung
 Keine Workflow-Tools
 ```
 
-### Offener separater Punkt
+### Offene separate Punkte
 
 ```text
-OAuth-Safety-Check im Deploy-Script pruefen:
-twitch/start liefert aktuell HTTP 302, callback HTTP 403.
-Das ist nicht Teil von RDAP17B.
+OAuth-Safety-Check im Deploy-Script pruefen: twitch/start liefert aktuell HTTP 302, callback HTTP 403.
+Base moduleBuild/statusApiVersion spaeter kosmetisch/diagnostisch anheben, aber nur in eigenem Mini-Scope.
+```
+
+## Vorheriger Stand
+
+RDAP17B war live bestaetigt:
+
+```text
+statusApiVersion: rdap_admin_users17b.v1
+adminUserAdminNoteReadDiagnostic.prepared: true
+adminUserAdminNoteReadDiagnostic.routeListKeySynced: true
 ```

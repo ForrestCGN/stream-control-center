@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP_ADMIN_USERS17B_ROUTE_LIST_SYNC_LIVE_CONFIRMED  
+Stand: RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## RDAP / Remote-Modboard
@@ -25,19 +25,25 @@ Datum: 2026-06-25
 - [x] RDAP17 Admin-Notiz Read-Diagnostic live bestaetigt.
 - [x] RDAP17B Routenuebersicht fuer Admin-Notiz Read-Diagnostic synchronisiert.
 - [x] RDAP17B Webserver-Deploy live bestaetigt.
+- [x] RDAP18 Admin-Notiz Display-Scope geplant.
+- [x] RDAP19 Auth-Permission-Read-Check fuer Admin-Notizen geplant.
+- [x] RDAP20 Admin-Notiz Read-Permission-Diagnostic read-only gebaut.
+- [x] RDAP20 Webserver-Deploy live bestaetigt.
+- [x] RDAP20 unauthentifizierter Zugriff korrekt mit HTTP 401 blockiert.
 
 ## Weiterhin offen
 
-- [ ] RDAP18 Admin-Notiz Display-Scope planen.
-- [ ] Noch keine produktive Admin-Notiz-Anzeige mit Notiztexten bauen, bevor Auth/Permission geklaert ist.
+- [ ] RDAP21 Admin-Notiz Display-Readiness planen.
+- [ ] Noch keine produktive Admin-Notiz-Anzeige mit Notiztexten bauen, bevor Auth/Session/Permission aktiv und getestet ist.
 - [ ] Noch keinen Admin-Notiz-Write bauen.
 - [ ] Noch keine UI-Schreibbuttons.
-- [ ] Permission `admin.users.note.read` fuer spaetere Anzeige klaeren.
-- [ ] Permission `admin.users.note.write` fuer spaeteren Write klaeren.
+- [ ] Permission `admin.users.note.read` fuer spaetere Anzeige serverseitig erzwingen.
+- [ ] Permission `admin.users.note.write` fuer spaeteren Write getrennt klaeren.
 - [ ] Confirm-Write Pflicht fuer spaeteren Admin-Notiz-Write vorbereiten.
 - [ ] Audit-Payload fuer spaeteren Admin-Notiz-Write vorbereiten.
 - [ ] Lock-Scope fuer spaeteren Admin-Notiz-Write vorbereiten.
 - [ ] OAuth-Safety-Check im Deploy-Script separat pruefen: `twitch/start` liefert aktuell 302 statt erwarteter 403.
+- [ ] Base `moduleBuild`/`statusApiVersion` spaeter kosmetisch/diagnostisch anheben, aber nur eigener Mini-Scope.
 
 ## Community-Seite / forrestcgn.de / .info
 

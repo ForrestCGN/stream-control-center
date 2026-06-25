@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP_ADMIN_USERS17B_ROUTE_LIST_SYNC_LIVE_CONFIRMED  
+Stand: RDAP_ADMIN_USERS20B_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
@@ -58,6 +58,48 @@ adminUserAdminNoteReadDiagnostic.returnsNoteText: false
 adminUserAdminNoteReadDiagnostic.noteTextIsRedacted: true
 ```
 
+RDAP18 ist abgeschlossen:
+
+```text
+Admin-Notiz Display-Scope geplant
+admin.users.note.read fuer spaetere Anzeige vorgesehen
+admin.users.note.write bleibt separater Write-Scope
+Community-Seiten duerfen Admin-Notizen niemals anzeigen
+```
+
+RDAP19 ist abgeschlossen:
+
+```text
+Auth-/Permission-Read-Check fuer Admin-Notizen geplant
+Keine Backend-/DB-/UI-Aenderung
+```
+
+RDAP20 ist live bestaetigt:
+
+```text
+GET /api/remote/routes
+statusApiVersion: rdap_admin_users20.v1
+adminUserAdminNoteReadPermissionDiagnostic.prepared: true
+adminUserAdminNoteReadPermissionDiagnostic.routeListKeySynced: true
+adminUserAdminNoteReadPermissionDiagnostic.permissionKey: admin.users.note.read
+adminUserAdminNoteReadPermissionDiagnostic.readOnly: true
+adminUserAdminNoteReadPermissionDiagnostic.writesStillBlocked: true
+adminUserAdminNoteReadPermissionDiagnostic.returnsNoteText: false
+adminUserAdminNoteReadPermissionDiagnostic.noteTextIsRedacted: true
+```
+
+Unauthentifizierter Zugriff auf die Permission-Diagnostic ist korrekt blockiert:
+
+```text
+GET /api/remote/admin/users/admin-note-read-permission-diagnostic?targetUserUid=test
+HTTP/1.1 401 Unauthorized
+ok: false
+loggedIn: false
+dashboardAccess: false
+canReadAdminNotes: false
+reason: not_logged_in_or_session_invalid
+```
+
 ## Service-Status
 
 Der Status-Endpunkt kann weiterhin den aelteren Service-Build anzeigen, wenn nur Diagnose-/Routen-/Doku-/SQL-nahe Steps betroffen waren:
@@ -70,7 +112,7 @@ actionEnabled: false
 productiveAgentRuntime: false
 ```
 
-Das ist aktuell kein Fehler, solange die konkreten RDAP17/RDAP17B-Routen korrekt antworten.
+Das ist aktuell kein Fehler, solange die konkreten RDAP20-Routen korrekt antworten.
 
 ## Weiterhin nicht aktiv
 
