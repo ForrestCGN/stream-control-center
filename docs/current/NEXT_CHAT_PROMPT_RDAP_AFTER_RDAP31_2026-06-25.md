@@ -1,4 +1,4 @@
-# Neuer Chat Prompt — RDAP nach RDAP31
+# Neuer Chat Prompt — RDAP nach RDAP31B
 
 Wir arbeiten am Projekt `stream-control-center` / Remote-Modboard / RDAP fuer ForrestCGN.
 
@@ -19,6 +19,7 @@ Bitte zuerst diese Dateien aus GitHub/dev lesen:
 ```text
 docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-24.md
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+docs/current/RDAP31B_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI_LIVE_CONFIRMED_DOCS.md
 docs/current/RDAP31_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
@@ -35,6 +36,7 @@ Keine kuenstlichen Mini-Schritte.
 Bei "go" den naechsten sinnvollen Step bauen oder ausfuehren.
 Befehlskloetze nur dann erneut zeigen, wenn neu oder wirklich noetig.
 Wenn Stepdone gemeldet wurde: lokalen Stand als erledigt behandeln.
+Wenn Doku-only: kein Webserver-Deploy.
 Wenn Backend/UI-Step: nach stepdone Webserver-Deploy aus frischem GitHub/dev-Clone.
 Fehlende Dateien gezielt anfragen, nicht raten.
 ZIPs immer mit echten Zielpfaden bauen.
@@ -52,23 +54,38 @@ RDAP28 read-only Admin-Notiz-UI ist live.
 RDAP29/RDAP29B MariaDB-Testnotiz ist live und read-only sichtbar.
 RDAP30 Write-Scope geplant.
 RDAP31 Backend-Write-Routen fuer Admin-Notizen existieren als gesperrte Validierungsrouten.
+RDAP31B RDAP31-Live-Deploy und Sicherheitschecks dokumentiert.
 ```
 
-RDAP31-Routen:
+RDAP31 Live-Bestaetigung:
 
 ```text
-POST /api/remote/admin/users/admin-notes/create
-POST /api/remote/admin/users/admin-notes/update
-POST /api/remote/admin/users/admin-notes/deactivate
+/api/remote/routes zeigt rdap_admin_note_write31.v1
+Ohne Confirm -> HTTP 400 confirm_write_required
+Mit Body-Confirm ohne Session -> HTTP 401 not_logged_in_or_session_invalid
+DB note_count bleibt 1
+Keine neue Notiz geschrieben
 ```
 
-Wichtig:
+Wichtiger Befund:
 
 ```text
-RDAP31 schreibt nichts.
-UI-Schreibbuttons bleiben unsichtbar.
-admin.users.note.write wurde nicht vergeben.
-Audit-/Lock-Writes sind weiterhin deaktiviert.
+confirmWrite=true per Query wurde nicht erkannt.
+confirmWrite im JSON-Body funktioniert.
+```
+
+Weiterhin nicht aktiv:
+
+```text
+admin.users.note.write Permission
+produktive Admin-Notiz-Writes
+UI-Schreibbuttons
+Audit-Inserts
+Lock-Writes
+physisches DELETE
+Community-Seiten-Anbindung
+User-/Rollen-/Session-Writes
+Agent-/OBS-/Sound-/Overlay-/Command-Steuerung
 ```
 
 Naechster sinnvoller Step:
@@ -77,4 +94,10 @@ Naechster sinnvoller Step:
 RDAP32_ADMIN_AUDIT_LOCK_WRITE_REAL_FOUNDATION_PLAN_OR_BUILD
 ```
 
-Erst Audit/Lock sauber produktiv vorbereiten, dann Admin-Notiz-Writes wirklich aktivieren.
+Empfehlung:
+
+```text
+Erst Audit/Lock anhand echter Dateien pruefen.
+Wenn Audit-/Lock-Write zu gross ist: RDAP32 nur als detaillierter Plan.
+Keine produktive Admin-Notiz-Schreibfunktion aktivieren, bevor Audit/Lock sauber funktionieren.
+```

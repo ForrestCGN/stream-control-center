@@ -1,14 +1,12 @@
 # FILES
 
-Stand: RDAP31_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI  
+Stand: RDAP31B_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
-## Geaendert in RDAP31
+## Geaendert in RDAP31B
 
 ```text
-remote-modboard/backend/src/services/admin-user-admin-note-write-disabled.service.js
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
+docs/current/RDAP31B_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI_LIVE_CONFIRMED_DOCS.md
 docs/current/RDAP31_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP31_2026-06-25.md
 project-state/CURRENT_STATUS.md
@@ -18,7 +16,15 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Wichtige Grundlage fuer naechste Steps
+## RDAP31 Backend-Dateien
+
+```text
+remote-modboard/backend/src/services/admin-user-admin-note-write-disabled.service.js
+remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+```
+
+## Wichtige Grundlage fuer RDAP32
 
 ```text
 remote-modboard/backend/src/services/admin-audit-write.service.js

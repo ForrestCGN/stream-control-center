@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP31_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI  
+Stand: RDAP31B_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
@@ -24,43 +24,36 @@ RDAP27 echte read-only Admin-Notiztext-Route funktioniert.
 RDAP28 read-only Admin-Notiz-UI funktioniert.
 RDAP29/RDAP29B MariaDB-Testnotiz ist live sichtbar.
 RDAP30 Write-Scope ist geplant.
-RDAP31 Backend-Write-Routen sind als gesperrte Validierungsrouten vorbereitet.
+RDAP31 Backend-Write-Routen sind als gesperrte Validierungsrouten live.
+RDAP31B Live-Deploy und Sicherheitschecks sind dokumentiert.
 ```
 
-## RDAP31
-
-Neue Backend-Routen:
+## RDAP31 live bestaetigt
 
 ```text
-POST /api/remote/admin/users/admin-notes/create
-POST /api/remote/admin/users/admin-notes/update
-POST /api/remote/admin/users/admin-notes/deactivate
+Service active/running
+/api/remote/routes -> statusApiVersion rdap_admin_note_write31.v1
+adminUsersAdminNoteWriteDisabled vorhanden
+writeEnabled false
+productiveWritesEnabled false
+writesStillBlocked true
+uiWriteButtonsEnabled false
 ```
 
-Diese Routen pruefen read-only:
+Tests:
 
 ```text
-Session
-Dashboard-Zugriff
-remote.view
-admin.users.note.write
-confirmWrite
-Input
-DB-Schema
-Zieluser
-bestehende Notiz bei update/deactivate
-Audit-Draft
-Lock-Draft
+Ohne Confirm -> HTTP 400 confirm_write_required
+Mit Body-Confirm ohne Session -> HTTP 401 not_logged_in_or_session_invalid
+DB note_count bleibt 1
+Keine neue Notiz geschrieben
 ```
 
-Diese Routen schreiben nicht:
+Befund:
 
 ```text
-writeEnabled: false
-databaseWriteEnabled: false
-productiveWritesEnabled: false
-writesStillBlocked: true
-writeExecuted: false
+confirmWrite=true per Query wurde nicht erkannt.
+confirmWrite im JSON-Body funktioniert.
 ```
 
 ## Weiterhin blockiert

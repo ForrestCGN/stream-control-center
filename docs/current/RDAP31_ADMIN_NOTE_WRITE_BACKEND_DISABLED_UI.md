@@ -46,9 +46,40 @@ writeExecuted: false
 
 ---
 
-## 2. Warum weiterhin blockiert?
+## 2. Live-Bestaetigung
 
-Audit- und Lock-Helper sind laut GitHub/dev aktuell vorbereitet, aber fuer echte Writes deaktiviert:
+RDAP31 wurde live auf `mods.forrestcgn.de` deployt und getestet.
+
+Bestaetigt:
+
+```text
+Service active/running
+/api/remote/routes zeigt rdap_admin_note_write31.v1
+RDAP31-Routen sind registriert
+Ohne Confirm -> HTTP 400 confirm_write_required
+Mit Body-Confirm ohne Session -> HTTP 401 not_logged_in_or_session_invalid
+DB note_count bleibt 1
+Keine neue Notiz geschrieben
+```
+
+Befund:
+
+```text
+confirmWrite=true per Query wurde nicht erkannt.
+confirmWrite im JSON-Body funktioniert.
+```
+
+Details stehen in:
+
+```text
+docs/current/RDAP31B_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI_LIVE_CONFIRMED_DOCS.md
+```
+
+---
+
+## 3. Warum weiterhin blockiert?
+
+Audit- und Lock-Helper sind aktuell vorbereitet, aber fuer echte Writes deaktiviert:
 
 ```text
 admin-audit-write.service.js -> auditWriteEnabled false / auditInsertEnabled false
@@ -60,7 +91,7 @@ Deshalb darf RDAP31 keine produktiven Admin-Notiz-Writes ausfuehren.
 
 ---
 
-## 3. Geaenderte Dateien
+## 4. Geaenderte Dateien
 
 ```text
 remote-modboard/backend/src/services/admin-user-admin-note-write-disabled.service.js
@@ -72,7 +103,7 @@ Keine UI-Dateien geaendert.
 
 ---
 
-## 4. Nicht geaendert
+## 5. Nicht geaendert
 
 ```text
 Keine UI-Schreibbuttons
@@ -88,7 +119,7 @@ Keine Agent-/OBS-/Sound-/Overlay-Steuerung
 
 ---
 
-## 5. Erwartetes Verhalten
+## 6. Erwartetes Verhalten
 
 ### Ohne confirmWrite
 
@@ -98,11 +129,11 @@ reason: confirm_write_required
 writeExecuted: false
 ```
 
-### Mit confirmWrite, aber ohne admin.users.note.write
+### Mit Body-confirmWrite, aber ohne Session
 
 ```text
-HTTP 403
-reason: admin_note_write_permission_denied
+HTTP 401
+reason: not_logged_in_or_session_invalid
 writeExecuted: false
 ```
 
@@ -119,47 +150,10 @@ databaseWriteExecuted: false
 
 ---
 
-## 6. Lokale Checks
-
-```powershell
-node --check .\remote-modboard\backend\src\services\admin-user-admin-note-write-disabled.service.js
-node --check .\remote-modboard\backend\src\routes\admin-users.routes.js
-node --check .\remote-modboard\backend\src\routes\routes.routes.js
-node --check .\remote-modboard\backend\src\app.js
-```
-
----
-
-## 7. Webserver-Checks nach Deploy
-
-Readiness:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null && echo ok
-```
-
-Routenuebersicht:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.adminUsersAdminNoteWriteDisabled'
-```
-
-Ohne Session/Confirm darf kein Write passieren.
-
----
-
-## 8. Naechster sinnvoller Step
+## 7. Naechster sinnvoller Step
 
 ```text
 RDAP32_ADMIN_AUDIT_LOCK_WRITE_REAL_FOUNDATION_PLAN_OR_BUILD
 ```
 
 Erst wenn Audit- und Lock-Writes wirklich sicher implementiert sind, darf Admin-Notiz-Write produktiv aktiviert werden.
-
-Danach:
-
-```text
-RDAP33_ADMIN_NOTE_WRITE_PERMISSION_OWNER_SEED
-RDAP34_ADMIN_NOTE_WRITE_BACKEND_REAL_CONFIRM_AUDIT_LOCK
-RDAP35_ADMIN_NOTE_WRITE_UI_GATED_BUTTONS
-```
