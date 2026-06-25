@@ -1,68 +1,62 @@
 # NEXT_STEPS
 
-Stand: RDAP42B_ADMIN_NOTE_STATUS_SEMANTICS_LIVE_CONFIRMED_DOCS  
+Stand: RDAP43_ADMIN_USER_DETAIL_NOTES_TARGET_SELECTION_PLAN  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP43_ADMIN_USER_DETAIL_TARGET_SELECTION_PLAN
+RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED
 ```
 
-## Ziel RDAP43
+## Ziel RDAP44
 
 ```text
 Admin-Notizen sollen nicht dauerhaft nur am fixen Zieluser tw:127709954 haengen.
-RDAP43 soll zuerst planen, wie Admin-User-Detailseite oder Zieluser-Auswahl sauber aufgebaut wird.
+RDAP44 soll die Zieluser-Auswahl oder eine kleine Admin-User-Detail-Anbindung umsetzen.
 ```
 
-## RDAP43 Grundregeln
+## Empfohlene kleine Umsetzung
 
 ```text
-Erst planen, dann auf Forrests go warten.
-Keine Update-/Deactivate-/Delete-Funktion.
-Keine Permission-Vergabe in der UI.
-Keine Community-Seiten-Anbindung an Admin-Notizen.
-Keine freien technischen Eingaben fuer kritische User-/Permission-Aktionen.
-Keine neue parallele UI-Struktur, wenn vorhandene Admin-/User-Struktur erweitert werden kann.
+Admin-Notizen-Seite bekommt Zieluser-Auswahl aus vorhandener Benutzer-/Dashboard-Datenquelle.
+Der fest verdrahtete Zieluser tw:127709954 wird durch den ausgewaehlten Zieluser ersetzt.
+Read/Create bleiben dieselben Backend-Routen.
 ```
 
-## Gewuenschte Richtung
+## RDAP44 Grundregeln
 
 ```text
-- Admin-Benutzerliste bzw. vorhandene User-Verwaltung als Einstieg nutzen.
-- User auswaehlen.
-- Admin-Notizen fuer genau diesen Zieluser anzeigen.
-- Create fuer diesen Zieluser nur bei admin.users.note.write.
-- Read nur bei admin.users.note.read.
-- Zieluser sauber serverseitig pruefen.
+Keine Update-Funktion.
+Keine Deactivate-Funktion.
+Kein Delete.
+Keine Permission-Vergabe in diesem Step.
+Keine Community-Seiten-Anbindung.
+Keine DB-Migration ohne separaten Plan.
+Keine parallele User-/Notizen-Struktur bauen, wenn vorhandene Admin-Struktur erweitert werden kann.
 ```
 
-## RDAP42 ist erledigt
-
-```text
-Status-/Routes-Semantik bereinigt.
-/api/remote/routes und /api/remote/status live getestet.
-statusApiVersion: rdap_admin_note_ui_status42.v1
-uiWriteButtonsEnabled: true
-backendAutoUiWriteButtonsEnabled: false
-adminNoteCreateUiPrepared: true
-adminNoteUpdateUiPrepared: false
-newWriteFunctionEnabled: false
-```
-
-## Vor RDAP43 zuerst echte Dateien pruefen
+## Vor RDAP44 zuerst echte Dateien pruefen
 
 ```text
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
-docs/current/RDAP42B_ADMIN_NOTE_STATUS_SEMANTICS_LIVE_CONFIRMED_DOCS.md
+docs/current/RDAP43_ADMIN_USER_DETAIL_NOTES_TARGET_SELECTION_PLAN.md
 remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
 remote-modboard/backend/public/index.html
 remote-modboard/backend/src/routes/admin-users.routes.js
 remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
 remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
+```
+
+## Zu pruefen vor Code
+
+```text
+1. Gibt es bereits eine Admin-User-Liste/API, die fuer Auswahl genutzt werden kann?
+2. Welche Userdaten sind im Frontend bereits vorhanden?
+3. Kann rdap28-admin-notes.js dynamisch targetUserUid setzen?
+4. Soll die Auswahl zuerst in Admin-Notizen oder direkt in Benutzerverwaltung sitzen?
 ```
 
 ## Workflow
