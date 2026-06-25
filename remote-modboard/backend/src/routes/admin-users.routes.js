@@ -5,6 +5,7 @@ const { buildAdminUserWriteFoundationDiagnostic } = require('../services/admin-u
 const { buildAdminUserAdminNoteDiagnostic } = require('../services/admin-user-admin-note-diagnostic.service');
 const { buildAdminUserAdminNoteReadDiagnostic } = require('../services/admin-user-admin-note-read-diagnostic.service');
 const { buildAdminUserAdminNoteReadPermissionDiagnostic } = require('../services/admin-user-admin-note-read-permission-diagnostic.service');
+const { buildAdminUserAdminNoteRealReadAuthed } = require('../services/admin-user-admin-note-real-read-authed.service');
 
 function registerAdminUsersRoutes(app, context) {
   app.get('/api/remote/admin/users/permission-diagnostic', async (req, res) => {
@@ -29,6 +30,11 @@ function registerAdminUsersRoutes(app, context) {
 
   app.get('/api/remote/admin/users/admin-note-read-permission-diagnostic', async (req, res) => {
     const result = await buildAdminUserAdminNoteReadPermissionDiagnostic({ context, req });
+    res.status(result.status || 200).json(result.body || result);
+  });
+
+  app.get('/api/remote/admin/users/admin-notes/read', async (req, res) => {
+    const result = await buildAdminUserAdminNoteRealReadAuthed({ context, req });
     res.status(result.status || 200).json(result.body || result);
   });
 }
