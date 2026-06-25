@@ -1,61 +1,40 @@
 # CHANGELOG
 
-Stand: RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS  
+Stand: RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION  
 Datum: 2026-06-25
 
-## RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS
+## RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
 
-Typ: Doku-/Status-Sync  
-DB: keine neue Aenderung in diesem Doku-Step  
+Typ: SQL-/Doku-Step fuer read-only Validierung  
+DB: SQL-Seed vorbereitet, aber nicht automatisch ausgefuehrt  
 Secrets: nein  
-Produktive Writes: nein  
+Produktive Dashboard-Writes: nein  
 UI-Schreibbuttons: nein  
+Backend-Code: nein  
+Frontend-Code: nein  
 Workflow-Tools: nein
 
 ### Ergebnis
 
-RDAP28 read-only Admin-Notiz-UI ist live bestaetigt.
-
-Server-Status:
+RDAP29 bereitet eine kontrollierte Test-Admin-Notiz fuer ForrestCGN vor:
 
 ```text
-moduleBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
+note_uid: rdap29_test_note_forrestcgn_readonly_validation
+target_user_uid: tw:127709954
+status: active
 ```
 
-Script:
+Zweck:
 
 ```text
-GET /assets/rdap28-admin-notes.js -> HTTP 200
+Die bestehende read-only Admin-Notiz-UI soll echten Text anzeigen koennen.
 ```
 
-HTML-Injection:
+### Geaendert / hinzugefuegt
 
 ```text
-<script src="/assets/rdap28-admin-notes.js" defer></script>
-```
-
-Browser-Test:
-
-```text
-Admin -> Admin-Notizen sichtbar
-Read: true
-Write: false
-Notizen: 0
-Tabelle: true
-Keine Admin-Notizen vorhanden
-Reload-Button sichtbar
-Keine Schreibbuttons sichtbar
-Sicherheitsbereich sichtbar
-```
-
-### Dieser Doku-Sync aktualisiert
-
-```text
-docs/current/RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP28_2026-06-25.md
+tools/rdap29_admin_note_test_seed_readonly_validation.sql
+docs/current/RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -66,25 +45,49 @@ project-state/CHANGELOG.md
 ### Nicht geaendert
 
 ```text
-Keine Backend-Code-Aenderung in diesem Doku-Step
-Keine DB-Migration in diesem Doku-Step
-Keine SQL-Ausfuehrung in diesem Doku-Step
+Keine Backend-Code-Aenderung
+Keine Frontend-Code-Aenderung
+Keine remote-modboard/ Datei geaendert
+Keine automatische SQL-Ausfuehrung
+Keine DB-Migration durch installstep/deploy
 Keine Admin-Notiz-Write-Route
+Keine admin.users.note.write Permission
 Keine UI-Schreibbuttons
-Keine User-/Rollen-/Session-Aenderung in diesem Doku-Step
+Keine User-/Rollen-/Session-Aenderung
 Keine Agent-Actions
 Keine OBS-/Sound-/Overlay-/Command-Steuerung
 Keine Workflow-Tools
 ```
 
-## Vorheriger Stand
-
-RDAP27B war live bestaetigt:
+### Pflicht vor SQL-Ausfuehrung
 
 ```text
-Echte read-only Admin-Notiztext-Route live
-Ohne Session HTTP 401
-Mit Session + admin.users.note.read HTTP 200
-noteTextReturned true
-notes []
+DB-Env maskiert pruefen
+Backup erstellen
+Read-only Vorpruefung per INFORMATION_SCHEMA
+```
+
+### Pflicht nach SQL-Ausfuehrung
+
+```text
+Read-Back per SQL pruefen
+Browser-Test: Admin -> Admin-Notizen
+Read true
+Write false
+Notizen mindestens 1
+Test-Notiz sichtbar
+Keine Schreibbuttons sichtbar
+```
+
+## Vorheriger Stand
+
+RDAP28B war live bestaetigt:
+
+```text
+Admin -> Admin-Notizen sichtbar
+Read true
+Write false
+Notizen 0
+Tabelle true
+Keine Schreibbuttons sichtbar
 ```

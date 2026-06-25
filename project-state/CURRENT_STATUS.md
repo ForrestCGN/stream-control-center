@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS  
+Stand: RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
@@ -53,22 +53,6 @@ Backup vor RDAP26-Seed:
 /opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap26_before_owner_permission_seed_20260625_080740.sql
 ```
 
-Browser-/API-Test nach RDAP26:
-
-```text
-remote.view:
-  diagnostics.effectivePermissionWouldAllow: true
-  diagnostics.effectivePermissionReason: explicit_allow
-  diagnostics.roles: ["owner"]
-  diagnostics.permissionRows.rolePermissions: 1
-
-admin.users.note.read:
-  diagnostics.effectivePermissionWouldAllow: true
-  diagnostics.effectivePermissionReason: explicit_allow
-  diagnostics.roles: ["owner"]
-  diagnostics.permissionRows.rolePermissions: 1
-```
-
 ### RDAP27 echte read-only Admin-Notiztext-Route
 
 Live bestaetigt:
@@ -78,7 +62,6 @@ moduleBuild: RDAP_ADMIN_USERS27_ADMIN_NOTE_REAL_READ_ROUTE_AUTHED
 writeEnabled: false
 actionEnabled: false
 productiveAgentRuntime: false
-
 GET /api/remote/admin/users/admin-notes/read?targetUserUid=tw:127709954
 ```
 
@@ -132,6 +115,33 @@ Keine Schreibbuttons sichtbar.
 Sicherheitsbereich sichtbar.
 ```
 
+### RDAP29 Admin-Notiz Test-Seed vorbereitet
+
+Vorbereitet, aber nicht automatisch ausgefuehrt:
+
+```text
+tools/rdap29_admin_note_test_seed_readonly_validation.sql
+docs/current/RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION.md
+```
+
+Zweck:
+
+```text
+Eine kontrollierte Test-Notiz fuer tw:127709954 anlegen,
+damit die read-only Admin-Notiz-UI echten Inhalt anzeigen kann.
+```
+
+Wichtig:
+
+```text
+RDAP29 ist kein UI-/Backend-Schreibstep.
+Keine UI-Schreibbuttons.
+Keine Write-Route.
+Keine admin.users.note.write Permission.
+Die SQL-Datei wird nicht automatisch ausgefuehrt.
+Vor Ausfuehrung: Backup + Read-only Vorpruefung + Read-Back nach Ausfuehrung.
+```
+
 ## Weiterhin nicht aktiv
 
 ```text
@@ -144,21 +154,21 @@ User freigeben/sperren
 Rollen vergeben/entziehen
 Gruppen/Freigaben setzen/entfernen
 Sessions widerrufen
-Audit-Inserts oder Audit-Updates
+Audit-Inserts oder Audit-Updates ueber das Dashboard
 Lock acquire/heartbeat/release/force-takeover
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
 Community-Seiten-Anbindung fuer Admin-Notizen
 ```
 
-## Arbeitsweise, die zuletzt gut funktioniert hat
+## Arbeitsweise, die weiter gilt
 
 ```text
 Steps so gross wie moeglich und so klein wie noetig.
 Keine kuenstlichen Mini-Schritte.
 Bei go: echten naechsten Step bauen, nicht alles wiederholen.
-Nach Stepdone: Wenn noetig Webserver-Deploy aus frischem GitHub/dev-Clone.
-Bei Doku-only: kein Deploy.
+Nach Stepdone: lokalen Stand als erledigt behandeln.
+Bei Doku-/SQL-only ohne remote-modboard-Code: kein normaler Service-Deploy.
 Fehlende Dateien gezielt anfragen, nicht raten.
 ZIPs ohne unnoetige Root-README-Dateien.
 ```

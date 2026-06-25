@@ -1,6 +1,6 @@
 # TODO - stream-control-center
 
-Stand: RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS  
+Stand: RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION  
 Datum: 2026-06-25
 
 ## RDAP / Remote-Modboard
@@ -18,12 +18,21 @@ Datum: 2026-06-25
 - [x] RDAP28 read-only Admin-Notiz-UI-Panel gebaut.
 - [x] RDAP28 Webserver-Deploy live bestaetigt.
 - [x] RDAP28 Browser-Test bestaetigt: Admin -> Admin-Notizen sichtbar, Read true, Write false, Notizen 0, Tabelle true.
+- [x] RDAP29 Admin-Notiz-Test-Seed fuer read-only Anzeige vorbereitet.
+- [x] RDAP29 Doku fuer Backup/Vorpruefung/Seed/Read-Back vorbereitet.
 
 ## Naechstes offen
 
-- [ ] Entscheidung im neuen Chat: Test-Notiz seed oder Write-Scope planen.
-- [ ] Optional RDAP29 Admin-Notiz-Test-Seed fuer read-only Anzeige.
-- [ ] Optional RDAP29 Admin-Notiz-Write-Scope-Plan.
+- [ ] RDAP29 lokal einspielen und pruefen.
+- [ ] RDAP29 `stepdone.cmd` ausfuehren, wenn lokaler Stand sauber ist.
+- [ ] RDAP29 frischen GitHub/dev-Clone auf dem Webserver erstellen.
+- [ ] RDAP29 DB-Env maskiert pruefen, keine Secrets posten.
+- [ ] RDAP29 DB-Backup vor Seed erstellen und Dateigroesse pruefen.
+- [ ] RDAP29 Read-only Vorpruefung per INFORMATION_SCHEMA ausfuehren.
+- [ ] RDAP29 SQL-Seed manuell ausfuehren.
+- [ ] RDAP29 Read-Back pruefen: Test-Notiz fuer `tw:127709954` vorhanden.
+- [ ] RDAP29 Browser pruefen: Admin-Notizen zeigt echten Text, Write false, keine Schreibbuttons.
+- [ ] Danach RDAP30 Admin-Notiz-Write-Scope-Plan vorbereiten.
 - [ ] Noch keinen Admin-Notiz-Write bauen.
 - [ ] Noch keine UI-Schreibbuttons fuer Admin-Notizen.
 - [ ] Permission `admin.users.note.write` fuer spaeteren Write getrennt klaeren.
@@ -47,7 +56,7 @@ Datum: 2026-06-25
 - [ ] Gruppen/Freigaben setzen/entfernen.
 - [ ] Sessions widerrufen.
 - [ ] Admin-Notiz schreiben.
-- [ ] Audit-/Lock-Writes produktiv ausfuehren.
+- [ ] Audit-/Lock-Writes produktiv ueber Dashboard ausfuehren.
 - [ ] Agent-/OBS-/Sound-/Overlay-/Command-Steuerung aktivieren.
 
 ## Workflow-Schutz

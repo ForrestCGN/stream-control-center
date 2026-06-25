@@ -1,6 +1,6 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP28B_ADMIN_NOTE_READONLY_UI_PANEL_LIVE_CONFIRMED_DOCS  
+Stand: RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION  
 Datum: 2026-06-25
 
 ## Erledigt / live bestaetigt
@@ -21,53 +21,69 @@ owner -> admin.users.note.read -> allow
 owner -> admin.users.note.write -> NICHT vergeben
 ```
 
-## Aktueller Admin-Notiz-Stand
-
-Backend:
+## RDAP29 vorbereitet
 
 ```text
-GET /api/remote/admin/users/admin-notes/read?targetUserUid=tw:127709954
-
-Ohne Session:
-  HTTP 401
-  noteTextReturned: false
-
-Mit Session + DashboardAccess + admin.users.note.read:
-  HTTP 200
-  noteTextReturned: true
-  notes: []
+RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
 ```
 
-Frontend:
+Vorbereitet:
 
 ```text
-Admin -> Admin-Notizen
-Read: true
-Write: false
-Notizen: 0
-Tabelle: true
-Keine Admin-Notizen vorhanden.
-Keine Schreibbuttons.
+tools/rdap29_admin_note_test_seed_readonly_validation.sql
+docs/current/RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION.md
 ```
 
-## Naechste sinnvolle Entscheidung
-
-Im neuen Chat zuerst entscheiden:
+Ziel:
 
 ```text
-A) RDAP29_ADMIN_NOTE_TEST_SEED_READONLY_VALIDATION
-   Eine kontrollierte Test-Notiz per SQL/DB-Seed anlegen, damit die read-only Anzeige realen Text zeigt.
-   Keine UI-Schreibfunktion.
-
-B) RDAP29_ADMIN_NOTE_WRITE_SCOPE_PLAN
-   Write-Scope sauber planen, aber noch nichts schreiben.
+Eine kontrollierte Test-Notiz fuer tw:127709954 per SQL-Seed anlegen,
+damit die bestehende read-only UI echten Text anzeigt.
 ```
 
-Empfehlung:
+Nicht automatisch:
 
 ```text
-A zuerst, damit die Anzeige mit echtem Inhalt geprueft wird.
-Danach Write-Scope planen.
+Keine automatische SQL-Ausfuehrung durch installstep/deploy.
+Keine Backend-/UI-Code-Aenderung.
+Kein normaler Webserver-Service-Deploy noetig.
+```
+
+## Naechster praktischer Schritt
+
+Nach lokalem Install + stepdone:
+
+```text
+RDAP29 SQL-Seed auf dem Webserver aus frischem GitHub/dev-Clone ausfuehren.
+```
+
+Pflicht davor:
+
+```text
+DB-Env maskiert pruefen
+Backup erstellen
+Read-only Vorpruefung per INFORMATION_SCHEMA
+```
+
+Pflicht danach:
+
+```text
+Read-Back SQL pruefen
+Browser: Admin -> Admin-Notizen zeigt mindestens 1 Test-Notiz
+Write bleibt false
+Keine Schreibbuttons sichtbar
+```
+
+## Danach sinnvoll
+
+```text
+RDAP30_ADMIN_NOTE_WRITE_SCOPE_PLAN
+```
+
+Ziel:
+
+```text
+Write-Scope fuer Admin-Notizen sauber planen, aber noch nicht direkt bauen.
 ```
 
 ## Harte Grenzen fuer naechste Steps
@@ -78,6 +94,7 @@ Keine Schreibbuttons ohne separaten Plan.
 Keine Write-Route ohne Confirm/Audit/Lock/Backup/Rollback.
 Keine Community-Seiten-Anbindung fuer Admin-Notizen.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
+Keine Workflow-Tools ueberschreiben.
 ```
 
 ## Spaeterer Write-Step muss enthalten
@@ -86,7 +103,7 @@ Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 Permission admin.users.note.write
 Confirm-Write Pflicht
 Audit-Payload
-Lock-Scope admin:user-note:<target_user_uid>
+Lock-Scope admin:user-note:<targetUserUid>
 Read-Back-Pruefung
 Backup/Rollback-Konzept
 separates Go von Forrest
