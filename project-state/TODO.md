@@ -1,25 +1,24 @@
 # TODO
 
-Stand: RDAP35_ADMIN_AUDIT_SCHEMA_MIGRATION_PREPARED  
+Stand: RDAP35B_ADMIN_AUDIT_SCHEMA_MIGRATION_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-25
 
 ## Offen
 
-- [ ] RDAP35 lokal einspielen und stepdone.
-- [ ] RDAP35 SQL vom Webserver-Deploy-Clone ausfuehren.
-- [ ] Backup von `dashboard_audit_log` erstellen.
-- [ ] Backup-Datei pruefen, nicht 0 Byte.
-- [ ] Precheck SQL ausfuehren.
-- [ ] Migration SQL ausfuehren.
-- [ ] Readback SQL ausfuehren.
-- [ ] RDAP33 Route nach Migration erneut pruefen.
-- [ ] RDAP35B Live-Ergebnis dokumentieren.
-- [ ] Audit-Testinsert erst nach erfolgreicher Migration.
+- [ ] RDAP35B lokal einspielen und stepdone.
+- [ ] RDAP36 Audit-Testinsert bauen/testen.
+- [ ] Vor RDAP36 Backup von `dashboard_audit_log` erstellen und Dateigroesse pruefen.
+- [ ] RDAP36 Testinsert nur mit Body-confirmWrite.
+- [ ] RDAP36 Read-Back nach Insert pruefen.
+- [ ] Audit-Testinsert eindeutig als RDAP36-Test markieren.
 - [ ] Lock-Testwrite erst nach Audit-Testinsert.
 - [ ] Keine Admin-Notiz-Writes vor erfolgreichem Audit-/Lock-Fundament.
 - [ ] Kein physisches Delete bauen.
 
 ## Erledigt
 
-- [x] RDAP34 Entscheidung: Option B, bestehende Audit-Tabelle sanft erweitern.
 - [x] RDAP35 SQL-/Doku-Vorbereitung erstellt.
+- [x] RDAP35 Backup erstellt und geprueft.
+- [x] RDAP35 Migration ausgefuehrt.
+- [x] RDAP35 RDAP33 Route nach Migration geprueft.
+- [x] Audit-Schema ist write-kandidaten-kompatibel.
