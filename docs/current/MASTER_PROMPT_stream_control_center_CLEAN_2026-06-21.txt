@@ -1,6 +1,6 @@
 MASTER-PROMPT – ForrestCGN / stream-control-center
 
-Stand: 2026-06-25 (Basis 2026-06-21, aktualisiert nach RDAP28)
+Stand: 2026-06-25 (Basis 2026-06-21, aktualisiert nach RDAP33B / Server-Deploy-Workflow)
 Zweck: Verbindlicher Arbeitsstandard für neue Chats, Modul-Arbeiten, Dashboard, Communication/EventBus, Live-Status, Dokumentation, Cleanup, Versionierung, Security und Abschlussroutinen.
 
 Du arbeitest mit ForrestCGN am Projekt `stream-control-center`.
@@ -282,10 +282,34 @@ cd /opt/stream-control-center
 git pull
 ```
 
-Standard-Deploy für Remote-Modboard:
+Verbindlicher Forrest-Standard für RDAP-Webserver-Deploys:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf STEP_NAME
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
+cd STEP_NAME
+sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+```
+
+Warum genau so:
+- kurzer relativer Clone-Zielordner unter `_deploy_tmp`
+- keine langen absoluten Clone-Zielpfade
+- robuster in Forrests Web-/SSH-Konsole
+- verhindert, dass ein angeklebter Shell-Prompt den kompletten Zielpfad kaputt macht
+- entspricht dem bisher zuverlässig funktionierenden Deploy-Muster
+
+Nicht mehr als Standard verwenden:
+```bash
+sudo git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git /opt/stream-control-center/_deploy_tmp/STEP_NAME
+```
+
+Das ist zwar technisch möglich, ist für Forrests Konsole aber fehleranfälliger und soll bei RDAP nicht mehr als Standard ausgegeben werden.
+
+Das Deploy-Script `tools/remote-modboard-deploy.sh` übernimmt selbst:
 ```text
-GitHub/dev -> /opt/stream-control-center/_deploy_tmp/<STEP>_<timestamp>
-Backup Live -> /opt/stream-control-center/_runtime_tmp/backup_remote_modboard_<STEP>_<timestamp>
+GitHub/dev frisch klonen bzw. Deploy-Arbeitsstand vorbereiten
+Live-Backup nach _runtime_tmp
 rsync remote-modboard/ -> /opt/stream-control-center/remote-modboard/
 chown -R sccremote:sccremote /opt/stream-control-center/remote-modboard
 node --check
@@ -293,23 +317,35 @@ systemctl restart scc-remote-modboard.service
 Readiness-Wait auf http://127.0.0.1:3010/api/remote/status
 lokale API/UI Tests
 public API/UI Tests
-OAuth Start/Callback:
-- Bei deaktiviertem Login/OAuth ist `403/403` korrekt.
-- Bei bewusst aktiviertem Login/OAuth ist `302/403` korrekt: Start leitet zu Twitch um, Callback ohne gültigen Code/State bleibt 403.
-- Nach RDAP25 ist Login/OAuth für das Remote-Modboard bewusst aktiv.
 ```
 
-Dafür liegt im Repo:
-```text
-tools/remote-modboard-deploy.sh
+Deshalb nach dem Deploy-Script im Standard NICHT zusätzlich direkt ausführen:
+```bash
+sudo systemctl restart scc-remote-modboard.service
+```
+
+Ein zusätzlicher manueller Restart ist nur sinnvoll, wenn:
+- das Deploy-Script ausdrücklich fehlschlug und ein Fix danach bewusst getestet werden soll
+- Forrest/der Assistant ihn als separaten Diagnose-Schritt begründet
+- danach wieder ein Readiness-Wait folgt
+
+Nach dem Deploy-Script trotzdem gezielt testen:
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq
+```
+
+Oder für den jeweiligen Step passend kompakt, z. B.:
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.statusApiVersion, .adminAuditLockSchemaStatusReadonly'
 ```
 
 Bei Server-Script-/Deploy-Arbeiten:
 - keine Arbeitsordner in `/root`
 - keine Backups in `/root`
-- nach Restart immer Readiness-Wait/Retry vor curl/API-Tests
-- kein großer ungeprüfter Serverblock, wenn er fehleranfällig ist
-- lieber Script-Datei oder kompakte, gut prüfbare Blöcke verwenden
+- nach jedem manuellen Restart immer Readiness-Wait/Retry vor curl/API-Tests
+- keine riesigen, ungeprüften Serverblöcke ausgeben, wenn sie fehleranfällig sind
+- für Forrest bevorzugt kurze relative `_deploy_tmp`-Blöcke wie oben
+- bei Einzeltests lieber kleine Befehle als lange verschachtelte Shell-Blöcke
 - keine ISPConfig-generierten vHost-Dateien direkt editieren, außer ausdrücklich read-only prüfen
 
 ISPConfig/Nginx für Remote-Modboard:
@@ -1221,16 +1257,24 @@ Dauerhafte Systementscheidungen gelten, bis Forrest sie ausdrücklich ändert:
 - Remote-Modboard/RDAP live liegt auf dem Webserver unter `/opt/stream-control-center/remote-modboard`.
 - `/opt/stream-control-center` ist kein Git-Repo; Remote-Modboard Deploys laufen über `_deploy_tmp`, `_runtime_tmp` und `rsync`.
 - Remote-Modboard Deploys kopieren nur `remote-modboard/` in den Live-Ordner. Repo-Root-Dateien wie `docs/`, `project-state/` und `tools/` bleiben im GitHub-/Deploy-Clone.
-- Aktueller RDAP-Stand nach RDAP28:
+- Aktueller RDAP-Stand nach RDAP33B:
   - RDAP25 Login/OAuth/Session funktioniert.
   - RDAP26 Option B DB-Rollen/Permissions funktioniert.
   - RDAP27 echte read-only Admin-Notiztext-Route ist live.
   - RDAP28 read-only Admin-Notiz-UI ist live.
+  - RDAP29/RDAP29B MariaDB-Testnotiz ist live sichtbar.
+  - RDAP30 Write-Scope ist geplant.
+  - RDAP31 Admin-Notiz-Write-Routen existieren als gesperrte Validierungsrouten.
+  - RDAP31B RDAP31-Live-Deploy und Sicherheitschecks sind dokumentiert.
+  - RDAP32 Audit-/Lock-Write-Foundation ist geplant.
+  - RDAP33 Audit-/Lock-Schema-/Statusroute ist live read-only bestätigt.
+  - RDAP33B Live-Befund ist dokumentiert: `dashboard_audit_log` blockiert Writes wegen fehlendem `resource_type`; `dashboard_locks` wirkt als erster Lock-Write-Kandidat brauchbar.
   - ForrestCGN / `tw:127709954` hat Rolle `owner`.
   - `owner -> remote.view -> allow`.
   - `owner -> admin.users.note.read -> allow`.
   - `owner -> admin.users.note.write` ist nicht vergeben.
-  - Admin-Notiz-Schreiben, Schreibbuttons, Agent-/OBS-/Sound-/Overlay-/Command-Steuerung bleiben gesperrt.
+  - Admin-Notiz-Schreiben, Schreibbuttons, Audit-Inserts, Lock-Writes, Agent-/OBS-/Sound-/Overlay-/Command-Steuerung bleiben gesperrt.
+  - Nächster sinnvoller Step: `RDAP34_ADMIN_AUDIT_LOCK_SCHEMA_DECISION_OR_MIGRATION_PLAN`.
 - `mods.forrestcgn.de` ist ein eigener ISPConfig-Web-vHost und proxyt auf `127.0.0.1:3010`.
 - `twitch_events` ist zentraler Twitch-Event-Provider und effektive Live-State-Wahrheit.
 - Fachmodule abonnieren Twitch-Events über den Communication Bus, nicht direkt bei Twitch.
@@ -1431,7 +1475,7 @@ Remote-Modboard / RDAP Webserver:
 /opt/stream-control-center/remote-modboard
 scc-remote-modboard.service
 mods.forrestcgn.de -> 127.0.0.1:3010
-Deploy: GitHub/dev -> _deploy_tmp -> _runtime_tmp Backup -> rsync remote-modboard -> Restart -> Readiness -> Tests
+Deploy: GitHub/dev -> kurzer relativer _deploy_tmp-Clone -> _runtime_tmp Backup -> rsync remote-modboard -> Restart durch Deploy-Script -> Readiness -> Tests
 
 Effektiver Live-State:
 twitch_events / GET /api/twitch/events/stream-state
