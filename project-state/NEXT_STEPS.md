@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP39B_ADMIN_NOTE_WRITE_BACKEND_LIVE_CONFIRMED_DOCS  
+Stand: RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
@@ -12,9 +12,10 @@ RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED
 ## Ziel RDAP40
 
 ```text
-Die Admin-User-Detailseite soll einen kontrollierten Create-Dialog/Button fuer interne Admin-Notizen vorbereiten.
+Die Admin-Notizen-/Admin-User-Seite soll einen kontrollierten Create-Dialog/Button fuer interne Admin-Notizen bekommen.
 Der Backend-Create-Write ist mit RDAP39 live bestaetigt.
-RDAP40 soll deshalb UI-seitig klein bleiben und keine neuen riskanten Backend-Writes einfuehren.
+Die Readback-/Refresh-Grundlage wurde mit RDAP39C wiederhergestellt.
+RDAP40 soll UI-seitig klein bleiben und keine neuen riskanten Backend-Writes einfuehren.
 ```
 
 ## RDAP40 Grundregeln
@@ -22,7 +23,7 @@ RDAP40 soll deshalb UI-seitig klein bleiben und keine neuen riskanten Backend-Wr
 ```text
 Button/Form nur sichtbar, wenn admin.users.note.write erlaubt ist.
 Serverseitiges confirmWrite bleibt Pflicht.
-Nach erfolgreichem Create muss Readback/Refresh erfolgen.
+Nach erfolgreichem Create muss Readback/Refresh ueber GET /api/remote/admin/users/admin-notes/read erfolgen.
 Keine Update-Funktion.
 Keine Deactivate-Funktion.
 Kein Delete.
@@ -36,18 +37,12 @@ Keine Permission-Vergabe in der UI.
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
 docs/current/RDAP39B_ADMIN_NOTE_WRITE_BACKEND_LIVE_CONFIRMED_DOCS.md
+docs/current/RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC.md
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
 remote-modboard/backend/src/routes/admin-users.routes.js
 remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
-remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
 remote-modboard/backend/src/routes/routes.routes.js
-```
-
-Zusaetzlich im Repo suchen:
-
-```text
-Admin-User-Detailseite
-Admin-Notes UI
-remote-modboard frontend/dashboard Dateien
 ```
 
 ## RDAP40 Testziel
@@ -57,6 +52,7 @@ UI zeigt Notiz-Create nur mit Schreibrecht.
 Create nutzt bestehende RDAP39-Route.
 Backend blockiert weiterhin ohne confirmWrite.
 Erfolgreicher Create erzeugt Notiz + Audit + Lock + Readback.
+Notizliste aktualisiert sich nach Create ueber RDAP39C-Readroute.
 Keine Update/Deactivate/Delete Buttons sichtbar.
 ```
 

@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC - 2026-06-25
+
+- Fehlende echte Admin-Notiz-Readroute im aktuellen Arbeitsstand identifiziert.
+- Service-Datei wieder als echte Repo-Zieldatei vorbereitet:
+  - `remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js`
+- `admin-users.routes.js` ergaenzt:
+  - `GET /api/remote/admin/users/admin-notes/read`
+- `/api/remote/routes` ergaenzt:
+  - Route in der Routenliste
+  - Block `adminNoteReadRestored`
+- Keine Create-Route geaendert.
+- Kein Update aktiviert.
+- Kein Deactivate aktiviert.
+- Kein physisches Delete aktiviert.
+- Keine UI-Schreibbuttons aktiviert.
+- Keine DB-Migration.
+- Neue Doku erstellt:
+  - `docs/current/RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC.md`
+  - `docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP39C.md`
+- Projektstatus, NEXT_STEPS, TODO und FILES aktualisiert.
+
 ## RDAP39B_ADMIN_NOTE_WRITE_BACKEND_LIVE_CONFIRMED_DOCS - 2026-06-25
 
 - RDAP39 Live-Bestaetigung dokumentiert.
@@ -52,5 +73,5 @@
 
 ## RDAP36B_ADMIN_AUDIT_TEST_INSERT_LIVE_CONFIRMED_DOCS - 2026-06-25
 
-- Audit-Testinsert live bestaetigt und dokumentiert.
+- Audit-Testinsert live bestaetigt.
 - Zwei RDAP36-Testeintraege in `dashboard_audit_log` dokumentiert.
