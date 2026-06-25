@@ -1,6 +1,6 @@
 MASTER-PROMPT – ForrestCGN / stream-control-center
 
-Stand: 2026-06-24 (Basis 2026-06-21)
+Stand: 2026-06-25 (Basis 2026-06-21)
 Zweck: Verbindlicher Arbeitsstandard für neue Chats, Modul-Arbeiten, Dashboard, Communication/EventBus, Live-Status, Dokumentation, Cleanup, Versionierung, Security und Abschlussroutinen.
 
 Du arbeitest mit ForrestCGN am Projekt `stream-control-center`.
@@ -306,6 +306,15 @@ Dieser vHost proxyt vollständig auf http://127.0.0.1:3010/
 
 Nicht wieder als normale Subdomain unter `forrestcgn.de` anlegen, sonst liefert `/` wieder die normale Webseite statt der Remote-Modboard-UI.
 
+RDAP-Pfadregel für Deploy-Clone vs. Live-Ordner:
+```text
+tools/remote-modboard-deploy.sh kopiert nur remote-modboard/ nach /opt/stream-control-center/remote-modboard/.
+Repo-Root-Dateien wie docs/, project-state/ und tools/ werden nicht in den Live-Remote-Modboard-Ordner kopiert.
+Doku-/SQL-Dateien aus dem Repo-Root liegen auf dem Webserver im GitHub-/Deploy-Clone unter _deploy_tmp/<STEP>/... oder _deploy_tmp/<STEP>_<timestamp>/... .
+Nicht unter /opt/stream-control-center/remote-modboard/... suchen, wenn die Datei nicht unter remote-modboard/ liegt.
+Wenn ein Step nur Repo-Root-Doku/SQL ändert, bleibt moduleBuild des laufenden Services unverändert.
+```
+
 Solange kein eigener Scope für Login/Auth/OAuth/Writes besteht, bleibt verboten:
 - kein Login aktivieren
 - kein Twitch-OAuth aktivieren
@@ -555,6 +564,16 @@ Vor DB-Änderungen:
 4. geplante Änderung erklären
 5. Risiken nennen
 6. auf Forrests `go` warten
+
+RDAP-/Remote-Modboard-Migrationen auf MariaDB zusätzlich:
+- SQL-Dateien im Repo-Root unter `tools/` werden aus dem GitHub-/Deploy-Clone ausgeführt, nicht aus `/opt/stream-control-center/remote-modboard/tools/`, außer die Datei liegt wirklich unter `remote-modboard/tools/`.
+- Vor SQL-Ausführung immer Env-Datei des Services prüfen, z. B. `/etc/stream-control-center/remote-modboard.env`.
+- Secrets niemals posten; Variablennamen/Werte nur maskiert prüfen.
+- systemd-EnvironmentFiles nicht blind per `source` laden, wenn Werte Leerzeichen enthalten können. DB-Werte gezielt auslesen.
+- Backup mit `mysqldump` erstellen und prüfen, dass die Datei existiert und nicht leer ist.
+- Vorprüfung nur lesend über `INFORMATION_SCHEMA`.
+- Nach SQL-Ausführung Read-Back prüfen: Tabelle, Spalten, `row_count`, Diagnose-Route.
+- Auch nach erfolgreicher Migration bleiben produktive Writes blockiert, bis ein separater Write-Step mit Permission, Confirm-Write, Audit, Lock und Read-Back freigegeben ist.
 
 Bei neuen Modulen:
 - vorhandene Tabellen/Helper prüfen
@@ -1183,6 +1202,7 @@ Dauerhafte Systementscheidungen gelten, bis Forrest sie ausdrücklich ändert:
 - Diese DB niemals ersetzen, löschen oder neu bauen.
 - Remote-Modboard/RDAP live liegt auf dem Webserver unter `/opt/stream-control-center/remote-modboard`.
 - `/opt/stream-control-center` ist kein Git-Repo; Remote-Modboard Deploys laufen über `_deploy_tmp`, `_runtime_tmp` und `rsync`.
+- Remote-Modboard Deploys kopieren nur `remote-modboard/` in den Live-Ordner. Repo-Root-Dateien wie `docs/`, `project-state/` und `tools/` bleiben im GitHub-/Deploy-Clone.
 - `mods.forrestcgn.de` ist ein eigener ISPConfig-Web-vHost und proxyt auf `127.0.0.1:3010`.
 - `twitch_events` ist zentraler Twitch-Event-Provider und effektive Live-State-Wahrheit.
 - Fachmodule abonnieren Twitch-Events über den Communication Bus, nicht direkt bei Twitch.
