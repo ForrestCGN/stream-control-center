@@ -17,7 +17,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap_lock37.v1',
+      statusApiVersion: 'rdap_admin_note_write38.v1',
       readOnly: !authEnabled,
       writeEnabled: false,
       actionEnabled: false,
@@ -95,11 +95,15 @@ function registerStatusRoutes(app, context) {
           writesRequirePermissionLockAudit: true
         },
         notes: [
-          'RDAP37 ergaenzt einen lokalen, kontrollierten Lock-Test fuer Acquire/Heartbeat/Release.',
+          'RDAP_ADMIN_USERS9 bereitet einen Locking-Helper vor, aber Lock-/Audit-/Admin-Writes bleiben deaktiviert.',
           'Twitch Login und Session-Handling bleiben aktiv und unveraendert.',
+          'RDAP5 Admin-User-Permission-Diagnose bleibt read-only verfuegbar.',
+          'RDAP6/RDAP7/RDAP8 Write-Foundation/Confirm/Audit-Diagnosen bleiben read-only verfuegbar.',
           'Login-Daten, Twitch-Tokens oder Sessionwerte duerfen nicht im Frontend oder in Links weitergereicht werden.',
           'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.',
-          'Admin-Notiz-Writes und UI-Schreibbuttons bleiben deaktiviert.'
+          'RDAP14 Admin-Notiz-Diagnose prueft nur lesend, ob die spaetere Notiz-Tabelle vorbereitet ist.',
+          'RDAP14B synchronisiert die Routenuebersicht fuer adminUserAdminNoteDiagnostic ohne Writes.',
+          'RDAP38 ergaenzt nur eine read-only Planroute fuer spaetere Admin-Notiz-Writes mit Audit/Lock.'
         ]
       },
       adminUsersWriteFoundation: {
@@ -109,6 +113,7 @@ function registerStatusRoutes(app, context) {
         auditHelperPrepared: true,
         auditWriteEnabled: false,
         auditInsertEnabled: false,
+        auditUpdateEnabled: false,
         lockHelperPrepared: true,
         lockingHelperPrepared: true,
         lockWriteEnabled: false,
@@ -122,24 +127,27 @@ function registerStatusRoutes(app, context) {
         lockingRequiredForFutureWrites: true,
         backupRequiredBeforeFutureWrites: true
       },
-      adminLockTest: {
+      adminNoteWritePlan: {
         prepared: true,
-        statusRoute: '/api/remote/admin/locks/test/status',
-        route: '/api/remote/admin/locks/test-cycle',
-        method: 'POST',
-        statusApiVersion: 'rdap_lock37.v1',
-        tableName: 'dashboard_locks',
-        localOnly: true,
+        route: '/api/remote/admin/users/admin-notes/write-plan',
+        method: 'GET',
+        statusApiVersion: 'rdap_admin_note_write38.v1',
+        tableName: 'dashboard_user_admin_notes',
+        permissionRequired: 'admin.users.note.write',
         confirmWriteRequired: true,
         bodyConfirmOnly: true,
-        testOnlyRequired: true,
-        lockTestCycleEnabled: true,
+        auditRequired: true,
+        lockRequired: true,
+        backupRequiredBeforeProductiveWrite: true,
+        readBackRequired: true,
+        writeEnabled: false,
+        databaseWriteEnabled: false,
         productiveWritesEnabled: false,
-        writesStillBlockedForProductiveActions: true,
         adminNoteWritesEnabled: false,
-        auditProductiveWritesEnabled: false,
         uiWriteButtonsEnabled: false,
-        physicalDeleteEnabled: false
+        physicalDeleteEnabled: false,
+        routeRemainsReadOnly: true,
+        plannedNextStep: 'RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED'
       },
       database: db,
       agent: {

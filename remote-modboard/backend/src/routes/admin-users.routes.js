@@ -4,6 +4,7 @@ const { buildAdminUserPermissionDiagnostic } = require('../services/admin-user-p
 const { buildAdminUserWriteFoundationDiagnostic } = require('../services/admin-user-write-foundation.service');
 const { buildAdminUserAdminNoteDiagnostic } = require('../services/admin-user-admin-note-diagnostic.service');
 const { buildAdminUserAdminNoteWriteDisabled } = require('../services/admin-user-admin-note-write-disabled.service');
+const { buildAdminUserAdminNoteWritePlan } = require('../services/admin-user-admin-note-write-plan.service');
 
 function registerAdminUsersRoutes(app, context) {
   app.get('/api/remote/admin/users/permission-diagnostic', async (req, res) => {
@@ -18,6 +19,11 @@ function registerAdminUsersRoutes(app, context) {
 
   app.get('/api/remote/admin/users/admin-note-diagnostic', async (req, res) => {
     const result = await buildAdminUserAdminNoteDiagnostic({ context, req });
+    res.status(result.status || 200).json(result.body || result);
+  });
+
+  app.get('/api/remote/admin/users/admin-notes/write-plan', async (req, res) => {
+    const result = await buildAdminUserAdminNoteWritePlan({ context, req });
     res.status(result.status || 200).json(result.body || result);
   });
 

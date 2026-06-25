@@ -1,79 +1,65 @@
 # NEXT_STEPS
 
-Stand: RDAP37B_ADMIN_LOCK_TEST_LIVE_CONFIRMED_DOCS  
+Stand: RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN
+RDAP38 lokal einspielen, testen, stepdone, danach Webserver-Deploy aus frischem GitHub/dev-Clone.
 ```
 
-## Ziel RDAP38
+## RDAP38 lokale Pflichtchecks
 
 ```text
-Plan fuer den ersten echten Admin-Notiz-Write mit Audit- und Lock-Fundament.
-Noch keine UI-Schreibbuttons.
-Noch kein physisches Delete.
-Keine Community-Seiten-Anbindung.
+node --check .\remote-modboard\backend\server.js
+node --check .\remote-modboard\backend\src\routes\admin-users.routes.js
+node --check .\remote-modboard\backend\src\routes\routes.routes.js
+node --check .\remote-modboard\backend\src\routes\status.routes.js
+node --check .\remote-modboard\backend\src\services\admin-user-admin-note-write-plan.service.js
 ```
 
-## RDAP38 muss vor Umsetzung klaeren
+## RDAP38 Webserver-Test
 
 ```text
-Welche Permission wird benoetigt?
-Voraussichtlich: admin.users.note.write
-
-Wie wird die Zielperson gelesen/geprueft?
-Wie wird der Lock resource_key gebaut?
-Wie wird der Lock acquired/heartbeat/released?
-Wie wird Audit vor/nach dem Write geschrieben?
-Was passiert bei Fehlern zwischen Lock und Write?
-Welche Rollback-/Backup-Pflicht gilt?
-Welche Felder der Tabelle dashboard_user_admin_notes duerfen geschrieben werden?
+GET /api/remote/status
+GET /api/remote/routes
+GET /api/remote/admin/users/admin-notes/write-plan
 ```
 
-## Pflicht-Sicherheitsregeln fuer RDAP38
+Erwartung:
 
 ```text
-Erst echte Dateien/Repo/Dokus pruefen.
-Dann Plan nennen.
-Dann auf Forrests ausdrueckliches go warten.
-
-Kein Admin-Notiz-Write ohne:
-- Permission-Pruefung
-- confirmWrite im JSON-Body
-- Lock-Acquire
-- Audit
-- Readback
-- klaren Fehlerpfad
-- Backup-Hinweis
-
-Keine UI-Schreibbuttons, bis Backend sicher bestaetigt ist.
-Kein physisches Delete.
-Keine freie Shell-/Datei-/Prozessausfuehrung.
+moduleBuild: RDAP38_ADMIN_NOTE_WRITE_WITH_AUDIT_LOCK_PLAN
+statusApiVersion: rdap_admin_note_write38.v1
+adminNoteWritePlan.prepared: true
+writeEnabled: false
+productiveWritesEnabled: false
+adminNoteWritesEnabled: false
+uiWriteButtonsEnabled: false
+physicalDeleteEnabled: false
+plannedNextStep: RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
 ```
 
-## Relevante Live-Bestaetigungen aus RDAP37B
+## Danach
 
 ```text
-dashboard_audit_log:
-rowCount: 2
-actionSummary: admin.audit.test_insert = 2
-
-dashboard_locks:
-rowCount: 1
-activeCount: 0
-expiredCount: 0
-released: 1
-latest lock_uid: rdap37_lock_test_20260625100908_42dbbd555e49
-latest status: released
+RDAP38B_ADMIN_NOTE_WRITE_PLAN_LIVE_CONFIRMED_DOCS
 ```
 
-## Nach RDAP38 Plan
+Erst nach erfolgreichem RDAP38B:
 
 ```text
 RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
 ```
 
-Nur wenn RDAP38 Plan sauber bestaetigt wurde.
+## RDAP39 darf erst starten, wenn geklaert ist
+
+```text
+Backup dashboard_user_admin_notes erstellt und nicht 0 Byte.
+Permission-Pfad admin.users.note.write bestaetigt.
+Lock-/Audit-/Write-/Readback-/Release-Ablauf akzeptiert.
+Fehlerpfad akzeptiert.
+Keine UI-Schreibbuttons vor Backend-Bestaetigung.
+Kein physisches Delete.
+```
