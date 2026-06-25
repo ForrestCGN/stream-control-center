@@ -1,17 +1,19 @@
 # TODO
 
-Stand: RDAP31B_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI_LIVE_CONFIRMED_DOCS  
+Stand: RDAP32_ADMIN_AUDIT_LOCK_WRITE_FOUNDATION_PLAN  
 Datum: 2026-06-25
 
 ## Offen
 
-- [ ] RDAP32 Audit-/Lock-Write echte Grundlage anhand echter Dateien pruefen.
-- [ ] Entscheiden, ob `confirmWrite` nur im Body erlaubt bleibt oder Query-Confirm korrigiert wird.
+- [ ] RDAP33 Audit-/Lock-Schema-Status read-only bauen.
+- [ ] Live-Schema fuer `dashboard_audit_log` pruefen.
+- [ ] Live-Schema fuer `dashboard_locks` pruefen.
 - [ ] Keine produktiven Admin-Notiz-Writes aktivieren, bevor Audit/Lock funktionieren.
-- [ ] Erst nach Audit/Lock `admin.users.note.write` gezielt vergeben.
-- [ ] Erst danach produktive Admin-Notiz-Writes aktivieren.
-- [ ] UI-Schreibbuttons erst nach Backend-Erfolg separat freischalten.
-- [ ] Kein physisches DELETE bauen; nur `status=inactive`.
+- [ ] Entscheiden/korrigieren, ob Query-Confirm spaeter unterstuetzt werden soll.
+- [ ] Body-Confirm als Standard fuer spaetere produktive Write-Tests verwenden.
+- [ ] Audit-Testwrite erst nach Backup + Read-only Vorpruefung.
+- [ ] Lock-Testwrite erst nach Backup + Read-only Vorpruefung.
+- [ ] Kein physisches DELETE bauen; Admin-Notizen nur deaktivieren.
 
 ## Erledigt
 
@@ -23,3 +25,4 @@ Datum: 2026-06-25
 - [x] RDAP30 Write-Scope geplant.
 - [x] RDAP31 gesperrte Write-Validierungsrouten live.
 - [x] RDAP31B Live-Deploy und Sicherheitschecks dokumentiert.
+- [x] RDAP32 Audit-/Lock-Write Foundation geplant.

@@ -1,43 +1,48 @@
 # NEXT_STEPS
 
-Stand: RDAP31B_ADMIN_NOTE_WRITE_BACKEND_DISABLED_UI_LIVE_CONFIRMED_DOCS  
+Stand: RDAP32_ADMIN_AUDIT_LOCK_WRITE_FOUNDATION_PLAN  
 Datum: 2026-06-25
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP32_ADMIN_AUDIT_LOCK_WRITE_REAL_FOUNDATION_PLAN_OR_BUILD
+RDAP33_ADMIN_AUDIT_LOCK_SCHEMA_STATUS_READONLY
 ```
 
 Ziel:
 
 ```text
-Audit- und Lock-Writes anhand echter Dateien sauber planen oder bauen.
-Keine Admin-Notiz-Writes produktiv aktivieren, bevor Audit und Lock wirklich funktionieren.
+Read-only Routen fuer Audit-/Lock-Schema und Runtime-Status bauen.
+Keine Writes.
+Live Tabellen/Spalten sichtbar machen.
+Entscheidung vorbereiten, ob RDAP34/RDAP35 echte Audit-/Lock-Testwrites bauen duerfen.
 ```
 
-## Wichtige RDAP31B-Befunde fuer RDAP32
+## Vor RDAP33 zwingend pruefen
 
 ```text
-confirmWrite im JSON-Body funktioniert.
-confirmWrite per Query wurde nicht erkannt.
-RDAP31-Routen sind live, aber schreiben nicht.
-DB note_count blieb 1.
+remote-modboard/backend/src/services/audit-read.service.js
+remote-modboard/backend/src/services/lock-read.service.js
+remote-modboard/backend/src/services/admin-audit-write.service.js
+remote-modboard/backend/src/services/admin-lock-write.service.js
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```
 
-## Moegliche RDAP32-Entscheidung
+## RDAP32-Entscheidungen
 
 ```text
-A) RDAP32 nur detaillierter Audit-/Lock-Write-Plan
-B) RDAP32 Audit-/Lock-Write-Foundation bauen, falls Scope klar und sicher ist
+Body-Confirm funktioniert und soll fuer spaetere Writes bevorzugt werden.
+Query-Confirm wurde nicht erkannt und bleibt bis zur Klaerung kein produktiver Standard.
+Keine Admin-Notiz-Writes ohne echte Audit-/Lock-Foundation.
 ```
-
-Empfehlung: Erst echte Dateien pruefen, dann entscheiden. Nicht raten.
 
 ## Danach
 
 ```text
-RDAP33_ADMIN_NOTE_WRITE_PERMISSION_OWNER_SEED
-RDAP34_ADMIN_NOTE_WRITE_BACKEND_REAL_CONFIRM_AUDIT_LOCK
-RDAP35_ADMIN_NOTE_WRITE_UI_GATED_BUTTONS
+RDAP34_ADMIN_AUDIT_TEST_INSERT_CONFIRMED
+RDAP35_ADMIN_LOCK_ACQUIRE_HEARTBEAT_RELEASE_CONFIRMED
+RDAP36_ADMIN_NOTE_WRITE_REAL_CONFIRM_AUDIT_LOCK
+RDAP37_ADMIN_NOTE_WRITE_UI_GATED_BUTTONS
 ```
