@@ -1,69 +1,53 @@
 # NEXT_STEPS - stream-control-center
 
-Stand: RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION  
+Stand: RDAP_ADMIN_USERS17_ADMIN_NOTE_READ_DIAGNOSTIC  
 Datum: 2026-06-25
 
 ## Aktuell erledigt
 
 ```text
-RDAP_ADMIN_USERS12_FIRST_MINI_WRITE_SCOPE_PLAN
-RDAP_ADMIN_USERS13_ADMIN_NOTE_TABLE_AND_DISABLED_ROUTE_PLAN
-RDAP_ADMIN_USERS14_ADMIN_NOTE_TABLE_DISABLED_DIAGNOSTIC
-RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
-RDAP15 Admin-Notiz-Tabellen-Migration geplant
-```
-
-## RDAP16 aktueller Step
-
-RDAP16 stellt eine kontrollierte Migration bereit:
-
-```text
-tools/rdap16_admin_note_table_migration.sql
-docs/current/RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION.md
-```
-
-Wichtig:
-
-```text
-installstep/deploy fuehren kein SQL aus.
-Die Migration muss manuell auf dem Webserver nach Backup und Vorpruefung ausgefuehrt werden.
-```
-
-## Naechste Aktionen fuer Forrest
-
-1. ZIP lokal einspielen.
-2. Lokale Checks ausfuehren.
-3. `stepdone.cmd` ausfuehren.
-4. Webserver-Deploy aus frischem GitHub/dev-Clone.
-5. Readiness abwarten.
-6. Status-/Diagnose pruefen.
-7. DB-Kontext klaeren.
-8. Backup erstellen und pruefen.
-9. Read-only SQL-Vorpruefung.
-10. Migration mit SQL-Datei ausfuehren.
-11. Read-Back pruefen.
-12. Diagnose pruefen.
-
-## Erst nach erfolgreicher Tabelle
-
-Ein Admin-Notiz-Write darf erst gebaut werden, wenn:
-
-```text
-Tabelle existiert
+RDAP16 Admin-Notiz-Tabelle angelegt
 schemaReady true
-Backup/Rollback geklaert
-Permission admin.users.note.write geklaert
-Confirm-Write Pflicht umgesetzt
-Audit-Payload umgesetzt
-Lock-Scope umgesetzt
-Read-Back-Pruefung umgesetzt
-separates Go von Forrest
+rowCount 0
+Writes weiter blockiert
 ```
 
-## Naechster moeglicher Fach-Step nach RDAP16
+## Aktueller Step
 
 ```text
-RDAP_ADMIN_USERS17_ADMIN_NOTE_WRITE_DISABLED_FOUNDATION
+RDAP_ADMIN_USERS17_ADMIN_NOTE_READ_DIAGNOSTIC
 ```
 
-RDAP17 darf nicht blind produktive Writes aktivieren.
+Ziel:
+
+```text
+Read-only Diagnose für Admin-Notizen ergänzen.
+Keine Notiztexte ausgeben.
+Keine produktiven Writes.
+```
+
+## Nach RDAP17 testen
+
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.adminUsersAdminNoteReadDiagnostic'
+curl -fsS http://127.0.0.1:3010/api/remote/admin/users/admin-note-read-diagnostic | jq
+curl -fsS 'http://127.0.0.1:3010/api/remote/admin/users/admin-note-read-diagnostic?targetUserUid=test-user' | jq
+```
+
+## Nächster möglicher Fach-Step danach
+
+```text
+RDAP_ADMIN_USERS18_ADMIN_NOTE_UI_READONLY_PLAN
+```
+
+Vor echter Anzeige von Notiztexten zuerst klären:
+
+```text
+Auth/Session aktiv?
+Permission admin.users.note.read?
+Darf ein Mod diese Notizen sehen?
+Welche Rollen dürfen Notiztexte sehen?
+Audit bei Anzeige nötig oder nur bei Write?
+```
+
+Admin-Notiz-Write bleibt separat und darf erst mit Permission, Confirm-Write, Audit, Lock und Read-Back gebaut werden.

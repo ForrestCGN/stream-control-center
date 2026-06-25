@@ -1,24 +1,31 @@
 # CURRENT_STATUS
 
-Stand: RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION  
+Stand: RDAP_ADMIN_USERS17_ADMIN_NOTE_READ_DIAGNOSTIC  
 Datum: 2026-06-25  
 Projekt: `stream-control-center` / Remote-Modboard
 
-## Aktueller bestaetigter RDAP-Status
+## Aktueller bestätigter RDAP-Status
 
-Produktiv unter:
-
-```text
-https://mods.forrestcgn.de/
-```
-
-Letzter live bestaetigter Backend-/Security-Code-Stand vor RDAP16:
+RDAP16 wurde auf dem Webserver fachlich erfolgreich ausgeführt.
 
 ```text
-RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
+Tabelle: dashboard_user_admin_notes vorhanden
+schemaReady: true
+migrationRequired: false
+writesStillBlocked: true
+writeEnabled: false
+productiveWritesEnabled: false
+rowCount: 0
+missingColumns: []
 ```
 
-Bestaetigte Werte:
+Backup vor Migration:
+
+```text
+/opt/stream-control-center/_runtime_tmp/rdap_db_backups/rdap16_before_admin_note_table_20260625_070106.sql
+```
+
+Der laufende Backend-Code zeigte danach weiter:
 
 ```text
 moduleBuild: RDAP_ADMIN_USERS14B_ADMIN_NOTE_ROUTE_LIST_SYNC
@@ -28,73 +35,25 @@ actionEnabled: false
 productiveAgentRuntime: false
 ```
 
-RDAP15 wurde lokal sauber abgeschlossen und nach GitHub/dev uebernommen.
+Das ist korrekt, weil RDAP16 nur Repo-Root-Doku/SQL und DB-Migration betraf, aber keinen Backend-Code unter `remote-modboard/` änderte.
 
-RDAP15 Ergebnis:
+## RDAP17 vorbereitet
+
+RDAP17 ergänzt eine read-only Diagnose-Route:
 
 ```text
-Admin-Notiz-Tabellen-Migration geplant.
-Keine Migration.
-Keine SQL-Ausfuehrung.
-Keine produktiven Writes.
+GET /api/remote/admin/users/admin-note-read-diagnostic
 ```
 
-## RDAP16 Status
+Die Route liest nur Metadaten/Counts aus `dashboard_user_admin_notes` und gibt keine Notiztexte aus.
 
-RDAP16 stellt bereit:
-
-```text
-docs/current/RDAP_ADMIN_USERS16_ADMIN_NOTE_TABLE_MIGRATION.md
-tools/rdap16_admin_note_table_migration.sql
-```
-
-RDAP16 fuehrt durch Install/Deploy weiterhin kein SQL automatisch aus.
-
-Die echte Tabellenanlage erfolgt nur manuell auf dem Webserver nach:
+Weiterhin blockiert:
 
 ```text
-Readiness-Check
-Status-/Diagnose-Pruefung
-DB-Kontext-Klaerung
-Backup
-Backup-Pruefung
-Read-only SQL-Vorpruefung
-```
-
-## Erwartung vor Migration
-
-```text
-tableName: dashboard_user_admin_notes
-tableExists: false
-schemaReady: false
-migrationRequired: true
-writesStillBlocked: true
-writeEnabled: false
-productiveWritesEnabled: false
-```
-
-## Erwartung nach erfolgreicher Migration
-
-```text
-tableName: dashboard_user_admin_notes
-tableExists: true
-schemaReady: true
-migrationRequired: false
-writesStillBlocked: true
-writeEnabled: false
-productiveWritesEnabled: false
-```
-
-## Weiterhin nicht aktiv
-
-```text
+Admin-Notiz-Writes
 User freigeben/sperren
-Rollen vergeben/entziehen
-Gruppen/Freigaben setzen/entfernen
+Rollen/Rechte ändern
 Sessions widerrufen
-Admin-Notiz schreiben
-Audit-Inserts oder Audit-Updates
-Lock acquire/heartbeat/release/force-takeover
 UI-Schreibbuttons
 Agent-Actions
 OBS-/Sound-/Overlay-/Command-Steuerung
