@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED  
+Stand: RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -11,7 +11,8 @@ RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist live bestaetigt und dokument
 RDAP48 Admin-User-Detail read-only wurde geplant.
 RDAP49 Admin-User-Detail read-only ist live bestaetigt und dokumentiert.
 RDAP50 Bruecke User-Detail -> Admin-Notizen wurde geplant.
-RDAP51 Bruecke User-Detail -> Admin-Notizen ist vorbereitet.
+RDAP51 Bruecke User-Detail -> Admin-Notizen ist live bestaetigt.
+RDAP51B dokumentiert die RDAP51 Live-Bestaetigung.
 ```
 
 ## Live-System
@@ -34,12 +35,14 @@ GET /api/remote/auth/twitch/start liefert bei aktivem Login HTTP 302.
 GET /api/remote/auth/twitch/callback liefert ohne gueltigen OAuth-State HTTP 403.
 ```
 
-## RDAP51 vorbereiteter Stand
+## RDAP51 live bestaetigter Stand
 
 ```text
 Admin-Notizen zeigen beim Oeffnen aus dem User-Detail einen Kontext-Hinweis.
-Der Zieluser wird sichtbar als aus User-Detail uebernommen markiert.
-Ein Ruecksprung zum User-Detail ist vorbereitet.
+ForrestCGN @forrestcgn / tw:127709954 wird korrekt uebernommen.
+Read/Create verwenden weiterhin exakt diesen Zieluser.
+Ruecksprung zum User-Detail ist sichtbar.
+Hinweis ausblenden ist sichtbar.
 Die bestehende Admin-Notizen-Implementierung bleibt erhalten.
 ```
 
@@ -60,5 +63,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP51 Webserver-Deploy und Live-Bestaetigung
+RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN
 ```

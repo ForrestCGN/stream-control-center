@@ -1,47 +1,50 @@
 # NEXT_STEPS
 
-Stand: RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED  
+Stand: RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP51 Webserver-Deploy und Live-Bestaetigung
+RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN
 ```
 
-## Deploy-Standard
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED
-cd RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED
-sudo bash tools/remote-modboard-deploy.sh RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED dev
-```
-
-## Tests nach Deploy
-
-```bash
-curl -fsS http://127.0.0.1:3010/assets/rdap28-admin-notes.js | grep -n "adminNotesBridgeContext\|openNotesForUser\|returnToAdminUserDetailFromNotes\|TARGET_USER_UID"
-curl -s -o /dev/null -w "twitch/start HTTP %{http_code}
-" https://mods.forrestcgn.de/api/remote/auth/twitch/start
-curl -s -o /dev/null -w "twitch/callback HTTP %{http_code}
-" https://mods.forrestcgn.de/api/remote/auth/twitch/callback
-```
-
-## Browser-Test
+## Ziel
 
 ```text
-Admin -> User-Detail sichtbar.
-Button Admin-Notizen oeffnen setzt denselben User.
-Admin-Notizen zeigt Kontext-Hinweis Aus User-Detail geoeffnet.
-Ruecksprung Zurueck zum User-Detail funktioniert.
-Hinweis ausblenden funktioniert.
-Read/Create bleiben unveraendert.
+Bessere read-only Planung fuer Permission-/Rollen-Details im Admin-Bereich, ohne Schreibverwaltung zu aktivieren.
 ```
 
-## Danach
+## Richtung
 
 ```text
-RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS
+- Bestehendes /api/remote/auth/model auswerten.
+- Rollen, Gruppen, Role-Permissions und Module-Permissions read-only einordnen.
+- Effektive Rechte nur anzeigen/erklaeren.
+- Keine Rollen-/Permission-Vergabe.
+- Keine Session-Revocation.
+- Keine neue Backend-Route, wenn vorhandene Daten reichen.
+```
+
+## Vorher pruefen
+
+```text
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP51B.md
+docs/current/RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS.md
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/src/services/auth-db-read.service.js
+```
+
+## Nicht in diesem Step aendern
+
+```text
+Keine Backend-Aenderung ohne separaten Plan.
+Keine DB-Migration.
+Keine Permission-Verwaltung mit Writes.
+Kein Admin-Note Update.
+Kein Admin-Note Deactivate.
+Kein Delete.
+Keine Community-Read-Anbindung.
+Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 ```
