@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN  
+Stand: RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -11,14 +11,12 @@ RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED ist live erfolgreich getestet.
 RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC ist live erfolgreich getestet.
 RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED ist live erfolgreich getestet.
 RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP ist live erfolgreich getestet.
-RDAP42B dokumentiert den RDAP42 Live-Stand.
 RDAP43 plant Zieluser-Auswahl/Admin-User-Detail fuer Admin-Notizen.
 RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED ist live funktional bestaetigt.
-RDAP44B dokumentiert die RDAP44 Live-Bestaetigung.
-RDAP45 OAuth-Start-Gate wurde vorbereitet.
 RDAP45B Deploy-Safety wurde an aktiv genutzten Login angepasst.
 RDAP45C dokumentiert die RDAP45B Live-Bestaetigung.
-RDAP46 plant den naechsten kleinen Admin-Notizen-/Admin-User-Schritt.
+RDAP46 plant den naechsten kleinen Admin-Notizen-Komfort-Step.
+RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist vorbereitet.
 ```
 
 ## Live-System
@@ -39,7 +37,6 @@ Twitch-Login ist aktiv/freigegeben.
 Live-Env: RDAP_TWITCH_OAUTH_START_RELEASED=true.
 GET /api/remote/auth/twitch/start liefert bei aktivem Login HTTP 302.
 GET /api/remote/auth/twitch/callback liefert ohne gueltigen OAuth-State HTTP 403.
-Login funktioniert.
 ```
 
 Einordnung:
@@ -57,20 +54,17 @@ Default ist ForrestCGN / tw:127709954.
 Ausgewaehlter User steuert die Read-Route per targetUserUid.
 Create nutzt denselben ausgewaehlten targetUserUid.
 Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
-Create nutzt bestehende RDAP39 Backend-Route.
-Nach erfolgreichem Create laedt die UI die Notizliste ueber RDAP39C-Readback neu.
+RDAP47 ergaenzt ein Such-/Filterfeld fuer Zieluser.
 ```
 
-## RDAP46 Ergebnis
+## RDAP47 vorbereiteter Komfort
 
 ```text
-Naechster kleiner Schritt bewusst geplant.
-Empfehlung: RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED.
-RDAP47 soll die Zieluser-Auswahl komfortabler machen.
-Empfohlener Scope: Frontend-only Such-/Filterfeld in rdap28-admin-notes.js.
-Keine Code-Aenderung in RDAP46.
-Keine DB-Migration.
-Kein Webserver-Deploy noetig.
+Suchfeld nach Name/Login/UID/Status/Rollen.
+Trefferanzeige gefiltert/gesamt.
+Button Suche leeren.
+Ausgewaehlter User bleibt sichtbar, auch wenn der Filter ihn nicht trifft.
+Keine Backend-/DB-/Permission-Aenderung.
 ```
 
 ## Weiterhin deaktiviert
@@ -88,11 +82,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED
-```
-
-Ziel:
-
-```text
-Admin-Notizen-Zieluser-Auswahl komfortabler machen: Such-/Filterfeld nach Name/Login/UID, ohne Backend-/DB-/Permission-Aenderung.
+RDAP47 Webserver-Deploy und Live-Bestaetigung
 ```

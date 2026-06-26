@@ -18,7 +18,9 @@
   let createInFlight = false;
   let targetUsersLoaded = false;
   let targetUsers = [DEFAULT_TARGET_USER];
+  let filteredTargetUsers = [DEFAULT_TARGET_USER];
   let selectedTargetUser = { ...DEFAULT_TARGET_USER };
+  let targetUserSearchTerm = '';
 
   document.addEventListener('DOMContentLoaded', () => {
     injectStyles();
@@ -45,8 +47,12 @@
       .admin-note-target-card{display:grid;gap:12px;margin-bottom:var(--gap)}
       .admin-note-target-row{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end}
       .admin-note-target-row label{display:grid;gap:6px;color:var(--muted);font-size:12px}
-      .admin-note-target-row select{width:100%;min-height:38px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(4,7,18,.76);color:var(--text);padding:8px 10px;font:inherit;outline:none}
-      .admin-note-target-row select:focus{border-color:rgba(27,216,255,.48);box-shadow:0 0 0 3px rgba(27,216,255,.10)}
+      .admin-note-target-row select,.admin-note-target-search input{width:100%;min-height:38px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(4,7,18,.76);color:var(--text);padding:8px 10px;font:inherit;outline:none;box-sizing:border-box}
+      .admin-note-target-row select:focus,.admin-note-target-search input:focus{border-color:rgba(27,216,255,.48);box-shadow:0 0 0 3px rgba(27,216,255,.10)}
+      .admin-note-target-tools{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end}
+      .admin-note-target-search{display:grid;gap:6px;color:var(--muted);font-size:12px}
+      .admin-note-target-filter-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:12px}
+      .admin-note-target-filter-meta strong{color:var(--text)}
       .admin-note-target-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
       .admin-note-target-summary .kv-row strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .admin-note-list{display:grid;gap:10px}
@@ -75,7 +81,7 @@
       .admin-note-write-locked{background:rgba(255,209,102,.08);border-color:rgba(255,209,102,.24)}
       .admin-note-danger-note{color:#ffdce3}
       @media (max-width:1000px){.admin-note-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-note-target-summary{grid-template-columns:1fr}}
-      @media (max-width:640px){.admin-note-grid{grid-template-columns:1fr}.admin-note-target-row{grid-template-columns:1fr}}
+      @media (max-width:640px){.admin-note-grid{grid-template-columns:1fr}.admin-note-target-row,.admin-note-target-tools{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
@@ -126,12 +132,23 @@
           <div><p class="cgn-eyebrow">Zieluser</p><h2>Admin-Notizen für ausgewählten User</h2></div>
           <span class="cgn-chip cgn-chip--info" id="adminNotesTargetPill">Default</span>
         </div>
+        <div class="admin-note-target-tools">
+          <label class="admin-note-target-search">
+            User suchen nach Name, Login oder UID
+            <input id="adminNotesTargetSearch" type="search" autocomplete="off" spellcheck="false" placeholder="z. B. Forrest, forrestcgn oder tw:127709954">
+          </label>
+          <button class="secondaryButton small" type="button" id="adminNotesTargetClearSearchButton">Suche leeren</button>
+        </div>
         <div class="admin-note-target-row">
           <label>
             Zieluser-Auswahl aus vorhandener Auth-/Benutzer-Datenquelle
             <select id="adminNotesTargetSelect" aria-label="Zieluser für Admin-Notizen auswählen"></select>
           </label>
           <button class="secondaryButton small" type="button" id="adminNotesTargetReloadButton">User neu laden</button>
+        </div>
+        <div class="admin-note-target-filter-meta">
+          <span>Filter: <strong id="adminNotesTargetFilterText">alle User</strong></span>
+          <span>Treffer: <strong id="adminNotesTargetFilterCount">1 / 1</strong></span>
         </div>
         <div class="kv-grid admin-note-target-summary">
           <div class="kv-row"><span>Name</span><strong id="adminNotesTargetDisplayName">—</strong></div>
@@ -224,6 +241,15 @@
     bindClick('adminNotesCreateToggleButton', () => openCreateDialog());
     bindClick('adminNotesCreateCancelButton', () => closeCreateDialog());
     bindClick('adminNotesTargetReloadButton', () => loadTargetUsers('manual'));
+    bindClick('adminNotesTargetClearSearchButton', () => clearTargetSearch());
+
+    const search = document.getElementById('adminNotesTargetSearch');
+    if (search) {
+      search.addEventListener('input', () => {
+        targetUserSearchTerm = search.value || '';
+        renderTargetSelect();
+      });
+    }
 
     const select = document.getElementById('adminNotesTargetSelect');
     if (select) {
@@ -250,6 +276,7 @@
     window.RdapAdminNotes.selectTargetUser = (user) => selectTargetUser(user, { source: 'api' });
     window.RdapAdminNotes.getSelectedTargetUser = () => ({ ...selectedTargetUser });
     window.RdapAdminNotes.reload = () => loadAdminNotes('api');
+    window.RdapAdminNotes.setTargetSearch = (term) => setTargetSearch(term || '');
   }
 
   async function loadTargetUsers(reason) {
@@ -306,11 +333,19 @@
     const select = document.getElementById('adminNotesTargetSelect');
     if (!select) return;
     const selectedUid = selectedTargetUser.userUid || DEFAULT_TARGET_USER.userUid;
-    select.innerHTML = targetUsers.map((user) => {
+    filteredTargetUsers = filterTargetUsers(targetUsers, targetUserSearchTerm);
+
+    if (!filteredTargetUsers.some(user => user.userUid === selectedUid)) {
+      const selected = findTargetUser(selectedUid) || selectedTargetUser || DEFAULT_TARGET_USER;
+      filteredTargetUsers = mergeTargetUsers([selected].concat(filteredTargetUsers));
+    }
+
+    select.innerHTML = filteredTargetUsers.map((user) => {
       const label = formatTargetUserLabel(user);
       const selected = user.userUid === selectedUid ? ' selected' : '';
       return `<option value="${escapeHtmlLocal(user.userUid)}"${selected}>${escapeHtmlLocal(label)}</option>`;
     }).join('');
+    renderTargetFilterMeta();
   }
 
   function renderSelectedTargetUser() {
@@ -587,12 +622,16 @@
     const toggle = document.getElementById('adminNotesCreateToggleButton');
     const reload = document.getElementById('adminNotesReloadButton');
     const select = document.getElementById('adminNotesTargetSelect');
+    const search = document.getElementById('adminNotesTargetSearch');
+    const clearSearch = document.getElementById('adminNotesTargetClearSearchButton');
     const targetReload = document.getElementById('adminNotesTargetReloadButton');
     if (submit) submit.disabled = Boolean(busy);
     if (cancel) cancel.disabled = Boolean(busy);
     if (toggle) toggle.disabled = Boolean(busy) || !latestCanWrite;
     if (reload) reload.disabled = Boolean(busy);
     if (select) select.disabled = Boolean(busy);
+    if (search) search.disabled = Boolean(busy);
+    if (clearSearch) clearSearch.disabled = Boolean(busy);
     if (targetReload) targetReload.disabled = Boolean(busy);
   }
 
@@ -665,6 +704,47 @@
       if (value !== undefined && value !== null && value !== '') return value;
     }
     return null;
+  }
+
+  function setTargetSearch(term) {
+    targetUserSearchTerm = safeString(term);
+    const input = document.getElementById('adminNotesTargetSearch');
+    if (input) input.value = targetUserSearchTerm;
+    renderTargetSelect();
+  }
+
+  function clearTargetSearch() {
+    setTargetSearch('');
+    const input = document.getElementById('adminNotesTargetSearch');
+    if (input) input.focus();
+  }
+
+  function filterTargetUsers(users, term) {
+    const source = Array.isArray(users) ? users : [];
+    const normalizedTerm = normalizeSearchTerm(term);
+    if (!normalizedTerm) return source.slice();
+    return source.filter((user) => normalizeSearchTerm([
+      user.displayName || '',
+      user.loginName || '',
+      user.userUid || '',
+      user.status || '',
+      user.roles || ''
+    ].join(' ')).includes(normalizedTerm));
+  }
+
+  function renderTargetFilterMeta() {
+    const total = Array.isArray(targetUsers) ? targetUsers.length : 0;
+    const filtered = Array.isArray(filteredTargetUsers) ? filteredTargetUsers.length : 0;
+    const term = safeString(targetUserSearchTerm);
+    setTextSafe('adminNotesTargetFilterText', term ? `"${term}"` : 'alle User');
+    setTextSafe('adminNotesTargetFilterCount', `${filtered} / ${total}`);
+  }
+
+  function normalizeSearchTerm(value) {
+    return safeString(value)
+      .toLocaleLowerCase('de-DE')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 
   function formatTargetUserLabel(user) {
