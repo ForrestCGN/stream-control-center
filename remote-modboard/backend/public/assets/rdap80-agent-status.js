@@ -1,0 +1,259 @@
+'use strict';
+
+(function rdap80AgentStatusPage() {
+  const ENDPOINT = '/api/remote/agent/status';
+  const PAGE_ID = 'agent-status';
+  const MODULE_ID = 'agent';
+
+  document.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('rdap:main-router-page-change', (event) => {
+    const page = event && event.detail && event.detail.page;
+    if (page === PAGE_ID) loadAgentStatus('page-change');
+  });
+
+  function init() {
+    injectStyles();
+    ensurePanel();
+    registerPage();
+    bindActions();
+    loadAgentStatus('initial');
+  }
+
+  function registerPage() {
+    const registry = window.RemoteModboardModules;
+    if (!registry || typeof registry.registerModule !== 'function' || typeof registry.registerPage !== 'function') return;
+
+    registry.registerModule({
+      id: MODULE_ID,
+      label: 'Agent',
+      icon: '⇄',
+      order: 40,
+      navSubId: 'nav-agent'
+    });
+
+    registry.registerPage({
+      moduleId: MODULE_ID,
+      pageId: PAGE_ID,
+      label: 'Agent-Status',
+      title: 'Agent-Status',
+      tab: 'Read-only',
+      section: 'Agent',
+      order: 10,
+      permission: 'agent.status.read'
+    });
+  }
+
+  function ensurePanel() {
+    if (document.querySelector(`[data-page-panel="${PAGE_ID}"]`)) return;
+    const content = document.querySelector('.cgn-content');
+    if (!content) return;
+
+    const panel = document.createElement('section');
+    panel.className = 'rdap-view';
+    panel.dataset.pagePanel = PAGE_ID;
+    panel.hidden = true;
+    panel.innerHTML = `
+      <section class="page-header module-page-header cgn-card rdap80-agent-header">
+        <div>
+          <p class="cgn-eyebrow">Webserver ↔ Stream-PC</p>
+          <h1>Agent-Status</h1>
+          <p>Read-only Foundation fuer den spaeteren gesicherten Stream-PC-Agent. In RDAP80 werden nur Status, Heartbeat-Modell und Sicherheitsgrenzen angezeigt.</p>
+        </div>
+        <div class="rdap80-agent-header-actions">
+          <span class="cgn-chip cgn-chip--warn" id="agentStatusChip">offline</span>
+          <button class="secondaryButton small" type="button" id="agentStatusReloadButton">Agent-Status neu laden</button>
+        </div>
+      </section>
+
+      <section class="metric-grid rdap80-agent-metrics">
+        <article class="metric-card cgn-card"><span>Verbindung</span><strong id="agentConnectionState">—</strong><small>Stream-PC Agent</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
+        <article class="metric-card cgn-card"><span>Heartbeat</span><strong id="agentHeartbeatAt">—</strong><small>letzte Meldung</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
+        <article class="metric-card cgn-card"><span>Agent</span><strong id="agentExpectedName">—</strong><small id="agentExpectedId">—</small><div class="cgn-progress"><i style="width:42%"></i></div></article>
+        <article class="metric-card cgn-card"><span>Actions</span><strong id="agentActionsEnabled">—</strong><small>muss disabled bleiben</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
+      </section>
+
+      <section class="page-grid rdap80-agent-grid">
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Transport</p><h2>Geplante Verbindung</h2></div><span class="cgn-chip cgn-chip--info">WSS geplant</span></div>
+          <div class="kv-grid">
+            <div class="kv-row"><span>Richtung</span><strong id="agentPlannedDirection">—</strong></div>
+            <div class="kv-row"><span>Transport</span><strong id="agentPlannedTransport">—</strong></div>
+            <div class="kv-row"><span>WS-Pfad</span><strong id="agentPlannedWsPath">—</strong></div>
+            <div class="kv-row"><span>Portfreigabe Stream-PC</span><strong id="agentPublicPortRequired">—</strong></div>
+          </div>
+        </article>
+
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Sicherheit</p><h2>Harte Grenzen</h2></div><span class="cgn-chip cgn-chip--ok">geschützt</span></div>
+          <ul class="security-list" id="agentSafetyList"><li><span>Keine Actions</span><strong>OK</strong></li></ul>
+        </article>
+
+        <article class="cgn-card span2">
+          <div class="card-head"><div><p class="cgn-eyebrow">Statusmodell</p><h2>Heartbeat-Foundation</h2></div><span class="cgn-chip cgn-chip--warn">read-only</span></div>
+          <div class="kv-grid">
+            <div class="kv-row"><span>Status API</span><strong id="agentStatusApiVersion">—</strong></div>
+            <div class="kv-row"><span>Runtime</span><strong id="agentRuntimeEnabled">—</strong></div>
+            <div class="kv-row"><span>Heartbeat Receiver</span><strong id="agentHeartbeatReceiver">—</strong></div>
+            <div class="kv-row"><span>Speicherung</span><strong id="agentHeartbeatStorage">—</strong></div>
+          </div>
+          <div class="rdap80-agent-notice" id="agentStatusNotice">Noch nicht geladen.</div>
+        </article>
+      </section>
+    `;
+
+    content.appendChild(panel);
+  }
+
+  function bindActions() {
+    const reload = document.getElementById('agentStatusReloadButton');
+    if (reload) reload.addEventListener('click', () => loadAgentStatus('manual'));
+  }
+
+  async function loadAgentStatus(reason) {
+    const result = await getJson(ENDPOINT);
+    if (!result.ok) {
+      renderError(result);
+      updateQuickAgentChip('Agent prüfen', false);
+      return;
+    }
+    renderAgentStatus(result.body, reason);
+  }
+
+  async function getJson(url) {
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+      const body = await response.json().catch(() => null);
+      return {
+        ok: response.ok && body && body.ok !== false,
+        httpStatus: response.status,
+        body,
+        error: null
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        httpStatus: 0,
+        body: null,
+        error: err && err.message ? err.message : 'fetch_failed'
+      };
+    }
+  }
+
+  function renderAgentStatus(body, reason) {
+    const agent = (body && body.agent) || {};
+    const heartbeat = (body && body.heartbeat) || {};
+    const transport = (body && body.transport) || {};
+    const safety = (body && body.safety) || {};
+
+    const connectionState = agent.connectionState || 'offline';
+    const connected = agent.connected === true;
+    const actionsEnabled = agent.actionsEnabled === true;
+
+    setText('agentConnectionState', connectionState);
+    setText('agentHeartbeatAt', agent.lastHeartbeatAt ? formatDate(agent.lastHeartbeatAt) : '—');
+    setText('agentExpectedName', agent.expectedAgentName || 'Forrest Stream-PC');
+    setText('agentExpectedId', agent.expectedAgentId ? `Agent-ID: ${agent.expectedAgentId}` : 'Agent-ID: —');
+    setText('agentActionsEnabled', actionsEnabled ? 'aktiv' : 'disabled');
+    setText('agentPlannedDirection', transport.plannedDirection || 'stream-pc-agent-to-webserver');
+    setText('agentPlannedTransport', String(transport.plannedTransport || 'wss').toUpperCase());
+    setText('agentPlannedWsPath', transport.plannedWsPath || '/agent-ws');
+    setText('agentPublicPortRequired', transport.streamPcPublicPortRequired === true ? 'ja' : 'nein');
+    setText('agentStatusApiVersion', body.statusApiVersion || '—');
+    setText('agentRuntimeEnabled', body.productiveAgentRuntime === true ? 'aktiv' : 'disabled');
+    setText('agentHeartbeatReceiver', heartbeat.heartbeatReceiverEnabled === true ? 'aktiv' : 'disabled');
+    setText('agentHeartbeatStorage', heartbeat.persistsHeartbeatToDatabase ? 'DB' : 'in-memory geplant / aktuell nichts');
+
+    const chip = document.getElementById('agentStatusChip');
+    if (chip) {
+      chip.className = connected ? 'cgn-chip cgn-chip--ok' : 'cgn-chip cgn-chip--warn';
+      chip.textContent = connected ? 'online' : connectionState;
+    }
+
+    renderSafety(safety);
+    setText('agentStatusNotice', `RDAP80: Agent-Status read-only geladen (${reason || 'auto'}). Keine produktiven Agent-Actions aktiv.`);
+    updateQuickAgentChip(connected ? 'Agent online' : 'Agent offline', connected);
+  }
+
+  function renderSafety(safety) {
+    const items = [
+      ['Keine OBS-Steuerung', safety.noObsControl],
+      ['Keine Sound-Auslösung', safety.noSoundControl],
+      ['Keine Overlay-Schaltung', safety.noOverlayControl],
+      ['Keine Commands/Channelpoints', safety.noCommandsOrChannelpoints],
+      ['Keine Shell-/Prozessaktionen', safety.noShellOrProcessActions],
+      ['Keine freien Dateioperationen', safety.noFileWrite],
+      ['Keine freie URL-Ausführung', safety.noFreeUrlExecution],
+      ['Keine Agent-Actions', safety.noAgentActionExecution]
+    ];
+
+    const list = document.getElementById('agentSafetyList');
+    if (!list) return;
+    list.innerHTML = items.map(([label, ok]) => {
+      const good = ok === true;
+      return `<li><span>${escapeHtml(label)}</span><strong class="${good ? 'valueTrue' : 'valueFalse'}">${good ? 'OK' : 'prüfen'}</strong></li>`;
+    }).join('');
+  }
+
+  function renderError(result) {
+    setText('agentStatusNotice', `Agent-Status konnte nicht geladen werden: ${escapePlain(result.error || `HTTP ${result.httpStatus || 0}`)}`);
+    setText('agentConnectionState', 'prüfen');
+    const chip = document.getElementById('agentStatusChip');
+    if (chip) {
+      chip.className = 'cgn-chip cgn-chip--warn';
+      chip.textContent = 'prüfen';
+    }
+  }
+
+  function updateQuickAgentChip(text, ok) {
+    const chip = document.getElementById('quickAgent');
+    if (!chip) return;
+    chip.textContent = text;
+    chip.classList.toggle('cgn-chip--ok', Boolean(ok));
+    chip.classList.toggle('cgn-chip--warn', !ok);
+  }
+
+  function injectStyles() {
+    if (document.getElementById('rdap80AgentStatusStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'rdap80AgentStatusStyle';
+    style.textContent = `
+      [data-page-panel="agent-status"].is-active-view{display:grid;gap:18px}
+      .rdap80-agent-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+      .rdap80-agent-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+      .rdap80-agent-grid .span2{grid-column:1/-1}
+      .rdap80-agent-notice{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.18);color:var(--muted);font-size:13px;line-height:1.35}
+      @media (max-width:900px){.rdap80-agent-header{flex-direction:column}.rdap80-agent-header-actions{justify-content:flex-start}.rdap80-agent-grid .span2{grid-column:auto}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value === undefined || value === null || value === '' ? '—' : String(value);
+  }
+
+  function formatDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value || '—');
+    return date.toLocaleString('de-DE');
+  }
+
+  function escapePlain(value) {
+    return String(value || '').replace(/[<>]/g, '');
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>'"]/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[char]));
+  }
+})();

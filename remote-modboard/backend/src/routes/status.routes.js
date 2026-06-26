@@ -4,6 +4,7 @@ const os = require('os');
 const { buildPublicConfigSummary } = require('../services/config.service');
 const { checkDatabaseHealth } = require('../services/db-health.service');
 const { ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY } = require('../services/admin-user-admin-note-write-confirmed.service');
+const { buildAgentStatusSummary } = require('../services/agent-status.service');
 
 const RDAP62_STATUS_API_VERSION = 'rdap_admin_note_update_status62.v1';
 const RDAP62_BUILD = 'RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP';
@@ -105,7 +106,7 @@ function registerStatusRoutes(app, context) {
           'RDAP62 bereinigt nur Status-Semantik; keine neue UI-Funktion.',
           'Twitch Login und Session-Handling bleiben aktiv und unveraendert.',
           'Admin-Notiz Update-UI, Deactivate und Delete bleiben deaktiviert.',
-          'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.'
+          'RDAP80 ergaenzt nur Agent-Status/Heartbeat-Foundation read-only; Remote-Actions bleiben deaktiviert.'
         ]
       },
       adminNoteWritePlan: {
@@ -154,13 +155,7 @@ function registerStatusRoutes(app, context) {
         note: 'Create und Update sind als Admin-Note Backend-Writes aktiviert; Deactivate/Delete bleiben deaktiviert.'
       },
       database: db,
-      agent: {
-        enabled: false,
-        connected: false,
-        actionsEnabled: false,
-        plannedTransport: 'wss',
-        plannedDirection: 'stream-pc-agent-to-webserver'
-      },
+      agent: buildAgentStatusSummary(),
       permissionsModel: {
         active: false,
         diagnosticReadOnlyResolverPrepared: true,

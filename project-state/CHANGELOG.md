@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION
+
+```text
+- Read-only Agent-Statusroute /api/remote/agent/status erstellt.
+- Agent-Status-Service mit Summary, Heartbeat-Modell, Transportplan und Safety-Block erstellt.
+- /api/remote/status um strukturierten Agent-Summary erweitert.
+- /api/remote/routes um Agent-Statusroute und Agent-Status-Foundation erweitert.
+- Remote-Modboard UI um Agent -> Agent-Status erweitert.
+- Agent-Page registriert sich an vorhandener Frontend-Registry.
+- Kein neuer Router, keine parallele Navigation.
+- Kein produktiver Agent-Runtime.
+- Kein WSS-Server.
+- Keine Agent-Actions.
+- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+- Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
+- Keine DB-Migration.
+- Keine neue Permission-Migration.
+```
+
 ## 2026-06-26 - RDAP79_DOCS_CURRENT_STATE_AND_NEXT_STREAMPC_CONNECTION_PROMPT
 
 ```text

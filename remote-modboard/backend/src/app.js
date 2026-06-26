@@ -13,6 +13,7 @@ const { registerAuthTwitchRoutes } = require('./routes/auth-twitch.routes');
 const { registerLockAuditDiagnosticRoutes } = require('./routes/lock-audit-diagnostic.routes');
 const { registerAdminUsersRoutes } = require('./routes/admin-users.routes');
 const { registerAdminMiniWriteFoundationRoutes } = require('./routes/admin-mini-write-foundation.routes');
+const { registerAgentStatusRoutes } = require('./routes/agent-status.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 
 function createApp({ config, moduleBuild }) {
@@ -39,6 +40,7 @@ function createApp({ config, moduleBuild }) {
   registerLockAuditDiagnosticRoutes(app, context);
   registerAdminUsersRoutes(app, context);
   registerAdminMiniWriteFoundationRoutes(app, context);
+  registerAgentStatusRoutes(app, context);
   registerRoutesRoutes(app, context);
 
   app.get(['/', '/remote', '/modboard'], (req, res) => {
@@ -107,6 +109,7 @@ function injectRdapAdminUi(html) {
   if (typeof html !== 'string') return html;
   let result = injectScriptOnce(html, '/assets/rdap28-admin-notes.js');
   result = injectScriptOnce(result, '/assets/rdap53-permission-read-detail.js');
+  result = injectScriptOnce(result, '/assets/rdap80-agent-status.js');
   return result;
 }
 

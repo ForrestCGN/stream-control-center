@@ -1,32 +1,32 @@
 # TODO
 
-Stand: RDAP79_DOCS_CURRENT_STATE_AND_NEXT_STREAMPC_CONNECTION_PROMPT  
+Stand: RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION  
 Datum: 2026-06-26
 
 ## Jetzt
 
 ```text
-RDAP79 Doku-only lokal einspielen.
-Keine Node-Checks noetig.
-stepdone.cmd wenn Doku sauber.
-Kein Webserver-Deploy.
+RDAP80 ZIP lokal einspielen.
+Node-Checks fuer geaenderte Backend-/Frontend-JS-Dateien ausfuehren.
+git status und diff pruefen.
+Wenn sauber: stepdone.cmd.
+Danach Webserver-Deploy, weil remote-modboard/ Code geaendert wurde.
 ```
 
 ## Danach
 
 ```text
-Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP79.md
-RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION starten.
+RDAP81_AGENT_HANDSHAKE_AND_TOKEN_PLAN vorbereiten.
 ```
 
-## RDAP80 Aufgaben
+## RDAP81 Aufgaben
 
 ```text
-- Startdateien lesen.
-- Agent-/Remote-Dateien suchen.
-- Bestehende remote_agent-Struktur pruefen.
-- Status-/Heartbeat-Konzept fuer Agent planen.
-- Kein Code vor go.
+- Agent-Handshake planen.
+- Agent-ID/Secret-Konzept planen.
+- WSS-Pfad und Auth-Grenzen planen.
+- Heartbeat-Empfang planen.
+- Keine Actions bauen.
 ```
 
 ## Nicht machen
