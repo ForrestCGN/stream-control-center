@@ -3,10 +3,40 @@
 const crypto = require('crypto');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS';
-const STATUS_API_VERSION = 'rdap_agent92.v1';
+const MODULE_BUILD = 'RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE';
+const STATUS_API_VERSION = 'rdap_agent94.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
+const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+
+const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
+const MAX_HEARTBEAT_PAYLOAD_BYTES = 2048;
+const PLANNED_HEARTBEAT_INTERVAL_MS = 30000;
+const STALE_AFTER_MS = 90000;
+const OFFLINE_AFTER_MS = 120000;
+
+const FORBIDDEN_HEARTBEAT_FIELDS = new Set([
+  'capabilities',
+  'commands',
+  'requestedActions',
+  'actionQueue',
+  'obsState',
+  'soundState',
+  'overlayState',
+  'processList',
+  'fileList',
+  'env',
+  'paths',
+  'tokens',
+  'secrets',
+  'ip',
+  'hostname',
+  'freeUrls',
+  'shell',
+  'stdout',
+  'stderr',
+  'configDump'
+]);
 
 const CONNECTION_STATE = {
   prepared: true,
@@ -24,7 +54,25 @@ const CONNECTION_STATE = {
   closeReason: null,
   actionsEnabled: false,
   productiveAgentRuntime: false,
-  heartbeatReceiverEnabled: false
+  heartbeatReceiverEnabled: false,
+  heartbeatReceiverBuildEnabled: HEARTBEAT_RECEIVER_BUILD_ENABLED,
+  heartbeatInMemoryOnly: true,
+  heartbeatPersistsToDatabase: false,
+  heartbeatExecutesActions: false,
+  heartbeatAcceptsCommands: false,
+  heartbeatAcceptsCapabilities: false,
+  lastHeartbeatAt: null,
+  heartbeatAgeMs: null,
+  heartbeatSeq: null,
+  heartbeatProtocolVersion: null,
+  plannedHeartbeatIntervalMs: PLANNED_HEARTBEAT_INTERVAL_MS,
+  staleAfterMs: STALE_AFTER_MS,
+  offlineAfterMs: OFFLINE_AFTER_MS,
+  stale: false,
+  heartbeatRejectCount: 0,
+  lastHeartbeatRejectAt: null,
+  lastHeartbeatRejectReason: null,
+  lastHeartbeatPayloadStored: false
 };
 
 const REJECT_DIAGNOSTIC = {
@@ -133,7 +181,7 @@ function registerAgentRuntime(server, config = {}, options = {}) {
     });
   });
 
-  console.log(`[remote-agent-runtime] ${moduleBuild} registered guarded transport runtime for ${wsPath}. accepts=${agentRuntime.acceptsAgentConnections}, actions=false, heartbeat=false.`);
+  console.log(`[remote-agent-runtime] ${moduleBuild} registered guarded transport runtime for ${wsPath}. accepts=${agentRuntime.acceptsAgentConnections}, actions=false, heartbeat=${agentRuntime.heartbeatReceiverEnabled}.`);
 
   return buildRegistrationSummary({
     registered: true,
@@ -149,6 +197,7 @@ function getAgentRuntimeConfig(config = {}) {
   const requestedEnabled = runtime.requestedEnabled === true;
   const acceptBuildEnabled = runtime.acceptBuildEnabled === true;
   const effectiveEnabled = requestedEnabled && acceptBuildEnabled;
+  const heartbeatReceiverEnabled = effectiveEnabled && HEARTBEAT_RECEIVER_BUILD_ENABLED;
 
   return {
     skeletonPrepared: runtime.skeletonPrepared === true,
@@ -158,7 +207,8 @@ function getAgentRuntimeConfig(config = {}) {
     twoStepRuntimeGate: runtime.twoStepRuntimeGate === true,
     effectiveEnabled,
     wssRuntimeEnabled: effectiveEnabled,
-    heartbeatReceiverEnabled: false,
+    heartbeatReceiverBuildEnabled: HEARTBEAT_RECEIVER_BUILD_ENABLED,
+    heartbeatReceiverEnabled,
     acceptsAgentConnections: effectiveEnabled,
     actionsEnabled: false,
     productiveAgentRuntime: false,
@@ -166,7 +216,8 @@ function getAgentRuntimeConfig(config = {}) {
     expectedAgentId: runtime.expectedAgentId || 'stream-pc-main',
     expectedAgentName: runtime.expectedAgentName || 'Forrest Stream-PC',
     accessKeyConfigured: runtime.accessKeyConfigured === true,
-    expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION
+    expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
+    heartbeatProtocolVersion: HEARTBEAT_PROTOCOL_VERSION
   };
 }
 
@@ -187,7 +238,8 @@ function buildRegistrationSummary(input = {}) {
     acceptBuildEnabled: agentRuntime.acceptBuildEnabled === true,
     twoStepRuntimeGate: agentRuntime.twoStepRuntimeGate === true,
     wssRuntimeEnabled: agentRuntime.wssRuntimeEnabled === true,
-    heartbeatReceiverEnabled: false,
+    heartbeatReceiverBuildEnabled: HEARTBEAT_RECEIVER_BUILD_ENABLED,
+    heartbeatReceiverEnabled: agentRuntime.heartbeatReceiverEnabled === true,
     actionEnabled: false,
     productiveAgentRuntime: false,
     noAgentActions: true,
@@ -338,8 +390,9 @@ function acceptUpgrade(req, socket, details = {}) {
     'Upgrade: websocket',
     'Connection: Upgrade',
     `Sec-WebSocket-Accept: ${accept}`,
-    'X-SCC-Agent-Runtime: rdap92-transport-only',
+    'X-SCC-Agent-Runtime: rdap94-heartbeat-readonly',
     'X-SCC-Agent-Actions: disabled',
+    'X-SCC-Agent-Heartbeat: readonly-in-memory',
     '',
     ''
   ].join('\r\n'));
@@ -347,6 +400,8 @@ function acceptUpgrade(req, socket, details = {}) {
   activeSocket = socket;
 
   const now = new Date().toISOString();
+  const heartbeatEnabled = details.agentRuntime && details.agentRuntime.heartbeatReceiverEnabled === true;
+
   CONNECTION_STATE.connected = true;
   CONNECTION_STATE.connectionState = 'connected';
   CONNECTION_STATE.agentId = details.agentId || null;
@@ -361,11 +416,216 @@ function acceptUpgrade(req, socket, details = {}) {
   CONNECTION_STATE.reconnectCount += 1;
   CONNECTION_STATE.actionsEnabled = false;
   CONNECTION_STATE.productiveAgentRuntime = false;
-  CONNECTION_STATE.heartbeatReceiverEnabled = false;
+  CONNECTION_STATE.heartbeatReceiverEnabled = heartbeatEnabled;
+  CONNECTION_STATE.heartbeatReceiverBuildEnabled = HEARTBEAT_RECEIVER_BUILD_ENABLED;
+  CONNECTION_STATE.heartbeatInMemoryOnly = true;
+  CONNECTION_STATE.heartbeatPersistsToDatabase = false;
+  CONNECTION_STATE.heartbeatExecutesActions = false;
+  CONNECTION_STATE.heartbeatAcceptsCommands = false;
+  CONNECTION_STATE.heartbeatAcceptsCapabilities = false;
+  CONNECTION_STATE.lastHeartbeatAt = null;
+  CONNECTION_STATE.heartbeatAgeMs = null;
+  CONNECTION_STATE.heartbeatSeq = null;
+  CONNECTION_STATE.heartbeatProtocolVersion = null;
+  CONNECTION_STATE.stale = false;
+  CONNECTION_STATE.lastHeartbeatRejectAt = null;
+  CONNECTION_STATE.lastHeartbeatRejectReason = null;
+  CONNECTION_STATE.lastHeartbeatPayloadStored = false;
 
+  socket.on('data', chunk => handleSocketData(socket, chunk, details));
   socket.on('close', () => clearConnectionState('socket_close'));
   socket.on('end', () => clearConnectionState('socket_end'));
   socket.on('error', () => clearConnectionState('socket_error'));
+}
+
+function handleSocketData(socket, chunk, details = {}) {
+  if (!CONNECTION_STATE.heartbeatReceiverEnabled) {
+    recordHeartbeatReject('heartbeat_ignored_receiver_disabled');
+    return;
+  }
+
+  const frame = decodeClientWebSocketFrame(chunk);
+  if (!frame.ok) {
+    recordHeartbeatReject(frame.reason || 'invalid_websocket_frame');
+    if (frame.closeSocket) safeSocketEnd(socket);
+    return;
+  }
+
+  if (frame.opcode === 0x8) {
+    clearConnectionState('client_close_frame');
+    safeSocketEnd(socket);
+    return;
+  }
+
+  if (frame.opcode === 0x9) {
+    writePong(socket, frame.payload);
+    return;
+  }
+
+  if (frame.opcode === 0xA) {
+    return;
+  }
+
+  if (frame.opcode !== 0x1) {
+    recordHeartbeatReject('unsupported_websocket_opcode');
+    return;
+  }
+
+  const text = frame.payload.toString('utf8');
+  processHeartbeatText(text, details);
+}
+
+function processHeartbeatText(text, details = {}) {
+  if (Buffer.byteLength(text, 'utf8') > MAX_HEARTBEAT_PAYLOAD_BYTES) {
+    recordHeartbeatReject('heartbeat_payload_too_large');
+    return;
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(text);
+  } catch (err) {
+    recordHeartbeatReject('invalid_heartbeat_json');
+    return;
+  }
+
+  const validation = validateHeartbeatPayload(payload, details);
+  if (!validation.ok) {
+    recordHeartbeatReject(validation.reason);
+    return;
+  }
+
+  const now = new Date().toISOString();
+  CONNECTION_STATE.lastSeenAt = now;
+  CONNECTION_STATE.lastHeartbeatAt = now;
+  CONNECTION_STATE.heartbeatSeq = validation.seq;
+  CONNECTION_STATE.heartbeatProtocolVersion = HEARTBEAT_PROTOCOL_VERSION;
+  CONNECTION_STATE.agentVersion = validation.agentVersion || CONNECTION_STATE.agentVersion;
+  CONNECTION_STATE.stale = false;
+  CONNECTION_STATE.connectionState = 'connected';
+  CONNECTION_STATE.lastHeartbeatRejectReason = null;
+  CONNECTION_STATE.lastHeartbeatPayloadStored = false;
+  CONNECTION_STATE.actionsEnabled = false;
+  CONNECTION_STATE.productiveAgentRuntime = false;
+  CONNECTION_STATE.heartbeatExecutesActions = false;
+  CONNECTION_STATE.heartbeatAcceptsCommands = false;
+  CONNECTION_STATE.heartbeatAcceptsCapabilities = false;
+}
+
+function validateHeartbeatPayload(payload, details = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { ok: false, reason: 'invalid_heartbeat_json' };
+  }
+
+  for (const key of Object.keys(payload)) {
+    if (FORBIDDEN_HEARTBEAT_FIELDS.has(key)) {
+      return { ok: false, reason: 'heartbeat_forbidden_fields' };
+    }
+  }
+
+  if (payload.type !== 'heartbeat') {
+    return { ok: false, reason: 'unsupported_heartbeat_type' };
+  }
+
+  if (payload.protocolVersion !== HEARTBEAT_PROTOCOL_VERSION) {
+    return { ok: false, reason: 'unsupported_heartbeat_protocol' };
+  }
+
+  const expectedAgentId = details.agentId || CONNECTION_STATE.agentId || 'stream-pc-main';
+  if (payload.agentId !== expectedAgentId) {
+    return { ok: false, reason: 'heartbeat_agent_mismatch' };
+  }
+
+  const seq = Number(payload.seq);
+  if (!Number.isFinite(seq) || seq < 1 || Math.floor(seq) !== seq) {
+    return { ok: false, reason: 'heartbeat_seq_invalid' };
+  }
+
+  const agentVersion = safeHeaderHint(payload.agentVersion || CONNECTION_STATE.agentVersion || '');
+  if (payload.agentVersion && !agentVersion) {
+    return { ok: false, reason: 'heartbeat_agent_version_invalid' };
+  }
+
+  return {
+    ok: true,
+    seq,
+    agentVersion
+  };
+}
+
+function decodeClientWebSocketFrame(chunk) {
+  if (!Buffer.isBuffer(chunk) || chunk.length < 2) {
+    return { ok: false, reason: 'invalid_websocket_frame' };
+  }
+
+  const first = chunk[0];
+  const second = chunk[1];
+  const fin = (first & 0x80) === 0x80;
+  const opcode = first & 0x0f;
+  const masked = (second & 0x80) === 0x80;
+  let length = second & 0x7f;
+  let offset = 2;
+
+  if (!fin) {
+    return { ok: false, reason: 'fragmented_websocket_frame_unsupported', closeSocket: true };
+  }
+
+  if (!masked) {
+    return { ok: false, reason: 'unmasked_client_frame', closeSocket: true };
+  }
+
+  if (length === 126) {
+    if (chunk.length < offset + 2) return { ok: false, reason: 'invalid_websocket_frame' };
+    length = chunk.readUInt16BE(offset);
+    offset += 2;
+  } else if (length === 127) {
+    return { ok: false, reason: 'heartbeat_payload_too_large', closeSocket: true };
+  }
+
+  if (length > MAX_HEARTBEAT_PAYLOAD_BYTES) {
+    return { ok: false, reason: 'heartbeat_payload_too_large', closeSocket: true };
+  }
+
+  if (chunk.length < offset + 4 + length) {
+    return { ok: false, reason: 'invalid_websocket_frame' };
+  }
+
+  const mask = chunk.subarray(offset, offset + 4);
+  offset += 4;
+
+  const payload = Buffer.alloc(length);
+  for (let i = 0; i < length; i += 1) {
+    payload[i] = chunk[offset + i] ^ mask[i % 4];
+  }
+
+  return {
+    ok: true,
+    opcode,
+    payload
+  };
+}
+
+function writePong(socket, payload) {
+  if (!socket || socket.destroyed) return;
+  const data = Buffer.isBuffer(payload) ? payload : Buffer.alloc(0);
+  const length = Math.min(data.length, 125);
+  const frame = Buffer.alloc(2 + length);
+  frame[0] = 0x8A;
+  frame[1] = length;
+  data.copy(frame, 2, 0, length);
+  try {
+    socket.write(frame);
+  } catch (err) {
+    // ignore socket write errors; do not log request details
+  }
+}
+
+function safeSocketEnd(socket) {
+  try {
+    if (socket && !socket.destroyed) socket.end();
+  } catch (err) {
+    // ignore
+  }
 }
 
 function clearConnectionState(reason) {
@@ -383,6 +643,12 @@ function clearConnectionState(reason) {
   CONNECTION_STATE.actionsEnabled = false;
   CONNECTION_STATE.productiveAgentRuntime = false;
   CONNECTION_STATE.heartbeatReceiverEnabled = false;
+  CONNECTION_STATE.lastHeartbeatAt = null;
+  CONNECTION_STATE.heartbeatAgeMs = null;
+  CONNECTION_STATE.heartbeatSeq = null;
+  CONNECTION_STATE.heartbeatProtocolVersion = null;
+  CONNECTION_STATE.stale = false;
+  CONNECTION_STATE.lastHeartbeatPayloadStored = false;
   activeSocket = null;
 }
 
@@ -418,6 +684,15 @@ function recordRejectDiagnostic(req, details = {}) {
   REJECT_DIAGNOSTIC.bearerTokenLogged = false;
   REJECT_DIAGNOSTIC.tokenLengthLogged = false;
   REJECT_DIAGNOSTIC.tokenHashLogged = false;
+}
+
+function recordHeartbeatReject(reason) {
+  CONNECTION_STATE.heartbeatRejectCount += 1;
+  CONNECTION_STATE.lastHeartbeatRejectAt = new Date().toISOString();
+  CONNECTION_STATE.lastHeartbeatRejectReason = safeReason(reason || 'heartbeat_rejected');
+  CONNECTION_STATE.lastHeartbeatPayloadStored = false;
+  CONNECTION_STATE.actionsEnabled = false;
+  CONNECTION_STATE.productiveAgentRuntime = false;
 }
 
 function buildRejectDiagnosticSummary() {
@@ -471,7 +746,8 @@ function buildRejectDiagnosticSummary() {
       'query_string_values',
       'raw_ip_address',
       'request_body',
-      'local_absolute_paths'
+      'local_absolute_paths',
+      'raw_heartbeat_payload'
     ],
     secretsExposed: false,
     secretsLogged: false,
@@ -492,6 +768,8 @@ function buildRejectDiagnosticSummary() {
 }
 
 function buildAgentConnectionSummary() {
+  updateDerivedHeartbeatState();
+
   return {
     prepared: true,
     inMemoryOnly: true,
@@ -506,17 +784,74 @@ function buildAgentConnectionSummary() {
     lastSeenAt: CONNECTION_STATE.lastSeenAt,
     reconnectCount: CONNECTION_STATE.reconnectCount,
     closeReason: CONNECTION_STATE.closeReason,
-    heartbeatReceiverEnabled: false,
-    lastHeartbeatAt: null,
-    heartbeatAgeMs: null,
-    stale: false,
+    heartbeatReceiverEnabled: CONNECTION_STATE.heartbeatReceiverEnabled === true,
+    heartbeatReceiverBuildEnabled: HEARTBEAT_RECEIVER_BUILD_ENABLED,
+    heartbeatInMemoryOnly: true,
+    heartbeatPersistsToDatabase: false,
+    lastHeartbeatAt: CONNECTION_STATE.lastHeartbeatAt,
+    heartbeatAgeMs: CONNECTION_STATE.heartbeatAgeMs,
+    heartbeatSeq: CONNECTION_STATE.heartbeatSeq,
+    heartbeatProtocolVersion: CONNECTION_STATE.heartbeatProtocolVersion,
+    plannedHeartbeatIntervalMs: PLANNED_HEARTBEAT_INTERVAL_MS,
+    staleAfterMs: STALE_AFTER_MS,
+    offlineAfterMs: OFFLINE_AFTER_MS,
+    stale: CONNECTION_STATE.stale === true,
+    heartbeatRejectCount: CONNECTION_STATE.heartbeatRejectCount,
+    lastHeartbeatRejectAt: CONNECTION_STATE.lastHeartbeatRejectAt,
+    lastHeartbeatRejectReason: CONNECTION_STATE.lastHeartbeatRejectReason,
+    lastHeartbeatPayloadStored: false,
     actionsEnabled: false,
     productiveAgentRuntime: false,
+    heartbeatExecutesActions: false,
+    heartbeatAcceptsCommands: false,
+    heartbeatAcceptsCapabilities: false,
     secretsExposed: false,
     bearerTokenLogged: false,
     tokenLengthLogged: false,
     tokenHashLogged: false
   };
+}
+
+function updateDerivedHeartbeatState() {
+  if (!CONNECTION_STATE.connected) {
+    CONNECTION_STATE.connectionState = 'offline';
+    CONNECTION_STATE.stale = false;
+    CONNECTION_STATE.heartbeatAgeMs = null;
+    return;
+  }
+
+  if (!CONNECTION_STATE.lastHeartbeatAt) {
+    CONNECTION_STATE.heartbeatAgeMs = null;
+    CONNECTION_STATE.stale = false;
+    CONNECTION_STATE.connectionState = 'connected';
+    return;
+  }
+
+  const last = Date.parse(CONNECTION_STATE.lastHeartbeatAt);
+  if (!Number.isFinite(last)) {
+    CONNECTION_STATE.heartbeatAgeMs = null;
+    CONNECTION_STATE.stale = false;
+    CONNECTION_STATE.connectionState = 'connected';
+    return;
+  }
+
+  const age = Math.max(0, Date.now() - last);
+  CONNECTION_STATE.heartbeatAgeMs = age;
+
+  if (age >= OFFLINE_AFTER_MS) {
+    CONNECTION_STATE.connectionState = 'offline';
+    CONNECTION_STATE.stale = true;
+    return;
+  }
+
+  if (age >= STALE_AFTER_MS) {
+    CONNECTION_STATE.connectionState = 'stale';
+    CONNECTION_STATE.stale = true;
+    return;
+  }
+
+  CONNECTION_STATE.connectionState = 'connected';
+  CONNECTION_STATE.stale = false;
 }
 
 function rejectUpgrade(socket, details = {}) {
@@ -598,46 +933,58 @@ function compareSecretSafely(candidate, expected) {
   const candidateDigest = crypto.createHash('sha256').update(candidate).digest();
   const expectedDigest = crypto.createHash('sha256').update(expected).digest();
 
-  return candidateDigest.length === expectedDigest.length
-    && crypto.timingSafeEqual(candidateDigest, expectedDigest);
+  if (candidateDigest.length !== expectedDigest.length) return false;
+  return crypto.timingSafeEqual(candidateDigest, expectedDigest);
 }
 
-function safeReason(reason) {
-  const value = typeof reason === 'string' ? reason : 'unknown';
-  return value.replace(/[^a-z0-9_.-]/gi, '_').slice(0, 80) || 'unknown';
+function safeAgentIdHint(value) {
+  const safe = safeHeaderHint(value);
+  if (!safe) return null;
+  if (safe === 'stream-pc-main') return 'expected_agent_id_seen';
+  return 'unexpected_agent_id_seen';
 }
 
-function safeMethod(method) {
-  const value = typeof method === 'string' ? method : 'GET';
-  return value.replace(/[^A-Z]/g, '').slice(0, 12) || 'GET';
-}
-
-function safeHeaderText(value) {
-  return String(value || '').replace(/[\r\n]/g, ' ').slice(0, 120);
-}
-
-function safeAgentIdHint(agentId) {
-  return safeHeaderHint(agentId);
-}
-
-function safeProtocolHint(protocolVersion) {
-  return safeHeaderHint(protocolVersion);
+function safeProtocolHint(value) {
+  const safe = safeHeaderHint(value);
+  if (!safe) return null;
+  if (safe === EXPECTED_PROTOCOL_VERSION) return 'expected_protocol_seen';
+  return 'unexpected_protocol_seen';
 }
 
 function safeUserAgentHint(req) {
-  const value = readHeaderValue(req, 'user-agent');
-  return safeHeaderHint(value);
+  const userAgent = readHeaderValue(req, 'user-agent');
+  if (!userAgent) return null;
+  return 'user_agent_present';
 }
 
 function safeHeaderHint(value) {
-  if (!value) return null;
-  return String(value).replace(/[^a-z0-9_.:/ -]/gi, '_').slice(0, 80);
+  if (typeof value !== 'string') return '';
+  const cleaned = value.replace(/[^a-zA-Z0-9._:-]/g, '').slice(0, 80);
+  return cleaned;
+}
+
+function safeReason(value) {
+  const cleaned = String(value || 'unknown').replace(/[^a-zA-Z0-9._:-]/g, '_').slice(0, 80);
+  return cleaned || 'unknown';
+}
+
+function safeMethod(value) {
+  const cleaned = String(value || 'GET').replace(/[^A-Z]/g, '').slice(0, 12);
+  return cleaned || 'GET';
+}
+
+function safeHeaderText(value) {
+  return String(value || '')
+    .replace(/[\r\n]/g, ' ')
+    .replace(/[^\x20-\x7E]/g, '')
+    .slice(0, 160);
 }
 
 module.exports = {
   MODULE_BUILD,
   STATUS_API_VERSION,
   registerAgentRuntime,
+  buildRegistrationSummary,
   buildAgentConnectionSummary,
   buildRejectDiagnosticSummary
 };

@@ -11,6 +11,7 @@ const {
 const MODULE = 'remote_agent_status';
 const MODULE_BUILD = AGENT_RUNTIME_BUILD;
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
+const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const LOADED_AT = new Date().toISOString();
 
 const EXPECTED_AGENT = Object.freeze({
@@ -38,21 +39,8 @@ const SAFETY = Object.freeze({
   noFreeUrlExecution: true,
   noDatabaseWrite: true,
   noProductiveWrites: true,
-  noAgentActionExecution: true
-});
-
-const HEARTBEAT_MODEL = Object.freeze({
-  prepared: true,
-  runtimeEnabled: false,
-  heartbeatReceiverEnabled: false,
-  lastHeartbeatAt: null,
-  heartbeatAgeMs: null,
-  staleAfterMs: 90000,
-  offlineAfterMs: 120000,
-  plannedHeartbeatIntervalMs: 30000,
-  storesHeartbeatInMemoryOnlyForNow: true,
-  persistsHeartbeatToDatabase: false,
-  note: 'RDAP92 akzeptiert maximal Transport; produktiver Heartbeat bleibt fuer RDAP93 separat.'
+  noAgentActionExecution: true,
+  noRawHeartbeatPayload: true
 });
 
 function buildAgentStatusSummary(context = {}) {
@@ -60,6 +48,7 @@ function buildAgentStatusSummary(context = {}) {
   const transport = buildTransportSummary(runtime);
   const rejectDiagnostic = buildRejectDiagnosticSummary();
   const connection = buildAgentConnectionSummary();
+  const heartbeat = buildHeartbeatSummary(runtime, connection);
 
   return {
     enabled: runtime.effectiveEnabled,
@@ -73,7 +62,8 @@ function buildAgentStatusSummary(context = {}) {
     runtimeAcceptBuildEnabled: runtime.acceptBuildEnabled,
     runtimeEffectiveEnabled: runtime.effectiveEnabled,
     acceptsAgentConnections: runtime.acceptsAgentConnections,
-    heartbeatReceiverEnabled: false,
+    heartbeatReceiverEnabled: heartbeat.heartbeatReceiverEnabled,
+    heartbeatReceiverBuildEnabled: heartbeat.heartbeatReceiverBuildEnabled,
     accessKeyConfigured: runtime.accessKeyConfigured,
     accessKeyExposed: false,
     plannedTransport: transport.plannedTransport,
@@ -83,15 +73,18 @@ function buildAgentStatusSummary(context = {}) {
     expectedAgentId: runtime.expectedAgentId,
     expectedAgentName: runtime.expectedAgentName,
     expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
+    expectedHeartbeatProtocolVersion: HEARTBEAT_PROTOCOL_VERSION,
     agentId: connection.agentId,
     agentName: connection.agentName,
     agentVersion: connection.agentVersion,
     protocolVersion: connection.protocolVersion,
     connectedSince: connection.connectedSince,
     lastSeenAt: connection.lastSeenAt,
-    lastHeartbeatAt: null,
-    heartbeatAgeMs: null,
-    stale: false,
+    lastHeartbeatAt: heartbeat.lastHeartbeatAt,
+    heartbeatAgeMs: heartbeat.heartbeatAgeMs,
+    heartbeatSeq: heartbeat.heartbeatSeq,
+    heartbeatProtocolVersion: heartbeat.heartbeatProtocolVersion,
+    stale: heartbeat.stale,
     handshakePrecheckPrepared: rejectDiagnostic.handshakePrecheckPrepared,
     handshakePrecheckAcceptsConnections: runtime.effectiveEnabled,
     accessKeyComparePrepared: rejectDiagnostic.accessKeyComparePrepared,
@@ -118,6 +111,7 @@ function buildAgentStatusResponse(context = {}) {
   const transport = buildTransportSummary(runtime);
   const rejectDiagnostic = buildRejectDiagnosticSummary();
   const connection = buildAgentConnectionSummary();
+  const heartbeat = buildHeartbeatSummary(runtime, connection);
 
   return {
     ok: true,
@@ -136,13 +130,15 @@ function buildAgentStatusResponse(context = {}) {
       enabled: runtime.effectiveEnabled,
       connected: connection.connected,
       connectionState: connection.connectionState,
-      reason: runtime.effectiveEnabled ? 'rdap92_transport_accept_guarded_no_actions' : 'runtime_not_effectively_enabled',
-      lastHeartbeatAt: null,
+      reason: runtime.effectiveEnabled ? 'rdap94_heartbeat_readonly_in_memory' : 'runtime_not_effectively_enabled',
+      lastHeartbeatAt: heartbeat.lastHeartbeatAt,
       connectedSince: connection.connectedSince,
       lastSeenAt: connection.lastSeenAt,
-      heartbeatAgeMs: null,
+      heartbeatAgeMs: heartbeat.heartbeatAgeMs,
+      heartbeatSeq: heartbeat.heartbeatSeq,
+      heartbeatProtocolVersion: heartbeat.heartbeatProtocolVersion,
       reconnectCount: connection.reconnectCount,
-      stale: false,
+      stale: heartbeat.stale,
       actionsEnabled: false,
       productiveActionsEnabled: false,
       agentId: connection.agentId,
@@ -151,7 +147,8 @@ function buildAgentStatusResponse(context = {}) {
       protocolVersion: connection.protocolVersion || STATUS_API_VERSION,
       expectedAgentId: runtime.expectedAgentId,
       expectedAgentName: runtime.expectedAgentName,
-      expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION
+      expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
+      expectedHeartbeatProtocolVersion: HEARTBEAT_PROTOCOL_VERSION
     },
     runtime: {
       skeletonPrepared: runtime.skeletonPrepared,
@@ -161,7 +158,8 @@ function buildAgentStatusResponse(context = {}) {
       twoStepRuntimeGate: runtime.twoStepRuntimeGate,
       effectiveEnabled: runtime.effectiveEnabled,
       wssRuntimeEnabled: runtime.wssRuntimeEnabled,
-      heartbeatReceiverEnabled: false,
+      heartbeatReceiverBuildEnabled: heartbeat.heartbeatReceiverBuildEnabled,
+      heartbeatReceiverEnabled: heartbeat.heartbeatReceiverEnabled,
       accessKeyConfigured: runtime.accessKeyConfigured,
       accessKeyExposed: false,
       accessKeyLogged: false,
@@ -177,7 +175,7 @@ function buildAgentStatusResponse(context = {}) {
     },
     rejectDiagnostic,
     connection,
-    heartbeat: { ...HEARTBEAT_MODEL },
+    heartbeat,
     transport,
     host: {
       webserverService: 'remote-modboard',
@@ -190,11 +188,11 @@ function buildAgentStatusResponse(context = {}) {
     },
     safety: { ...SAFETY },
     warnings: [
-      'RDAP92 akzeptiert maximal einen guarded WebSocket-Transport, wenn beide Runtime-Gates aktiv sind.',
+      'RDAP94 akzeptiert Heartbeat nur read-only und in-memory auf einer bereits akzeptierten Verbindung.',
       'Agent-Actions bleiben deaktiviert.',
-      'Heartbeat-Receiver bleibt deaktiviert und wird separat geplant.',
-      'OBS, Sounds, Overlays, Commands, Shell, Datei-, Prozess- und URL-Ausfuehrung bleiben deaktiviert.',
-      'Authorization-Werte, Bearer-Token, AGENT_ACCESS_KEY, Header, Cookies, Query-Werte und rohe IP-Adressen werden nicht in Status, UI oder Logs ausgegeben.'
+      'Heartbeat aktiviert keine OBS-, Sound-, Overlay-, Command-, Shell-, Datei-, Prozess- oder URL-Ausfuehrung.',
+      'Heartbeat schreibt keine Datenbank.',
+      'Authorization-Werte, Bearer-Token, AGENT_ACCESS_KEY, Header, Cookies, Query-Werte, rohe IP-Adressen und rohe Heartbeat-Payloads werden nicht in Status, UI oder Logs ausgegeben.'
     ],
     errors: []
   };
@@ -205,6 +203,7 @@ function buildAgentRoutesSummary(context = {}) {
   const transport = buildTransportSummary(runtime);
   const rejectDiagnostic = buildRejectDiagnosticSummary();
   const connection = buildAgentConnectionSummary();
+  const heartbeat = buildHeartbeatSummary(runtime, connection);
 
   return {
     prepared: true,
@@ -221,7 +220,10 @@ function buildAgentRoutesSummary(context = {}) {
     runtimeAcceptBuildEnabled: runtime.acceptBuildEnabled,
     runtimeEffectiveEnabled: runtime.effectiveEnabled,
     heartbeatFoundationPrepared: true,
-    heartbeatReceiverEnabled: false,
+    heartbeatReceiverBuildEnabled: heartbeat.heartbeatReceiverBuildEnabled,
+    heartbeatReceiverEnabled: heartbeat.heartbeatReceiverEnabled,
+    heartbeatInMemoryOnly: true,
+    heartbeatPersistsToDatabase: false,
     wssRuntimeEnabled: runtime.wssRuntimeEnabled,
     upgradeGuardPrepared: true,
     handshakePrecheckPrepared: true,
@@ -231,6 +233,9 @@ function buildAgentRoutesSummary(context = {}) {
     acceptsAgentConnections: runtime.acceptsAgentConnections,
     connected: connection.connected,
     connectionState: connection.connectionState,
+    lastHeartbeatAt: heartbeat.lastHeartbeatAt,
+    heartbeatAgeMs: heartbeat.heartbeatAgeMs,
+    stale: heartbeat.stale,
     accessKeyConfigured: runtime.accessKeyConfigured,
     accessKeyExposed: false,
     plannedTransport: transport.plannedTransport,
@@ -238,6 +243,7 @@ function buildAgentRoutesSummary(context = {}) {
     plannedWsPath: transport.plannedWsPath,
     expectedAgentId: runtime.expectedAgentId,
     expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
+    expectedHeartbeatProtocolVersion: HEARTBEAT_PROTOCOL_VERSION,
     streamPcPublicPortRequired: false,
     rejectDiagnosticPrepared: rejectDiagnostic.prepared,
     rejectDiagnosticInMemoryOnly: rejectDiagnostic.inMemoryOnly,
@@ -270,7 +276,8 @@ function buildRuntimeConfigSummary(config = {}) {
     twoStepRuntimeGate: runtime.twoStepRuntimeGate === true,
     effectiveEnabled,
     wssRuntimeEnabled: effectiveEnabled,
-    heartbeatReceiverEnabled: false,
+    heartbeatReceiverBuildEnabled: true,
+    heartbeatReceiverEnabled: effectiveEnabled,
     acceptsAgentConnections: effectiveEnabled,
     actionsEnabled: false,
     productiveAgentRuntime: false,
@@ -280,6 +287,41 @@ function buildRuntimeConfigSummary(config = {}) {
     accessKeyConfigured: runtime.accessKeyConfigured === true,
     accessKeyExposed: false,
     accessKeyLogged: false
+  };
+}
+
+function buildHeartbeatSummary(runtime = {}, connection = {}) {
+  return {
+    prepared: true,
+    runtimeEnabled: runtime.effectiveEnabled === true,
+    heartbeatReceiverBuildEnabled: true,
+    heartbeatReceiverEnabled: connection.heartbeatReceiverEnabled === true || runtime.effectiveEnabled === true,
+    heartbeatInMemoryOnly: true,
+    storesHeartbeatInMemoryOnlyForNow: true,
+    persistsHeartbeatToDatabase: false,
+    heartbeatPersistsToDatabase: false,
+    databaseWriteEnabled: false,
+    migrationEnabled: false,
+    lastHeartbeatAt: connection.lastHeartbeatAt || null,
+    heartbeatAgeMs: Number.isFinite(connection.heartbeatAgeMs) ? connection.heartbeatAgeMs : null,
+    heartbeatSeq: Number.isFinite(connection.heartbeatSeq) ? connection.heartbeatSeq : null,
+    heartbeatProtocolVersion: connection.heartbeatProtocolVersion || null,
+    stale: connection.stale === true,
+    staleAfterMs: connection.staleAfterMs || 90000,
+    offlineAfterMs: connection.offlineAfterMs || 120000,
+    plannedHeartbeatIntervalMs: connection.plannedHeartbeatIntervalMs || 30000,
+    heartbeatRejectCount: connection.heartbeatRejectCount || 0,
+    lastHeartbeatRejectAt: connection.lastHeartbeatRejectAt || null,
+    lastHeartbeatRejectReason: connection.lastHeartbeatRejectReason || null,
+    lastHeartbeatPayloadStored: false,
+    maxHeartbeatPayloadBytes: 2048,
+    expectedHeartbeatProtocolVersion: HEARTBEAT_PROTOCOL_VERSION,
+    heartbeatExecutesActions: false,
+    heartbeatAcceptsCommands: false,
+    heartbeatAcceptsCapabilities: false,
+    actionsEnabled: false,
+    productiveAgentRuntime: false,
+    note: 'RDAP94 verarbeitet Heartbeat nur read-only und in-memory.'
   };
 }
 
