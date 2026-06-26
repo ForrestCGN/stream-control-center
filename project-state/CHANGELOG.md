@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN
+
+```text
+- Runtime-Accept Transport-disabled Code-Plan fuer Stream-PC Verbindung dokumentiert.
+- RDAP92 als erster Backend-Code-Step fuer minimalen Transport-Accept vorbereitet.
+- RDAP92 darf maximal WebSocket-Transport akzeptieren.
+- Agent-Actions bleiben false.
+- productiveAgentRuntime bleibt false.
+- Heartbeat moeglichst separat nach Transport-Accept planen.
+- Keine zweite parallele /agent-ws Registrierung.
+- Ab echtem Accept ist agent-runtime.service.js fachlich sinnvoll.
+- Zwei-Stufen-Freigabe bleibt Pflicht.
+- AGENT_RUNTIME_ENABLED=true allein bleibt wirkungslos.
+- Testmatrix fuer spaeteren RDAP92-Code-Step dokumentiert.
+- Rueckfall-/Deaktivierungsstrategie dokumentiert.
+- Keine Code-Aenderung.
+- Keine Runtime aktiviert.
+- Keine Stream-PC Verbindung akzeptiert.
+- Kein echter WebSocket-Handshake.
+- Kein Heartbeat-Receiver.
+- Kein Agent online.
+- Keine Agent-Actions.
+- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Secret-Ausgabe.
+- Naechsten Step RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS vorbereitet.
+- Doku-only.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN
 
 ```text
@@ -50,39 +81,6 @@
 - Keine neue Permission.
 - Keine Secret-Ausgabe.
 - Naechsten Step RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN vorbereitet.
-- Doku-only.
-- Kein Webserver-Deploy noetig.
-```
-
-## 2026-06-26 - RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED
-
-```text
-- Correct-Bearer-Reject-Only-Test auf dem Webserver live bestaetigt.
-- AGENT_ACCESS_KEY wurde nur lokal aus /etc/stream-control-center/remote-modboard.env gelesen.
-- Echter AGENT_ACCESS_KEY wurde nicht in Chat/Doku/Git/Status/UI/Logs dokumentiert.
-- Bearer-Wert wurde nicht ausgegeben.
-- Token-Laenge wurde nicht ausgegeben.
-- Token-Hash wurde nicht ausgegeben.
-- Correct Bearer bestaetigt: HTTP 503 / reason=runtime_not_effectively_enabled.
-- /api/remote/agent/status mit statusApiVersion rdap_agent86.v1 bestaetigt.
-- runtime.accessKeyConfigured true bestaetigt.
-- runtime.acceptsAgentConnections false bestaetigt.
-- runtime.effectiveEnabled false bestaetigt.
-- rejectDiagnostic.lastRejectReason runtime_not_effectively_enabled bestaetigt.
-- rejectDiagnostic.lastRejectAccessKeyConfigured true bestaetigt.
-- rejectDiagnostic.lastRejectConnectionProofCompared true bestaetigt.
-- secretsExposed false bestaetigt.
-- bearerTokenLogged false bestaetigt.
-- tokenLengthLogged false bestaetigt.
-- tokenHashLogged false bestaetigt.
-- actionEnabled false bestaetigt.
-- productiveAgentRuntime false bestaetigt.
-- Keine akzeptierte Stream-PC Verbindung.
-- Keine Runtime-Aktivierung.
-- Keine Agent-Actions.
-- Keine DB-Migration.
-- Keine neue Permission.
-- Naechsten Step RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN vorbereitet.
 - Doku-only.
 - Kein Webserver-Deploy noetig.
 ```

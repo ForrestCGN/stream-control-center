@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN  
+Stand: RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP90
+## Geaendert/neu in RDAP91
 
 ```text
-docs/current/RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP90.md
+docs/current/RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP91.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,7 +15,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Fachlich relevant fuer RDAP90/RDAP91
+## Fachlich relevant fuer RDAP91/RDAP92
 
 ```text
 remote-modboard/backend/server.js
@@ -25,6 +25,14 @@ remote-modboard/backend/src/services/agent-runtime-disabled.service.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 ```
+
+## Voraussichtlich neu/zu pruefen in RDAP92
+
+```text
+remote-modboard/backend/src/services/agent-runtime.service.js
+```
+
+Nur anlegen, wenn fachlich getrennte Verantwortung fuer echten Transport-Accept bestaetigt wird.
 
 ## Zentrale Startdateien fuer naechsten Chat
 
@@ -49,7 +57,8 @@ docs/current/RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
 docs/current/RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED.md
 docs/current/RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN.md
 docs/current/RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP90.md
+docs/current/RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP91.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

@@ -1,47 +1,49 @@
 # NEXT_STEPS
 
-Stand: RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN  
+Stand: RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN
+RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS
 ```
 
 ## Ziel
 
 ```text
-Minimalen Runtime-Accept-Transport-Code-Step planen.
+Erster Backend-Code-Step fuer minimalen Transport-Accept.
+Maximal WebSocket-Transport akzeptieren.
 Noch keine Actions.
 Heartbeat moeglichst separat halten.
 Keine OBS-/Sound-/Overlay-/Command-Steuerung.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP90
+## Ausgangspunkt RDAP91
 
 ```text
-- RDAP90 hat Runtime-Accept disabled Build-Plan dokumentiert.
+- RDAP91 hat Runtime-Accept Transport-disabled Code-Plan dokumentiert.
 - Zwei-Stufen-Freigabe bleibt Pflicht.
 - AGENT_RUNTIME_ENABLED=true allein darf nicht reichen.
-- Der erste spaetere Accept-Code-Step darf maximal Transport akzeptieren.
+- RDAP92 darf maximal Transport akzeptieren.
 - Actions bleiben false.
 - productiveAgentRuntime bleibt false.
-- Heartbeat moeglichst separat planen.
+- Heartbeat moeglichst separat.
 - Keine zweite parallele /agent-ws Registrierung.
+- Ab echtem Accept ist agent-runtime.service.js fachlich sinnvoll.
 ```
 
-## RDAP91 planen
+## RDAP92 planen/umsetzen
 
 ```text
 - Relevante Runtime-Dateien erneut lesen.
+- Exakten Backend-Code-Step planen.
+- Auf explizites go warten.
 - Bestehende Module/Services bevorzugen.
-- Entscheiden, ob agent-runtime-disabled.service.js erweitert oder fachlich getrennt wird.
-- Keinen parallelen /agent-ws Handler bauen.
-- Exakten MODULE_BUILD definieren.
-- Exakte Statusfelder definieren.
-- Exakte Tests definieren.
+- Keine parallele /agent-ws Registrierung.
+- Maximal Transport-Accept.
+- Kein Heartbeat, falls nicht separat explizit geplant.
 - Keine Actions.
 - Keine Secrets.
 ```
@@ -49,7 +51,7 @@ Keine Secret-Ausgabe.
 ## Strikt nicht machen
 
 ```text
-Keine Agent-Actions in RDAP91.
+Keine Agent-Actions in RDAP92.
 Keine OBS-Steuerung.
 Keine Sound-Ausloesung.
 Keine Overlay-Schaltung.

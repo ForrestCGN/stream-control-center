@@ -1,12 +1,12 @@
 # TODO
 
-Stand: RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN  
+Stand: RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN  
 Datum: 2026-06-26
 
 ## Jetzt erledigt
 
 ```text
-RDAP90 Runtime-Accept disabled Build-Plan dokumentiert:
+RDAP91 Runtime-Accept Transport-disabled Code-Plan dokumentiert:
 - Keine Code-Aenderung.
 - Keine Runtime aktiviert.
 - Keine Verbindung akzeptiert.
@@ -14,24 +14,26 @@ RDAP90 Runtime-Accept disabled Build-Plan dokumentiert:
 - Keine DB.
 - Keine neue Permission.
 - Keine Secrets.
-- Zweiter Code-/Build-Schalter fuer spaeteren Accept geplant.
-- AGENT_RUNTIME_ENABLED=true allein bleibt wirkungslos.
-- Heartbeat moeglichst separat geplant.
+- RDAP92 als erster Backend-Code-Step fuer minimalen Transport-Accept geplant.
+- Keine zweite parallele /agent-ws Registrierung.
+- agent-runtime.service.js ab echtem Accept fachlich sinnvoll.
+- Heartbeat moeglichst separat.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN
+RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS
 ```
 
-## RDAP91 Aufgaben
+## RDAP92 Aufgaben
 
 ```text
-- Minimalen Runtime-Accept-Transport-Code-Step planen.
+- Erster Backend-Code-Step fuer minimalen Transport-Accept.
 - Echte Dateien erneut lesen.
 - Bestehende Module/Services bevorzugen.
 - Keine parallele /agent-ws Registrierung.
+- Maximal Transport akzeptieren.
 - Heartbeat/Online/Actions getrennt halten.
 - Keine Secret-Ausgabe.
 ```

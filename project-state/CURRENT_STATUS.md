@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN  
+Stand: RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -19,12 +19,13 @@ RDAP87B: AGENT_ACCESS_KEY gesetzt und falscher-Bearer-Reject live bestaetigt; Do
 RDAP88: Correct-Bearer-Reject-Only-Test live bestaetigt; Doku-only.
 RDAP89: Runtime-Enable-Plan dokumentiert; Doku-only.
 RDAP90: Runtime-Accept disabled Build-Plan dokumentiert; Doku-only.
+RDAP91: Runtime-Accept Transport-disabled Code-Plan dokumentiert; Doku-only.
 ```
 
-## RDAP90 Stand
+## RDAP91 Stand
 
 ```text
-- Minimaler Runtime-Accept-Code-Step ist nur geplant.
+- Erster Backend-Code-Step fuer minimalen Transport-Accept ist nur geplant.
 - Keine Code-Aenderung.
 - Keine Runtime wurde aktiviert.
 - Keine Stream-PC Verbindung wurde akzeptiert.
@@ -66,8 +67,9 @@ Spaetere Runtime braucht Zwei-Stufen-Freigabe:
 Der erste spaetere Accept-Code-Step darf maximal Transport akzeptieren.
 Actions bleiben false.
 productiveAgentRuntime bleibt false.
-Heartbeat moeglichst separat planen.
+Heartbeat bleibt moeglichst separat.
 Keine zweite parallele /agent-ws Registrierung.
+Ab echtem Accept ist agent-runtime.service.js fachlich sinnvoll.
 ```
 
 ## Sicherheit
@@ -133,5 +135,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN
+RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS
 ```
