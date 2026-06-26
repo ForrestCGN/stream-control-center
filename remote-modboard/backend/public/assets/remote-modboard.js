@@ -61,30 +61,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function injectAdminNotesPolishStyles() {
-  if (document.getElementById('rdap67AdminNotesPolishStyle')) return;
+  if (document.getElementById('rdap69AdminNotesCompactLayoutStyle')) return;
+  const oldStyle = document.getElementById('rdap67AdminNotesPolishStyle');
+  if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
   const style = document.createElement('style');
-  style.id = 'rdap67AdminNotesPolishStyle';
+  style.id = 'rdap69AdminNotesCompactLayoutStyle';
   style.textContent = `
-    .admin-note-list{gap:14px!important}
-    .admin-note-item{position:relative!important;display:grid!important;gap:10px!important;padding:16px!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(27,216,255,.035))!important;border:1px solid rgba(27,216,255,.18)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 26px rgba(0,0,0,.16)!important}
-    .admin-note-item:before{content:""!important;position:absolute!important;left:0!important;top:14px!important;bottom:14px!important;width:3px!important;border-radius:999px!important;background:linear-gradient(180deg,var(--cyan),var(--purple))!important;opacity:.78!important}
-    .admin-note-item strong{font-size:15px!important;line-height:1.25!important;color:#fff!important;padding-left:2px!important}
-    .admin-note-item small{display:flex!important;gap:7px!important;flex-wrap:wrap!important;align-items:center!important;margin-top:0!important;color:var(--muted)!important;font-size:11px!important;line-height:1.35!important}
-    .admin-note-item small span,.admin-note-item small code{display:inline-flex!important;align-items:center!important;min-height:22px!important;padding:3px 8px!important;border-radius:999px!important;background:rgba(255,255,255,.055)!important;border:1px solid rgba(255,255,255,.07)!important;color:var(--muted)!important;font-family:inherit!important;font-size:11px!important}
-    .admin-note-text{margin-top:2px!important;padding:12px 13px!important;border-radius:14px!important;background:rgba(4,7,18,.42)!important;border:1px solid rgba(255,255,255,.075)!important;white-space:pre-wrap!important;line-height:1.55!important;color:var(--text)!important}
-    .admin-note-actions{padding-top:2px!important;border-top:1px solid rgba(255,255,255,.06)!important}
-    .admin-note-update-editor{display:grid!important;gap:9px!important;margin-top:2px!important;padding:12px!important;border-radius:15px!important;background:rgba(27,216,255,.07)!important;border:1px solid rgba(27,216,255,.18)!important}
-    .admin-note-update-editor textarea{min-height:120px!important;border-radius:14px!important;background:rgba(4,7,18,.64)!important;border:1px solid rgba(255,255,255,.12)!important;color:var(--text)!important;padding:11px 12px!important;line-height:1.5!important}
-    .admin-note-ok,.admin-note-error,.admin-note-info{border-radius:15px!important;padding:12px 13px!important;line-height:1.4!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important}
-    .admin-note-ok{background:rgba(69,245,167,.11)!important;border-color:rgba(69,245,167,.28)!important}
-    .admin-note-error{background:rgba(255,84,112,.13)!important;border-color:rgba(255,84,112,.32)!important}
-    .admin-note-info{background:rgba(27,216,255,.10)!important;border-color:rgba(27,216,255,.26)!important}
-    .admin-note-safety{gap:10px!important}
-    .admin-note-safety .kv-row{border-radius:13px!important;background:rgba(255,255,255,.04)!important}
-    .admin-note-panel-lock{border-radius:16px!important;line-height:1.4!important}
-    .admin-note-create-card{gap:12px!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(27,216,255,.07),rgba(155,77,255,.05))!important;border-color:rgba(27,216,255,.22)!important}
-    .admin-note-create-meta{align-items:center!important}
-    @media (max-width:640px){.admin-note-item{padding:14px!important}.admin-note-text{padding:11px!important}.admin-note-actions{gap:7px!important}}
+    .admin-note-grid{grid-template-columns:repeat(4,minmax(180px,1fr))!important;gap:10px!important;margin-bottom:10px!important}
+    .admin-note-status-card{min-height:0!important;padding:12px!important;border-radius:18px!important}
+    .admin-note-status-card .card-head{margin-bottom:8px!important;gap:8px!important}
+    .admin-note-status-card .card-head h2{font-size:18px!important;line-height:1.12!important;margin:0!important}
+    .admin-note-status-card .cgn-eyebrow{margin-bottom:4px!important;font-size:10px!important;letter-spacing:.14em!important}
+    .admin-note-status-card .cgn-chip{padding:6px 9px!important;font-size:12px!important}
+    .admin-note-status-card .kv-row{min-height:34px!important;padding:7px 10px!important;border-radius:12px!important;gap:8px!important}
+    .admin-note-status-card .kv-row strong{font-size:15px!important}
+    .admin-note-status-card .kv-row span{font-size:12px!important}
+    .admin-note-status-card .admin-note-panel-lock{min-height:0!important;padding:10px 12px!important;border-radius:14px!important;line-height:1.32!important;font-size:13px!important}
+    .admin-note-status-card .admin-note-panel-lock strong{display:inline!important;margin-right:4px!important}
+    .admin-note-status-card .admin-note-safety{gap:7px!important}
+    .admin-note-status-card .cgn-button{min-height:34px!important;padding:7px 13px!important;border-radius:13px!important}
+    .admin-note-target-card{gap:9px!important;margin-bottom:10px!important;padding:12px!important;border-radius:18px!important}
+    .admin-note-target-row,.admin-note-target-tools{gap:8px!important}
+    .admin-note-target-summary{gap:7px!important}
+    .admin-note-list{gap:10px!important}
+    .admin-note-list-card,.admin-note-create-card{padding:13px!important;border-radius:18px!important}
+    .admin-note-list-card .card-head,.admin-note-create-card .card-head{margin-bottom:9px!important}
+    .admin-note-list-card .admin-note-ok,.admin-note-list-card .admin-note-info,.admin-note-create-card .admin-note-info,.admin-note-create-card .admin-note-ok,.admin-note-create-card .admin-note-error{padding:9px 11px!important;border-radius:13px!important;line-height:1.32!important;font-size:13px!important}
+    .admin-note-create-card{gap:9px!important;background:linear-gradient(145deg,rgba(27,216,255,.06),rgba(155,77,255,.04))!important;border-color:rgba(27,216,255,.18)!important}
+    .admin-note-create-card textarea{min-height:104px!important;border-radius:13px!important;padding:10px 11px!important;line-height:1.42!important}
+    .admin-note-create-meta{align-items:center!important;gap:8px!important}
+    .admin-note-item{position:relative!important;display:grid!important;gap:8px!important;padding:13px 14px!important;border-radius:16px!important;background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(27,216,255,.03))!important;border:1px solid rgba(27,216,255,.16)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 20px rgba(0,0,0,.13)!important}
+    .admin-note-item:before{content:""!important;position:absolute!important;left:0!important;top:12px!important;bottom:12px!important;width:3px!important;border-radius:999px!important;background:linear-gradient(180deg,var(--cyan),var(--purple))!important;opacity:.74!important}
+    .admin-note-item strong{font-size:14px!important;line-height:1.22!important;color:#fff!important;padding-left:2px!important}
+    .admin-note-item small{display:flex!important;gap:6px!important;flex-wrap:wrap!important;align-items:center!important;margin-top:0!important;color:var(--muted)!important;font-size:10.5px!important;line-height:1.25!important}
+    .admin-note-item small span,.admin-note-item small code{display:inline-flex!important;align-items:center!important;min-height:20px!important;padding:2px 7px!important;border-radius:999px!important;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.065)!important;color:var(--muted)!important;font-family:inherit!important;font-size:10.5px!important}
+    .admin-note-text{margin-top:0!important;padding:10px 11px!important;border-radius:13px!important;background:rgba(4,7,18,.44)!important;border:1px solid rgba(255,255,255,.07)!important;white-space:pre-wrap!important;line-height:1.42!important;color:var(--text)!important}
+    .admin-note-actions{padding-top:1px!important;border-top:1px solid rgba(255,255,255,.055)!important;gap:7px!important}
+    .admin-note-update-editor{display:grid!important;gap:8px!important;margin-top:1px!important;padding:10px!important;border-radius:14px!important;background:rgba(27,216,255,.065)!important;border:1px solid rgba(27,216,255,.16)!important}
+    .admin-note-update-editor textarea{min-height:108px!important;border-radius:13px!important;background:rgba(4,7,18,.64)!important;border:1px solid rgba(255,255,255,.11)!important;color:var(--text)!important;padding:10px 11px!important;line-height:1.42!important}
+    .admin-note-ok,.admin-note-error,.admin-note-info{border-radius:13px!important;padding:9px 11px!important;line-height:1.32!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important}
+    .admin-note-ok{background:rgba(69,245,167,.105)!important;border-color:rgba(69,245,167,.26)!important}
+    .admin-note-error{background:rgba(255,84,112,.13)!important;border-color:rgba(255,84,112,.30)!important}
+    .admin-note-info{background:rgba(27,216,255,.09)!important;border-color:rgba(27,216,255,.23)!important}
+    @media (max-width:1100px){.admin-note-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.admin-note-status-card{padding:11px!important}}
+    @media (max-width:760px){.admin-note-grid{grid-template-columns:1fr!important}.admin-note-item{padding:12px!important}.admin-note-text{padding:10px!important}.admin-note-actions{gap:7px!important}.admin-note-create-card textarea,.admin-note-update-editor textarea{min-height:112px!important}}
   `;
   document.head.appendChild(style);
 }

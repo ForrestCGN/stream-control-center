@@ -40,3 +40,20 @@
 - Keine neue Permission.
 - Kein Delete/Deactivate.
 ```
+
+## 2026-06-26 - RDAP69_ADMIN_NOTES_COMPACT_LAYOUT
+
+```text
+- Admin-Notes Compact-Layout vorbereitet.
+- Frontend-only Style-Injection rdap69AdminNotesCompactLayoutStyle ergaenzt.
+- RDAP67-Style wird beim Laden entfernt, falls vorhanden.
+- Obere Statuskarten kompakter gemacht.
+- Create-Bereich weniger dominant gemacht.
+- Liste hoeher und zentraler vorbereitet.
+- Notizkarten kompakter und weiterhin lesbar gestaltet.
+- Erfolg-/Fehler-/Info-Hinweise platzsparender gehalten.
+- Keine Backend-Route geaendert.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Kein Delete/Deactivate.
+```

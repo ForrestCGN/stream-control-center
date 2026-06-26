@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP68_ADMIN_NOTES_UI_POLISH_LIVE_VERIFICATION_DOC  
+Stand: RDAP69_ADMIN_NOTES_COMPACT_LAYOUT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -21,6 +21,7 @@ RDAP65B: Admin-Notes fachlich im Browser bestaetigt; Create, Update, User-Detail
 RDAP66: Naechsten sicheren Scope geplant; RDAP67 soll Admin-Notes UI-Polish werden.
 RDAP67: Admin-Notes UI-Polish vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
 RDAP68: RDAP67 live fachlich bestaetigt; Layout weiter verbesserungswuerdig.
+RDAP69: Admin-Notes Compact-Layout vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
 ```
 
 ## Live-/Browser-Befund nach RDAP68
@@ -38,15 +39,20 @@ Navigation stabil.
 Delete/Deactivate nicht sichtbar.
 ```
 
-## Layout-Befund
+## RDAP69 Umsetzung
 
 ```text
-RDAP67 trennt Metadaten und Notiztext besser.
-Die Ansicht ist aber noch nicht optimal uebersichtlich.
-Obere Statuskarten nehmen viel Platz ein.
-Create-Karte ist zu gross.
-Liste startet zu weit unten.
-Notizkarten sollten kompakter werden.
+Geaendert:
+remote-modboard/backend/public/assets/remote-modboard.js
+
+Art:
+- idempotente Style-Injection rdap69AdminNotesCompactLayoutStyle
+- RDAP67-Style wird beim Laden entfernt, falls vorhanden
+- Statuskarten kompakter
+- Create-Bereich weniger dominant
+- Liste hoeher
+- Notizkarten kompakter
+- Erfolg/Fehler/Info-Hinweise sichtbar, aber platzsparender
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -74,5 +80,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP69_ADMIN_NOTES_COMPACT_LAYOUT
+RDAP70_ADMIN_NOTES_COMPACT_LAYOUT_LIVE_VERIFICATION_DOC
 ```
