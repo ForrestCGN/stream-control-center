@@ -1,9 +1,34 @@
 # TODO
 
-- RDAP64C lokal einspielen.
-- node --check fuer rdap28-admin-notes.js ausfuehren.
-- git status / diff pruefen.
-- stepdone.cmd ausfuehren.
-- Webserver-Deploy aus frischem GitHub/dev-Clone.
-- Browser mit STRG+F5 testen.
-- Ergebnis dokumentieren.
+Stand: RDAP64D_ADMIN_NOTE_UPDATE_UI_MAIN_ROUTER_INTEGRATION_PREP  
+Datum: 2026-06-26
+
+## Offen / als Naechstes
+
+```text
+RDAP64D_ADMIN_NOTE_UPDATE_UI_MAIN_ROUTER_INTEGRATION
+```
+
+Aufgaben:
+
+```text
+- remote-modboard.js als echten Router/Loader pruefen.
+- index.html Script-Ladung pruefen.
+- rdap28-admin-notes.js nicht weiter isoliert hotfixen.
+- Admin-Notes sauber ueber Haupt-Router oder Modul-Hook anbinden.
+- is-active-view als Sichtbarkeitsmechanik respektieren.
+- Update-UI erhalten.
+- Browser-Konsole nach Deploy pruefen.
+```
+
+## Nicht machen
+
+```text
+- Kein weiterer Blind-Hotfix nur in rdap28-admin-notes.js.
+- Kein Deactivate.
+- Kein Delete.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Community-Read-Freigabe.
+- Keine Rollen-/Gruppen-/Permission-Writes.
+```
