@@ -1,14 +1,18 @@
 'use strict';
 
 const MODULE = 'remote_agent_runtime_disabled';
-const MODULE_BUILD = 'RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC';
-const STATUS_API_VERSION = 'rdap_agent83.v1';
+const MODULE_BUILD = 'RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED';
+const STATUS_API_VERSION = 'rdap_agent85.v1';
+const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 
 const REJECT_DIAGNOSTIC = {
   prepared: true,
   enabled: true,
   inMemoryOnly: true,
   persistsToDatabase: false,
+  handshakePrecheckPrepared: true,
+  handshakePrecheckAcceptsConnections: false,
+  expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
   rejectCount: 0,
   lastRejectAt: null,
   lastRejectReason: null,
@@ -18,6 +22,10 @@ const REJECT_DIAGNOSTIC = {
   lastRejectHasAuthorizationHeader: false,
   lastRejectHasCookieHeader: false,
   lastRejectHasQueryString: false,
+  lastRejectHasAgentIdHeader: false,
+  lastRejectHasProtocolHeader: false,
+  lastRejectAgentIdHint: null,
+  lastRejectProtocolHint: null,
   lastRejectUserAgentHint: null,
   secretsExposed: false,
   secretsLogged: false,
@@ -25,7 +33,9 @@ const REJECT_DIAGNOSTIC = {
   rawIpLogged: false,
   queryStringLogged: false,
   authorizationHeaderLogged: false,
-  cookieHeaderLogged: false
+  cookieHeaderLogged: false,
+  agentIdHeaderValueLogged: false,
+  protocolHeaderValueLogged: false
 };
 
 function registerAgentRuntimeDisabledSkeleton(server, config = {}, options = {}) {
@@ -45,20 +55,24 @@ function registerAgentRuntimeDisabledSkeleton(server, config = {}, options = {})
   server.on('upgrade', (req, socket) => {
     if (!isAgentWsPath(req, wsPath, config)) return;
 
+    const precheck = evaluateHandshakePrecheck(req, agentRuntime);
+
     recordRejectDiagnostic(req, {
       code: 503,
-      reason: 'agent_runtime_disabled',
-      wsPath
+      reason: precheck.reason,
+      wsPath,
+      agentIdHint: precheck.agentIdHint,
+      protocolHint: precheck.protocolHint
     });
 
     rejectUpgrade(socket, {
       code: 503,
-      reason: 'agent_runtime_disabled',
+      reason: precheck.reason,
       message: 'Stream-PC connection runtime is disabled.'
     });
   });
 
-  console.log(`[remote-agent-runtime] ${MODULE_BUILD} registered disabled upgrade guard for ${wsPath}. Runtime enabled=false, actions=false, rejectDiagnostic=in-memory.`);
+  console.log(`[remote-agent-runtime] ${MODULE_BUILD} registered disabled upgrade guard for ${wsPath}. Runtime enabled=false, actions=false, handshakePrecheck=disabled-reject-only.`);
 
   return buildRegistrationSummary({
     registered: true,
@@ -79,7 +93,8 @@ function getAgentRuntimeConfig(config = {}) {
     wsPath: runtime.wsPath || '/agent-ws',
     expectedAgentId: runtime.expectedAgentId || 'stream-pc-main',
     expectedAgentName: runtime.expectedAgentName || 'Forrest Stream-PC',
-    accessKeyConfigured: runtime.accessKeyConfigured === true
+    accessKeyConfigured: runtime.accessKeyConfigured === true,
+    expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION
   };
 }
 
@@ -101,6 +116,8 @@ function buildRegistrationSummary(input = {}) {
     noAgentActions: true,
     readOnly: true,
     writeEnabled: false,
+    handshakePrecheckPrepared: true,
+    handshakePrecheckAcceptsConnections: false,
     rejectDiagnostic: buildRejectDiagnosticSummary()
   };
 }
@@ -117,6 +134,68 @@ function isAgentWsPath(req, wsPath, config = {}) {
   }
 }
 
+function evaluateHandshakePrecheck(req, agentRuntime = {}) {
+  if (!req || typeof req.url !== 'string') {
+    return {
+      reason: 'malformed_upgrade_request',
+      agentIdHint: null,
+      protocolHint: null
+    };
+  }
+
+  const expectedAgentId = agentRuntime.expectedAgentId || 'stream-pc-main';
+  const expectedProtocolVersion = agentRuntime.expectedProtocolVersion || EXPECTED_PROTOCOL_VERSION;
+  const agentId = readHeaderValue(req, 'x-scc-agent-id');
+  const authorization = readHeaderValue(req, 'authorization');
+  const protocolVersion = readHeaderValue(req, 'x-scc-agent-protocol');
+
+  if (!agentId) {
+    return {
+      reason: 'missing_agent_id',
+      agentIdHint: null,
+      protocolHint: safeProtocolHint(protocolVersion)
+    };
+  }
+
+  if (agentId !== expectedAgentId) {
+    return {
+      reason: 'unknown_agent_id',
+      agentIdHint: safeAgentIdHint(agentId),
+      protocolHint: safeProtocolHint(protocolVersion)
+    };
+  }
+
+  if (!authorization) {
+    return {
+      reason: 'missing_connection_proof',
+      agentIdHint: safeAgentIdHint(agentId),
+      protocolHint: safeProtocolHint(protocolVersion)
+    };
+  }
+
+  if (!/^Bearer\s+\S+$/i.test(authorization)) {
+    return {
+      reason: 'invalid_connection_proof',
+      agentIdHint: safeAgentIdHint(agentId),
+      protocolHint: safeProtocolHint(protocolVersion)
+    };
+  }
+
+  if (protocolVersion !== expectedProtocolVersion) {
+    return {
+      reason: 'protocol_version_unsupported',
+      agentIdHint: safeAgentIdHint(agentId),
+      protocolHint: safeProtocolHint(protocolVersion)
+    };
+  }
+
+  return {
+    reason: 'runtime_not_effectively_enabled',
+    agentIdHint: safeAgentIdHint(agentId),
+    protocolHint: safeProtocolHint(protocolVersion)
+  };
+}
+
 function recordRejectDiagnostic(req, details = {}) {
   const safePath = extractSafePath(req, details.wsPath || '/agent-ws');
 
@@ -129,6 +208,10 @@ function recordRejectDiagnostic(req, details = {}) {
   REJECT_DIAGNOSTIC.lastRejectHasAuthorizationHeader = hasHeader(req, 'authorization');
   REJECT_DIAGNOSTIC.lastRejectHasCookieHeader = hasHeader(req, 'cookie');
   REJECT_DIAGNOSTIC.lastRejectHasQueryString = hasQueryString(req);
+  REJECT_DIAGNOSTIC.lastRejectHasAgentIdHeader = hasHeader(req, 'x-scc-agent-id');
+  REJECT_DIAGNOSTIC.lastRejectHasProtocolHeader = hasHeader(req, 'x-scc-agent-protocol');
+  REJECT_DIAGNOSTIC.lastRejectAgentIdHint = details.agentIdHint || null;
+  REJECT_DIAGNOSTIC.lastRejectProtocolHint = details.protocolHint || null;
   REJECT_DIAGNOSTIC.lastRejectUserAgentHint = safeUserAgentHint(req);
 
   REJECT_DIAGNOSTIC.secretsExposed = false;
@@ -138,6 +221,8 @@ function recordRejectDiagnostic(req, details = {}) {
   REJECT_DIAGNOSTIC.queryStringLogged = false;
   REJECT_DIAGNOSTIC.authorizationHeaderLogged = false;
   REJECT_DIAGNOSTIC.cookieHeaderLogged = false;
+  REJECT_DIAGNOSTIC.agentIdHeaderValueLogged = false;
+  REJECT_DIAGNOSTIC.protocolHeaderValueLogged = false;
 }
 
 function buildRejectDiagnosticSummary() {
@@ -146,6 +231,9 @@ function buildRejectDiagnosticSummary() {
     enabled: true,
     inMemoryOnly: true,
     persistsToDatabase: false,
+    handshakePrecheckPrepared: true,
+    handshakePrecheckAcceptsConnections: false,
+    expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
     rejectCount: REJECT_DIAGNOSTIC.rejectCount,
     lastRejectAt: REJECT_DIAGNOSTIC.lastRejectAt,
     lastRejectReason: REJECT_DIAGNOSTIC.lastRejectReason,
@@ -155,11 +243,21 @@ function buildRejectDiagnosticSummary() {
     lastRejectHasAuthorizationHeader: REJECT_DIAGNOSTIC.lastRejectHasAuthorizationHeader,
     lastRejectHasCookieHeader: REJECT_DIAGNOSTIC.lastRejectHasCookieHeader,
     lastRejectHasQueryString: REJECT_DIAGNOSTIC.lastRejectHasQueryString,
+    lastRejectHasAgentIdHeader: REJECT_DIAGNOSTIC.lastRejectHasAgentIdHeader,
+    lastRejectHasProtocolHeader: REJECT_DIAGNOSTIC.lastRejectHasProtocolHeader,
+    lastRejectAgentIdHint: REJECT_DIAGNOSTIC.lastRejectAgentIdHint,
+    lastRejectProtocolHint: REJECT_DIAGNOSTIC.lastRejectProtocolHint,
     lastRejectUserAgentHint: REJECT_DIAGNOSTIC.lastRejectUserAgentHint,
     visibleRejectReasons: [
       'agent_runtime_disabled',
       'malformed_upgrade_request',
-      'invalid_agent_ws_path'
+      'invalid_agent_ws_path',
+      'runtime_not_effectively_enabled',
+      'missing_agent_id',
+      'unknown_agent_id',
+      'missing_connection_proof',
+      'invalid_connection_proof',
+      'protocol_version_unsupported'
     ],
     neverLogged: [
       'authorization_header_value',
@@ -178,6 +276,8 @@ function buildRejectDiagnosticSummary() {
     queryStringLogged: false,
     authorizationHeaderLogged: false,
     cookieHeaderLogged: false,
+    agentIdHeaderValueLogged: false,
+    protocolHeaderValueLogged: false,
     acceptsAgentConnections: false,
     actionEnabled: false,
     productiveAgentRuntime: false
@@ -208,6 +308,14 @@ function rejectUpgrade(socket, details = {}) {
   }
 }
 
+function readHeaderValue(req, headerName) {
+  if (!req || !req.headers || typeof req.headers !== 'object') return '';
+  const value = req.headers[headerName];
+  if (Array.isArray(value)) return String(value[0] || '').trim();
+  if (typeof value === 'string') return value.trim();
+  return '';
+}
+
 function extractSafePath(req, fallback) {
   if (!req || typeof req.url !== 'string') return fallback || '/agent-ws';
 
@@ -234,6 +342,22 @@ function safeMethod(value) {
   return String(value || 'GET')
     .replace(/[^A-Z]/g, '')
     .slice(0, 16) || 'GET';
+}
+
+function safeAgentIdHint(value) {
+  const safe = String(value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_.:\-]/g, '')
+    .slice(0, 80);
+  return safe || null;
+}
+
+function safeProtocolHint(value) {
+  const safe = String(value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_.:\-]/g, '')
+    .slice(0, 80);
+  return safe || null;
 }
 
 function safeUserAgentHint(req) {
@@ -263,5 +387,6 @@ module.exports = {
   registerAgentRuntimeDisabledSkeleton,
   getAgentRuntimeConfig,
   buildRegistrationSummary,
-  buildRejectDiagnosticSummary
+  buildRejectDiagnosticSummary,
+  evaluateHandshakePrecheck
 };

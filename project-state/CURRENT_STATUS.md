@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN  
+Stand: RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -17,51 +17,59 @@ RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WS
 RDAP82: Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet; /agent-ws Upgrade-Guard lehnt disabled ab; keine Actions.
 RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereitet.
 RDAP83: In-Memory Reject-Diagnose fuer abgelehnte /agent-ws Versuche vorbereitet; keine akzeptierte Verbindung.
-RDAP83B: RDAP83 live serverseitig bestaetigt; /agent-ws Reject-Test erfolgreich; keine Actions/DB/Secrets.
-RDAP84: Access-Key-Handshake-Plan dokumentiert; Doku-only, keine Runtime-Aktivierung.
+RDAP83B: RDAP83 live bestaetigt und dokumentiert.
+RDAP84: Access-Key-Handshake-Plan dokumentiert; Doku-only.
+RDAP85: Handshake-Precheck im bestehenden disabled Guard vorbereitet; Verbindungen bleiben abgelehnt.
 ```
 
-## RDAP83 live bestaetigt
+## RDAP85 Stand
 
 ```text
 /api/remote/agent/status:
-- statusApiVersion: rdap_agent83.v1
+- statusApiVersion: rdap_agent85.v1
 - runtime.acceptsAgentConnections: false
+- runtime.handshakePrecheckPrepared: true
+- runtime.handshakePrecheckAcceptsConnections: false
 - rejectDiagnostic.prepared: true
 - rejectDiagnostic.inMemoryOnly: true
-- rejectDiagnostic.rejectCount steigt nach /agent-ws Test von 0 auf 1
-- rejectDiagnostic.lastRejectReason: agent_runtime_disabled
+- rejectDiagnostic.handshakePrecheckPrepared: true
+- rejectDiagnostic.handshakePrecheckAcceptsConnections: false
+- rejectDiagnostic.expectedProtocolVersion: rdap-agent-handshake.v1
 - rejectDiagnostic.secretsExposed: false
 - rejectDiagnostic.headersLogged: false
 - rejectDiagnostic.rawIpLogged: false
 
-/agent-ws Reject-Test:
-- HTTP/1.1 503 Service Unavailable
-- reason=agent_runtime_disabled
-```
+/api/remote/status .agent:
+- connectionState: offline
+- actionsEnabled: false
+- productiveAgentRuntime: false
+- runtimeSkeletonPrepared: true
+- runtimeEffectiveEnabled: false
+- heartbeatReceiverEnabled: false
+- plannedWsPath: /agent-ws
+- streamPcPublicPortRequired: false
+- expectedAgentId: stream-pc-main
+- expectedAgentName: Forrest Stream-PC
+- expectedProtocolVersion: rdap-agent-handshake.v1
+- handshakePrecheckPrepared: true
+- handshakePrecheckAcceptsConnections: false
+- rejectDiagnosticPrepared: true
+- rejectDiagnosticInMemoryOnly: true
+- rejectSecretsExposed: false
 
-## RDAP84 Planstand
-
-```text
-Geplanter spaeterer Handshake-Header-Vertrag:
-- Authorization: Bearer <secret>
-- X-SCC-Agent-Id: stream-pc-main
-- X-SCC-Agent-Version: <version>
-- X-SCC-Agent-Protocol: rdap-agent-handshake.v1
-
-Zwei-Stufen-Freigabe:
-- AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
-- Spaeterer Runtime-Code-Step muss effective Runtime separat freigeben.
-- Keine akzeptierte Verbindung ohne separaten Plan und explizites go.
-
-Geplante sichere Ablehnungsgruende:
-- runtime_not_effectively_enabled
-- missing_agent_id
-- unknown_agent_id
-- missing_connection_proof
-- invalid_connection_proof
-- protocol_version_unsupported
-- agent_already_connected
+/api/remote/routes .agentStatusFoundation:
+- runtimeSkeletonPrepared: true
+- runtimeEffectiveEnabled: false
+- heartbeatReceiverEnabled: false
+- wssRuntimeEnabled: false
+- upgradeGuardPrepared: true
+- handshakePrecheckPrepared: true
+- handshakePrecheckAcceptsConnections: false
+- acceptsAgentConnections: false
+- noAgentActions: true
+- rejectDiagnosticPrepared: true
+- rejectDiagnosticInMemoryOnly: true
+- rejectSecretsExposed: false
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -79,12 +87,13 @@ Status ist read-only und aktuell disabled/offline.
 Heartbeat-Modell ist vorbereitet, aber Receiver/Runtime sind disabled.
 WSS-Pfad /agent-ws ist vorbereitet und guarded.
 Abgelehnte /agent-ws Versuche werden in-memory gezaehlt.
+Handshake-Precheck erkennt sichere Ablehnungsgruende.
 Stream-PC soll spaeter aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## Sicherheit
+## Sicherheit RDAP85
 
 ```text
 Keine akzeptierte Agent-Verbindung.
@@ -154,5 +163,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED
+RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 ```

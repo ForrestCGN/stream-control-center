@@ -1,13 +1,16 @@
 # FILES
 
-Stand: RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN  
+Stand: RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP84
+## Geaendert/neu in RDAP85
 
 ```text
-docs/current/RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP84.md
+remote-modboard/backend/server.js
+remote-modboard/backend/src/services/agent-runtime-disabled.service.js
+remote-modboard/backend/src/services/agent-status.service.js
+docs/current/RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP85.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -40,7 +43,8 @@ docs/current/RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
 docs/current/RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC.md
 docs/current/RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
 docs/current/RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP84.md
+docs/current/RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP85.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

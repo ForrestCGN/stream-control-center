@@ -1,35 +1,33 @@
 # NEXT_STEPS
 
-Stand: RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN  
+Stand: RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED
+RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 ```
 
 ## Ziel
 
 ```text
-Header-/Handshake-Precheck in bestehendem disabled Guard vorbereiten.
-Verbindungen weiterhin ablehnen.
-missing/invalid/unknown Gruende sicher diagnostizieren.
-Keine akzeptierte Agent-Verbindung.
+RDAP85 nach Webserver-Deploy live bestaetigen und dokumentieren.
+Handshake-Precheck-Reject-Tests dokumentieren.
+Keine Backend-Aenderung.
 Keine Runtime-Aktivierung.
+Keine akzeptierte Agent-Verbindung.
 Keine produktiven Remote-Actions.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP84
+## Ausgangspunkt RDAP85
 
 ```text
-- RDAP83 Reject-Diagnose ist live bestaetigt.
+- Runtime-disabled Skeleton ist vorbereitet.
 - /agent-ws Upgrade-Guard ist vorbereitet.
+- Handshake-Precheck im disabled Guard ist vorbereitet.
 - Abgelehnte /agent-ws Versuche werden in-memory diagnostiziert.
-- RDAP84 hat den Access-Key-Handshake-Plan dokumentiert.
-- Geplanter Header-Vertrag ist festgelegt.
-- AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
 - Runtime bleibt effective false.
 - WSS Runtime bleibt false.
 - Heartbeat Receiver bleibt false.
@@ -40,29 +38,13 @@ Keine Secret-Ausgabe.
 - Keine DB-Migration.
 ```
 
-## RDAP85 vorbereitend pruefen
+## RDAP85B vorbereitend pruefen
 
 ```text
-remote-modboard/backend/server.js
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/services/agent-status.service.js
-remote-modboard/backend/src/services/agent-runtime-disabled.service.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-docs/current/*
-project-state/*
-```
-
-## RDAP85 klaeren
-
-```text
-- Wird der Precheck im bestehenden agent-runtime-disabled.service.js erweitert?
-- Welche Header-Bools duerfen sichtbar sein?
-- Welche sanitized Hints duerfen sichtbar sein?
-- Welche Reject-Gruende werden aktiv diagnostiziert?
-- Wie bleibt acceptsAgentConnections garantiert false?
-- Wie wird verhindert, dass Headerwerte oder Secrets geloggt werden?
-- Welche Tests pruefen missing/unknown/invalid ohne echte Verbindung?
+curl -fsS http://127.0.0.1:3010/api/remote/agent/status | jq '.statusApiVersion, .runtime, .rejectDiagnostic'
+curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.agent'
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.agentStatusFoundation'
+/agent-ws Reject-Tests ohne Header, falscher Agent-ID und richtiger ID ohne Auth
 ```
 
 ## Strikt nicht machen

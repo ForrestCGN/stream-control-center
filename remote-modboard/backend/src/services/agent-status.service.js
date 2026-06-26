@@ -4,8 +4,9 @@ const os = require('os');
 const { buildRejectDiagnosticSummary } = require('./agent-runtime-disabled.service');
 
 const MODULE = 'remote_agent_status';
-const MODULE_BUILD = 'RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC';
-const STATUS_API_VERSION = 'rdap_agent83.v1';
+const MODULE_BUILD = 'RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED';
+const STATUS_API_VERSION = 'rdap_agent85.v1';
+const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const LOADED_AT = new Date().toISOString();
 
 const EXPECTED_AGENT = Object.freeze({
@@ -72,14 +73,21 @@ function buildAgentStatusSummary(context = {}) {
     streamPcPublicPortRequired: transport.streamPcPublicPortRequired,
     expectedAgentId: runtime.expectedAgentId,
     expectedAgentName: runtime.expectedAgentName,
+    expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
     lastHeartbeatAt: null,
     heartbeatAgeMs: null,
     stale: false,
+    handshakePrecheckPrepared: rejectDiagnostic.handshakePrecheckPrepared,
+    handshakePrecheckAcceptsConnections: false,
     rejectDiagnosticPrepared: rejectDiagnostic.prepared,
     rejectDiagnosticInMemoryOnly: rejectDiagnostic.inMemoryOnly,
     rejectCount: rejectDiagnostic.rejectCount,
     lastRejectAt: rejectDiagnostic.lastRejectAt,
     lastRejectReason: rejectDiagnostic.lastRejectReason,
+    lastRejectHasAgentIdHeader: rejectDiagnostic.lastRejectHasAgentIdHeader,
+    lastRejectHasProtocolHeader: rejectDiagnostic.lastRejectHasProtocolHeader,
+    lastRejectAgentIdHint: rejectDiagnostic.lastRejectAgentIdHint,
+    lastRejectProtocolHint: rejectDiagnostic.lastRejectProtocolHint,
     rejectSecretsExposed: false,
     statusApiVersion: STATUS_API_VERSION
   };
@@ -108,7 +116,7 @@ function buildAgentStatusResponse(context = {}) {
       enabled: false,
       connected: false,
       connectionState: 'offline',
-      reason: 'rdap83_runtime_disabled_reject_diagnostic_only',
+      reason: 'rdap85_handshake_precheck_disabled_reject_only',
       lastHeartbeatAt: null,
       connectedSince: null,
       heartbeatAgeMs: null,
@@ -121,7 +129,8 @@ function buildAgentStatusResponse(context = {}) {
       agentVersion: null,
       protocolVersion: STATUS_API_VERSION,
       expectedAgentId: runtime.expectedAgentId,
-      expectedAgentName: runtime.expectedAgentName
+      expectedAgentName: runtime.expectedAgentName,
+      expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION
     },
     runtime: {
       skeletonPrepared: runtime.skeletonPrepared,
@@ -134,6 +143,8 @@ function buildAgentStatusResponse(context = {}) {
       accessKeyLogged: false,
       defaultDisabled: true,
       upgradeGuardPrepared: true,
+      handshakePrecheckPrepared: true,
+      handshakePrecheckAcceptsConnections: false,
       acceptsAgentConnections: false
     },
     rejectDiagnostic,
@@ -150,7 +161,7 @@ function buildAgentStatusResponse(context = {}) {
     },
     safety: { ...SAFETY },
     warnings: [
-      'RDAP83 liefert nur eine In-Memory-Diagnose fuer abgelehnte /agent-ws Verbindungsversuche.',
+      'RDAP85 liefert nur einen disabled Handshake-Precheck fuer abgelehnte /agent-ws Verbindungsversuche.',
       'WSS/Upgrade-Guard nimmt weiterhin keine produktive Agent-Verbindung an.',
       'OBS, Sounds, Overlays, Commands, Shell, Datei-, Prozess- und URL-Ausfuehrung bleiben deaktiviert.',
       'Geheime Zugangswerte, Header, Cookies, Query-Werte und rohe IP-Adressen werden nicht in Status, UI oder Logs ausgegeben.'
@@ -180,18 +191,26 @@ function buildAgentRoutesSummary(context = {}) {
     heartbeatReceiverEnabled: false,
     wssRuntimeEnabled: false,
     upgradeGuardPrepared: true,
+    handshakePrecheckPrepared: true,
+    handshakePrecheckAcceptsConnections: false,
     acceptsAgentConnections: false,
     accessKeyConfigured: runtime.accessKeyConfigured,
     accessKeyExposed: false,
     plannedTransport: transport.plannedTransport,
     plannedDirection: transport.plannedDirection,
     plannedWsPath: transport.plannedWsPath,
+    expectedAgentId: runtime.expectedAgentId,
+    expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
     streamPcPublicPortRequired: false,
     rejectDiagnosticPrepared: rejectDiagnostic.prepared,
     rejectDiagnosticInMemoryOnly: rejectDiagnostic.inMemoryOnly,
     rejectCount: rejectDiagnostic.rejectCount,
     lastRejectAt: rejectDiagnostic.lastRejectAt,
     lastRejectReason: rejectDiagnostic.lastRejectReason,
+    lastRejectHasAgentIdHeader: rejectDiagnostic.lastRejectHasAgentIdHeader,
+    lastRejectHasProtocolHeader: rejectDiagnostic.lastRejectHasProtocolHeader,
+    lastRejectAgentIdHint: rejectDiagnostic.lastRejectAgentIdHint,
+    lastRejectProtocolHint: rejectDiagnostic.lastRejectProtocolHint,
     rejectSecretsExposed: false,
     noAgentActions: true,
     safety: { ...SAFETY }
