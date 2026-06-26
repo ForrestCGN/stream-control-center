@@ -4,6 +4,7 @@ const { ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY } = require('../services/admin-user-a
 
 const RDAP42_STATUS_API_VERSION = 'rdap_admin_note_ui_status42.v1';
 const RDAP42_BUILD = 'RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP';
+const RDAP61_BUILD = 'RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION';
 
 function registerRoutesRoutes(app, context) {
   app.get('/api/remote/routes', (req, res) => {
@@ -31,8 +32,8 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/admin/users/admin-note-diagnostic', description: 'Read-only Admin-Notiz-Tabellen-Diagnose; keine Migration, keine Notiz-Writes' },
         { method: 'GET', path: '/api/remote/admin/users/admin-notes/read', description: 'RDAP39C wiederhergestellte echte Admin-Notiz-Read-Route mit Session, DashboardAccess und admin.users.note.read; schreibt nichts' },
         { method: 'GET', path: '/api/remote/admin/users/admin-notes/write-plan', description: 'RDAP38 Admin-Notiz Write-Plan; read-only' },
-        { method: 'POST', path: '/api/remote/admin/users/admin-notes/create', description: 'RDAP39 kontrollierter Admin-Notiz Create-Backend-Write mit Permission/Confirm/Audit/Lock/Readback; RDAP40-Create-UI zeigt Button nur bei Schreibrecht' },
-        { method: 'POST', path: '/api/remote/admin/users/admin-notes/update', description: 'RDAP31 Admin-Notiz Update-Validierung; bleibt read-only, schreibt nichts' },
+        { method: 'POST', path: '/api/remote/admin/users/admin-notes/create', description: 'RDAP39/RDAP61 kontrollierter Admin-Notiz Create-Backend-Write mit Permission/Confirm/Audit/Lock/Readback; RDAP40-Create-UI zeigt Button nur bei Schreibrecht' },
+        { method: 'POST', path: '/api/remote/admin/users/admin-notes/update', description: 'RDAP61 kontrollierter Admin-Notiz Update-Backend-Write fuer aktive Notizen mit Permission/Confirm/Audit/Lock/Readback; keine Update-UI in RDAP61' },
         { method: 'POST', path: '/api/remote/admin/users/admin-notes/deactivate', description: 'RDAP31 Admin-Notiz Deactivate-Validierung; bleibt read-only, schreibt nichts' },
         { method: 'GET', path: '/api/remote/auth/login/plan', description: 'Read-only Plan fuer zentrale Login-Schicht' },
         { method: 'GET', path: '/api/remote/auth/login/start', description: 'Neutraler Login-Einstieg; aktuell Fallback auf Twitch, spaeter zentrale Auth' },
@@ -96,9 +97,9 @@ function registerRoutesRoutes(app, context) {
       adminUsersAdminNoteWriteDisabled: {
         prepared: true,
         routes: [
-          '/api/remote/admin/users/admin-notes/update',
           '/api/remote/admin/users/admin-notes/deactivate'
         ],
+        previouslyDisabledRouteNowConfirmed: '/api/remote/admin/users/admin-notes/update',
         tableName: 'dashboard_user_admin_notes',
         permissionRequired: 'admin.users.note.write',
         confirmWriteRequired: true,
@@ -112,6 +113,32 @@ function registerRoutesRoutes(app, context) {
         deactivatesNote: false,
         physicalDeleteEnabled: false,
         routeRemainsReadOnly: true
+      },
+      adminNoteUpdateConfirmed: {
+        prepared: true,
+        route: '/api/remote/admin/users/admin-notes/update',
+        method: 'POST',
+        routeBuild: RDAP61_BUILD,
+        tableName: 'dashboard_user_admin_notes',
+        permissionRequired: 'admin.users.note.write',
+        confirmWriteRequired: true,
+        bodyConfirmOnly: true,
+        auditRequired: true,
+        lockRequired: true,
+        readBackRequired: true,
+        writeEnabled: true,
+        databaseWriteEnabled: true,
+        productiveWritesEnabled: true,
+        adminNoteUpdateEnabled: true,
+        adminNoteCreateStillEnabled: true,
+        adminNoteDeactivateEnabled: false,
+        uiWriteButtonsEnabled: false,
+        frontendUpdateUiPrepared: false,
+        physicalDeleteEnabled: false,
+        communityPagesMayReadAdminNotes: false,
+        activeNotesOnly: true,
+        allowedFields: ['note_text', 'updated_by_user_uid', 'updated_at'],
+        rawNoteTextLogged: false
       },
       adminAuditLockSchemaStatusReadonly: {
         prepared: true,
@@ -207,19 +234,24 @@ function buildAdminNoteWriteConfirmedUiSemantics() {
     ...ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY,
     statusApiVersion: RDAP42_STATUS_API_VERSION,
     routeStatusCleanupBuild: RDAP42_BUILD,
+    updateBackendBuild: RDAP61_BUILD,
     backendAutoUiWriteButtonsEnabled: false,
     uiWriteButtonsEnabled: true,
-    uiWriteButtonsEnabledMeaning: 'RDAP40 hat bewusst einen Create-Button fuer write-berechtigte Admins vorbereitet; Backend aktiviert keine UI automatisch.',
+    uiWriteButtonsEnabledMeaning: 'RDAP40 hat bewusst einen Create-Button fuer write-berechtigte Admins vorbereitet; RDAP61 aktiviert keine Update-UI automatisch.',
     adminNoteCreateUiPrepared: true,
     adminNoteCreateButtonVisibleForWritePermission: true,
     adminNoteUpdateUiPrepared: false,
     adminNoteDeactivateUiPrepared: false,
     adminNoteDeleteUiPrepared: false,
     adminNoteCreateButtonUsesExistingRoute: '/api/remote/admin/users/admin-notes/create',
+    adminNoteUpdateRoutePrepared: true,
+    adminNoteUpdateRoute: '/api/remote/admin/users/admin-notes/update',
     adminNoteCreateUiRequiresServerPermission: 'admin.users.note.write',
+    adminNoteUpdateRequiresServerPermission: 'admin.users.note.write',
     adminNoteCreateUiRequiresBodyConfirmWrite: true,
+    adminNoteUpdateRequiresBodyConfirmWrite: true,
     adminNoteUiReadbackRoute: '/api/remote/admin/users/admin-notes/read',
-    noNewWriteFunctionInRdap42: true
+    noNewFrontendWriteButtonInRdap61: true
   };
 }
 
@@ -228,27 +260,30 @@ function buildAdminNoteUiStatusSemantics() {
     prepared: true,
     statusApiVersion: RDAP42_STATUS_API_VERSION,
     routeStatusCleanupBuild: RDAP42_BUILD,
-    purpose: 'RDAP42 bereinigt nur die Status-Semantik nach RDAP40; keine neue Funktion.',
+    updateBackendBuild: RDAP61_BUILD,
+    purpose: 'RDAP61 aktiviert nur Backend-Update fuer aktive Admin-Notizen; keine neue UI-Funktion.',
     backendAutoUiWriteButtonsEnabled: false,
     adminNoteCreateUiPrepared: true,
     adminNoteCreateButtonVisibleForWritePermission: true,
     adminNoteCreateRoutePrepared: true,
     adminNoteCreateRoute: '/api/remote/admin/users/admin-notes/create',
+    adminNoteUpdateRoutePrepared: true,
+    adminNoteUpdateRoute: '/api/remote/admin/users/admin-notes/update',
     adminNoteReadbackRoute: '/api/remote/admin/users/admin-notes/read',
     adminNoteUpdateUiPrepared: false,
     adminNoteDeactivateUiPrepared: false,
     adminNoteDeleteUiPrepared: false,
-    adminNoteUpdateEnabled: false,
+    adminNoteUpdateEnabled: true,
     adminNoteDeactivateEnabled: false,
     physicalDeleteEnabled: false,
     communityPagesMayReadAdminNotes: false,
     databaseMigrationExecuted: false,
     permissionChangesExecuted: false,
-    newWriteFunctionEnabled: false,
+    newFrontendWriteFunctionEnabled: false,
     notes: [
       'RDAP40 hat die Create-UI bewusst freigegeben, aber nur fuer write-berechtigte Admins.',
-      'RDAP42 aendert keine Backend-Write-Logik.',
-      'Update, Deactivate und Delete bleiben deaktiviert.'
+      'RDAP61 aktiviert den Update-Backend-Scope ohne Update-UI.',
+      'Deactivate und Delete bleiben deaktiviert.'
     ]
   };
 }

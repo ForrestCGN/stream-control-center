@@ -40,7 +40,7 @@ function registerAdminUsersRoutes(app, context) {
   });
 
   app.post('/api/remote/admin/users/admin-notes/update', async (req, res) => {
-    const result = await buildAdminUserAdminNoteWriteDisabled({ context, req, action: 'update' });
+    const result = await buildAdminUserAdminNoteWriteConfirmed({ context, req, action: 'update' });
     res.status(result.status || 200).json(result.body || result);
   });
 

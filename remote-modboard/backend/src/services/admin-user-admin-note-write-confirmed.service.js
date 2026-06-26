@@ -7,8 +7,8 @@ const { buildDatabaseReadiness, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('./admin-confirm-write.service');
 
 const MODULE = 'remote_admin_user_admin_note_write_confirmed';
-const MODULE_BUILD = 'RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED';
-const STATUS_API_VERSION = 'rdap_admin_note_write39.v1';
+const MODULE_BUILD = 'RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION';
+const STATUS_API_VERSION = 'rdap_admin_note_write61.v1';
 
 const TABLE_NAME = 'dashboard_user_admin_notes';
 const USERS_TABLE_NAME = 'dashboard_users';
@@ -20,10 +20,14 @@ const READ_PERMISSION = 'admin.users.note.read';
 const WRITE_PERMISSION = 'admin.users.note.write';
 const MAX_NOTE_TEXT_LENGTH = 5000;
 const CREATE_ACTION = 'create';
+const UPDATE_ACTION = 'update';
+const CONFIRMED_ACTIONS = Object.freeze([CREATE_ACTION, UPDATE_ACTION]);
 
 const ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY = Object.freeze({
   prepared: true,
-  route: '/api/remote/admin/users/admin-notes/create',
+  routeFamily: '/api/remote/admin/users/admin-notes/*',
+  createRoute: '/api/remote/admin/users/admin-notes/create',
+  updateRoute: '/api/remote/admin/users/admin-notes/update',
   method: 'POST',
   statusApiVersion: STATUS_API_VERSION,
   tableName: TABLE_NAME,
@@ -39,13 +43,13 @@ const ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY = Object.freeze({
   productiveWritesEnabled: true,
   adminNoteWritesEnabled: true,
   adminNoteCreateEnabled: true,
-  adminNoteUpdateEnabled: false,
+  adminNoteUpdateEnabled: true,
   adminNoteDeactivateEnabled: false,
   uiWriteButtonsEnabled: false,
   physicalDeleteEnabled: false,
   communityPagesMayReadAdminNotes: false,
   routeRemainsRestricted: true,
-  plannedFollowupStep: 'RDAP39B_ADMIN_NOTE_WRITE_BACKEND_LIVE_CONFIRMED_DOCS'
+  plannedFollowupStep: 'RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS'
 });
 
 async function buildAdminUserAdminNoteWriteConfirmed({ context, req, action } = {}) {
@@ -57,27 +61,30 @@ async function buildAdminUserAdminNoteWriteConfirmed({ context, req, action } = 
   const confirm = requireAdminConfirmWrite({ body });
 
   const targetUserUid = normalizeUserUid(body.targetUserUid || body.target_user_uid);
+  const noteUid = normalizeNoteUid(body.noteUid || body.note_uid);
   const noteText = normalizeNoteText(body.noteText || body.note_text);
 
   const base = buildBaseBody(context, readiness, sessionValidation, {
     action: normalizedAction,
     targetUserUid,
+    noteUid,
     noteTextLength: noteText.length,
     confirm,
     req
   });
 
-  if (normalizedAction !== CREATE_ACTION) {
+  if (!CONFIRMED_ACTIONS.includes(normalizedAction)) {
     return {
       status: 423,
       body: {
         ...base,
         ok: false,
-        reason: 'admin_note_action_still_disabled_in_rdAP39'.toLowerCase(),
+        reason: 'admin_note_action_still_disabled_in_rdap61',
         writeExecuted: false,
         adminNoteCreateEnabled: true,
-        adminNoteUpdateEnabled: false,
-        adminNoteDeactivateEnabled: false
+        adminNoteUpdateEnabled: true,
+        adminNoteDeactivateEnabled: false,
+        physicalDeleteEnabled: false
       }
     };
   }
@@ -113,7 +120,7 @@ async function buildAdminUserAdminNoteWriteConfirmed({ context, req, action } = 
     };
   }
 
-  const validation = validateCreateInput({ targetUserUid, noteText });
+  const validation = validateActionInput({ action: normalizedAction, targetUserUid, noteUid, noteText });
   if (!validation.valid) {
     return {
       status: 400,
@@ -279,267 +286,11 @@ async function buildAdminUserAdminNoteWriteConfirmed({ context, req, action } = 
         };
       }
 
-      const now = new Date();
-      const noteUid = buildNoteUid();
-      const lockUid = buildLockUid();
-      const resourceKey = `admin_user_note:${targetUserUid}:create`;
-      const versionToken = `rdap39-${lockUid}`;
-      const auditAttemptUid = buildAuditUid('attempt');
-      const auditSuccessUid = buildAuditUid('success');
-      let lockAcquired = false;
-      let lockReleased = false;
-      let noteWritten = false;
-      let readBack = null;
-      let auditAttemptWritten = false;
-      let auditSuccessWritten = false;
-      let auditFailureWritten = false;
-      let auditFollowupFailed = false;
-      let lockReleaseFailed = false;
-      let failureReason = null;
-
-      try {
-        await connection.execute(
-          `INSERT INTO dashboard_locks
-            (lock_uid, resource_key, owner_user_uid, status, heartbeat_at, expires_at, version_token, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            lockUid,
-            resourceKey,
-            actor.userUid,
-            'active',
-            now,
-            new Date(now.getTime() + 5 * 60 * 1000),
-            versionToken,
-            now,
-            now
-          ]
-        );
-        lockAcquired = true;
-      } catch (err) {
-        return {
-          status: 423,
-          body: {
-            ...base,
-            ok: false,
-            loggedIn: true,
-            dashboardAccess: true,
-            accessReason: dashboardAccess.reason,
-            reason: 'admin_note_lock_acquire_failed',
-            error: publicDbError(err),
-            actor,
-            permissions: permissionSummary,
-            table: tableStatus,
-            targetUser,
-            resourceKey,
-            lock: { lockUid, acquired: false },
-            writeExecuted: false,
-            adminNoteWriteExecuted: false,
-            lockReleaseAttempted: false
-          }
-        };
+      if (normalizedAction === UPDATE_ACTION) {
+        return executeUpdate({ connection, base, actor, permissions: permissionSummary, tableStatus, targetUser, dashboardAccess, targetUserUid, noteUid, noteText });
       }
 
-      try {
-        await insertAudit(connection, {
-          auditUid: auditAttemptUid,
-          actor,
-          source: 'remote-modboard/admin-notes',
-          action: 'admin.user_note.create',
-          resourceType: 'admin_user_note',
-          permissionKey: WRITE_PERMISSION,
-          resourceKey,
-          status: 'attempt',
-          errorCode: null,
-          oldValueSummary: null,
-          newValueSummary: `Admin-Notiz Create versucht; target=${targetUserUid}; noteTextLength=${noteText.length}.`,
-          safeMetadata: {
-            step: MODULE_BUILD,
-            noteUid,
-            targetUserUid,
-            noteTextLength: noteText.length,
-            lockUid,
-            confirmWriteAccepted: true,
-            rawNoteTextLogged: false
-          },
-          completedAt: now
-        });
-        auditAttemptWritten = true;
-      } catch (err) {
-        failureReason = 'admin_note_audit_attempt_failed';
-        await safeReleaseLock(connection, { lockUid, now: new Date() }).then((released) => { lockReleased = released; });
-        return {
-          status: 500,
-          body: {
-            ...base,
-            ok: false,
-            loggedIn: true,
-            dashboardAccess: true,
-            accessReason: dashboardAccess.reason,
-            reason: failureReason,
-            error: publicDbError(err),
-            actor,
-            permissions: permissionSummary,
-            table: tableStatus,
-            targetUser,
-            resourceKey,
-            lock: { lockUid, acquired: lockAcquired, released: lockReleased },
-            auditAttemptWritten: false,
-            writeExecuted: false,
-            adminNoteWriteExecuted: false
-          }
-        };
-      }
-
-      try {
-        await connection.execute(
-          `INSERT INTO dashboard_user_admin_notes
-            (note_uid, target_user_uid, note_text, status, created_by_user_uid, updated_by_user_uid, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [noteUid, targetUserUid, noteText, 'active', actor.userUid, actor.userUid, now, now]
-        );
-        noteWritten = true;
-
-        readBack = await readNoteByUid(connection, { noteUid, targetUserUid });
-        if (!readBack || !readBack.exists) {
-          throw buildError('admin_note_readback_missing_after_write');
-        }
-      } catch (err) {
-        failureReason = publicDbError(err).code || 'admin_note_write_failed';
-        try {
-          await insertAudit(connection, {
-            auditUid: buildAuditUid('failed'),
-            actor,
-            source: 'remote-modboard/admin-notes',
-            action: 'admin.user_note.create',
-            resourceType: 'admin_user_note',
-            permissionKey: WRITE_PERMISSION,
-            resourceKey,
-            status: 'failed',
-            errorCode: failureReason,
-            oldValueSummary: null,
-            newValueSummary: `Admin-Notiz Create fehlgeschlagen; target=${targetUserUid}; noteTextLength=${noteText.length}.`,
-            safeMetadata: {
-              step: MODULE_BUILD,
-              noteUid,
-              targetUserUid,
-              noteTextLength: noteText.length,
-              lockUid,
-              noteWritten,
-              rawNoteTextLogged: false
-            },
-            completedAt: new Date()
-          });
-          auditFailureWritten = true;
-        } catch (auditErr) {
-          auditFollowupFailed = true;
-        }
-        await safeReleaseLock(connection, { lockUid, now: new Date() }).then((released) => { lockReleased = released; lockReleaseFailed = !released; });
-        return {
-          status: 500,
-          body: {
-            ...base,
-            ok: false,
-            loggedIn: true,
-            dashboardAccess: true,
-            accessReason: dashboardAccess.reason,
-            reason: failureReason || 'admin_note_write_failed',
-            actor,
-            permissions: permissionSummary,
-            table: tableStatus,
-            targetUser,
-            resourceKey,
-            noteUid,
-            lock: { lockUid, acquired: lockAcquired, released: lockReleased, releaseFailed: lockReleaseFailed },
-            auditAttemptWritten,
-            auditFailureWritten,
-            auditFollowupFailed,
-            writeExecuted: noteWritten,
-            adminNoteWriteExecuted: noteWritten,
-            readBackPerformed: Boolean(readBack),
-            readBackFound: Boolean(readBack && readBack.exists)
-          }
-        };
-      }
-
-      try {
-        await insertAudit(connection, {
-          auditUid: auditSuccessUid,
-          actor,
-          source: 'remote-modboard/admin-notes',
-          action: 'admin.user_note.create',
-          resourceType: 'admin_user_note',
-          permissionKey: WRITE_PERMISSION,
-          resourceKey: `admin_user_note:${noteUid}:create`,
-          status: 'success',
-          errorCode: null,
-          oldValueSummary: null,
-          newValueSummary: `Admin-Notiz erstellt; target=${targetUserUid}; noteUid=${noteUid}; noteTextLength=${noteText.length}.`,
-          safeMetadata: {
-            step: MODULE_BUILD,
-            noteUid,
-            targetUserUid,
-            noteTextLength: noteText.length,
-            lockUid,
-            auditAttemptUid,
-            rawNoteTextLogged: false
-          },
-          completedAt: new Date()
-        });
-        auditSuccessWritten = true;
-      } catch (err) {
-        auditFollowupFailed = true;
-        failureReason = 'admin_note_write_succeeded_audit_followup_failed';
-      }
-
-      lockReleased = await safeReleaseLock(connection, { lockUid, now: new Date() });
-      lockReleaseFailed = !lockReleased;
-
-      return {
-        status: auditFollowupFailed || lockReleaseFailed ? 207 : 200,
-        body: {
-          ...base,
-          ok: !auditFollowupFailed && !lockReleaseFailed,
-          loggedIn: true,
-          dashboardAccess: true,
-          accessReason: dashboardAccess.reason,
-          reason: auditFollowupFailed
-            ? 'admin_note_write_succeeded_audit_followup_failed'
-            : (lockReleaseFailed ? 'admin_note_write_succeeded_lock_release_failed' : 'admin_note_create_executed'),
-          actor,
-          permissions: permissionSummary,
-          table: tableStatus,
-          targetUser,
-          confirmWriteAccepted: true,
-          noteUid,
-          resourceKey,
-          lock: {
-            lockUid,
-            acquired: lockAcquired,
-            released: lockReleased,
-            releaseFailed: lockReleaseFailed
-          },
-          audit: {
-            attemptUid: auditAttemptUid,
-            successUid: auditSuccessWritten ? auditSuccessUid : null,
-            attemptWritten: auditAttemptWritten,
-            successWritten: auditSuccessWritten,
-            failureWritten: auditFailureWritten,
-            auditFollowupFailed
-          },
-          writeExecuted: true,
-          databaseWriteExecuted: true,
-          adminNoteWriteExecuted: true,
-          adminNoteCreateExecuted: true,
-          adminNoteUpdateExecuted: false,
-          adminNoteDeactivateExecuted: false,
-          physicalDeleteExecuted: false,
-          uiWriteButtonsEnabled: false,
-          readBackPerformed: true,
-          readBackFound: Boolean(readBack && readBack.exists),
-          note: readBack,
-          warning: auditFollowupFailed || lockReleaseFailed ? failureReason : null
-        }
-      };
+      return executeCreate({ connection, base, actor, permissions: permissionSummary, tableStatus, targetUser, dashboardAccess, targetUserUid, noteText });
     });
   } catch (err) {
     const publicError = publicDbError(err).code;
@@ -557,7 +308,349 @@ async function buildAdminUserAdminNoteWriteConfirmed({ context, req, action } = 
   }
 }
 
-function buildBaseBody(context, readiness, sessionValidation, { action, targetUserUid, noteTextLength, confirm, req }) {
+async function executeCreate({ connection, base, actor, permissions, tableStatus, targetUser, dashboardAccess, targetUserUid, noteText }) {
+  const now = new Date();
+  const noteUid = buildNoteUid();
+  const lockUid = buildLockUid();
+  const resourceKey = `admin_user_note:${targetUserUid}:create`;
+  const versionToken = `rdap61-${lockUid}`;
+  const auditAttemptUid = buildAuditUid('attempt');
+  const auditSuccessUid = buildAuditUid('success');
+  let lockAcquired = false;
+  let lockReleased = false;
+  let noteWritten = false;
+  let readBack = null;
+  let auditAttemptWritten = false;
+  let auditSuccessWritten = false;
+  let auditFailureWritten = false;
+  let auditFollowupFailed = false;
+  let lockReleaseFailed = false;
+  let failureReason = null;
+
+  const lockResult = await acquireLock(connection, { lockUid, resourceKey, actorUserUid: actor.userUid, versionToken, now });
+  if (!lockResult.ok) {
+    return buildLockFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, lockUid, error: lockResult.error });
+  }
+  lockAcquired = true;
+
+  try {
+    await insertAudit(connection, {
+      auditUid: auditAttemptUid,
+      actor,
+      source: 'remote-modboard/admin-notes',
+      action: 'admin.user_note.create',
+      resourceType: 'admin_user_note',
+      permissionKey: WRITE_PERMISSION,
+      resourceKey,
+      status: 'attempt',
+      errorCode: null,
+      oldValueSummary: null,
+      newValueSummary: `Admin-Notiz Create versucht; target=${targetUserUid}; noteTextLength=${noteText.length}.`,
+      safeMetadata: {
+        step: MODULE_BUILD,
+        noteUid,
+        targetUserUid,
+        noteTextLength: noteText.length,
+        lockUid,
+        confirmWriteAccepted: true,
+        rawNoteTextLogged: false
+      },
+      completedAt: now
+    });
+    auditAttemptWritten = true;
+  } catch (err) {
+    failureReason = 'admin_note_audit_attempt_failed';
+    await safeReleaseLock(connection, { lockUid, now: new Date() }).then((released) => { lockReleased = released; });
+    return buildAuditAttemptFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, lockUid, lockAcquired, lockReleased, error: err, failureReason });
+  }
+
+  try {
+    await connection.execute(
+      `INSERT INTO dashboard_user_admin_notes
+        (note_uid, target_user_uid, note_text, status, created_by_user_uid, updated_by_user_uid, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [noteUid, targetUserUid, noteText, 'active', actor.userUid, actor.userUid, now, now]
+    );
+    noteWritten = true;
+
+    readBack = await readNoteByUid(connection, { noteUid, targetUserUid, includeText: true });
+    if (!readBack || !readBack.exists) {
+      throw buildError('admin_note_readback_missing_after_write');
+    }
+  } catch (err) {
+    failureReason = publicDbError(err).code || 'admin_note_write_failed';
+    ({ auditFailureWritten, auditFollowupFailed } = await writeFailureAudit(connection, {
+      actor,
+      action: 'admin.user_note.create',
+      resourceKey,
+      targetUserUid,
+      noteUid,
+      noteTextLength: noteText.length,
+      lockUid,
+      noteWritten,
+      failureReason
+    }));
+    await safeReleaseLock(connection, { lockUid, now: new Date() }).then((released) => { lockReleased = released; lockReleaseFailed = !released; });
+    return buildWriteFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, noteUid, lockUid, lockAcquired, lockReleased, lockReleaseFailed, auditAttemptWritten, auditFailureWritten, auditFollowupFailed, writeExecuted: noteWritten, readBack, failureReason });
+  }
+
+  try {
+    await insertAudit(connection, {
+      auditUid: auditSuccessUid,
+      actor,
+      source: 'remote-modboard/admin-notes',
+      action: 'admin.user_note.create',
+      resourceType: 'admin_user_note',
+      permissionKey: WRITE_PERMISSION,
+      resourceKey: `admin_user_note:${noteUid}:create`,
+      status: 'success',
+      errorCode: null,
+      oldValueSummary: null,
+      newValueSummary: `Admin-Notiz erstellt; target=${targetUserUid}; noteUid=${noteUid}; noteTextLength=${noteText.length}.`,
+      safeMetadata: {
+        step: MODULE_BUILD,
+        noteUid,
+        targetUserUid,
+        noteTextLength: noteText.length,
+        lockUid,
+        auditAttemptUid,
+        rawNoteTextLogged: false
+      },
+      completedAt: new Date()
+    });
+    auditSuccessWritten = true;
+  } catch (err) {
+    auditFollowupFailed = true;
+    failureReason = 'admin_note_write_succeeded_audit_followup_failed';
+  }
+
+  lockReleased = await safeReleaseLock(connection, { lockUid, now: new Date() });
+  lockReleaseFailed = !lockReleased;
+
+  return buildSuccessResponse({
+    base,
+    actor,
+    permissions,
+    tableStatus,
+    targetUser,
+    dashboardAccess,
+    action: CREATE_ACTION,
+    reason: auditFollowupFailed ? 'admin_note_write_succeeded_audit_followup_failed' : (lockReleaseFailed ? 'admin_note_write_succeeded_lock_release_failed' : 'admin_note_create_executed'),
+    noteUid,
+    resourceKey,
+    lockUid,
+    lockAcquired,
+    lockReleased,
+    lockReleaseFailed,
+    auditAttemptUid,
+    auditSuccessUid,
+    auditAttemptWritten,
+    auditSuccessWritten,
+    auditFailureWritten,
+    auditFollowupFailed,
+    readBack,
+    warning: auditFollowupFailed || lockReleaseFailed ? failureReason : null
+  });
+}
+
+async function executeUpdate({ connection, base, actor, permissions, tableStatus, targetUser, dashboardAccess, targetUserUid, noteUid, noteText }) {
+  const existingNote = await readExistingNote(connection, { targetUserUid, noteUid });
+  if (!existingNote.exists) {
+    return {
+      status: 404,
+      body: {
+        ...base,
+        ok: false,
+        loggedIn: true,
+        dashboardAccess: true,
+        accessReason: dashboardAccess.reason,
+        reason: 'admin_note_not_found_for_target',
+        actor,
+        permissions,
+        table: tableStatus,
+        targetUser,
+        existingNote,
+        writeExecuted: false,
+        adminNoteUpdateExecuted: false
+      }
+    };
+  }
+
+  if (existingNote.status !== 'active') {
+    return {
+      status: 409,
+      body: {
+        ...base,
+        ok: false,
+        loggedIn: true,
+        dashboardAccess: true,
+        accessReason: dashboardAccess.reason,
+        reason: 'admin_note_update_requires_active_note',
+        actor,
+        permissions,
+        table: tableStatus,
+        targetUser,
+        existingNote: redactExistingNote(existingNote),
+        writeExecuted: false,
+        adminNoteUpdateExecuted: false
+      }
+    };
+  }
+
+  const now = new Date();
+  const lockUid = buildLockUid();
+  const resourceKey = `admin_user_note:${noteUid}`;
+  const versionToken = `rdap61-${lockUid}`;
+  const auditAttemptUid = buildAuditUid('attempt');
+  const auditSuccessUid = buildAuditUid('success');
+  const oldNoteTextLength = existingNote.noteTextLength;
+  const newNoteTextLength = noteText.length;
+  let lockAcquired = false;
+  let lockReleased = false;
+  let updateExecuted = false;
+  let readBack = null;
+  let auditAttemptWritten = false;
+  let auditSuccessWritten = false;
+  let auditFailureWritten = false;
+  let auditFollowupFailed = false;
+  let lockReleaseFailed = false;
+  let failureReason = null;
+
+  const lockResult = await acquireLock(connection, { lockUid, resourceKey, actorUserUid: actor.userUid, versionToken, now });
+  if (!lockResult.ok) {
+    return buildLockFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, lockUid, error: lockResult.error });
+  }
+  lockAcquired = true;
+
+  try {
+    await insertAudit(connection, {
+      auditUid: auditAttemptUid,
+      actor,
+      source: 'remote-modboard/admin-notes',
+      action: 'admin.user_note.update',
+      resourceType: 'admin_user_note',
+      permissionKey: WRITE_PERMISSION,
+      resourceKey,
+      status: 'attempt',
+      errorCode: null,
+      oldValueSummary: `Admin-Notiz Update vorher; target=${targetUserUid}; noteUid=${noteUid}; oldLength=${oldNoteTextLength}.`,
+      newValueSummary: `Admin-Notiz Update versucht; target=${targetUserUid}; noteUid=${noteUid}; oldLength=${oldNoteTextLength}; newLength=${newNoteTextLength}.`,
+      safeMetadata: {
+        step: MODULE_BUILD,
+        targetUserUid,
+        noteUid,
+        oldNoteTextLength,
+        newNoteTextLength,
+        lockUid,
+        confirmWriteAccepted: true,
+        rawNoteTextLogged: false
+      },
+      completedAt: now
+    });
+    auditAttemptWritten = true;
+  } catch (err) {
+    failureReason = 'admin_note_audit_attempt_failed';
+    await safeReleaseLock(connection, { lockUid, now: new Date() }).then((released) => { lockReleased = released; });
+    return buildAuditAttemptFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, lockUid, lockAcquired, lockReleased, error: err, failureReason });
+  }
+
+  try {
+    const [result] = await connection.execute(
+      `UPDATE dashboard_user_admin_notes
+          SET note_text = ?, updated_by_user_uid = ?, updated_at = ?
+        WHERE note_uid = ? AND target_user_uid = ? AND status = 'active'
+        LIMIT 1`,
+      [noteText, actor.userUid, now, noteUid, targetUserUid]
+    );
+
+    if (!result || result.affectedRows < 1) {
+      throw buildError('admin_note_update_affected_no_rows');
+    }
+    updateExecuted = true;
+
+    readBack = await readNoteByUid(connection, { noteUid, targetUserUid, includeText: false });
+    validateUpdateReadBack({ readBack, noteUid, targetUserUid, noteTextLength: noteText.length, actorUserUid: actor.userUid });
+  } catch (err) {
+    failureReason = publicDbError(err).code || 'admin_note_update_failed';
+    ({ auditFailureWritten, auditFollowupFailed } = await writeFailureAudit(connection, {
+      actor,
+      action: 'admin.user_note.update',
+      resourceKey,
+      targetUserUid,
+      noteUid,
+      noteTextLength: newNoteTextLength,
+      oldNoteTextLength,
+      lockUid,
+      noteWritten: updateExecuted,
+      failureReason
+    }));
+    await safeReleaseLock(connection, { lockUid, now: new Date() }).then((released) => { lockReleased = released; lockReleaseFailed = !released; });
+    return buildWriteFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, noteUid, lockUid, lockAcquired, lockReleased, lockReleaseFailed, auditAttemptWritten, auditFailureWritten, auditFollowupFailed, writeExecuted: updateExecuted, readBack, failureReason, update: true });
+  }
+
+  try {
+    await insertAudit(connection, {
+      auditUid: auditSuccessUid,
+      actor,
+      source: 'remote-modboard/admin-notes',
+      action: 'admin.user_note.update',
+      resourceType: 'admin_user_note',
+      permissionKey: WRITE_PERMISSION,
+      resourceKey,
+      status: 'success',
+      errorCode: null,
+      oldValueSummary: `Admin-Notiz Update vorher; target=${targetUserUid}; noteUid=${noteUid}; oldLength=${oldNoteTextLength}.`,
+      newValueSummary: `Admin-Notiz Update erfolgreich; target=${targetUserUid}; noteUid=${noteUid}; oldLength=${oldNoteTextLength}; newLength=${newNoteTextLength}.`,
+      safeMetadata: {
+        step: MODULE_BUILD,
+        targetUserUid,
+        noteUid,
+        oldNoteTextLength,
+        newNoteTextLength,
+        lockUid,
+        auditAttemptUid,
+        rawNoteTextLogged: false
+      },
+      completedAt: new Date()
+    });
+    auditSuccessWritten = true;
+  } catch (err) {
+    auditFollowupFailed = true;
+    failureReason = 'admin_note_update_succeeded_audit_followup_failed';
+  }
+
+  lockReleased = await safeReleaseLock(connection, { lockUid, now: new Date() });
+  lockReleaseFailed = !lockReleased;
+
+  return buildSuccessResponse({
+    base,
+    actor,
+    permissions,
+    tableStatus,
+    targetUser,
+    dashboardAccess,
+    action: UPDATE_ACTION,
+    reason: auditFollowupFailed ? 'admin_note_update_succeeded_audit_followup_failed' : (lockReleaseFailed ? 'admin_note_update_succeeded_lock_release_failed' : 'admin_note_update_executed'),
+    noteUid,
+    resourceKey,
+    lockUid,
+    lockAcquired,
+    lockReleased,
+    lockReleaseFailed,
+    auditAttemptUid,
+    auditSuccessUid,
+    auditAttemptWritten,
+    auditSuccessWritten,
+    auditFailureWritten,
+    auditFollowupFailed,
+    readBack,
+    warning: auditFollowupFailed || lockReleaseFailed ? failureReason : null,
+    oldNoteTextLength,
+    newNoteTextLength
+  });
+}
+
+function buildBaseBody(context, readiness, sessionValidation, { action, targetUserUid, noteUid, noteTextLength, confirm, req }) {
   return {
     service: 'remote-modboard',
     module: MODULE,
@@ -567,12 +660,14 @@ function buildBaseBody(context, readiness, sessionValidation, { action, targetUs
     readOnly: false,
     prepared: true,
     action,
-    route: '/api/remote/admin/users/admin-notes/create',
+    route: buildRouteForAction(action),
+    routeFamily: '/api/remote/admin/users/admin-notes/*',
     tableName: TABLE_NAME,
     usersTableName: USERS_TABLE_NAME,
     auditTableName: AUDIT_TABLE_NAME,
     lockTableName: LOCK_TABLE_NAME,
     targetUserUid: targetUserUid || null,
+    noteUid: noteUid || null,
     noteTextLength,
     permissionKey: WRITE_PERMISSION,
     remoteViewPermissionKey: REMOTE_VIEW_PERMISSION,
@@ -588,10 +683,10 @@ function buildBaseBody(context, readiness, sessionValidation, { action, targetUs
     writesStillBlockedForOtherActions: true,
     adminNoteWritesEnabled: true,
     adminNoteCreateEnabled: true,
-    adminNoteUpdateEnabled: false,
+    adminNoteUpdateEnabled: true,
     adminNoteDeactivateEnabled: false,
     createsNote: action === CREATE_ACTION,
-    updatesNote: false,
+    updatesNote: action === UPDATE_ACTION,
     deactivatesNote: false,
     deletesNote: false,
     physicalDeleteEnabled: false,
@@ -605,23 +700,49 @@ function buildBaseBody(context, readiness, sessionValidation, { action, targetUs
     session: buildPublicSessionState(sessionValidation),
     safety: context ? context.safety : null,
     notes: [
-      'RDAP39 aktiviert nur den kontrollierten Backend-Create-Write fuer Admin-Notizen.',
+      'RDAP61 aktiviert kontrollierten Backend-Update-Write fuer aktive Admin-Notizen.',
+      'Create bleibt wie bisher kontrolliert aktiv.',
       'confirmWrite wird nur aus dem JSON-Body akzeptiert.',
-      'Update und Deactivate bleiben in RDAP39 deaktiviert.',
-      'UI-Schreibbuttons bleiben deaktiviert.',
+      'Deactivate bleibt deaktiviert.',
+      'UI-Schreibbuttons bleiben fuer Update deaktiviert.',
       'Physisches Delete bleibt verboten.',
       'Raw note_text wird nicht im Audit gespeichert.'
     ]
   };
 }
 
-function validateCreateInput({ targetUserUid, noteText }) {
+function validateActionInput({ action, targetUserUid, noteUid, noteText }) {
   if (!targetUserUid) return { valid: false, reason: 'missing_or_invalid_target_user_uid' };
-  if (!noteText) return { valid: false, reason: 'missing_or_empty_note_text' };
-  if (noteText.length > MAX_NOTE_TEXT_LENGTH) {
+  if (action === UPDATE_ACTION && !noteUid) return { valid: false, reason: 'missing_or_invalid_note_uid' };
+  if ((action === CREATE_ACTION || action === UPDATE_ACTION) && !noteText) return { valid: false, reason: 'missing_or_empty_note_text' };
+  if ((action === CREATE_ACTION || action === UPDATE_ACTION) && noteText.length > MAX_NOTE_TEXT_LENGTH) {
     return { valid: false, reason: 'note_text_too_long', maxNoteTextLength: MAX_NOTE_TEXT_LENGTH };
   }
   return { valid: true, reason: 'input_valid', maxNoteTextLength: MAX_NOTE_TEXT_LENGTH };
+}
+
+async function acquireLock(connection, { lockUid, resourceKey, actorUserUid, versionToken, now }) {
+  try {
+    await connection.execute(
+      `INSERT INTO dashboard_locks
+        (lock_uid, resource_key, owner_user_uid, status, heartbeat_at, expires_at, version_token, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        lockUid,
+        resourceKey,
+        actorUserUid,
+        'active',
+        now,
+        new Date(now.getTime() + 5 * 60 * 1000),
+        versionToken,
+        now,
+        now
+      ]
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err };
+  }
 }
 
 async function readAdminNoteTableStatus(connection) {
@@ -651,7 +772,6 @@ async function readAdminNoteTableStatus(connection) {
     `SELECT COLUMN_NAME AS column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
     [TABLE_NAME]
   );
-
   const existingColumns = columnRows.map((row) => row.column_name).filter(Boolean);
   const missingColumns = requiredColumns.filter((column) => !existingColumns.includes(column));
   const [countRows] = await connection.query(`SELECT COUNT(*) AS count_value FROM ${TABLE_NAME}`);
@@ -682,7 +802,20 @@ async function readTargetUser(connection, targetUserUid) {
   };
 }
 
-async function readNoteByUid(connection, { noteUid, targetUserUid }) {
+async function readExistingNote(connection, { targetUserUid, noteUid }) {
+  const [rows] = await connection.query(
+    `SELECT id, note_uid, target_user_uid, note_text, status, created_by_user_uid, updated_by_user_uid, created_at, updated_at
+       FROM ${TABLE_NAME}
+      WHERE target_user_uid = ? AND note_uid = ?
+      LIMIT 1`,
+    [targetUserUid, noteUid]
+  );
+  const row = rows && rows[0] ? rows[0] : null;
+  if (!row) return { exists: false, noteUid, targetUserUid, status: null };
+  return sanitizeNoteRow(row, { includeText: true });
+}
+
+async function readNoteByUid(connection, { noteUid, targetUserUid, includeText = true }) {
   const [rows] = await connection.query(
     `SELECT id, note_uid, target_user_uid, note_text, status, created_by_user_uid, updated_by_user_uid, created_at, updated_at
        FROM ${TABLE_NAME}
@@ -692,7 +825,7 @@ async function readNoteByUid(connection, { noteUid, targetUserUid }) {
   );
   const row = rows && rows[0] ? rows[0] : null;
   if (!row) return { exists: false, noteUid, targetUserUid };
-  return sanitizeNoteRow(row);
+  return sanitizeNoteRow(row, { includeText });
 }
 
 async function insertAudit(connection, input) {
@@ -722,6 +855,41 @@ async function insertAudit(connection, input) {
   );
 }
 
+async function writeFailureAudit(connection, { actor, action, resourceKey, targetUserUid, noteUid, noteTextLength, oldNoteTextLength, lockUid, noteWritten, failureReason }) {
+  let auditFailureWritten = false;
+  let auditFollowupFailed = false;
+  try {
+    await insertAudit(connection, {
+      auditUid: buildAuditUid('failed'),
+      actor,
+      source: 'remote-modboard/admin-notes',
+      action,
+      resourceType: 'admin_user_note',
+      permissionKey: WRITE_PERMISSION,
+      resourceKey,
+      status: 'failed',
+      errorCode: failureReason,
+      oldValueSummary: Number.isFinite(oldNoteTextLength) ? `Admin-Notiz vorher; target=${targetUserUid}; noteUid=${noteUid}; oldLength=${oldNoteTextLength}.` : null,
+      newValueSummary: `Admin-Notiz ${action.endsWith('.update') ? 'Update' : 'Create'} fehlgeschlagen; target=${targetUserUid}; noteUid=${noteUid || 'new'}; noteTextLength=${noteTextLength}.`,
+      safeMetadata: {
+        step: MODULE_BUILD,
+        noteUid: noteUid || null,
+        targetUserUid,
+        oldNoteTextLength: Number.isFinite(oldNoteTextLength) ? oldNoteTextLength : null,
+        noteTextLength,
+        lockUid,
+        noteWritten,
+        rawNoteTextLogged: false
+      },
+      completedAt: new Date()
+    });
+    auditFailureWritten = true;
+  } catch (auditErr) {
+    auditFollowupFailed = true;
+  }
+  return { auditFailureWritten, auditFollowupFailed };
+}
+
 async function safeReleaseLock(connection, { lockUid, now }) {
   try {
     const [result] = await connection.execute(
@@ -735,6 +903,147 @@ async function safeReleaseLock(connection, { lockUid, now }) {
   } catch (err) {
     return false;
   }
+}
+
+function validateUpdateReadBack({ readBack, noteUid, targetUserUid, noteTextLength, actorUserUid }) {
+  if (!readBack || !readBack.exists) throw buildError('admin_note_update_readback_missing');
+  if (readBack.note_uid !== noteUid) throw buildError('admin_note_update_readback_note_uid_mismatch');
+  if (readBack.target_user_uid !== targetUserUid) throw buildError('admin_note_update_readback_target_user_uid_mismatch');
+  if (readBack.status !== 'active') throw buildError('admin_note_update_readback_status_not_active');
+  if (readBack.noteTextLength !== noteTextLength) throw buildError('admin_note_update_readback_length_mismatch');
+  if (readBack.updated_by_user_uid !== actorUserUid) throw buildError('admin_note_update_readback_actor_mismatch');
+  if (!readBack.updated_at) throw buildError('admin_note_update_readback_missing_updated_at');
+}
+
+function buildLockFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, lockUid, error }) {
+  return {
+    status: 423,
+    body: {
+      ...base,
+      ok: false,
+      loggedIn: true,
+      dashboardAccess: true,
+      accessReason: dashboardAccess.reason,
+      reason: 'admin_note_lock_acquire_failed',
+      error: publicDbError(error),
+      actor,
+      permissions,
+      table: tableStatus,
+      targetUser,
+      resourceKey,
+      lock: { lockUid, acquired: false },
+      writeExecuted: false,
+      adminNoteWriteExecuted: false,
+      lockReleaseAttempted: false
+    }
+  };
+}
+
+function buildAuditAttemptFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, lockUid, lockAcquired, lockReleased, error, failureReason }) {
+  return {
+    status: 500,
+    body: {
+      ...base,
+      ok: false,
+      loggedIn: true,
+      dashboardAccess: true,
+      accessReason: dashboardAccess.reason,
+      reason: failureReason,
+      error: publicDbError(error),
+      actor,
+      permissions,
+      table: tableStatus,
+      targetUser,
+      resourceKey,
+      lock: { lockUid, acquired: lockAcquired, released: lockReleased },
+      auditAttemptWritten: false,
+      writeExecuted: false,
+      adminNoteWriteExecuted: false
+    }
+  };
+}
+
+function buildWriteFailureResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, resourceKey, noteUid, lockUid, lockAcquired, lockReleased, lockReleaseFailed, auditAttemptWritten, auditFailureWritten, auditFollowupFailed, writeExecuted, readBack, failureReason, update = false }) {
+  return {
+    status: 500,
+    body: {
+      ...base,
+      ok: false,
+      loggedIn: true,
+      dashboardAccess: true,
+      accessReason: dashboardAccess.reason,
+      reason: failureReason || (update ? 'admin_note_update_failed' : 'admin_note_write_failed'),
+      actor,
+      permissions,
+      table: tableStatus,
+      targetUser,
+      resourceKey,
+      noteUid,
+      lock: { lockUid, acquired: lockAcquired, released: lockReleased, releaseFailed: lockReleaseFailed },
+      auditAttemptWritten,
+      auditFailureWritten,
+      auditFollowupFailed,
+      writeExecuted,
+      adminNoteWriteExecuted: writeExecuted,
+      adminNoteCreateExecuted: update ? false : writeExecuted,
+      adminNoteUpdateExecuted: update ? writeExecuted : false,
+      adminNoteDeactivateExecuted: false,
+      physicalDeleteExecuted: false,
+      readBackPerformed: Boolean(readBack),
+      readBackFound: Boolean(readBack && readBack.exists)
+    }
+  };
+}
+
+function buildSuccessResponse({ base, actor, permissions, tableStatus, targetUser, dashboardAccess, action, reason, noteUid, resourceKey, lockUid, lockAcquired, lockReleased, lockReleaseFailed, auditAttemptUid, auditSuccessUid, auditAttemptWritten, auditSuccessWritten, auditFailureWritten, auditFollowupFailed, readBack, warning, oldNoteTextLength, newNoteTextLength }) {
+  const isUpdate = action === UPDATE_ACTION;
+  return {
+    status: auditFollowupFailed || lockReleaseFailed ? 207 : 200,
+    body: {
+      ...base,
+      ok: !auditFollowupFailed && !lockReleaseFailed,
+      loggedIn: true,
+      dashboardAccess: true,
+      accessReason: dashboardAccess.reason,
+      reason,
+      actor,
+      permissions,
+      table: tableStatus,
+      targetUser,
+      confirmWriteAccepted: true,
+      noteUid,
+      resourceKey,
+      lock: {
+        lockUid,
+        acquired: lockAcquired,
+        released: lockReleased,
+        releaseFailed: lockReleaseFailed
+      },
+      audit: {
+        attemptUid: auditAttemptUid,
+        successUid: auditSuccessWritten ? auditSuccessUid : null,
+        attemptWritten: auditAttemptWritten,
+        successWritten: auditSuccessWritten,
+        failureWritten: auditFailureWritten,
+        auditFollowupFailed
+      },
+      writeExecuted: true,
+      databaseWriteExecuted: true,
+      adminNoteWriteExecuted: true,
+      adminNoteCreateExecuted: !isUpdate,
+      adminNoteUpdateExecuted: isUpdate,
+      adminNoteDeactivateExecuted: false,
+      physicalDeleteExecuted: false,
+      uiWriteButtonsEnabled: false,
+      readBackPerformed: true,
+      readBackFound: Boolean(readBack && readBack.exists),
+      noteTextReturned: !isUpdate,
+      oldNoteTextLength: Number.isFinite(oldNoteTextLength) ? oldNoteTextLength : null,
+      newNoteTextLength: Number.isFinite(newNoteTextLength) ? newNoteTextLength : null,
+      note: readBack,
+      warning
+    }
+  };
 }
 
 function buildPermissionSummary({ remoteViewContext, readContext, writeContext, remoteViewAllowed, readAllowed, writeAllowed }) {
@@ -821,13 +1130,12 @@ function buildRequestInfo(req) {
   };
 }
 
-function sanitizeNoteRow(row) {
-  return {
+function sanitizeNoteRow(row, { includeText = true } = {}) {
+  const result = {
     exists: true,
     id: row.id,
     note_uid: row.note_uid,
     target_user_uid: row.target_user_uid,
-    note_text: row.note_text,
     noteTextLength: String(row.note_text || '').length,
     status: row.status || null,
     created_by_user_uid: row.created_by_user_uid || null,
@@ -835,6 +1143,26 @@ function sanitizeNoteRow(row) {
     created_at: normalizeDate(row.created_at),
     updated_at: normalizeDate(row.updated_at)
   };
+  if (includeText) result.note_text = row.note_text;
+  return result;
+}
+
+function redactExistingNote(note) {
+  if (!note || !note.exists) return note;
+  return {
+    exists: true,
+    note_uid: note.note_uid,
+    target_user_uid: note.target_user_uid,
+    noteTextLength: note.noteTextLength,
+    status: note.status,
+    created_at: note.created_at,
+    updated_at: note.updated_at
+  };
+}
+
+function buildRouteForAction(action) {
+  if (action === UPDATE_ACTION) return '/api/remote/admin/users/admin-notes/update';
+  return '/api/remote/admin/users/admin-notes/create';
 }
 
 function normalizeAction(action) {
@@ -842,6 +1170,14 @@ function normalizeAction(action) {
 }
 
 function normalizeUserUid(value) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (!/^[a-zA-Z0-9:_-]{1,128}$/.test(trimmed)) return '';
+  return trimmed;
+}
+
+function normalizeNoteUid(value) {
   if (typeof value !== 'string') return '';
   const trimmed = value.trim();
   if (!trimmed) return '';
@@ -869,12 +1205,12 @@ function buildNoteUid() {
 
 function buildLockUid() {
   const stamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
-  return `rdap39_admin_note_lock_${stamp}_${crypto.randomBytes(6).toString('hex')}`;
+  return `rdap61_admin_note_lock_${stamp}_${crypto.randomBytes(6).toString('hex')}`;
 }
 
 function buildAuditUid(kind) {
   const stamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
-  return `rdap39_admin_note_${kind}_${stamp}_${crypto.randomBytes(6).toString('hex')}`;
+  return `rdap61_admin_note_${kind}_${stamp}_${crypto.randomBytes(6).toString('hex')}`;
 }
 
 function safeString(value, maxLength) {

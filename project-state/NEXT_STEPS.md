@@ -1,107 +1,46 @@
 # NEXT_STEPS
 
-Stand: RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN  
+Stand: RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
+RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS
 ```
 
 ## Ziel
 
 ```text
-Nur den kleinsten Admin-Note Update-Backend-Scope bauen.
+RDAP61 live bestaetigen und dokumentieren.
 ```
 
-## Richtung
+## Nach lokalem Stepdone deployen
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
+cd RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
+sudo bash tools/remote-modboard-deploy.sh RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION dev
+```
+
+## Live-Checks
+
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/status | jq
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.adminNoteUpdateConfirmed, .adminUsersAdminNoteWriteDisabled'
+```
+
+## Nicht direkt aendern
 
 ```text
-- Bestehende Admin-Notes-Struktur nutzen.
-- Bestehende Route /api/remote/admin/users/admin-notes/update erst nach Plan gezielt aktivieren.
-- Keine neue Parallelroute bauen, solange admin-users.routes.js fachlich passt.
-- Keine Deactivate-Funktion im selben Step.
-- Kein Delete.
-- Keine Community-Read-Freigabe.
-- Keine Permission-/Rollen-/Gruppen-Writes.
+Keine Update-UI ohne separaten Plan.
+Kein Deactivate.
+Kein Delete.
+Keine DB-Migration.
+Keine neue Permission.
+Keine Community-Read-Freigabe.
+Keine Rollen-/Gruppen-/Permission-Writes.
+Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 ```
-
-## Vorher pruefen
-
-```text
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP60.md
-docs/current/RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN.md
-docs/current/RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN.md
-project-state/CURRENT_STATUS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
-
-Fuer RDAP61-Codeplanung zusaetzlich:
-
-```text
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
-remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
-remote-modboard/backend/src/services/admin-user-admin-note-write-disabled.service.js
-remote-modboard/backend/src/services/admin-confirm-write.service.js
-remote-modboard/backend/src/services/admin-audit-write.service.js
-remote-modboard/backend/src/services/admin-lock-write.service.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/src/app.js
-```
-
-## Geplanter Update-Scope
-
-```text
-targetUserUid
-noteUid
-noteText
-confirmWrite: true
-```
-
-Server setzt:
-
-```text
-note_text
-updated_by_user_uid
-updated_at
-```
-
-Pflichtschutz:
-
-```text
-Session
-DashboardAccess
-remote.view
-admin.users.note.write
-confirmWrite nur Body
-Lock
-Audit ohne raw note_text
-Readback
-DB-Backup vor produktivem Test
-```
-
-## Nicht in RDAP61 bauen
-
-```text
-Admin-Note Deactivate
-Physisches Delete
-Community-Read
-Public/Profile/Self-Service Admin-Note-Ausgabe
-Permission-Verwaltung
-Rollen-/Gruppen-Schreibverwaltung
-Session-Revocation
-Agent-/OBS-/Sound-/Overlay-/Command-Steuerung
-```
-
-## Alternative, falls noch kein Backend-Write gewuenscht ist
-
-```text
-RDAP61_ADMIN_NOTES_READ_ONLY_UI_STATUS_POLISH
-```
-
-Nur UI/Status-Polish ohne neue Route, ohne DB, ohne Writes.
