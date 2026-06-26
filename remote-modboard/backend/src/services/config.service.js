@@ -52,7 +52,7 @@ function loadConfig() {
     migrationEnabled: false
   };
 
-  const dbConfigured = Boolean(database.host && database.name && database.user && database.passwordConfigured);
+  const dbConfigured = isDatabaseConfigured({ database });
   const authEffective = authRequested
     && twitchRequested
     && sessionRequested
@@ -180,6 +180,64 @@ function loadConfig() {
   };
 }
 
+function buildPublicConfigSummary(config = {}) {
+  const database = config.database || {};
+  const agentRuntime = config.agent && config.agent.runtime ? config.agent.runtime : {};
+  const auth = config.auth || {};
+
+  return {
+    service: config.service || 'remote-modboard',
+    module: config.module || 'remote_node_base',
+    host: config.host,
+    port: config.port,
+    envPath: config.envPath,
+    envFileExists: config.envFileExists,
+    publicBaseUrl: config.publicBaseUrl,
+    centralAuth: config.centralAuth || {},
+    database: {
+      engine: database.engine,
+      driver: database.driver,
+      configured: isDatabaseConfigured(config),
+      writeEnabled: false,
+      migrationEnabled: false
+    },
+    dashboardAccess: config.dashboardAccess || {},
+    agent: {
+      runtime: {
+        skeletonPrepared: agentRuntime.skeletonPrepared === true,
+        requestedEnabled: agentRuntime.requestedEnabled === true,
+        acceptBuildPrepared: agentRuntime.acceptBuildPrepared === true,
+        acceptBuildEnabled: agentRuntime.acceptBuildEnabled === true,
+        twoStepRuntimeGate: agentRuntime.twoStepRuntimeGate === true,
+        effectiveEnabled: agentRuntime.effectiveEnabled === true,
+        wssRuntimeEnabled: agentRuntime.wssRuntimeEnabled === true,
+        heartbeatReceiverEnabled: false,
+        acceptsAgentConnections: agentRuntime.acceptsAgentConnections === true,
+        actionsEnabled: false,
+        productiveAgentRuntime: false,
+        wsPath: agentRuntime.wsPath || '/agent-ws',
+        expectedAgentId: agentRuntime.expectedAgentId || 'stream-pc-main',
+        expectedAgentName: agentRuntime.expectedAgentName || 'Forrest Stream-PC',
+        accessKeyConfigured: agentRuntime.accessKeyConfigured === true,
+        accessKeySource: 'environment',
+        accessKeyExposed: false,
+        accessKeyLogged: false
+      }
+    },
+    auth: {
+      authEnabled: Boolean(auth.authEnabled),
+      loginEnabled: Boolean(auth.loginEnabled),
+      loginEntryPath: auth.loginEntryPath || '/api/remote/auth/login/start',
+      twitchOAuth: auth.twitchOAuth || {},
+      sessions: auth.sessions || {}
+    },
+    paths: {
+      cwd: config.paths && config.paths.cwd ? config.paths.cwd : undefined,
+      appRoot: config.paths && config.paths.appRoot ? config.paths.appRoot : undefined
+    }
+  };
+}
+
 function buildCentralAuthUrl({ baseUrl, pathName, returnTo }) {
   try {
     const url = new URL(pathName, baseUrl.replace(/\/+$/, '/') || 'https://forrestcgn.de/');
@@ -229,4 +287,18 @@ function isConfiguredSecret(name) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-module.exports = { loadConfig };
+function isDatabaseConfigured(config = {}) {
+  const database = config.database || {};
+  return Boolean(
+    database.host
+    && database.name
+    && database.user
+    && database.passwordConfigured
+  );
+}
+
+module.exports = {
+  loadConfig,
+  buildPublicConfigSummary,
+  isDatabaseConfigured
+};
