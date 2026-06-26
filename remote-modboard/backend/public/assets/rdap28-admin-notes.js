@@ -1,22 +1,38 @@
 'use strict';
 
 (function () {
-  const TARGET_USER_UID = 'tw:127709954';
+  const DEFAULT_TARGET_USER = Object.freeze({
+    userUid: 'tw:127709954',
+    displayName: 'ForrestCGN',
+    loginName: 'forrestcgn',
+    status: 'default'
+  });
   const MAX_NOTE_TEXT_LENGTH = 5000;
-  const NOTES_ENDPOINT = `/api/remote/admin/users/admin-notes/read?targetUserUid=${encodeURIComponent(TARGET_USER_UID)}`;
+  const AUTH_MODEL_ENDPOINT = '/api/remote/auth/model';
+  const READ_ENDPOINT_BASE = '/api/remote/admin/users/admin-notes/read';
   const CREATE_ENDPOINT = '/api/remote/admin/users/admin-notes/create';
 
   let latestAdminNotesResult = null;
   let latestCanWrite = false;
   let createDialogOpen = false;
   let createInFlight = false;
+  let targetUsersLoaded = false;
+  let targetUsers = [DEFAULT_TARGET_USER];
+  let selectedTargetUser = { ...DEFAULT_TARGET_USER };
 
   document.addEventListener('DOMContentLoaded', () => {
     injectStyles();
     injectNavigation();
     injectPanel();
     bindAdminNotesActions();
+    exposeTargetSelectionApi();
+    void loadTargetUsers('initial');
     loadAdminNotes('initial');
+  });
+
+  window.addEventListener('rdap44:select-admin-note-target', (event) => {
+    const detail = event && event.detail ? event.detail : {};
+    selectTargetUser(detail.user || detail, { source: 'event' });
   });
 
   function injectStyles() {
@@ -26,6 +42,13 @@
     style.textContent = `
       .admin-note-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--gap);margin-bottom:var(--gap)}
       .admin-note-status-card{min-height:92px}
+      .admin-note-target-card{display:grid;gap:12px;margin-bottom:var(--gap)}
+      .admin-note-target-row{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end}
+      .admin-note-target-row label{display:grid;gap:6px;color:var(--muted);font-size:12px}
+      .admin-note-target-row select{width:100%;min-height:38px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(4,7,18,.76);color:var(--text);padding:8px 10px;font:inherit;outline:none}
+      .admin-note-target-row select:focus{border-color:rgba(27,216,255,.48);box-shadow:0 0 0 3px rgba(27,216,255,.10)}
+      .admin-note-target-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+      .admin-note-target-summary .kv-row strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .admin-note-list{display:grid;gap:10px}
       .admin-note-item{padding:12px;border-radius:16px;background:rgba(255,255,255,.052);border:1px solid rgba(255,255,255,.07)}
       .admin-note-item strong,.admin-note-item small{display:block}
@@ -51,8 +74,8 @@
       .admin-note-write-available{background:rgba(69,245,167,.08);border-color:rgba(69,245,167,.20)}
       .admin-note-write-locked{background:rgba(255,209,102,.08);border-color:rgba(255,209,102,.24)}
       .admin-note-danger-note{color:#ffdce3}
-      @media (max-width:1000px){.admin-note-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-      @media (max-width:640px){.admin-note-grid{grid-template-columns:1fr}}
+      @media (max-width:1000px){.admin-note-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-note-target-summary{grid-template-columns:1fr}}
+      @media (max-width:640px){.admin-note-grid{grid-template-columns:1fr}.admin-note-target-row{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
@@ -76,6 +99,7 @@
         tab: 'read/create'
       });
       document.body.classList.remove('nav-collapsed');
+      if (!targetUsersLoaded) void loadTargetUsers('nav');
       loadAdminNotes('nav');
     });
 
@@ -97,6 +121,25 @@
         <p>Anzeige und kontrolliertes Erstellen interner Admin-Notizen. Lesen braucht <strong>admin.users.note.read</strong>, Erstellen braucht <strong>admin.users.note.write</strong> und serverseitiges <strong>confirmWrite</strong>.</p>
       </section>
 
+      <section class="admin-note-target-card cgn-card">
+        <div class="card-head">
+          <div><p class="cgn-eyebrow">Zieluser</p><h2>Admin-Notizen für ausgewählten User</h2></div>
+          <span class="cgn-chip cgn-chip--info" id="adminNotesTargetPill">Default</span>
+        </div>
+        <div class="admin-note-target-row">
+          <label>
+            Zieluser-Auswahl aus vorhandener Auth-/Benutzer-Datenquelle
+            <select id="adminNotesTargetSelect" aria-label="Zieluser für Admin-Notizen auswählen"></select>
+          </label>
+          <button class="secondaryButton small" type="button" id="adminNotesTargetReloadButton">User neu laden</button>
+        </div>
+        <div class="kv-grid admin-note-target-summary">
+          <div class="kv-row"><span>Name</span><strong id="adminNotesTargetDisplayName">—</strong></div>
+          <div class="kv-row"><span>Login</span><strong id="adminNotesTargetLoginName">—</strong></div>
+          <div class="kv-row"><span>UID</span><strong id="adminNotesTargetUserUid">—</strong></div>
+        </div>
+      </section>
+
       <section class="admin-note-grid">
         <article class="metric-card cgn-card admin-note-status-card"><span>Read</span><strong id="adminNotesCanRead">—</strong><small>admin.users.note.read</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
         <article class="metric-card cgn-card admin-note-status-card"><span>Write</span><strong id="adminNotesCanWrite">—</strong><small>admin.users.note.write</small><div class="cgn-progress cgn-progress--warn"><i style="width:18%"></i></div></article>
@@ -107,7 +150,7 @@
       <section class="page-grid">
         <article class="cgn-card span2">
           <div class="card-head">
-            <div><p class="cgn-eyebrow">Notizen</p><h2>ForrestCGN / tw:127709954</h2></div>
+            <div><p class="cgn-eyebrow">Notizen</p><h2 id="adminNotesListTitle">—</h2></div>
             <span class="cgn-chip" id="adminNotesPill">lädt</span>
           </div>
           <div id="adminNotesNotice" class="admin-note-empty">Noch nicht geladen.</div>
@@ -136,7 +179,7 @@
               <textarea id="adminNotesCreateText" maxlength="5000" placeholder="Interne Notiz eingeben …"></textarea>
             </label>
             <div class="admin-note-create-meta">
-              <span>Zieluser: <strong>tw:127709954</strong></span>
+              <span>Zieluser: <strong id="adminNotesCreateTargetUid">—</strong></span>
               <span><strong id="adminNotesCreateCount">0</strong> / 5000 Zeichen</span>
             </div>
             <div class="admin-note-actions">
@@ -147,7 +190,7 @@
               <i>✓</i>
               <div>
                 <strong>Sicherheitsweg</strong>
-                <span>Das Frontend sendet nur Create mit confirmWrite=true. Backend entscheidet weiterhin ueber Session, Permission, Audit, Lock und Readback.</span>
+                <span>Das Frontend sendet nur Create mit confirmWrite=true. Backend entscheidet weiterhin über Session, Permission, Audit, Lock und Readback.</span>
               </div>
             </div>
           </form>
@@ -171,17 +214,27 @@
 
     if (footer) content.insertBefore(section, footer);
     else content.appendChild(section);
+
+    renderSelectedTargetUser();
+    renderTargetSelect();
   }
 
   function bindAdminNotesActions() {
     bindClick('adminNotesReloadButton', () => loadAdminNotes('manual'));
     bindClick('adminNotesCreateToggleButton', () => openCreateDialog());
     bindClick('adminNotesCreateCancelButton', () => closeCreateDialog());
+    bindClick('adminNotesTargetReloadButton', () => loadTargetUsers('manual'));
+
+    const select = document.getElementById('adminNotesTargetSelect');
+    if (select) {
+      select.addEventListener('change', () => {
+        const user = findTargetUser(select.value) || { userUid: select.value };
+        selectTargetUser(user, { source: 'select' });
+      });
+    }
 
     const textarea = document.getElementById('adminNotesCreateText');
-    if (textarea) {
-      textarea.addEventListener('input', updateCreateCount);
-    }
+    if (textarea) textarea.addEventListener('input', updateCreateCount);
 
     const form = document.getElementById('adminNotesCreateForm');
     if (form) {
@@ -192,17 +245,119 @@
     }
   }
 
+  function exposeTargetSelectionApi() {
+    window.RdapAdminNotes = window.RdapAdminNotes || {};
+    window.RdapAdminNotes.selectTargetUser = (user) => selectTargetUser(user, { source: 'api' });
+    window.RdapAdminNotes.getSelectedTargetUser = () => ({ ...selectedTargetUser });
+    window.RdapAdminNotes.reload = () => loadAdminNotes('api');
+  }
+
+  async function loadTargetUsers(reason) {
+    setChipSafe('adminNotesTargetPill', null, reason === 'manual' ? 'lädt neu' : 'lädt');
+    const result = await getAdminNotesJson(AUTH_MODEL_ENDPOINT);
+    const users = extractUsersFromAuthModel(result);
+    targetUsers = mergeTargetUsers([DEFAULT_TARGET_USER].concat(users));
+    targetUsersLoaded = true;
+
+    if (!findTargetUser(selectedTargetUser.userUid)) {
+      targetUsers.unshift(selectedTargetUser);
+      targetUsers = mergeTargetUsers(targetUsers);
+    }
+
+    renderTargetSelect();
+    renderSelectedTargetUser();
+    setChipSafe('adminNotesTargetPill', result && result.ok, `${targetUsers.length} User`);
+  }
+
+  function extractUsersFromAuthModel(result) {
+    const body = (result && result.body) || {};
+    const model = body.model || {};
+    const users = Array.isArray(model.users) ? model.users : [];
+    return users
+      .map(normalizeUser)
+      .filter(user => user && user.userUid);
+  }
+
+  function normalizeUser(user) {
+    if (!user || typeof user !== 'object') return null;
+    const userUid = safeString(user.userUid || user.user_uid || user.uid || '');
+    if (!isValidUserUid(userUid)) return null;
+    const displayName = safeString(user.displayName || user.display_name || user.loginName || user.login_name || userUid);
+    const loginName = safeString(user.loginName || user.login_name || '');
+    const status = safeString(user.status || '');
+    const roles = safeString(user.roles || '');
+    return { userUid, displayName, loginName, status, roles };
+  }
+
+  function mergeTargetUsers(users) {
+    const map = new Map();
+    users.forEach((user) => {
+      const normalized = normalizeUser(user);
+      if (normalized && !map.has(normalized.userUid)) map.set(normalized.userUid, normalized);
+    });
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.userUid === DEFAULT_TARGET_USER.userUid) return -1;
+      if (b.userUid === DEFAULT_TARGET_USER.userUid) return 1;
+      return String(a.displayName || a.userUid).localeCompare(String(b.displayName || b.userUid), 'de');
+    });
+  }
+
+  function renderTargetSelect() {
+    const select = document.getElementById('adminNotesTargetSelect');
+    if (!select) return;
+    const selectedUid = selectedTargetUser.userUid || DEFAULT_TARGET_USER.userUid;
+    select.innerHTML = targetUsers.map((user) => {
+      const label = formatTargetUserLabel(user);
+      const selected = user.userUid === selectedUid ? ' selected' : '';
+      return `<option value="${escapeHtmlLocal(user.userUid)}"${selected}>${escapeHtmlLocal(label)}</option>`;
+    }).join('');
+  }
+
+  function renderSelectedTargetUser() {
+    const user = selectedTargetUser || DEFAULT_TARGET_USER;
+    setTextSafe('adminNotesTargetDisplayName', user.displayName || user.userUid || '—');
+    setTextSafe('adminNotesTargetLoginName', user.loginName ? `@${user.loginName}` : '—');
+    setTextSafe('adminNotesTargetUserUid', user.userUid || '—');
+    setTextSafe('adminNotesCreateTargetUid', user.userUid || '—');
+    setTextSafe('adminNotesListTitle', formatTargetUserTitle(user));
+    renderTargetSelect();
+  }
+
+  function selectTargetUser(user, options) {
+    const normalized = normalizeUser(user);
+    if (!normalized || !normalized.userUid) return false;
+    if (!findTargetUser(normalized.userUid)) {
+      targetUsers = mergeTargetUsers(targetUsers.concat([normalized]));
+    }
+    const changed = normalized.userUid !== selectedTargetUser.userUid;
+    selectedTargetUser = normalized;
+    closeCreateDialog({ keepNotice: true });
+    renderSelectedTargetUser();
+    if (changed || !(options && options.skipLoad)) loadAdminNotes(options && options.source ? `target-${options.source}` : 'target-change');
+    return true;
+  }
+
+  function findTargetUser(userUid) {
+    return targetUsers.find(user => user.userUid === userUid) || null;
+  }
+
   async function loadAdminNotes(reason) {
     const panel = document.querySelector('[data-page-panel="admin-notes"]');
     if (!panel) return;
 
+    renderSelectedTargetUser();
     setChipSafe('adminNotesPill', false, 'lädt');
     setTextSafe('adminNotesNotice', 'Admin-Notizen werden geladen …');
     setClass('adminNotesNotice', 'admin-note-empty');
 
-    const result = await getAdminNotesJson(NOTES_ENDPOINT);
+    const result = await getAdminNotesJson(buildReadEndpoint());
     latestAdminNotesResult = result;
     renderAdminNotes(result, reason);
+  }
+
+  function buildReadEndpoint() {
+    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : DEFAULT_TARGET_USER.userUid;
+    return `${READ_ENDPOINT_BASE}?targetUserUid=${encodeURIComponent(targetUserUid)}`;
   }
 
   async function getAdminNotesJson(url) {
@@ -348,7 +503,6 @@
     createDialogOpen = true;
     const form = document.getElementById('adminNotesCreateForm');
     if (form) form.hidden = false;
-    setTextSafe('adminNotesCreateText', document.getElementById('adminNotesCreateText') ? document.getElementById('adminNotesCreateText').value : '');
     updateCreateCount();
     window.setTimeout(() => {
       const textarea = document.getElementById('adminNotesCreateText');
@@ -378,6 +532,12 @@
       return;
     }
 
+    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : '';
+    if (!isValidUserUid(targetUserUid)) {
+      showCreateResult(false, 'Zieluser ist ungültig.');
+      return;
+    }
+
     const textarea = document.getElementById('adminNotesCreateText');
     const noteText = textarea && typeof textarea.value === 'string' ? textarea.value.trim() : '';
 
@@ -398,7 +558,7 @@
 
     const result = await postAdminNoteJson(CREATE_ENDPOINT, {
       confirmWrite: true,
-      targetUserUid: TARGET_USER_UID,
+      targetUserUid,
       noteText
     });
 
@@ -426,10 +586,14 @@
     const cancel = document.getElementById('adminNotesCreateCancelButton');
     const toggle = document.getElementById('adminNotesCreateToggleButton');
     const reload = document.getElementById('adminNotesReloadButton');
+    const select = document.getElementById('adminNotesTargetSelect');
+    const targetReload = document.getElementById('adminNotesTargetReloadButton');
     if (submit) submit.disabled = Boolean(busy);
     if (cancel) cancel.disabled = Boolean(busy);
     if (toggle) toggle.disabled = Boolean(busy) || !latestCanWrite;
     if (reload) reload.disabled = Boolean(busy);
+    if (select) select.disabled = Boolean(busy);
+    if (targetReload) targetReload.disabled = Boolean(busy);
   }
 
   function showCreateResult(ok, message) {
@@ -470,7 +634,7 @@
     const node = document.getElementById(id);
     if (!node) return;
     node.textContent = text;
-    node.className = ok ? 'cgn-chip cgn-chip--ok' : 'cgn-chip cgn-chip--warn';
+    node.className = ok === true ? 'cgn-chip cgn-chip--ok' : ok === false ? 'cgn-chip cgn-chip--warn' : 'cgn-chip cgn-chip--info';
   }
 
   function setValueSafe(id, value) {
@@ -501,6 +665,25 @@
       if (value !== undefined && value !== null && value !== '') return value;
     }
     return null;
+  }
+
+  function formatTargetUserLabel(user) {
+    const name = user.displayName || user.loginName || user.userUid;
+    const login = user.loginName ? ` @${user.loginName}` : '';
+    return `${name}${login} · ${user.userUid}`;
+  }
+
+  function formatTargetUserTitle(user) {
+    const name = user.displayName || user.loginName || 'Zieluser';
+    return `${name} / ${user.userUid || '—'}`;
+  }
+
+  function isValidUserUid(value) {
+    return typeof value === 'string' && /^[a-zA-Z0-9:_-]{1,128}$/.test(value.trim());
+  }
+
+  function safeString(value) {
+    return value == null ? '' : String(value).trim();
   }
 
   function cssEscapeLocal(value) {
