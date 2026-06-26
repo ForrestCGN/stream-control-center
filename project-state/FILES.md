@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS  
+Stand: RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP80B
+## Geaendert/neu in RDAP80C
 
 ```text
-remote-modboard/backend/public/assets/rdap80-agent-status.js
-docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
+docs/current/RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80C.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,7 +15,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Relevante RDAP80-Dateien bleiben bestehen
+## Relevante RDAP80/RDAP80B-Dateien bleiben bestehen
 
 ```text
 remote-modboard/backend/src/services/agent-status.service.js
@@ -25,6 +25,7 @@ remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/assets/rdap80-agent-status.js
 docs/current/RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION.md
+docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80.md
 ```
 
@@ -39,7 +40,8 @@ docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
 docs/current/RDAP79_DOCS_CURRENT_STATE_AND_NEXT_STREAMPC_CONNECTION_PROMPT.md
 docs/current/RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION.md
 docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80.md
+docs/current/RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80C.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -62,3 +64,4 @@ tools/*
 ```text
 Admin-Notes nur bei echtem Fehler wieder anfassen.
 ```
+

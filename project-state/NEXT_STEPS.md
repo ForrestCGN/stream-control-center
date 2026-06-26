@@ -1,22 +1,22 @@
 # NEXT_STEPS
 
-Stand: RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS  
+Stand: RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP81_AGENT_HANDSHAKE_AND_TOKEN_PLAN
+RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_TOKEN_PLAN
 ```
 
 ## Ziel
 
 ```text
-Agent-Handshake, Agent-ID, Agent-Secret und Heartbeat-Empfang konkret planen.
+Stream-PC-Verbindungs-Handshake, interne Agent-ID, Agent-Secret/Token und Heartbeat-Empfang konkret planen.
 Noch keine produktiven Remote-Actions.
 ```
 
-## Ausgangspunkt RDAP80B
+## Ausgangspunkt RDAP80C
 
 ```text
 - GET /api/remote/agent/status vorhanden.
@@ -25,6 +25,7 @@ Noch keine produktiven Remote-Actions.
 - Status ist disabled/offline.
 - Heartbeat-Modell ist read-only vorbereitet.
 - WSS-Pfad /agent-ws ist nur geplant.
+- RDAP80/RDAP80B sind serverseitig live bestaetigt.
 ```
 
 ## RDAP81 vorbereitend pruefen
@@ -40,6 +41,19 @@ docs/current/*
 project-state/*
 ```
 
+## RDAP81 klaeren
+
+```text
+- Wie authentifiziert sich der Stream-PC beim Webserver?
+- Wo liegt das Agent-Secret serverseitig?
+- Wie wird das Secret lokal auf dem Stream-PC gespeichert?
+- Wie wird ein Agent eindeutig benannt: agentId / streamPcName?
+- WSS-Handshake: Pfad, Header/Token, Version, Reject-Gruende.
+- Heartbeat-Modell: Intervall, stale/offline-Zeit, In-Memory vs. DB.
+- Welche Statusdaten duerfen im UI sichtbar sein?
+- Welche Daten duerfen niemals geloggt werden?
+```
+
 ## Strikt nicht machen
 
 ```text
@@ -52,6 +66,7 @@ Keine freie Datei-/Prozess-/URL-Ausfuehrung.
 Keine produktiven Writes.
 Keine DB-Migration ohne separaten Plan.
 Keine neue Permission ohne separaten Plan.
+Keine produktive Agent-Action-Queue.
 ```
 
 ## Admin-Notes
@@ -60,3 +75,4 @@ Keine neue Permission ohne separaten Plan.
 Admin-Notes eingefroren.
 Nur bei echtem Fehler wieder anfassen.
 ```
+

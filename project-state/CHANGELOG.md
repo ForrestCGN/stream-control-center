@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+
+```text
+- RDAP80 serverseitig live bestaetigt dokumentiert.
+- RDAP80B serverseitig live bestaetigt dokumentiert.
+- Sichtbare Sprachregel festgelegt: Admin -> Verbindungen / Stream-PC Verbindung.
+- Technischer Agent-Begriff bleibt intern fuer Route/Service/Code erlaubt.
+- Naechsten Step umbenannt zu RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_TOKEN_PLAN.
+- Neuer Chat-Prompt nach RDAP80C erstellt.
+- Doku-only.
+- Kein Code.
+- Kein Backend.
+- Keine DB-Migration.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS
 
 ```text
@@ -51,3 +67,4 @@
 - Keine DB-Migration.
 - Kein Webserver-Deploy.
 ```
+
