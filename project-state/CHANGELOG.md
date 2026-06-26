@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP71_ADMIN_NOTES_CLEAN_LAYOUT
+
+```text
+- Admin-Notes Clean-Layout vorbereitet.
+- Frontend-only Style-Injection rdap71AdminNotesCleanLayoutStyle ergaenzt.
+- Alte RDAP69/RDAP67 Admin-Notes Style-Injections werden beim Laden entfernt, falls vorhanden.
+- Aktion/Neu laden/Neue Notiz als schmalere Arbeits-Toolbar dargestellt.
+- Technische Read/Write/Grenzen-Infos weniger dominant gemacht.
+- Create-Bereich nicht mehr dauerhaft als grosser rechter Kasten sichtbar.
+- Create-Formular nur sichtbar, wenn Neue Notiz geoeffnet ist.
+- Sicherheit/Diagnose-Karte in Arbeitsansicht ausgeblendet.
+- Liste und Notizkarten klarer in den Fokus gesetzt.
+- Keine Backend-Route geaendert.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Kein Delete/Deactivate.
+```
+
 ## 2026-06-26 - RDAP70_ADMIN_NOTES_COMPACT_LAYOUT_LIVE_VERIFICATION_DOC
 
 ```text

@@ -1,34 +1,25 @@
 # TODO
 
-Stand: RDAP70_ADMIN_NOTES_COMPACT_LAYOUT_LIVE_VERIFICATION_DOC  
+Stand: RDAP71_ADMIN_NOTES_CLEAN_LAYOUT  
 Datum: 2026-06-26
 
 ## Als Naechstes
 
 ```text
-RDAP71_ADMIN_NOTES_CLEAN_LAYOUT
+RDAP72_ADMIN_NOTES_CLEAN_LAYOUT_LIVE_VERIFICATION_DOC
 ```
 
 Aufgaben:
 
 ```text
-- Startdateien lesen.
-- Plan fuer RDAP71 nennen.
-- Auf go warten.
-- Frontend-only Clean-Layout vorbereiten.
-- Keine Backend-/DB-/Permission-Aenderung.
-- Keine Delete-/Deactivate-Funktion.
-- Lokale Checks:
-  - node --check remote-modboard.js
-  - node --check rdap28-admin-notes.js
-  - git status --short
-  - git diff --stat
-- Nach stepdone.cmd Webserver-Deploy, falls remote-modboard/ geaendert wurde.
+- RDAP71 lokal installieren.
+- node --check fuer remote-modboard.js und rdap28-admin-notes.js ausfuehren.
+- stepdone.cmd nur wenn sauber.
+- Danach Webserver-Deploy, weil Frontend-Code unter remote-modboard/ geaendert wurde.
 - Browser pruefen:
   - Admin-Notizen sichtbar.
-  - Toolbar klar.
-  - Create nur bei Bedarf/durch Neue Notiz sichtbar.
-  - Liste prominent.
+  - Clean-Layout sichtbar und weniger debug-lastig.
+  - Neue Notiz nicht doppelt/dauerhaft gross.
   - Create/Update weiterhin ok.
   - User-Detail/Navigation weiterhin ok.
   - Delete/Deactivate nicht sichtbar.
@@ -43,5 +34,4 @@ Aufgaben:
 - Keine neue Permission.
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
-- Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 ```

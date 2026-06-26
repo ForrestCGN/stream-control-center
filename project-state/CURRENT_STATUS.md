@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP70_ADMIN_NOTES_COMPACT_LAYOUT_LIVE_VERIFICATION_DOC  
+Stand: RDAP71_ADMIN_NOTES_CLEAN_LAYOUT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -23,6 +23,7 @@ RDAP67: Admin-Notes UI-Polish vorbereitet; Frontend-only, keine Backend-/DB-/Per
 RDAP68: RDAP67 live fachlich bestaetigt; Layout weiter verbesserungswuerdig.
 RDAP69: Admin-Notes Compact-Layout vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
 RDAP70: RDAP69 live technisch bestaetigt; Layout fachlich weiterhin zu technisch und noch nicht Zielansicht.
+RDAP71: Admin-Notes Clean-Layout vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
 ```
 
 ## Live-/Browser-Befund nach RDAP70
@@ -37,16 +38,21 @@ Navigation stabil.
 Delete/Deactivate nicht sichtbar.
 ```
 
-## Layout-Befund
+## RDAP71 Umsetzung
 
 ```text
-RDAP69 ist technisch ok, aber noch nicht die gewuenschte Arbeitsoberflaeche.
+Geaendert:
+remote-modboard/backend/public/assets/remote-modboard.js
 
-Auffaellig:
-- "Neue Notiz" erscheint oben als Button und rechts als dauerhafter Create-Bereich.
-- Der Create-Bereich ist weiterhin zu gross.
-- Technische Karten wie Aktion/Grenzen/Read/Write sind fuer spaeteren Normalbetrieb zu dominant.
-- Die eigentliche Notizen-Liste sollte staerker im Fokus stehen.
+Art:
+- idempotente Style-Injection rdap71AdminNotesCleanLayoutStyle
+- alte RDAP69/RDAP67 Admin-Notes Style-Injections werden beim Laden entfernt, falls vorhanden
+- Aktion/Neu laden/Neue Notiz als schmalere Toolbar dargestellt
+- technische Read/Write/Grenzen-Infos weniger dominant
+- Create-Bereich nicht mehr dauerhaft als grosser rechter Kasten sichtbar
+- Create-Formular nur sichtbar, wenn Neue Notiz geoeffnet ist
+- Sicherheit/Diagnose-Karte in Arbeitsansicht ausgeblendet
+- Liste/Notizkarten klarer im Fokus
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -74,5 +80,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP71_ADMIN_NOTES_CLEAN_LAYOUT
+RDAP72_ADMIN_NOTES_CLEAN_LAYOUT_LIVE_VERIFICATION_DOC
 ```
