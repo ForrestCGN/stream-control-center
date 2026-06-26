@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP55_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PREPARED  
+Stand: RDAP55B_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -11,20 +11,20 @@ Datum: 2026-06-26
 - [x] RDAP49B Live-Bestaetigung Admin-User-Detail dokumentiert.
 - [x] RDAP50 Bruecke User-Detail zu Admin-Notizen geplant.
 - [x] RDAP51 Bruecke User-Detail zu Admin-Notizen Frontend-only umgesetzt.
+- [x] RDAP51 live bestaetigt: Kontext-Hinweis, Zieluser-Uebernahme, Ruecksprung und Hinweis ausblenden sichtbar.
 - [x] RDAP51B Live-Bestaetigung dokumentiert.
 - [x] RDAP52 Permission-/Rollen-Read-Details geplant.
 - [x] RDAP53 Permission-Read-Detail-Polish umgesetzt und live sichtbar.
 - [x] RDAP53B Live-Bestaetigung dokumentiert.
-- [x] RDAP54 0-Targets-Polish geplant.
-- [x] RDAP55 0-Targets-Polish vorbereitet.
+- [x] RDAP54 Empty-Targets-Polish geplant.
+- [x] RDAP55 Empty-Targets-Polish umgesetzt und live sichtbar.
+- [x] RDAP55B Live-Bestaetigung dokumentiert.
 
 ## Offen / Naechstes
 
-- [ ] RDAP55 lokal testen.
-- [ ] RDAP55 stepdone nach lokalem Test.
-- [ ] RDAP55 Webserver-Deploy aus frischem GitHub/dev-Clone.
-- [ ] RDAP55 live bestaetigen.
-- [ ] RDAP55B Live-Bestaetigung dokumentieren.
+- [ ] RDAP56 planen: Permission-Detail naechsten Scope entscheiden.
+- [ ] Pruefen, ob weitere read-only Erklaerung der einzelnen Permission-Keys sinnvoll ist.
+- [ ] Pruefen, ob der Permission-Read-Detail-Strang vorerst abgeschlossen werden kann.
 - [ ] Effektive Rechte weiterhin nur read-only darstellen.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.

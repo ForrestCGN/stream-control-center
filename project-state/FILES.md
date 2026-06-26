@@ -1,14 +1,13 @@
 # FILES
 
-Stand: RDAP55_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PREPARED  
+Stand: RDAP55B_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
-## Geaendert in RDAP55
+## Geaendert in RDAP55B
 
 ```text
-remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
-docs/current/RDAP55_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PREPARED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP55.md
+docs/current/RDAP55B_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_LIVE_CONFIRMED_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP55B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -16,32 +15,41 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Zweck der Code-Aenderung
+## Nicht geaendert in RDAP55B
 
 ```text
-Frontend-only Text-/Diagnose-Polish fuer leere modulePermissions.
-0 Targets wird klarer erklaert.
-Keine neue Backend-Route.
-Keine DB-Migration.
-Keine Writes.
-```
-
-## Nicht geaendert in RDAP55
-
-```text
-remote-modboard/backend/src/app.js
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/src/services/auth-db-read.service.js
+Frontend-Code
 Backend-Routen
+Backend-Services
 DB-Schema
 Deploy-Script
-Permissions-Writes
+Permissions
 Auth/Login
+```
+
+## Zuletzt geaendert in RDAP55
+
+```text
+remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
+```
+
+Zweck:
+
+```text
+Frontend-only Erklaerung fuer leere modulePermissions / 0 Targets im bestehenden RDAP53 Permission-Read-Detail-Polish.
 ```
 
 ## Aktuelle relevante Datenquelle
 
 ```text
 GET /api/remote/auth/model
+```
+
+## Aktuelle relevante Admin-Note-Routen
+
+```text
+GET  /api/remote/admin/users/admin-notes/read
+POST /api/remote/admin/users/admin-notes/create
+POST /api/remote/admin/users/admin-notes/update      -> disabled
+POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
