@@ -1,24 +1,37 @@
 # TODO
 
-Stand: RDAP78B_ADMIN_NOTES_READ_RESPONSE_USER_SCOPE_FIX  
+Stand: RDAP78C_ADMIN_NOTES_NOTICE_HUMANIZER_STALE_COUNT_FIX  
 Datum: 2026-06-26
 
 ## Jetzt testen
 
 ```text
-- RDAP78B einspielen.
-- node --check fuer betroffene JS-Dateien.
-- Admin-Notizen Zieluser-Wechsel testen.
-- Count/Liste muessen pro Zieluser stimmen.
+Admin -> Admin-Notizen
+ForrestCGN auswaehlen
+EngelCGN auswaehlen
+zurueck auf ForrestCGN
+```
+
+Erwartung:
+
+```text
+Count/Notice/Liste/Titel muessen immer zum aktuell ausgewaehlten Zieluser passen.
+Alte Counts duerfen nicht wieder erscheinen.
+```
+
+## Checks
+
+```text
+node --check remote-modboard/backend/public/assets/remote-modboard.js
+node --check remote-modboard/backend/public/assets/rdap28-admin-notes.js
+git status --short
 ```
 
 ## Nicht machen
 
 ```text
-- Kein Delete.
-- Kein Deactivate.
-- Keine DB-Migration.
-- Keine Backend-Route.
-- Keine neue Permission.
-- Keine Write-Freigabe.
+Kein Delete/Deactivate.
+Keine DB-Migration.
+Keine neue Permission.
+Keine Write-Freigabe.
 ```

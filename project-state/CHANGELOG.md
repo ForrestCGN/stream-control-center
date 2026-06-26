@@ -1,13 +1,15 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP78B_ADMIN_NOTES_READ_RESPONSE_USER_SCOPE_FIX
+## 2026-06-26 - RDAP78C_ADMIN_NOTES_NOTICE_HUMANIZER_STALE_COUNT_FIX
 
 ```text
-- Admin-Notes Read-Response wird frontendseitig strikt auf aktuell ausgewaehlten Zieluser gescoped.
-- Count basiert nur noch auf Notizen, deren target_user_uid/targetUserUid zum Zieluser passt.
-- Fremde Antwort-Notizen werden nicht angezeigt.
+- Stale Count im Admin-Notes Notice-Humanizer korrigiert.
+- simplifyAdminNotesNotice in remote-modboard.js nutzt nicht mehr dataset.rdap73OriginalText als bevorzugte Quelle.
+- Count wird nur aus aktuellem Notice-Text humanisiert.
+- "Keine Admin-Notizen" / "Keine Notizen" wird nicht mehr durch alten Count ueberschrieben.
+- Frontend-only.
 - Kein Backend.
-- Keine DB.
+- Keine DB-Migration.
 - Keine neue Permission.
 - Kein Delete/Deactivate.
 ```

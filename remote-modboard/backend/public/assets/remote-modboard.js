@@ -462,13 +462,35 @@ function installAdminNotesHumanReadableList() {
 function simplifyAdminNotesNotice() {
   const notice = document.getElementById('adminNotesNotice');
   if (!notice) return;
-  const source = notice.dataset.rdap73OriginalText || notice.textContent || '';
-  const countMatch = source.match(/(\d+)\s+Admin-Notiz/i) || (notice.textContent || '').match(/(\d+)\s+Admin-Notiz/i);
-  if (!countMatch) return;
+
+  const currentText = notice.textContent || '';
+  const normalizedCurrentText = currentText.trim();
+
+  if (!normalizedCurrentText) {
+    delete notice.dataset.rdap73OriginalText;
+    return;
+  }
+
+  if (/keine\s+admin-notiz/i.test(normalizedCurrentText) || /keine\s+notiz/i.test(normalizedCurrentText)) {
+    delete notice.dataset.rdap73OriginalText;
+    return;
+  }
+
+  const countMatch = currentText.match(/(\d+)\s+Admin-Notiz/i) || currentText.match(/(\d+)\s+Notiz/i);
+  if (!countMatch) {
+    delete notice.dataset.rdap73OriginalText;
+    return;
+  }
+
   const count = Number(countMatch[1]);
+  if (!Number.isFinite(count)) {
+    delete notice.dataset.rdap73OriginalText;
+    return;
+  }
+
   const label = count === 1 ? '1 Notiz geladen' : `${count} Notizen geladen`;
-  if (notice.textContent.trim() !== label) {
-    notice.dataset.rdap73OriginalText = source;
+  if (normalizedCurrentText !== label) {
+    notice.dataset.rdap73OriginalText = currentText;
     notice.textContent = label;
   }
 }

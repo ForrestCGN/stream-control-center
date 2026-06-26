@@ -1,15 +1,16 @@
 # CURRENT_STATUS
 
-Stand: RDAP78B_ADMIN_NOTES_READ_RESPONSE_USER_SCOPE_FIX  
+Stand: RDAP78C_ADMIN_NOTES_NOTICE_HUMANIZER_STALE_COUNT_FIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
-## Aktuell bestaetigt
+## Aktuell bestaetigt / vorbereitet
 
 ```text
-RDAP77B: Module Registry Panel Mount und Visibility Fix getestet.
-RDAP78: Selected-User Reload/Count-Fix vorbereitet.
-RDAP78B: Read-Response wird frontendseitig strikt auf aktuell ausgewaehlten Zieluser gescoped.
+RDAP77B: Module Registry / Admin-Unterseiten sichtbar exklusiv getestet.
+RDAP78: Selected-User Reload/Count-Kontext vorbereitet.
+RDAP78B: Read-Response-User-Scope Filter vorbereitet.
+RDAP78C: Stale Notice-Humanizer Count in remote-modboard.js korrigiert.
 ```
 
 ## Strukturstand
@@ -21,13 +22,21 @@ Admin-Notizen und User-Detail sind Admin-Pages.
 Inaktive Panels werden per hidden und is-active-view konsequent versteckt.
 ```
 
-## Admin-Notes Zieluser-Scope
+## Admin-Notes aktueller Backend-Stand
 
 ```text
-Read-Request nutzt targetUserUid.
-Verspaetete Antworten werden ignoriert.
-Count/Liste basieren nur noch auf Notizen, deren target_user_uid/targetUserUid zum aktuell ausgewaehlten Zieluser passt.
-Fremde Antwort-Notizen werden ausgefiltert und nicht angezeigt.
+GET  /api/remote/admin/users/admin-notes/read
+POST /api/remote/admin/users/admin-notes/create
+POST /api/remote/admin/users/admin-notes/update      -> Backend confirmed aktiv
+POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
+```
+
+## Aktueller Frontend-Fix
+
+```text
+simplifyAdminNotesNotice nutzt keinen alten dataset.rdap73OriginalText mehr als Quelle.
+Count wird nur noch aus aktuellem Notice-Text humanisiert.
+Keine-Notizen-Texte werden nicht mehr durch alten Count ueberschrieben.
 ```
 
 ## Weiterhin deaktiviert/verboten
@@ -46,5 +55,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-Nach Browserbestaetigung entscheiden: UI-/Registry-Aufraeumstep oder Read-Response-Diagnose.
+RDAP79_ADMIN_NOTES_CONTEXT_FINAL_BROWSER_VERIFICATION_AND_DOCS
 ```
