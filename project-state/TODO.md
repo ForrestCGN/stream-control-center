@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP94C_LIVE_DEFAULT_CONFIRMED_AND_NEXT_PROMPT  
+Stand: RDAP94D_STREAM_PC_CONNECTION_HEARTBEAT_LIVE_CONFIRM_DOCS  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
@@ -22,16 +22,30 @@ RDAP94C:
 - Echter Service-Name dokumentiert: scc-remote-modboard.service.
 - RDAP94 Build-Kontext live bestaetigt.
 - Runtime/Heartbeat/Actions im Default false bestaetigt.
+
+RDAP94B:
+- Runtime temporaer aktiviert.
+- WebSocket 101 bestaetigt.
+- Gueltiger Heartbeat live sichtbar bestaetigt.
+- Forbidden Heartbeat sicher abgelehnt.
+- Actions/Productive Runtime false bestaetigt.
+- Runtime final wieder deaktiviert.
+
+RDAP94D:
+- Live-Confirm dokumentiert.
+- Next Chat Prompt aktualisiert.
+- project-state aktualisiert.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP94B_STREAM_PC_CONNECTION_HEARTBEAT_LIVE_CONFIRM
+RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN
 ```
 
 ## Danach
 
 ```text
-RDAP94D oder RDAP95: Heartbeat Live-Confirm dokumentieren und naechsten sicheren Stream-PC-Verbindungsstep planen.
+Nach RDAP95-Plan: minimalen Stream-PC Agent Client nur fuer Verbindung + Heartbeat vorbereiten.
+Keine Actions ohne separaten Sicherheitsplan.
 ```
