@@ -1,29 +1,23 @@
 # NEXT_STEPS
 
-Stand: RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION  
+Stand: RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN
+RDAP67_ADMIN_NOTES_UI_POLISH
 ```
 
 ## Ziel
 
 ```text
-Auf Basis der bestaetigten Admin-Notes-Erfolgswege den naechsten kleinen, sicheren Scope planen.
-Kein Code ohne vorherigen Scope-Plan.
+Admin-Notes UI-Polish ohne neue Backend-Funktion, ohne neue Permission und ohne neue Schreibrechte.
 ```
 
 ## Ausgangslage
 
 ```text
-RDAP64D ist live deployed.
-Server-Checks sind ok.
-Browser-Konsole ist sauber.
-Admin-Notes-Sichtbarkeit wurde ueber Haupt-Router korrigiert.
-Backend wurde nicht geaendert.
 RDAP65B bestaetigt fachlich:
 - Admin-Notizen Inhalt sichtbar.
 - Create funktioniert.
@@ -33,28 +27,29 @@ RDAP65B bestaetigt fachlich:
 - Delete/Deactivate nicht sichtbar.
 ```
 
-## Moegliche naechste Mini-Scopes
+## Erlaubter Scope
 
 ```text
-1. Admin-Notes UI-Polish:
-   - Lesbarkeit der Karten verbessern.
-   - Create-/Update-Hinweise klarer machen.
-   - Bearbeiten-Zustand kompakter fuehren.
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+optional remote-modboard/backend/public/assets/remote-modboard.css
+optional docs/current/* und project-state/*
+```
 
-2. Status-Semantik angleichen:
-   - Diagnosewerte wie moduleBuild/statusApiVersion weniger verwirrend darstellen.
-   - Nur Status-/Doku-/Semantik, keine neue Produktivfunktion.
+## Gewuenschter Polish
 
-3. Admin-Notes Zieluser-Auswahl verbessern:
-   - Suche/Select nutzerfreundlicher machen.
-   - Keine neuen Schreibrechte.
-   - Keine neue Permission.
+```text
+- Admin-Notes-Karten lesbarer machen.
+- Metadaten kompakter darstellen.
+- Create-/Update-Erfolgshinweise klarer platzieren.
+- Bearbeiten-Zustand kompakter fuehren.
+- Safety-Hinweise klarer, aber nicht aufdringlicher anzeigen.
 ```
 
 ## Nicht aendern
 
 ```text
 Keine DB-Migration.
+Keine Backend-Route.
 Keine neue Permission.
 Kein Deactivate.
 Kein Delete.
@@ -62,11 +57,19 @@ Keine Community-Read-Freigabe.
 Keine Rollen-/Gruppen-/Permission-Writes.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 Keine parallele Zweitnavigation.
+Kein Umbau des Haupt-Routers ohne zwingenden Befund.
 ```
 
-## Empfehlung
+## Checks fuer RDAP67
 
-```text
-RDAP66 sollte Plan-only sein.
-Danach erst einen kleinen Code-Step auswaehlen.
+```powershell
+cd D:\Git\stream-control-center
+
+node --check .\remote-modboard\backend\public\assets\rdap28-admin-notes.js
+node --check .\remote-modboard\backend\public\assets\remote-modboard.js
+
+git status --short
+git diff --stat
 ```
+
+RDAP67 braucht nach `stepdone.cmd` Webserver-Deploy, falls Frontend-Code unter `remote-modboard/` geaendert wird.

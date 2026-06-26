@@ -1,55 +1,47 @@
 # TODO
 
-Stand: RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION  
+Stand: RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN  
 Datum: 2026-06-26
 
 ## Offen / als Naechstes
 
 ```text
-RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN
+RDAP67_ADMIN_NOTES_UI_POLISH
 ```
 
-Aufgaben:
+Aufgaben fuer RDAP67:
 
 ```text
-- Naechsten kleinen Admin-Notes-Scope planen.
-- Scope-Kandidaten bewerten:
-  - UI-Polish
-  - Status-Semantik angleichen
-  - Zieluser-Auswahl verbessern
-- Vor Code genau festlegen:
-  - Ziel
-  - Dateien
-  - Nicht-Aenderungen
-  - lokale Checks
-  - Webserver-Deploy ja/nein
+- rdap28-admin-notes.js auf UI-Struktur pruefen.
+- CSS/Markup fuer Admin-Notes-Karten verbessern.
+- Bearbeiten-Zustand kompakter machen.
+- Erfolg-/Fehlerhinweise klarer darstellen.
+- Bestehende Create-/Update-Funktion erhalten.
+- confirmWrite:true unveraendert lassen.
+- Keine neuen Schreibbuttons einfuehren.
 ```
 
-## Erledigt durch RDAP65B
+## Erledigt / bestaetigt
 
 ```text
-- Admin-Notizen Inhalt fachlich bestaetigt.
-- Create fachlich bestaetigt.
-- Update-Speichern fachlich bestaetigt.
-- User-Detail fachlich bestaetigt.
-- Sicherheit/Navigation fachlich bestaetigt.
-- Delete/Deactivate nicht sichtbar bestaetigt.
-```
-
-## Optional spaeter testen
-
-```text
-- Fehlerfall-Anzeige fuer Update/Create gezielt pruefen.
+- Admin-Notes ist live sichtbar.
+- Create funktioniert.
+- Update-Speichern funktioniert.
+- User-Detail funktioniert.
+- Navigation bleibt stabil.
+- Delete/Deactivate sind nicht sichtbar.
+- RDAP66 hat RDAP67 als naechsten sicheren Code-Scope ausgewaehlt.
 ```
 
 ## Nicht machen
 
 ```text
-- Kein weiterer Blind-Hotfix.
 - Kein Deactivate.
 - Kein Delete.
 - Keine DB-Migration.
+- Keine Backend-Route.
 - Keine neue Permission.
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
+- Kein Haupt-Router-Umbau ohne zwingenden Befund.
 ```

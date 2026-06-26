@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION  
+Stand: RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -18,6 +18,7 @@ RDAP64D: Admin-Notes ueber Haupt-Router sichtbar gemacht, live bestaetigt.
 RDAP64E: Doku-/Status-Step nach RDAP64D auf GitHub/dev abgeschlossen.
 RDAP65A: Bestaetigten Live-Stand und offene fachliche Browser-Pruefpunkte dokumentiert.
 RDAP65B: Admin-Notes fachlich im Browser bestaetigt; Create, Update, User-Detail und Navigation funktionieren.
+RDAP66: Naechsten sicheren Scope geplant; RDAP67 soll Admin-Notes UI-Polish werden.
 ```
 
 ## Live-/Browser-Befund nach RDAP65B
@@ -49,24 +50,19 @@ Sicherheit/Diagnose zeigt HTTP-200-Karten.
 Deactivate/Delete sind nicht sichtbar.
 ```
 
-## Wichtige Einordnung
+## RDAP66 Entscheidung
 
 ```text
-RDAP64D war ein Frontend-/Router-Step.
-Dass moduleBuild weiterhin RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED meldet, ist nicht automatisch ein Fehler.
-Backend-/Status-Routen wurden in RDAP64D bewusst nicht veraendert.
-```
+Naechster Code-Step:
+RDAP67_ADMIN_NOTES_UI_POLISH
 
-## RDAP64D technische Wirkung
-
-```text
-remote-modboard.js bleibt Haupt-Router.
-Navigation fuer spaeter injizierte nav-link[data-page] wird ueber Delegation erfasst.
-setPage() ist wieder zentrale Sichtbarkeitsinstanz.
-Fremde hidden-Zustaende auf data-page-panel werden vor dem is-active-view-Toggle bereinigt.
-is-active und active werden synchron gesetzt.
-window.RdapMainRouter stellt setPage/loadDashboard/getCurrentPage bereit.
-rdap28-admin-notes.js bleibt fachliches Admin-Notes-Modul.
+Begruendung:
+- Erfolgsweg ist bestaetigt.
+- Kein Backend noetig.
+- Keine neue Permission noetig.
+- Kein Delete/Deactivate.
+- Geringes Risiko.
+- Direkter sichtbarer Nutzen.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -76,13 +72,6 @@ GET  /api/remote/admin/users/admin-notes/read
 POST /api/remote/admin/users/admin-notes/create
 POST /api/remote/admin/users/admin-notes/update      -> Backend confirmed aktiv
 POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
-```
-
-## Optional noch offen
-
-```text
-Fehlerfall-Test fuer Update/Create ist nicht explizit erzwungen worden.
-Das ist kein Blocker fuer den bestaetigten Erfolgsweg.
 ```
 
 ## Weiterhin deaktiviert/verboten
@@ -101,5 +90,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN
+RDAP67_ADMIN_NOTES_UI_POLISH
 ```
