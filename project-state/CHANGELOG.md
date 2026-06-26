@@ -1,40 +1,51 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP57B_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_LIVE_CONFIRMED_DOCS
+## 2026-06-26 - RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN
 
-Doku-only.
+RDAP58 bewertet den nach RDAP57B live bestaetigten Permission-Read-Detail-Strang und plant den naechsten Bereich.
 
-Dokumentiert:
+Ergebnis:
 
 ```text
-RDAP57 Permission-Read-Detail Categories-Polish ist live sichtbar.
-Admin -> User-Detail funktioniert weiter.
-ForrestCGN @forrestcgn / tw:127709954 ist auswaehlbar.
-Effektive Rollen-Rechte bleiben sichtbar.
-8 Rechte werden angezeigt.
-Rechte sind gruppiert:
-- Admin: 5 Rechte
-- Agent / Status: 1 Recht
-- Dashboard / Remote: 2 Rechte
-Admin-/Write-nahe Rechte sind als Modellanzeige markiert.
-0-Targets-Erklaerung bleibt erhalten.
-Diagnose bleibt erhalten.
-Keine Schreibbuttons sichtbar.
+Permission-Read-Detail-Strang wird vorerst abgeschlossen.
+Naechster empfohlener Step: RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN.
+```
+
+Begruendung:
+
+```text
+RDAP57B bestaetigt live:
+- User-Detail funktioniert weiter.
+- Effektive Rollen-Rechte sind sichtbar.
+- 8 Rechte werden angezeigt.
+- Rechte sind gruppiert.
+- Admin-/Write-nahe Rechte sind als Modellanzeige markiert.
+- 0-Targets-Erklaerung bleibt erhalten.
+- Diagnose bleibt erhalten.
+- Keine Schreibbuttons sichtbar.
 ```
 
 Nicht geaendert:
 
 ```text
-Kein Code.
+Keine Code-Aenderung.
 Keine Backend-Route.
 Keine Service-Aenderung.
 Keine DB-Migration.
-Keine Writes.
+Keine UI-Schreibbuttons.
 Kein Webserver-Deploy noetig.
 ```
 
-Naechster empfohlener Step:
+Weiterhin deaktiviert:
 
 ```text
-RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN
+Admin-Note Update
+Admin-Note Deactivate
+Physisches Delete
+Community-Read fuer Admin-Notizen
+Permission-Verwaltung in der UI
+Rollen-/Gruppen-Schreibverwaltung
+Session-Revocation in der UI
+Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
+freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```

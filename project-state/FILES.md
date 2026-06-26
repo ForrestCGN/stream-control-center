@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP57B_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN  
 Datum: 2026-06-26
 
-## In RDAP57B geaendert
+## In RDAP58 geaendert
 
 ```text
-docs/current/RDAP57B_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_LIVE_CONFIRMED_DOCS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP57B.md
+docs/current/RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP58.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,26 +15,24 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## In RDAP57B nicht geaendert
+## Nicht geaendert in RDAP58
 
 ```text
 remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
-remote-modboard/backend/src/app.js
-remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
+remote-modboard/backend/src/app.js
 remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/public/index.html
 ```
 
-## Zuletzt relevante Code-Datei aus RDAP57
+## Hinweis
+
+RDAP58 ist Doku-only / Plan-only.
 
 ```text
-remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
-```
-
-## Hinweise
-
-```text
-RDAP57B ist Doku-only.
+Kein Node-Check noetig.
 Kein Webserver-Deploy noetig.
-RDAP57 hat die bestehende RDAP53/RDAP55-Datei erweitert, keine Parallelstruktur gebaut.
+Keine Backend-Route.
+Keine DB-Migration.
+Keine Writes.
 ```

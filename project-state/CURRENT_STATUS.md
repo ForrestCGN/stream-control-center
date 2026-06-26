@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP57B_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -22,6 +22,7 @@ RDAP55B dokumentiert die RDAP55 Live-Bestaetigung.
 RDAP56 Permission-Detail naechster Scope wurde geplant.
 RDAP57 Permission-Read-Detail Categories-Polish ist vorbereitet, deployed und live sichtbar.
 RDAP57B dokumentiert die RDAP57 Live-Bestaetigung.
+RDAP58 schliesst/ bewertet den Permission-Read-Detail-Strang und plant den naechsten Bereich.
 ```
 
 ## RDAP57 live bestaetigter Stand
@@ -36,6 +37,15 @@ Admin-/Write-nahe Rechte sind als Modellanzeige markiert.
 0-Targets-Erklaerung bleibt erhalten.
 Diagnose bleibt erhalten.
 Keine Schreibbuttons fuer Rollen/Gruppen/Permissions/Sessions sichtbar.
+```
+
+## RDAP58 Bewertung
+
+```text
+Permission-Read-Detail-Strang ist vorerst ausreichend rund.
+Keine weiteren Permission-Read-Polishes noetig.
+Keine Permission-Writes direkt danach bauen.
+Keine Rollen-/Gruppen-Schreibverwaltung direkt danach bauen.
 ```
 
 ## Live-System
@@ -86,5 +96,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN
+RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN
 ```

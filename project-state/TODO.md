@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP57B_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -22,11 +22,12 @@ Datum: 2026-06-26
 - [x] RDAP56 Permission-Detail naechster Scope geplant.
 - [x] RDAP57 Permission-Read-Detail Categories-Polish umgesetzt und live sichtbar.
 - [x] RDAP57B Live-Bestaetigung dokumentiert.
+- [x] RDAP58 Permission-Read-Detail-Strang bewertet / Wrapup geplant.
 
 ## Offen / Naechstes
 
-- [ ] RDAP58 planen: Permission-Read-Detail-Strang abschliessen oder neuen Bereich waehlen.
-- [ ] Effektive Rechte weiterhin nur read-only darstellen.
+- [ ] RDAP59 planen: Admin-Notizen Community-Read-Scope klaeren.
+- [ ] Klaeren, welche Admin-Notizen ausserhalb des Admin-Bereichs sichtbar werden duerfen.
+- [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen, bis ein separater Scope umgesetzt und bestaetigt ist.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
-- [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.
