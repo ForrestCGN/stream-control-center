@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS  
+Stand: RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,6 +15,7 @@ RDAP94D: Live-Confirm dokumentiert.
 RDAP95: Minimaler Stream-PC Agent Client geplant.
 RDAP96: Heartbeat-only Stream-PC Agent Client vorbereitet.
 RDAP96B: Lokale Agent-Checks dokumentiert.
+RDAP97: Manueller Agent-Testplan dokumentiert.
 ```
 
 ## Live-Service
@@ -47,31 +48,21 @@ actionEnabled=false
 productiveAgentRuntime=false
 ```
 
-## RDAP96 gebaut
+## RDAP97 dokumentiert
 
 ```text
-Minimaler Stream-PC Agent Client unter remote-modboard/stream-pc-agent/.
-Zunaechst nur Verbindung + Heartbeat.
-Node built-ins only: net/tls/crypto.
-Keine externe ws-Abhaengigkeit.
-Manueller Start zuerst.
-Kein Autostart/Service in erster Stufe.
-Config ohne Secrets im Git.
-Logging ohne Secrets/Header/Token/Rohpayloads.
-Reconnect mit Backoff.
-Keine Agent-Actions.
+Separater manueller Testplan fuer RDAP96-Agent-Client erstellt.
+Runtime nur temporaer aktivieren.
+Agent nur manuell starten.
+Lokales Secret nur lokal setzen, niemals in Chat/Git/Doku.
+/api/remote/agent/status pruefen.
+Gueltigen Heartbeat bestaetigen.
+Runtime final wieder deaktivieren.
+Finalen disabled Status pruefen.
+Keine Actions.
 Kein Backend-Code geaendert.
-Keine Runtime dauerhaft aktiviert.
-```
-
-## RDAP96B dokumentiert
-
-```text
-Lokale Check-Bestaetigung fuer RDAP96-Agent vorbereitet.
-node --check fuer Agent-Dateien dokumentiert.
-npm --prefix remote-modboard/stream-pc-agent run check dokumentiert.
+Kein Agent-Code geaendert.
 Kein Webserver-Deploy noetig.
-Kein Webserver-Live-Test in RDAP96B.
 ```
 
 ## Sicherheitsgrenzen
@@ -95,5 +86,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN
+RDAP98_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_LIVE
 ```

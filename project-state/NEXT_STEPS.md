@@ -1,24 +1,26 @@
 # NEXT_STEPS
 
-Stand: RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS  
+Stand: RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN
+RDAP98_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_LIVE
 ```
 
 ## Ziel
 
-RDAP97 soll einen separaten manuellen Testplan fuer den RDAP96-Agent-Client vorbereiten:
+RDAP98 soll den in RDAP97 geplanten manuellen Test des RDAP96-Agent-Clients durchfuehren:
 
 ```text
+- Vorab disabled Status pruefen.
 - Runtime auf dem Webserver nur temporaer aktivieren.
 - Agent Client nur manuell starten.
 - Lokales Secret nur lokal setzen, niemals in Chat/Git/Doku.
 - /api/remote/agent/status pruefen.
 - Gueltigen Heartbeat bestaetigen.
+- Agent stoppen.
 - Runtime final wieder deaktivieren.
 - Finalen disabled Status pruefen.
 - Keine Actions.
@@ -27,10 +29,10 @@ RDAP97 soll einen separaten manuellen Testplan fuer den RDAP96-Agent-Client vorb
 ## Voraussetzung
 
 ```text
-RDAP96B abgeschlossen:
-- node --check fuer Agent-Dateien bestaetigt.
-- npm --prefix remote-modboard/stream-pc-agent run check bestaetigt.
-- git status sauber nach stepdone.cmd.
+RDAP97 abgeschlossen:
+- Manueller Testplan dokumentiert.
+- Kein Agent-Code geaendert.
+- Kein Backend-Code geaendert.
 - Kein Webserver-Deploy noetig.
 ```
 
