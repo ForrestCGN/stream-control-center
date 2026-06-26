@@ -32,12 +32,16 @@ let currentPage = 'overview';
 let latestAuthBody = null;
 let latestPermissionBody = null;
 
+const remoteModboardModules = createRemoteModboardModuleRegistry();
+window.RemoteModboardModules = remoteModboardModules;
+
 window.addEventListener('scroll', () => {
   document.body.classList.toggle('is-scrolled', window.scrollY > 6);
 }, { passive: true });
 
 document.addEventListener('DOMContentLoaded', () => {
   exposeMainRouterApi();
+  initializeRemoteModboardModules();
   injectAdminNotesPolishStyles();
   initAdminNotesHeaderActionsDedup();
   installAdminNotesHumanReadableList();
@@ -61,6 +65,219 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDashboard('initial');
 });
 
+
+
+function createRemoteModboardModuleRegistry() {
+  const modules = new Map();
+  const pages = new Map();
+
+  function normalizeId(value) {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function normalizeModule(input) {
+    const source = input || {};
+    const id = normalizeId(source.id || source.moduleId || source.key);
+    if (!id) return null;
+    const existing = modules.get(id) || {};
+    return {
+      ...existing,
+      ...source,
+      id,
+      label: source.label || existing.label || id,
+      icon: source.icon || existing.icon || '◇',
+      order: Number.isFinite(Number(source.order)) ? Number(source.order) : (Number.isFinite(Number(existing.order)) ? Number(existing.order) : 100),
+      navSubId: source.navSubId || existing.navSubId || `nav-${id}`
+    };
+  }
+
+  function normalizePage(input) {
+    const source = input || {};
+    const pageId = normalizeId(source.pageId || source.id || source.page);
+    const moduleId = normalizeId(source.moduleId || source.module || 'modules');
+    if (!pageId || !moduleId) return null;
+    const key = `${moduleId}:${pageId}`;
+    const existing = pages.get(key) || {};
+    return {
+      ...existing,
+      ...source,
+      key,
+      pageId,
+      moduleId,
+      label: source.label || existing.label || source.title || existing.title || pageId,
+      title: source.title || existing.title || source.label || existing.label || pageId,
+      tab: source.tab !== undefined ? source.tab : (existing.tab !== undefined ? existing.tab : ''),
+      section: source.section || existing.section || source.moduleLabel || existing.moduleLabel || '',
+      order: Number.isFinite(Number(source.order)) ? Number(source.order) : (Number.isFinite(Number(existing.order)) ? Number(existing.order) : 100),
+      status: source.status || existing.status || 'active',
+      permission: source.permission || existing.permission || ''
+    };
+  }
+
+  function registerModule(input) {
+    const moduleConfig = normalizeModule(input);
+    if (!moduleConfig) return publicApi;
+    modules.set(moduleConfig.id, moduleConfig);
+    if (document.readyState !== 'loading') ensureModuleNavigation(moduleConfig);
+    return publicApi;
+  }
+
+  function registerPage(input) {
+    const pageConfig = normalizePage(input);
+    if (!pageConfig) return publicApi;
+    if (!modules.has(pageConfig.moduleId)) {
+      registerModule({ id: pageConfig.moduleId, label: pageConfig.section || pageConfig.moduleId });
+    }
+    pages.set(pageConfig.key, pageConfig);
+    if (document.readyState !== 'loading') ensurePageNavigation(pageConfig);
+    return publicApi;
+  }
+
+  function registerDefaultShell() {
+    registerModule({ id: 'system', label: 'System', icon: '◆', order: 10, navSubId: 'nav-system' });
+    registerPage({ moduleId: 'system', pageId: 'overview', label: 'Übersicht', title: 'Übersicht', tab: 'Status', section: 'System', order: 10 });
+    registerPage({ moduleId: 'system', pageId: 'diagnostics', label: 'Diagnose', title: 'Diagnose', tab: 'Endpoints', section: 'System', order: 20 });
+    registerPage({ moduleId: 'system', pageId: 'routes', label: 'Routen', title: 'Routen', tab: 'Read-only', section: 'System', order: 30 });
+
+    registerModule({ id: 'modules', label: 'Module', icon: '◇', order: 20, navSubId: 'nav-modules' });
+    registerPage({ moduleId: 'modules', pageId: 'modules', label: 'Module', title: 'Module', tab: 'read-only', section: 'Module', order: 10 });
+
+    registerModule({ id: 'admin', label: 'Admin', icon: '⚙', order: 30, navSubId: 'nav-admin' });
+    registerPage({ moduleId: 'admin', pageId: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', section: 'Admin', order: 10 });
+    registerPage({ moduleId: 'admin', pageId: 'admin-user-detail', label: 'User-Detail', title: 'User-Detail', tab: 'read-only', section: 'Admin', order: 20 });
+    registerPage({ moduleId: 'admin', pageId: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read/create', section: 'Admin', order: 30, permission: 'admin.users.note.read' });
+    registerPage({ moduleId: 'admin', pageId: 'access', label: 'Rollen & Rechte', title: 'Rollen & Rechte', tab: 'read-only', section: 'Admin', order: 40 });
+    registerPage({ moduleId: 'admin', pageId: 'diagnostics', label: 'Sicherheit', title: 'Sicherheit', tab: 'Diagnose', section: 'Admin', order: 50 });
+  }
+
+  function initialize() {
+    registerDefaultShell();
+    ensureAllNavigation();
+    try {
+      window.dispatchEvent(new CustomEvent('rdap:module-registry-ready', { detail: getSnapshot() }));
+    } catch (err) {}
+    return publicApi;
+  }
+
+  function ensureAllNavigation() {
+    [...modules.values()]
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .forEach(ensureModuleNavigation);
+    [...pages.values()]
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .forEach(ensurePageNavigation);
+  }
+
+  function ensureModuleNavigation(moduleConfig) {
+    const nav = document.querySelector('.cgn-nav');
+    if (!nav || !moduleConfig) return null;
+
+    let sub = byId(moduleConfig.navSubId);
+    let group = sub ? document.querySelector(`.nav-group[data-target="${cssEscape(moduleConfig.navSubId)}"]`) : null;
+
+    if (!sub || !group) {
+      group = document.createElement('button');
+      group.className = 'nav-group';
+      group.type = 'button';
+      group.dataset.target = moduleConfig.navSubId;
+      group.dataset.moduleId = moduleConfig.id;
+      group.dataset.order = String(moduleConfig.order || 100);
+      group.innerHTML = `<span>${escapeHtml(moduleConfig.icon || '◇')}</span><b>${escapeHtml(moduleConfig.label)}</b><i>⌄</i>`;
+
+      sub = document.createElement('div');
+      sub.className = 'nav-sub';
+      sub.id = moduleConfig.navSubId;
+      sub.dataset.moduleId = moduleConfig.id;
+      sub.dataset.order = String(moduleConfig.order || 100);
+
+      insertModuleNavigation(nav, group, sub, moduleConfig.order || 100);
+    } else {
+      group.dataset.moduleId = moduleConfig.id;
+      group.dataset.order = String(moduleConfig.order || 100);
+      sub.dataset.moduleId = moduleConfig.id;
+      sub.dataset.order = String(moduleConfig.order || 100);
+    }
+
+    bindNavigation();
+    return sub;
+  }
+
+  function insertModuleNavigation(nav, group, sub, order) {
+    const groups = [...nav.querySelectorAll('.nav-group[data-target]')];
+    const nextGroup = groups.find((candidate) => Number(candidate.dataset.order || 100) > Number(order || 100));
+    if (nextGroup) {
+      nav.insertBefore(group, nextGroup);
+      nav.insertBefore(sub, nextGroup);
+      return;
+    }
+    nav.appendChild(group);
+    nav.appendChild(sub);
+  }
+
+  function ensurePageNavigation(pageConfig) {
+    if (!pageConfig) return null;
+    const moduleConfig = modules.get(pageConfig.moduleId) || registerModule({ id: pageConfig.moduleId });
+    const sub = ensureModuleNavigation(modules.get(pageConfig.moduleId) || moduleConfig);
+    if (!sub) return null;
+
+    let button = sub.querySelector(`.nav-link[data-page="${cssEscape(pageConfig.pageId)}"]`);
+    if (!button) {
+      button = document.createElement('button');
+      button.className = 'nav-link';
+      button.type = 'button';
+      button.dataset.page = pageConfig.pageId;
+      insertPageNavigation(sub, button, pageConfig.order || 100);
+    }
+
+    button.dataset.moduleId = pageConfig.moduleId;
+    button.dataset.order = String(pageConfig.order || 100);
+    button.dataset.section = pageConfig.section || (modules.get(pageConfig.moduleId) && modules.get(pageConfig.moduleId).label) || 'Remote Modboard';
+    button.dataset.title = pageConfig.title || pageConfig.label || pageConfig.pageId;
+    button.dataset.tab = pageConfig.tab || '';
+    if (pageConfig.permission) button.dataset.permission = pageConfig.permission;
+    button.textContent = pageConfig.label || pageConfig.title || pageConfig.pageId;
+
+    bindNavLink(button);
+    return button;
+  }
+
+  function insertPageNavigation(sub, button, order) {
+    const links = [...sub.querySelectorAll('.nav-link[data-page]')];
+    const nextLink = links.find((candidate) => Number(candidate.dataset.order || 100) > Number(order || 100));
+    if (nextLink) sub.insertBefore(button, nextLink);
+    else sub.appendChild(button);
+  }
+
+  function getPage(pageId, moduleId) {
+    const safePageId = normalizeId(pageId);
+    const safeModuleId = normalizeId(moduleId || '');
+    if (safeModuleId) return pages.get(`${safeModuleId}:${safePageId}`) || null;
+    return [...pages.values()].find(page => page.pageId === safePageId) || null;
+  }
+
+  function getSnapshot() {
+    return {
+      modules: [...modules.values()].map(item => ({ ...item })),
+      pages: [...pages.values()].map(item => ({ ...item }))
+    };
+  }
+
+  const publicApi = {
+    registerModule,
+    registerPage,
+    initialize,
+    ensureAllNavigation,
+    getPage,
+    getSnapshot
+  };
+
+  return publicApi;
+}
+
+function initializeRemoteModboardModules() {
+  if (!window.RemoteModboardModules || typeof window.RemoteModboardModules.initialize !== 'function') return;
+  window.RemoteModboardModules.initialize();
+}
 
 function injectAdminNotesPolishStyles() {
   if (document.getElementById('rdap74AdminNotesHeaderActionsDedupStyle')) return;
@@ -392,7 +609,8 @@ function exposeMainRouterApi() {
   window.RdapMainRouter = {
     setPage,
     loadDashboard,
-    getCurrentPage
+    getCurrentPage,
+    modules: window.RemoteModboardModules || null
   };
 }
 

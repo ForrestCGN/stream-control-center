@@ -125,6 +125,25 @@
   }
 
   function injectNavigation() {
+    registerAdminPagesWithShell();
+    ensureAdminNavigationFallback();
+    bindExistingAdminNavigationButtons();
+  }
+
+  function registerAdminPagesWithShell() {
+    const registry = window.RemoteModboardModules;
+    if (!registry || typeof registry.registerModule !== "function" || typeof registry.registerPage !== "function") return false;
+
+    registry.registerModule({ id: "admin", label: "Admin", icon: "⚙", order: 30, navSubId: "nav-admin" });
+    registry.registerPage({ moduleId: "admin", pageId: "admin-user-detail", label: "User-Detail", title: "User-Detail", tab: "read-only", section: "Admin", order: 20 });
+    registry.registerPage({ moduleId: "admin", pageId: "admin-notes", label: "Admin-Notizen", title: "Admin-Notizen", tab: "read/create", section: "Admin", order: 30, permission: "admin.users.note.read" });
+    if (typeof registry.ensureAllNavigation === "function") registry.ensureAllNavigation();
+    return true;
+  }
+
+  function ensureAdminNavigationFallback() {
+    if (window.RemoteModboardModules && typeof window.RemoteModboardModules.registerPage === "function") return;
+
     const adminSub = document.getElementById("nav-admin");
 
     if (adminSub && !adminSub.querySelector('[data-page="admin-user-detail"]')) {
@@ -150,8 +169,6 @@
       button.textContent = "Admin-Notizen";
       adminSub.insertBefore(button, adminSub.firstChild || null);
     }
-
-    bindExistingAdminNavigationButtons();
   }
 
   function bindExistingAdminNavigationButtons() {
