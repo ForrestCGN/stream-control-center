@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP94D_STREAM_PC_CONNECTION_HEARTBEAT_LIVE_CONFIRM_DOCS  
+Stand: RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
@@ -35,17 +35,23 @@ RDAP94D:
 - Live-Confirm dokumentiert.
 - Next Chat Prompt aktualisiert.
 - project-state aktualisiert.
+
+RDAP95:
+- Minimaler Stream-PC Agent Client geplant.
+- Zunaechst nur Verbindung + Heartbeat.
+- Geplanter Ort remote-modboard/stream-pc-agent/ dokumentiert.
+- Secret-/Logging-/Reconnect-Grenzen dokumentiert.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN
+RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE
 ```
 
 ## Danach
 
 ```text
-Nach RDAP95-Plan: minimalen Stream-PC Agent Client nur fuer Verbindung + Heartbeat vorbereiten.
+Nach RDAP96: lokalen Agent Client syntaktisch pruefen und nur bei separatem Plan live/gegen Webserver testen.
 Keine Actions ohne separaten Sicherheitsplan.
 ```

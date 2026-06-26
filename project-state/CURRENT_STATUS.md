@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP94D_STREAM_PC_CONNECTION_HEARTBEAT_LIVE_CONFIRM_DOCS  
+Stand: RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -12,6 +12,7 @@ RDAP94_FIX1: server.js Build-Kontext auf RDAP94 gesetzt.
 RDAP94C: Live Default nach Deploy bestaetigt.
 RDAP94B: Heartbeat Live-Confirm erfolgreich durchgefuehrt.
 RDAP94D: Live-Confirm dokumentiert.
+RDAP95: Minimaler Stream-PC Agent Client geplant.
 ```
 
 ## Live-Service
@@ -57,6 +58,20 @@ actionEnabled=false
 productiveAgentRuntime=false
 ```
 
+## RDAP95 geplant
+
+```text
+Minimaler Stream-PC Agent Client.
+Zunaechst nur Verbindung + Heartbeat.
+Geplanter spaeterer Repo-Ort: remote-modboard/stream-pc-agent/
+Manueller Start zuerst.
+Kein Autostart/Service in erster Stufe.
+Config ohne Secrets im Git.
+Logging ohne Secrets/Header/Token/Rohpayloads.
+Reconnect mit Backoff.
+Keine Agent-Actions.
+```
+
 ## Sicherheitsgrenzen
 
 ```text
@@ -74,5 +89,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN
+RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE
 ```
