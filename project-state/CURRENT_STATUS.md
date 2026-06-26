@@ -1,51 +1,48 @@
 # CURRENT_STATUS
 
-Stand: RDAP64_ADMIN_NOTE_UPDATE_UI_IMPLEMENTATION  
+Stand: RDAP64B_ADMIN_NOTE_UPDATE_UI_ROUTER_HOTFIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
-## Aktuell bestätigt
+## Aktuell
 
 ```text
 RDAP61: Admin-Note Update-Backend live aktiv.
 RDAP62: Status-Semantik live bereinigt.
 RDAP63: Update-UI-Scope geplant.
-RDAP64: Update-UI in bestehender Admin-Notes-UI implementiert.
+RDAP64: Update-UI implementiert, aber Live-Browser zeigte leere Admin-Seiten.
+RDAP64B: Frontend-Router/Tab-Hotfix vorbereitet.
 ```
 
-## RDAP64 Umsetzung
+## RDAP64B Zweck
+
+```text
+Nur UI-Router/Tab-Semantik korrigieren.
+Update-UI-Code bleibt erhalten.
+Keine Backend-/DB-/Permission-Aenderung.
+```
+
+## Geaenderte Datei
 
 ```text
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ```
 
-Umgesetzt:
+## Weiterhin verboten
 
 ```text
-UPDATE_ENDPOINT ergänzt.
-Bearbeiten-Button pro aktiver Notiz ergänzt.
-Inline-Edit-Panel in derselben Notizkarte ergänzt.
-Speichern sendet confirmWrite:true, targetUserUid, noteUid und noteText.
-Busy-State und sichtbare Fehleranzeige ergänzt.
-Nach Erfolg wird die bestehende Readroute neu geladen.
-Keine Optimistic-Mutation.
+Kein Deactivate.
+Kein Delete.
+Keine Backend-Route.
+Keine DB-Migration.
+Keine neue Permission.
+Keine Community-Read-Freigabe.
+Keine Rollen-/Gruppen-/Permission-Writes.
+Keine Agent-/OBS-/Sound-/Overlay-/Command-/Channelpoints-Steuerung.
 ```
 
-## Weiterhin deaktiviert
+## Naechster empfohlener Step
 
 ```text
-Admin-Note Deactivate
-Physisches Delete
-Community-Read fuer Admin-Notizen
-Permission-Verwaltung in der UI
-Rollen-/Gruppen-Schreibverwaltung
-Session-Revocation in der UI
-Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
-freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
-```
-
-## Nächster empfohlener Step
-
-```text
-RDAP64 Webserver-Deploy und danach RDAP64B_ADMIN_NOTE_UPDATE_UI_LIVE_CONFIRMED_DOCS
+RDAP64C_ADMIN_NOTE_UPDATE_UI_LIVE_VERIFY
 ```

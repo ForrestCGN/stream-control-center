@@ -43,6 +43,7 @@
     bindAdminNotesActions();
     bindAdminUserDetailActions();
     exposeTargetSelectionApi();
+    restoreInjectedAdminPanelVisibility();
     void loadTargetUsers("initial");
     loadAdminNotes("initial");
   });
@@ -151,11 +152,11 @@
     button.type = "button";
     button.dataset.section = "Admin";
     button.dataset.title = "Admin-Notizen";
-    button.dataset.tab = "read/create/update";
+    button.dataset.tab = "read/create";
     button.dataset.page = "admin-notes";
     button.textContent = "Admin-Notizen";
     button.addEventListener("click", () => {
-      setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create/update" });
+      setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create" });
       clearNotesBridgeContext();
       document.body.classList.remove("nav-collapsed");
       if (!targetUsersLoaded) void loadTargetUsers("nav");
@@ -709,7 +710,7 @@
       source: options && options.source ? options.source : "user-detail"
     };
     if (!selectTargetUser(normalized, { source: "user-detail", skipLoad: true })) return false;
-    setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create/update" });
+    setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create" });
     renderNotesBridgeContext();
     loadAdminNotes("user-detail");
     return true;
@@ -1061,6 +1062,28 @@
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("click", handler);
+  }
+
+  function restoreInjectedAdminPanelVisibility() {
+    const active = document.querySelector('.nav-link.active[data-page]');
+    const titleEl = document.querySelector('[data-rdap-page-title]') || document.getElementById('pageTitle');
+    const title = titleEl ? String(titleEl.textContent || '').trim().toLowerCase() : '';
+    const activePage = active && active.dataset ? active.dataset.page : '';
+
+    if (activePage === 'admin-notes' || title === 'admin-notizen') {
+      setRdap40Page('admin-notes', { section: 'Admin', title: 'Admin-Notizen', tab: 'read/create' });
+      return;
+    }
+
+    if (activePage === 'admin-user-detail' || title === 'user-detail' || title === 'admin-user-detail') {
+      setRdap40Page('admin-user-detail', { section: 'Admin', title: 'User-Detail', tab: 'read-only' });
+      return;
+    }
+
+    const adminNotesPanel = document.querySelector('[data-page-panel="admin-notes"]');
+    const adminUserDetailPanel = document.querySelector('[data-page-panel="admin-user-detail"]');
+    if (adminNotesPanel) adminNotesPanel.hidden = true;
+    if (adminUserDetailPanel) adminUserDetailPanel.hidden = true;
   }
 
   function setRdap40Page(page, meta) {
