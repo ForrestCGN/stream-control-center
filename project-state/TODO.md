@@ -1,12 +1,12 @@
 # TODO
 
-Stand: RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN  
 Datum: 2026-06-26
 
 ## Jetzt
 
 ```text
-RDAP83B Doku-only lokal einspielen.
+RDAP84 Doku-only lokal einspielen.
 Keine Node-Checks noetig.
 git status und diff pruefen.
 Wenn sauber: stepdone.cmd.
@@ -16,17 +16,18 @@ Kein Webserver-Deploy, weil nur Doku/project-state geaendert wird.
 ## Danach
 
 ```text
-Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP83B.md.
-RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN vorbereiten.
+Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP84.md.
+RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED vorbereiten.
 ```
 
-## RDAP84 Aufgaben
+## RDAP85 Aufgaben
 
 ```text
-- Nur planen, wie spaeter ein Zugangsschluessel-Handshake sicher geprueft wird.
-- Access-Key-Quelle und Header-Regeln klaeren.
-- Keine Runtime-Aktivierung.
+- Header-/Handshake-Precheck in bestehendem disabled Guard vorbereiten.
+- Verbindungen weiterhin ablehnen.
+- missing/invalid/unknown Gruende sicher diagnostizieren.
 - Keine akzeptierte Agent-Verbindung.
+- Keine Runtime-Aktivierung.
 - Keine Actions.
 - Keine DB.
 - Keine Secret-Ausgabe.

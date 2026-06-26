@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -17,7 +17,8 @@ RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WS
 RDAP82: Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet; /agent-ws Upgrade-Guard lehnt disabled ab; keine Actions.
 RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereitet.
 RDAP83: In-Memory Reject-Diagnose fuer abgelehnte /agent-ws Versuche vorbereitet; keine akzeptierte Verbindung.
-RDAP83B: RDAP83 live serverseitig bestaetigt; /agent-ws Reject-Test bestaetigt; naechsten Step RDAP84 vorbereitet.
+RDAP83B: RDAP83 live serverseitig bestaetigt; /agent-ws Reject-Test erfolgreich; keine Actions/DB/Secrets.
+RDAP84: Access-Key-Handshake-Plan dokumentiert; Doku-only, keine Runtime-Aktivierung.
 ```
 
 ## RDAP83 live bestaetigt
@@ -27,31 +28,40 @@ RDAP83B: RDAP83 live serverseitig bestaetigt; /agent-ws Reject-Test bestaetigt; 
 - statusApiVersion: rdap_agent83.v1
 - runtime.acceptsAgentConnections: false
 - rejectDiagnostic.prepared: true
-- rejectDiagnostic.enabled: true
 - rejectDiagnostic.inMemoryOnly: true
-- rejectDiagnostic.persistsToDatabase: false
-- rejectDiagnostic.rejectCount: 0 vor Reject-Test
+- rejectDiagnostic.rejectCount steigt nach /agent-ws Test von 0 auf 1
+- rejectDiagnostic.lastRejectReason: agent_runtime_disabled
 - rejectDiagnostic.secretsExposed: false
 - rejectDiagnostic.headersLogged: false
 - rejectDiagnostic.rawIpLogged: false
-- rejectDiagnostic.queryStringLogged: false
-- rejectDiagnostic.authorizationHeaderLogged: false
-- rejectDiagnostic.cookieHeaderLogged: false
 
 /agent-ws Reject-Test:
 - HTTP/1.1 503 Service Unavailable
 - reason=agent_runtime_disabled
-- keine Verbindung angenommen
+```
 
-/api/remote/agent/status nach Reject-Test:
-- rejectDiagnostic.rejectCount: 1
-- rejectDiagnostic.lastRejectReason: agent_runtime_disabled
-- rejectDiagnostic.lastRejectPath: /agent-ws
-- rejectDiagnostic.lastRejectStatusCode: 503
-- rejectDiagnostic.lastRejectMethod: GET
-- rejectDiagnostic.lastRejectHasAuthorizationHeader: false
-- rejectDiagnostic.lastRejectHasCookieHeader: false
-- rejectDiagnostic.lastRejectHasQueryString: false
+## RDAP84 Planstand
+
+```text
+Geplanter spaeterer Handshake-Header-Vertrag:
+- Authorization: Bearer <secret>
+- X-SCC-Agent-Id: stream-pc-main
+- X-SCC-Agent-Version: <version>
+- X-SCC-Agent-Protocol: rdap-agent-handshake.v1
+
+Zwei-Stufen-Freigabe:
+- AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
+- Spaeterer Runtime-Code-Step muss effective Runtime separat freigeben.
+- Keine akzeptierte Verbindung ohne separaten Plan und explizites go.
+
+Geplante sichere Ablehnungsgruende:
+- runtime_not_effectively_enabled
+- missing_agent_id
+- unknown_agent_id
+- missing_connection_proof
+- invalid_connection_proof
+- protocol_version_unsupported
+- agent_already_connected
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -74,7 +84,7 @@ Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## Sicherheit RDAP83/RDAP83B
+## Sicherheit
 
 ```text
 Keine akzeptierte Agent-Verbindung.
@@ -144,5 +154,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN
+RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED
 ```

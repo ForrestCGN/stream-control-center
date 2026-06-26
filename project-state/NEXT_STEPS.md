@@ -1,33 +1,35 @@
 # NEXT_STEPS
 
-Stand: RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN
+RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED
 ```
 
 ## Ziel
 
 ```text
-Nur planen, wie spaeter ein Zugangsschluessel-Handshake sicher geprueft wird.
-Keine Runtime-Aktivierung.
+Header-/Handshake-Precheck in bestehendem disabled Guard vorbereiten.
+Verbindungen weiterhin ablehnen.
+missing/invalid/unknown Gruende sicher diagnostizieren.
 Keine akzeptierte Agent-Verbindung.
+Keine Runtime-Aktivierung.
 Keine produktiven Remote-Actions.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP83B
+## Ausgangspunkt RDAP84
 
 ```text
-- RDAP83 ist live serverseitig bestaetigt.
-- Runtime-disabled Skeleton ist live.
-- /agent-ws Upgrade-Guard ist live.
+- RDAP83 Reject-Diagnose ist live bestaetigt.
+- /agent-ws Upgrade-Guard ist vorbereitet.
 - Abgelehnte /agent-ws Versuche werden in-memory diagnostiziert.
-- /agent-ws Reject-Test liefert HTTP 503 und reason=agent_runtime_disabled.
-- rejectCount steigt nach Test von 0 auf 1.
+- RDAP84 hat den Access-Key-Handshake-Plan dokumentiert.
+- Geplanter Header-Vertrag ist festgelegt.
+- AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
 - Runtime bleibt effective false.
 - WSS Runtime bleibt false.
 - Heartbeat Receiver bleibt false.
@@ -38,7 +40,7 @@ Keine Secret-Ausgabe.
 - Keine DB-Migration.
 ```
 
-## RDAP84 vorbereitend pruefen
+## RDAP85 vorbereitend pruefen
 
 ```text
 remote-modboard/backend/server.js
@@ -51,15 +53,16 @@ docs/current/*
 project-state/*
 ```
 
-## RDAP84 klaeren
+## RDAP85 klaeren
 
 ```text
-- Wie wird der Zugangsschluessel serverseitig gelesen, ohne ihn auszugeben?
-- Welche Header sind fuer den spaeteren Handshake erlaubt?
-- Wie wird invalid_connection_proof sicher diagnostiziert, ohne Secret-Werte zu loggen?
-- Bleibt die erste echte Runtime weiter in-memory only?
-- Wie wird verhindert, dass AGENT_RUNTIME_ENABLED=true allein eine produktive Verbindung freischaltet?
-- Welche Statuswerte duerfen sichtbar sein?
+- Wird der Precheck im bestehenden agent-runtime-disabled.service.js erweitert?
+- Welche Header-Bools duerfen sichtbar sein?
+- Welche sanitized Hints duerfen sichtbar sein?
+- Welche Reject-Gruende werden aktiv diagnostiziert?
+- Wie bleibt acceptsAgentConnections garantiert false?
+- Wie wird verhindert, dass Headerwerte oder Secrets geloggt werden?
+- Welche Tests pruefen missing/unknown/invalid ohne echte Verbindung?
 ```
 
 ## Strikt nicht machen
