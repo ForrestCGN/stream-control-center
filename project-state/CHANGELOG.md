@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+
+```text
+- RDAP82 live serverseitig bestaetigt dokumentiert.
+- /api/remote/agent/status mit statusApiVersion rdap_agent82.v1 bestaetigt.
+- runtime.skeletonPrepared true bestaetigt.
+- runtime.effectiveEnabled false bestaetigt.
+- runtime.wssRuntimeEnabled false bestaetigt.
+- runtime.heartbeatReceiverEnabled false bestaetigt.
+- runtime.acceptsAgentConnections false bestaetigt.
+- /api/remote/status .agent bestaetigt.
+- /api/remote/routes .agentStatusFoundation bestaetigt.
+- noAgentActions true bestaetigt.
+- Safety-Block bestaetigt.
+- Naechsten Step RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC vorbereitet.
+- Doku-only.
+- Kein Code.
+- Kein Backend.
+- Keine DB-Migration.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON
 
 ```text

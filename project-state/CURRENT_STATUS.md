@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON  
+Stand: RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,6 +15,46 @@ RDAP80B: Sichtbare UI-Einordnung von Agent -> Agent-Status zu Admin -> Verbindun
 RDAP80C: Live-Abschluss dokumentiert und naechsten Step auf Stream-PC Verbindung statt sichtbares Agent-Modul ausgerichtet.
 RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WSS-Pfad und Heartbeat-Modell geplant; Doku-only.
 RDAP82: Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet; /agent-ws Upgrade-Guard lehnt disabled ab; keine Actions.
+RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereitet.
+```
+
+## RDAP82 live bestaetigt
+
+```text
+/api/remote/agent/status:
+- statusApiVersion: rdap_agent82.v1
+- runtime.skeletonPrepared: true
+- runtime.requestedEnabled: false
+- runtime.effectiveEnabled: false
+- runtime.wssRuntimeEnabled: false
+- runtime.heartbeatReceiverEnabled: false
+- runtime.accessKeyConfigured: false
+- runtime.accessKeyExposed: false
+- runtime.accessKeyLogged: false
+- runtime.defaultDisabled: true
+- runtime.upgradeGuardPrepared: true
+- runtime.acceptsAgentConnections: false
+
+/api/remote/status .agent:
+- connectionState: offline
+- actionsEnabled: false
+- productiveAgentRuntime: false
+- runtimeSkeletonPrepared: true
+- runtimeEffectiveEnabled: false
+- heartbeatReceiverEnabled: false
+- plannedWsPath: /agent-ws
+- streamPcPublicPortRequired: false
+- expectedAgentId: stream-pc-main
+- expectedAgentName: Forrest Stream-PC
+
+/api/remote/routes .agentStatusFoundation:
+- runtimeSkeletonPrepared: true
+- runtimeEffectiveEnabled: false
+- heartbeatReceiverEnabled: false
+- wssRuntimeEnabled: false
+- upgradeGuardPrepared: true
+- acceptsAgentConnections: false
+- noAgentActions: true
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -30,7 +70,7 @@ Remote-Modboard UI zeigt Admin -> Verbindungen.
 Seite heisst Stream-PC Verbindung.
 Status ist read-only und aktuell disabled/offline.
 Heartbeat-Modell ist vorbereitet, aber Receiver/Runtime sind disabled.
-WSS-Pfad /agent-ws ist vorbereitet.
+WSS-Pfad /agent-ws ist vorbereitet und guarded.
 Stream-PC soll spaeter aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
@@ -100,6 +140,7 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 produktive Writes ausserhalb explizit freigegebener Admin-Notes Create/Update-Scope
 DB-Migrationen ohne separaten Plan
 neue Permissions ohne separaten Plan
+Secret-Ausgabe in Status/UI/Logs
 ```
 
 ## Naechster empfohlener Step

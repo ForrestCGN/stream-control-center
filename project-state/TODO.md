@@ -1,24 +1,34 @@
 # TODO
 
-Stand: RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON  
+Stand: RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Jetzt
 
 ```text
-RDAP82 Code+Doku lokal einspielen.
-Node-Checks ausfuehren.
+RDAP82B Doku-only lokal einspielen.
+Keine Node-Checks noetig.
 git status und diff pruefen.
 Wenn sauber: stepdone.cmd.
-Danach Webserver-Deploy, weil remote-modboard Code geaendert wird.
+Kein Webserver-Deploy, weil nur Doku/project-state geaendert wird.
 ```
 
 ## Danach
 
 ```text
-Webserver-Deploy aus frischem GitHub/dev Clone.
-Serverseitige API-Tests fuer /api/remote/agent/status, /api/remote/status und /api/remote/routes.
-Browser pruefen: Admin -> Verbindungen / Stream-PC Verbindung.
+Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP82B.md
+RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC vorbereiten.
+```
+
+## RDAP83 Aufgaben
+
+```text
+- Nur Diagnose fuer abgelehnte /agent-ws Verbindungsversuche planen.
+- In-Memory-Zaehler/letzte Ablehnung pruefen.
+- Keine akzeptierte Agent-Verbindung.
+- Keine Actions.
+- Keine DB.
+- Keine Secret-Ausgabe.
 ```
 
 ## Nicht machen
@@ -32,4 +42,5 @@ Browser pruefen: Admin -> Verbindungen / Stream-PC Verbindung.
 - Kein sichtbares Hauptmodul Agent.
 - Keine DB-Migration.
 - Keine neue Permission.
+- Keine Secret-Ausgabe.
 ```
