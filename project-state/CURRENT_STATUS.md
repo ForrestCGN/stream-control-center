@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP77B_MODULE_REGISTRY_PANEL_MOUNT_AND_VISIBILITY_FIX  
+Stand: RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -8,8 +8,8 @@ Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ```text
 RDAP76D: Admin-Modul-/Page-Registry-Zielstruktur dokumentiert; Doku-only.
-RDAP77: Frontend-Registry-Fundament fuer Module/Pages begonnen.
-RDAP77B: Panel-Mount-/Sichtbarkeitsfix fuer Registry/Admin-Unterseiten vorbereitet.
+RDAP77B: Modul-/Page-Registry mit exklusiver Panel-Sichtbarkeit fuer Admin-Unterseiten getestet.
+RDAP78: Admin-Notes Zieluser-/Count-/Reload-Kontext vorbereitet.
 ```
 
 ## Strukturstand
@@ -18,16 +18,16 @@ RDAP77B: Panel-Mount-/Sichtbarkeitsfix fuer Registry/Admin-Unterseiten vorbereit
 remote-modboard.js fuehrt Haupt-Router und Frontend-Registry.
 Admin wird als Obermodul registriert.
 Admin-Notizen und User-Detail sind Admin-Pages.
-Inaktive Panels werden jetzt per hidden und is-active-view konsequent versteckt.
+Inaktive Panels werden konsequent versteckt.
 ```
 
-## Admin-Notes aktueller Backend-Stand
+## Admin-Notes Kontextstand
 
 ```text
-GET  /api/remote/admin/users/admin-notes/read
-POST /api/remote/admin/users/admin-notes/create
-POST /api/remote/admin/users/admin-notes/update      -> Backend confirmed aktiv
-POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
+Userwechsel setzt alte Liste/Count zurueck.
+Read-Request nutzt den aktuell ausgewaehlten Zieluser.
+Verspaetete Antworten fuer alte Zieluser werden ignoriert.
+Count/Notice nennen den aktuellen Zieluser.
 ```
 
 ## Weiterhin deaktiviert/verboten
@@ -43,8 +43,8 @@ Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
-## Naechster empfohlener Code-Step
+## Naechster empfohlener Step
 
 ```text
-RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
+RDAP79_ADMIN_NOTES_UI_POLISH_AFTER_STATE_FIX
 ```

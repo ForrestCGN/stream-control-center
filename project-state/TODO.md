@@ -1,25 +1,22 @@
 # TODO
 
-Stand: RDAP77B_MODULE_REGISTRY_PANEL_MOUNT_AND_VISIBILITY_FIX  
+Stand: RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX  
 Datum: 2026-06-26
 
 ## Jetzt testen
 
 ```text
-Admin -> Admin-Notizen:
-- Nur Admin-Notizen sichtbar.
-- Header/Nav passen.
-
-Admin -> User-Detail:
-- Nur User-Detail sichtbar.
-- Admin-Notizen bleibt nicht oberhalb stehen.
-- Header/Nav passen.
+- Admin -> Admin-Notizen.
+- Zieluser ForrestCGN laden.
+- Zieluser EngelCGN laden.
+- Count/Liste/Notice muessen zum jeweils ausgewaehlten User passen.
+- Keine alten User-Daten duerfen stehen bleiben.
 ```
 
 ## Danach
 
 ```text
-RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
+RDAP79_ADMIN_NOTES_UI_POLISH_AFTER_STATE_FIX
 ```
 
 ## Nicht machen
@@ -32,5 +29,4 @@ RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-- Kein wildes weiteres CSS-Gefrickel vor State-/Registry-Fix.
 ```

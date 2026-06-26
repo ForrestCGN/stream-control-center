@@ -1,20 +1,18 @@
 # NEXT_STEPS
 
-Stand: RDAP77B_MODULE_REGISTRY_PANEL_MOUNT_AND_VISIBILITY_FIX  
+Stand: RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX  
 Datum: 2026-06-26
 
-## Naechster Code-Step
+## Naechster empfohlener Step
 
 ```text
-RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
+RDAP79_ADMIN_NOTES_UI_POLISH_AFTER_STATE_FIX
 ```
 
 ## Ziel
 
 ```text
-- Zieluser-Wechsel laedt/zeigt eindeutig Notizen fuer diesen User.
-- Count/Hinweis passt zum ausgewaehlten User.
-- Keine alten User-Daten in Titel, Count oder Liste stehen lassen.
+Nachdem Router/Panel-State und Zieluser-Kontext stabil sind, kann Admin-Notes optisch weiter poliert werden.
 ```
 
 ## Nicht aendern

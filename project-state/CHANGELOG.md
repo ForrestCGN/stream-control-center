@@ -1,17 +1,17 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP77B_MODULE_REGISTRY_PANEL_MOUNT_AND_VISIBILITY_FIX
+## 2026-06-26 - RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
 
 ```text
-- Korrektur auf RDAP77 aufgebaut.
-- Haupt-Router versteckt inaktive data-page-panel jetzt konsequent.
-- Hidden-/inactive-CSS-Regeln ergaenzt, damit Admin-Notes-Grid-Regeln hidden nicht ueberstimmen.
-- In rdap28-admin-notes.js starten injizierte Panels hidden.
-- Lokaler Panel-Sync versteckt alle data-page-panel und aktiviert genau die gewaehlte Page.
-- Ziel: Admin-Notizen und User-Detail sind nicht gleichzeitig sichtbar.
+- Admin-Notes Zieluser-Kontext stabilisiert.
+- Userwechsel setzt alte Liste/Count/Write-State sofort zurueck.
+- Read-Request wird an den aktuellen selectedTargetUser gebunden.
+- Verspaetete Antworten fuer alte Zieluser werden ignoriert.
+- Count/Notice nennen den aktuellen Zieluser.
+- Create/Update ignorieren Rueckantworten, wenn zwischenzeitlich der Zieluser gewechselt wurde.
 - Frontend-only.
 - Kein Backend.
 - Keine DB.
-- Keine Permission.
+- Keine neue Permission.
 - Kein Delete/Deactivate.
 ```

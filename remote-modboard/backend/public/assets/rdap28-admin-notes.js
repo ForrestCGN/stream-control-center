@@ -34,6 +34,7 @@
   let adminDetailSearchTerm = "";
   let selectedAdminDetailUser = { ...DEFAULT_TARGET_USER };
   let notesBridgeContext = null;
+  let adminNotesLoadSeq = 0;
 
   document.addEventListener("DOMContentLoaded", () => {
     injectStyles();
@@ -558,11 +559,13 @@
   function selectTargetUser(user, options) {
     const normalized = normalizeUser(user);
     if (!normalized || !normalized.userUid) return false;
+    const previousUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
     if (!findTargetUser(normalized.userUid)) targetUsers = mergeTargetUsers(targetUsers.concat([normalized]));
     selectedTargetUser = normalized;
-    closeCreateDialog({ keepNotice: true });
+    closeCreateDialog({ keepNotice: false });
     closeUpdateEditor({ keepNotice: false });
     renderSelectedTargetUser();
+    if (previousUid !== normalized.userUid) prepareAdminNotesForTarget(normalized, "select");
     if (!(options && options.skipLoad)) loadAdminNotes(options && options.source ? options.source : "select");
     return true;
   }
@@ -602,34 +605,80 @@
   }
 
   async function loadAdminNotes(reason) {
-    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
+    const targetUser = selectedTargetUser && selectedTargetUser.userUid ? { ...selectedTargetUser } : { ...DEFAULT_TARGET_USER };
+    const targetUserUid = targetUser.userUid || "";
+    const requestSeq = ++adminNotesLoadSeq;
     latestReadOk = false;
     latestCanWrite = false;
-    setChipSafe("adminNotesPill", null, reason === "manual" ? "lädt neu" : "lädt");
-    setClass("adminNotesNotice", "admin-note-info");
-    setTextSafe("adminNotesNotice", "Admin-Notizen werden geladen …");
-    setHtmlSafe("adminNotesList", "");
+    prepareAdminNotesForTarget(targetUser, reason);
 
     if (!isValidUserUid(targetUserUid)) {
-      const result = { ok: false, httpStatus: 400, body: { reason: "invalid_target_user_uid" } };
+      const result = attachAdminNotesRequestContext({ ok: false, httpStatus: 400, body: { reason: "invalid_target_user_uid" } }, targetUser, requestSeq);
       latestAdminNotesResult = result;
       renderAdminNotesResult(result);
       return result;
     }
 
     const url = `${READ_ENDPOINT_BASE}?targetUserUid=${encodeURIComponent(targetUserUid)}`;
-    const result = await getAdminNotesJson(url);
+    const result = attachAdminNotesRequestContext(await getAdminNotesJson(url), targetUser, requestSeq);
+
+    if (!isCurrentAdminNotesRequest(result)) return result;
+
     latestAdminNotesResult = result;
     renderAdminNotesResult(result);
     return result;
   }
 
+  function prepareAdminNotesForTarget(user, reason) {
+    const target = normalizeUser(user) || selectedTargetUser || DEFAULT_TARGET_USER;
+    const label = formatTargetUserLabel(target);
+    latestAdminNotesResult = null;
+    latestReadOk = false;
+    latestCanWrite = false;
+    updateState = { noteUid: null, inFlight: false, noticeNoteUid: null, noticeOk: null, noticeText: "" };
+    createInFlight = false;
+    setCreateBusy(false);
+    setChipSafe("adminNotesPill", null, reason === "manual" ? "lädt neu" : "lädt");
+    setChipSafe("adminNotesWritePill", false, "Read prüfen");
+    setTextSafe("adminNotesCount", "lädt");
+    setValueSafe("adminNotesCanRead", false);
+    setValueSafe("adminNotesCanWrite", false);
+    setTextSafe("adminNotesReadReason", "lädt");
+    setTextSafe("adminNotesWriteReason", "—");
+    setClass("adminNotesNotice", "admin-note-info");
+    setTextSafe("adminNotesNotice", `Admin-Notizen fuer ${label} werden geladen …`);
+    setHtmlSafe("adminNotesList", "");
+    renderCreateAvailability(false, null);
+  }
+
+  function attachAdminNotesRequestContext(result, targetUser, requestSeq) {
+    const body = (result && result.body) || {};
+    return {
+      ...(result || { ok: false, httpStatus: 0, body: null }),
+      rdapTargetUserUid: targetUser && targetUser.userUid ? targetUser.userUid : "",
+      rdapTargetUser: targetUser ? { ...targetUser } : null,
+      rdapRequestSeq: requestSeq,
+      rdapResponseTargetUserUid: safeString((body.targetSummary && (body.targetSummary.targetUserUid || body.targetSummary.target_user_uid || body.targetSummary.userUid || body.targetSummary.user_uid)) || body.targetUserUid || body.target_user_uid || "")
+    };
+  }
+
+  function isCurrentAdminNotesRequest(result) {
+    if (!result) return false;
+    const currentUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
+    return result.rdapRequestSeq === adminNotesLoadSeq && result.rdapTargetUserUid === currentUid;
+  }
+
   function renderAdminNotesResult(result) {
+    if (!isCurrentAdminNotesRequest(result)) return;
+
     const body = (result && result.body) || {};
     const permissions = body.permissions || {};
     const table = body.table || {};
     const targetSummary = body.targetSummary || {};
     const notes = Array.isArray(body.notes) ? body.notes : [];
+    const renderTarget = result.rdapTargetUser || selectedTargetUser || DEFAULT_TARGET_USER;
+    const targetLabel = formatTargetUserLabel(renderTarget);
+    const responseTargetUid = result.rdapResponseTargetUserUid || "";
     const canRead = permissions.effectiveReadPermissionWouldAllow === true || body.canReadAdminNotes === true;
     const canWrite = permissions.effectiveWritePermissionWouldAllow === true || permissions.canWriteAdminNotes === true || body.canWriteAdminNotes === true;
     latestCanWrite = Boolean(canWrite);
@@ -637,7 +686,8 @@
 
     setValueSafe("adminNotesCanRead", canRead);
     setValueSafe("adminNotesCanWrite", canWrite);
-    setTextSafe("adminNotesCount", String(valueOr(targetSummary.totalCount, notes.length, 0)));
+    const noteCount = valueOr(targetSummary.totalCount, notes.length, 0);
+    setTextSafe("adminNotesCount", String(noteCount));
     setValueSafe("adminNotesSchema", table.schemaReady === true);
     setValueSafe("adminNotesLoggedIn", body.loggedIn);
     setValueSafe("adminNotesDashboardAccess", body.dashboardAccess);
@@ -645,26 +695,37 @@
     setTextSafe("adminNotesWriteReason", permissions.writeReason || "—");
     renderCreateAvailability(canWrite, result);
 
+    if (responseTargetUid && responseTargetUid !== result.rdapTargetUserUid) {
+      latestReadOk = false;
+      latestCanWrite = false;
+      setChipSafe("adminNotesPill", false, "Zieluser-Konflikt");
+      setClass("adminNotesNotice", "admin-note-error");
+      setTextSafe("adminNotesNotice", `Antwort passt nicht zum ausgewaehlten Zieluser ${targetLabel}. Liste wird nicht angezeigt.`);
+      setHtmlSafe("adminNotesList", "");
+      renderCreateAvailability(false, result);
+      return;
+    }
+
     if (!result || !result.ok) {
       setChipSafe("adminNotesPill", false, `HTTP ${result ? result.httpStatus : 0}`);
       const reason = body.reason || body.error || (result && result.error) || "admin_note_read_failed";
       setClass("adminNotesNotice", "admin-note-error");
-      setTextSafe("adminNotesNotice", `Nicht geladen: ${reason}`);
+      setTextSafe("adminNotesNotice", `Nicht geladen fuer ${targetLabel}: ${reason}`);
       setHtmlSafe("adminNotesList", "");
       return;
     }
 
-    setChipSafe("adminNotesPill", true, `${notes.length} geladen`);
+    setChipSafe("adminNotesPill", true, `${noteCount} geladen`);
 
     if (!notes.length) {
       setClass("adminNotesNotice", "admin-note-ok");
-      setTextSafe("adminNotesNotice", "Keine Admin-Notizen vorhanden. Mit Schreibrecht kann hier eine neue interne Admin-Notiz erstellt werden.");
+      setTextSafe("adminNotesNotice", `Keine Admin-Notizen fuer ${targetLabel} vorhanden. Mit Schreibrecht kann hier eine neue interne Admin-Notiz erstellt werden.`);
       setHtmlSafe("adminNotesList", "");
       return;
     }
 
     setClass("adminNotesNotice", "admin-note-ok");
-    setTextSafe("adminNotesNotice", `${notes.length} Admin-Notiz(en) geladen. Create/Update sind nur sichtbar, wenn admin.users.note.write erlaubt ist.`);
+    setTextSafe("adminNotesNotice", `${noteCount} Admin-Notiz(en) fuer ${targetLabel} geladen. Create/Update sind nur sichtbar, wenn admin.users.note.write erlaubt ist.`);
     setHtmlSafe("adminNotesList", notes.map(renderNote).join(""));
     bindUpdateButtons();
   }
@@ -916,6 +977,7 @@
   async function submitUpdateNote(noteUid) {
     if (updateState.inFlight) return;
     const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
+    const targetUserLabel = formatTargetUserLabel(selectedTargetUser || DEFAULT_TARGET_USER);
     const textarea = document.querySelector(`[data-update-text="${cssEscapeLocal(noteUid)}"]`);
     const noteText = textarea && typeof textarea.value === "string" ? textarea.value.trim() : "";
 
@@ -951,6 +1013,10 @@
       noteText
     });
 
+    if (targetUserUid !== (selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "")) {
+      return;
+    }
+
     if (!result.ok) {
       const body = (result && result.body) || {};
       const reason = body.reason || body.error || result.error || `HTTP ${result.httpStatus || 0}`;
@@ -959,7 +1025,7 @@
       return;
     }
 
-    updateState = { noteUid: null, inFlight: false, noticeNoteUid: noteUid, noticeOk: true, noticeText: "Notiz gespeichert. Liste wird aktualisiert …" };
+    updateState = { noteUid: null, inFlight: false, noticeNoteUid: noteUid, noticeOk: true, noticeText: `Notiz fuer ${targetUserLabel} gespeichert. Liste wird aktualisiert …` };
     await loadAdminNotes("update-success");
   }
 
@@ -1004,6 +1070,7 @@
     }
 
     const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
+    const targetUserLabel = formatTargetUserLabel(selectedTargetUser || DEFAULT_TARGET_USER);
     if (!isValidUserUid(targetUserUid)) {
       showCreateResult(false, "Zieluser ist ungültig.");
       return;
@@ -1033,6 +1100,12 @@
       noteText
     });
 
+    if (targetUserUid !== (selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "")) {
+      createInFlight = false;
+      setCreateBusy(false);
+      return;
+    }
+
     createInFlight = false;
     setCreateBusy(false);
 
@@ -1045,7 +1118,7 @@
 
     const body = result.body || {};
     const noteUid = body.noteUid || (body.note && (body.note.noteUid || body.note.note_uid)) || "neue Notiz";
-    showCreateResult(true, `Notiz erstellt: ${noteUid}. Liste wird aktualisiert …`);
+    showCreateResult(true, `Notiz fuer ${targetUserLabel} erstellt: ${noteUid}. Liste wird aktualisiert …`);
 
     if (textarea) textarea.value = "";
     closeCreateDialog({ keepNotice: true });
