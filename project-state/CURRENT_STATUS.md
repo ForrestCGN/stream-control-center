@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN  
+Stand: RDAP98B_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PARTIAL_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -16,6 +16,7 @@ RDAP95: Minimaler Stream-PC Agent Client geplant.
 RDAP96: Heartbeat-only Stream-PC Agent Client vorbereitet.
 RDAP96B: Lokale Agent-Checks dokumentiert.
 RDAP97: Manueller Agent-Testplan dokumentiert.
+RDAP98B: RDAP98 Teiltest dokumentiert; public /agent-ws liefert 404.
 ```
 
 ## Live-Service
@@ -33,12 +34,23 @@ statusApiVersion=rdap_agent94.v1
 moduleBuild=RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
 ```
 
-## Final bestaetigter Sicherheitszustand
-
-Nach RDAP94B wurde die Runtime wieder deaktiviert:
+## RDAP98 Teiltest Ergebnis
 
 ```text
-AGENT_RUNTIME_ENABLED=false
+Vorab disabled Status: OK
+Runtime temporaer aktiviert: OK
+Agent lokal gestartet: OK
+Agent loggt ohne Secret: OK
+Public WSS /agent-ws: 404 Not Found
+Heartbeat live ueber public WSS: noch nicht bestaetigt
+Runtime final disabled: OK
+Actions: false
+productiveAgentRuntime: false
+```
+
+## Final bestaetigter Sicherheitszustand
+
+```text
 runtime.requestedEnabled=false
 runtime.effectiveEnabled=false
 runtime.acceptsAgentConnections=false
@@ -46,23 +58,6 @@ runtime.heartbeatReceiverEnabled=false
 agent.connected=false
 actionEnabled=false
 productiveAgentRuntime=false
-```
-
-## RDAP97 dokumentiert
-
-```text
-Separater manueller Testplan fuer RDAP96-Agent-Client erstellt.
-Runtime nur temporaer aktivieren.
-Agent nur manuell starten.
-Lokales Secret nur lokal setzen, niemals in Chat/Git/Doku.
-/api/remote/agent/status pruefen.
-Gueltigen Heartbeat bestaetigen.
-Runtime final wieder deaktivieren.
-Finalen disabled Status pruefen.
-Keine Actions.
-Kein Backend-Code geaendert.
-Kein Agent-Code geaendert.
-Kein Webserver-Deploy noetig.
 ```
 
 ## Sicherheitsgrenzen
@@ -86,5 +81,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP98_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_LIVE
+RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN
 ```

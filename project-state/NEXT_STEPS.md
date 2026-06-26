@@ -1,39 +1,37 @@
 # NEXT_STEPS
 
-Stand: RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN  
+Stand: RDAP98B_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PARTIAL_DOCS  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP98_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_LIVE
+RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN
 ```
 
 ## Ziel
 
-RDAP98 soll den in RDAP97 geplanten manuellen Test des RDAP96-Agent-Clients durchfuehren:
+RDAP99 soll den fehlenden public WebSocket-Proxy fuer `/agent-ws` planen:
 
 ```text
-- Vorab disabled Status pruefen.
-- Runtime auf dem Webserver nur temporaer aktivieren.
-- Agent Client nur manuell starten.
-- Lokales Secret nur lokal setzen, niemals in Chat/Git/Doku.
-- /api/remote/agent/status pruefen.
-- Gueltigen Heartbeat bestaetigen.
-- Agent stoppen.
-- Runtime final wieder deaktivieren.
-- Finalen disabled Status pruefen.
+- Aktuellen Nginx/Public-Routing-Zustand fuer mods.forrestcgn.de pruefen.
+- Klaeren, warum wss://mods.forrestcgn.de/agent-ws 404 Not Found liefert.
+- Plan fuer Proxy nach Node intern 127.0.0.1:3010/agent-ws erstellen.
+- WebSocket Upgrade/Connection Header beruecksichtigen.
+- Keine Nginx-Aenderung ohne separaten Plan/go.
+- Keine Runtime dauerhaft aktivieren.
+- Keine Secrets.
 - Keine Actions.
 ```
 
 ## Voraussetzung
 
 ```text
-RDAP97 abgeschlossen:
-- Manueller Testplan dokumentiert.
-- Kein Agent-Code geaendert.
-- Kein Backend-Code geaendert.
-- Kein Webserver-Deploy noetig.
+RDAP98B abgeschlossen:
+- RDAP98 Teiltest dokumentiert.
+- Agent startet lokal und loggt sicher.
+- Public /agent-ws liefert 404.
+- Runtime final disabled.
 ```
 
 ## Strikt nicht machen
@@ -57,4 +55,5 @@ Keine produktive Agent-Action-Queue.
 Keine Secret-Ausgabe.
 Keine Rohpayload-Ausgabe.
 Keine Runtime dauerhaft aktivieren.
+Keine Nginx-Aenderung ohne Plan und go.
 ```
