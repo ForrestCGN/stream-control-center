@@ -1,62 +1,60 @@
 # NEXT_STEPS
 
-Stand: RDAP62B_ADMIN_NOTE_UPDATE_STATUS_LIVE_CONFIRMED_DOCS  
+Stand: RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN
+RDAP64_ADMIN_NOTE_UPDATE_UI_IMPLEMENTATION
 ```
 
 ## Ziel
 
 ```text
-Update-UI fuer Admin-Notizen erst planen, nicht direkt bauen.
+Bestehende Admin-Notes-UI um kontrollierte Update-UI erweitern.
 ```
 
-## Warum zuerst Plan
+## Erlaubter Scope
 
 ```text
-Das Backend-Update ist live aktiv.
-Die Status-Semantik ist live bereinigt.
-Jetzt muss UI-seitig sauber geklaert werden, wann und wo ein Update-Button erscheinen darf.
-Dabei darf kein Deactivate/Delete/Community-Read nebenbei entstehen.
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ```
 
-## Leitplanken fuer RDAP63
+RDAP64 darf:
 
 ```text
-Nur Admin-Notizen-UI.
-Nur aktive Notizen.
-Nur wenn Serverstatus/Readroute/Permission das erlauben.
-confirmWrite:true im JSON-Body.
-Keine Optimistic-Mutation.
-Nach Erfolg Readroute neu laden.
+UPDATE_ENDPOINT ergaenzen.
+Bearbeiten-Button pro aktiver Notiz anzeigen.
+Nur bei erfolgreicher Readroute und Schreibrecht anzeigen.
+Inline-Edit oder kleines Edit-Panel bauen.
+noteText vorausfuellen.
+confirmWrite:true im JSON-Body senden.
+Busy-State setzen.
 Fehler sichtbar anzeigen.
-Kein Deactivate-Button.
-Kein Delete.
-Keine Community-/Profil-/Public-/Self-Service-Freigabe.
+Nach Erfolg Readroute neu laden.
 ```
 
-## Alternativer Zwischenschritt
+## Nicht aendern
 
 ```text
-RDAP63_ADMIN_NOTE_UPDATE_BACKEND_LIVE_TEST_PLAN
-```
-
-Nur falls vor UI ein echter Backend-Update-Live-Test separat geplant werden soll.
-
-## Nicht direkt aendern
-
-```text
-Keine Update-UI-Implementierung ohne separaten Plan und go.
-Kein Deactivate.
-Kein Delete.
+Keine Backend-Route.
 Keine DB-Migration.
 Keine neue Permission.
+Kein Deactivate.
+Kein Delete.
 Keine Community-Read-Freigabe.
 Keine Rollen-/Gruppen-/Permission-Writes.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 ```
 
+## Checks bei RDAP64
+
+```powershell
+cd D:\Git\stream-control-center
+node --check .\remote-modboard\backend\public\assets\rdap28-admin-notes.js
+git status --short
+git diff --stat
+```
+
+Da Frontend-Code im deployten `remote-modboard/` geaendert wuerde, braucht RDAP64 nach stepdone einen Webserver-Deploy.

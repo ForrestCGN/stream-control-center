@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP62B_ADMIN_NOTE_UPDATE_STATUS_LIVE_CONFIRMED_DOCS  
+Stand: RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -12,67 +12,55 @@ RDAP60 klaerte: Update und Deactivate werden nicht gemeinsam gebaut; zuerst nur 
 RDAP61 aktivierte Backend-Update fuer aktive Admin-Notizen.
 RDAP61B dokumentierte die Live-Bestaetigung von RDAP61.
 RDAP62 bereinigte die Status-Semantik nach RDAP61.
-RDAP62B dokumentiert die Live-Bestaetigung von RDAP62.
+RDAP62B dokumentierte die Live-Bestaetigung von RDAP62.
+RDAP63 plante die Update-UI, ohne sie zu bauen.
 ```
 
-## RDAP62 live bestaetigt
+## Aktueller Admin-Notes Stand
 
 ```text
-/api/remote/status:
-statusApiVersion: rdap_admin_note_update_status62.v1
-
-Update-Backend aktiv:
-adminNoteUiStatusSemantics.adminNoteUpdateBackendEnabled: true
-adminNoteUiStatusSemantics.adminNoteUpdateRoutePrepared: true
-adminNoteUiStatusSemantics.adminNoteUpdateRoute: /api/remote/admin/users/admin-notes/update
-
-Update-UI aus:
-adminNoteUiStatusSemantics.adminNoteUpdateUiPrepared: false
-
-Deactivate/Delete aus:
-adminNoteUiStatusSemantics.adminNoteDeactivateEnabled: false
-adminNoteUiStatusSemantics.adminNoteDeleteUiPrepared: false
-adminNoteUiStatusSemantics.physicalDeleteEnabled: false
-
-Community-Read verboten:
-adminNoteUiStatusSemantics.communityPagesMayReadAdminNotes: false
-```
-
-## RDAP61 Route weiterhin bestaetigt
-
-```text
-/api/remote/routes:
-adminNoteUpdateConfirmed.writeEnabled: true
-adminNoteUpdateConfirmed.productiveWritesEnabled: true
-adminNoteUpdateConfirmed.adminNoteUpdateEnabled: true
-adminNoteUpdateConfirmed.adminNoteCreateStillEnabled: true
-adminNoteUpdateConfirmed.adminNoteDeactivateEnabled: false
-adminNoteUpdateConfirmed.uiWriteButtonsEnabled: false
-adminNoteUpdateConfirmed.frontendUpdateUiPrepared: false
-adminNoteUpdateConfirmed.activeNotesOnly: true
-adminNoteUpdateConfirmed.rawNoteTextLogged: false
-```
-
-## Disabled-Service live bestaetigt
-
-```text
-adminUsersAdminNoteWriteDisabled.routes enthaelt nur noch:
-/api/remote/admin/users/admin-notes/deactivate
-
-previouslyDisabledRouteNowConfirmed:
-/api/remote/admin/users/admin-notes/update
-```
-
-## Admin-Notes aktueller Strukturstand
-
-```text
-Bestehende Admin-Notes-Routen liegen in:
-remote-modboard/backend/src/routes/admin-users.routes.js
-
 GET  /api/remote/admin/users/admin-notes/read
 POST /api/remote/admin/users/admin-notes/create
 POST /api/remote/admin/users/admin-notes/update      -> Backend confirmed aktiv
-POST /api/remote/admin/users/admin-notes/deactivate  -> weiter disabled
+POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
+```
+
+## Bestehende UI
+
+```text
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+```
+
+Aktuell gebaut:
+
+```text
+Read-Liste
+Zieluser-Auswahl
+Create-Button/Form bei Schreibrecht
+Create mit confirmWrite:true
+Reload nach erfolgreichem Create
+```
+
+Noch nicht gebaut:
+
+```text
+Update-Button
+Update-Edit-Panel
+Update-Busy-State
+Update-Fehleranzeige
+```
+
+## RDAP63 Entscheidung
+
+```text
+Update-UI soll spaeter in die bestehende Admin-Notes-UI integriert werden.
+Keine neue Seite.
+Keine neue Backend-Route.
+Kein paralleles UI-Modul.
+Nur aktive Notizen.
+Nur bei erfolgreicher Readroute und Schreibrecht.
+Nach Erfolg immer Reload ueber Readroute.
+Keine Optimistic-Mutation.
 ```
 
 ## Live-System
@@ -89,7 +77,7 @@ Branch: dev
 ## Weiterhin deaktiviert
 
 ```text
-Admin-Note Update-UI
+Admin-Note Update-UI ist noch nicht gebaut
 Admin-Note Deactivate
 Physisches Delete
 Community-Read fuer Admin-Notizen
@@ -103,6 +91,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN
+RDAP64_ADMIN_NOTE_UPDATE_UI_IMPLEMENTATION
 ```
-

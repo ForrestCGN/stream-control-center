@@ -1,48 +1,43 @@
 # TODO
 
-Stand: RDAP62B_ADMIN_NOTE_UPDATE_STATUS_LIVE_CONFIRMED_DOCS  
+Stand: RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
 
 ```text
-RDAP59 Admin-Notes Community-Read-Scope geplant: bleibt gesperrt.
-RDAP60 Update/Deactivate-Scope geplant: zuerst Update, Deactivate separat.
-RDAP61 Admin-Note Update-Backend implementiert.
-RDAP61B RDAP61 Live-Bestaetigung dokumentiert.
-RDAP62 Status-Semantik nach Update-Backend bereinigt.
-RDAP62B RDAP62 Live-Bestaetigung dokumentiert.
+RDAP63: Update-UI-Scope geplant, ohne UI-Code zu bauen.
 ```
 
 ## Offen
 
 ```text
-RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN
+RDAP64_ADMIN_NOTE_UPDATE_UI_IMPLEMENTATION
 ```
 
-## RDAP63 klaeren
+## RDAP64 Todo
 
 ```text
-Wo erscheint Update in der bestehenden Admin-Notizen-UI?
-Welche Status-/Permission-Felder steuern Sichtbarkeit?
-Wie wird eine aktive Notiz zum Bearbeiten ausgewaehlt?
-Wie wird confirmWrite:true bestaetigt/gesendet?
-Wie wird Busy-State verhindert, dass mehrere Updates parallel laufen?
-Wie wird nach Erfolg die Readroute neu geladen?
-Wie werden Fehler angezeigt?
-Wie bleibt Deactivate/Delete verborgen?
-Wie bleibt Community-Read verboten?
+- GitHub/dev Startdateien lesen.
+- rdap28-admin-notes.js komplett pruefen.
+- Bestehende Render-/Create-/Reload-Mechanik beibehalten.
+- UPDATE_ENDPOINT ergaenzen.
+- Bearbeiten-Button nur fuer aktive Notizen + Schreibrecht anzeigen.
+- Edit-Panel/Inline-Edit bauen.
+- Speichern mit confirmWrite:true, targetUserUid, noteUid, noteText.
+- Busy-State und Fehleranzeige bauen.
+- Nach Erfolg loadAdminNotes(...) verwenden.
+- Keine Optimistic-Mutation.
 ```
 
-## Weiterhin geparkt
+## Weiterhin gesperrt
 
 ```text
-Admin-Note Deactivate
-Physisches Delete
-Community-Read fuer Admin-Notizen
-Permission-/Rollen-/Gruppen-UI
-Session-Revocation UI
-Agent-/OBS-/Sound-/Overlay-/Command-/Channelpoints-Control
-LAN-Modus fuer EngelCGN
+Deactivate
+Delete
+Community-Read
+DB-Migration
+neue Permission
+Rollen-/Gruppen-/Permission-Writes
+freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
-
