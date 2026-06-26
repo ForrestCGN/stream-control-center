@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD  
+Stand: RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,6 +15,7 @@ RDAP67-RDAP74: Admin-Notes UI schrittweise enttechnisiert; Frontend-only.
 RDAP75: Design-Contract und Findings dokumentiert.
 RDAP75B: Doku-/Uebergabe-Stand und neuer Chat-Prompt aktualisiert.
 RDAP76B: Zentrale Projekt-/UI-/Roadmap-Dokumentation konsolidiert; Doku-only.
+RDAP76: Admin-Notes Router-/Header-State-Fix vorbereitet; Frontend-only.
 ```
 
 ## Zentrale Doku ab jetzt
@@ -23,10 +24,11 @@ RDAP76B: Zentrale Projekt-/UI-/Roadmap-Dokumentation konsolidiert; Doku-only.
 docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
 docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_DOCS_CONSOLIDATION.md
+docs/current/RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP76.md
 ```
 
-## Aktueller Browser-/Design-Befund
+## Aktueller Browser-/Design-Stand
 
 ```text
 Admin-Notes sind sichtbar.
@@ -36,10 +38,9 @@ Technische Statusbloecke wurden aus der Hauptansicht entfernt.
 Header-Aktionen stehen im oberen Admin-Notizen-Header.
 Notizkarten sind menschlicher lesbar.
 
-Offen:
-- Header/Router-State kann falsch sein: User-Detail steht oben, obwohl Admin-Notizen sichtbar sind.
-- Zieluser-/Count-Kontext muss geprueft/fixiert werden: Count muss zum ausgewaehlten User passen.
-- Weitere UI-Politur erst nach diesen State-Fixes.
+RDAP76-Fix:
+- Admin-Notes/User-Detail Page-State nutzt bevorzugt den bestehenden Haupt-Router.
+- Header, aktive Navigation und sichtbares Panel sollen dadurch zusammenpassen.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -67,5 +68,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Code-Step
 
 ```text
-RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
+RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
 ```

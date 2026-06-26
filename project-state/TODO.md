@@ -1,32 +1,9 @@
 # TODO
 
-Stand: RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD  
+Stand: RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX  
 Datum: 2026-06-26
 
 ## Als Naechstes
-
-```text
-RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
-```
-
-Aufgaben:
-
-```text
-- Startdateien aus GitHub/dev lesen.
-- Zentrale Dokus lesen:
-  - PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
-  - REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
-  - REMOTE_MODBOARD_ROADMAP_CURRENT.md
-- Bestehenden Haupt-Router und Admin-Notes-Page-State pruefen.
-- Plan nennen.
-- Auf go warten.
-- Frontend-only ZIP bauen.
-- Lokale node --check fuer remote-modboard.js und rdap28-admin-notes.js.
-- stepdone.cmd nur wenn sauber.
-- Danach Webserver-Deploy, falls remote-modboard/ geaendert wird.
-```
-
-## Direkt danach
 
 ```text
 RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
@@ -35,17 +12,20 @@ RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
 Aufgaben:
 
 ```text
-- Zieluser-Wechsel sauber laden.
-- Count/Notice/Listentitel eindeutig auf aktuell ausgewaehlten User beziehen.
-- Keine alten User-Daten stehen lassen.
+- Startdateien aus GitHub/dev lesen.
+- `rdap28-admin-notes.js` Target-Selection und Read-Reload pruefen.
+- Sicherstellen, dass Zieluser-Wechsel alte Liste/alten Count nicht stehen laesst.
+- UI-Text auf "Notizen fuer <DisplayName>" und "<n> Notizen geladen" fixieren.
+- Frontend-only ZIP bauen, wenn bestehende Readroute reicht.
+- node --check fuer betroffene JS-Dateien.
+- stepdone.cmd nur wenn sauber.
+- Danach Webserver-Deploy, falls remote-modboard/ geaendert wird.
 ```
 
-## Doku-Aufraeumung spaeter
+## Danach
 
 ```text
-- historische RDAP-Dateien nicht sofort loeschen
-- erst Index/Archivplan erstellen
-- ggf. START_HERE_FOR_NEW_CHAT auf die neue zentrale Doku-Basis kuerzen
+Weitere Admin-Notes UI-Politur erst nach RDAP77.
 ```
 
 ## Nicht machen

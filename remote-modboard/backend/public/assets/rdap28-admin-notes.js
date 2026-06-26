@@ -1111,16 +1111,69 @@
   }
 
   function setRdap40Page(page, meta) {
-    document.querySelectorAll(".rdap-view").forEach((panel) => {
-      panel.hidden = panel.dataset.pagePanel !== page;
-    });
-    document.querySelectorAll("[data-page]").forEach((button) => {
-      if (button.dataset && button.dataset.page) button.classList.toggle("active", button.dataset.page === page);
-    });
-    if (meta) {
-      const title = document.querySelector("[data-rdap-page-title]") || document.getElementById("pageTitle");
-      if (title && meta.title) title.textContent = meta.title;
+    const safePage = page === "admin-user-detail" ? "admin-user-detail" : "admin-notes";
+    const safeMeta = normalizeRdap40PageMeta(safePage, meta);
+    const routed = routeThroughMainRouter(safePage, safeMeta);
+
+    syncRdap40InjectedPanels(safePage);
+    syncRdap40NavigationState(safePage);
+
+    if (!routed) {
+      syncRdap40HeaderFallback(safeMeta);
     }
+  }
+
+  function normalizeRdap40PageMeta(page, meta) {
+    const defaults = page === "admin-user-detail"
+      ? { section: "Admin", title: "User-Detail", tab: "read-only" }
+      : { section: "Admin", title: "Admin-Notizen", tab: "read/create" };
+
+    return {
+      section: meta && meta.section ? meta.section : defaults.section,
+      title: meta && meta.title ? meta.title : defaults.title,
+      tab: meta && meta.tab ? meta.tab : defaults.tab
+    };
+  }
+
+  function routeThroughMainRouter(page, meta) {
+    const router = window.RdapMainRouter;
+    if (!router || typeof router.setPage !== "function") return false;
+
+    try {
+      router.setPage(page, meta);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function syncRdap40InjectedPanels(page) {
+    document.querySelectorAll(".rdap-view").forEach((panel) => {
+      const active = panel.dataset.pagePanel === page;
+      if (panel.dataset.pagePanel === "admin-notes" || panel.dataset.pagePanel === "admin-user-detail") {
+        panel.hidden = !active;
+      }
+      panel.classList.toggle("is-active-view", active);
+    });
+  }
+
+  function syncRdap40NavigationState(page) {
+    document.querySelectorAll(".nav-link[data-page], [data-page]").forEach((button) => {
+      if (!button.dataset || !button.dataset.page) return;
+      const active = button.dataset.page === page;
+      button.classList.toggle("active", active);
+      button.classList.toggle("is-active", active);
+    });
+  }
+
+  function syncRdap40HeaderFallback(meta) {
+    setTextSafe("sectionLabel", meta.section || "Admin");
+
+    const title = document.querySelector("[data-rdap-page-title]") || document.getElementById("pageTitle");
+    if (!title || !meta.title) return;
+
+    const tab = meta.tab ? ` <span class="tab-part">${escapeHtmlLocal(meta.tab)}</span>` : "";
+    title.innerHTML = `${escapeHtmlLocal(meta.title)}${tab}`;
   }
 
   function setTextSafe(id, value) {

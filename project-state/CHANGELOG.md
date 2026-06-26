@@ -1,40 +1,28 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD
+## 2026-06-26 - RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
 
 ```text
-- Zentrale Projektuebersicht fuer Remote-Modboard/RDAP erstellt.
-- UI-/Design- und Seitenstruktur dokumentiert.
-- Aktuelle Roadmap konsolidiert.
-- Neuer Next-Chat-Prompt nach Doku-Konsolidierung erstellt.
-- project-state Dateien auf den konsolidierten Stand aktualisiert.
-- Admin-Notes Ist-Stand, offene Befunde und naechste Steps zusammengefuehrt.
-- Historische kleine RDAP-Dateien bleiben erhalten und wurden nicht geloescht.
-- Doku-only.
-- Kein Code.
+- Admin-Notes/User-Detail Page-State in `rdap28-admin-notes.js` bereinigt.
+- `setRdap40Page(...)` nutzt bevorzugt den bestehenden Haupt-Router `window.RdapMainRouter.setPage`.
+- Header, aktive Navigation und sichtbares Panel werden fuer Admin-Notizen/User-Detail synchronisiert.
+- Fallback fuer Header/Titel bleibt nur fuer den Fall, dass der Haupt-Router nicht verfuegbar ist.
+- Frontend-only.
 - Kein Backend.
 - Keine DB-Migration.
 - Keine neue Route.
 - Keine neue Permission.
 - Kein Delete/Deactivate.
-- Kein Webserver-Deploy noetig.
+- Keine neuen Schreibbuttons.
 ```
 
-## 2026-06-26 - RDAP75B_ADMIN_NOTES_DOCS_AND_NEXT_CHAT_PROMPT
+## 2026-06-26 - RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD
 
 ```text
-- Abschluss-/Uebergabe-Dokumentation nach RDAP75 aktualisiert.
-- Neuer Chat-Prompt nach RDAP75B erstellt.
-- Aktuelle Browser-/Design-Findings festgehalten:
-  - Header/Router-State kann falsch User-Detail anzeigen, obwohl Admin-Notizen sichtbar sind.
-  - Zieluser-/Notizen-Count muss zum ausgewaehlten User passen.
-  - Nicht weiter wildes CSS-Gefrickel vor State-Fixes.
-- RDAP76 Admin-Notes Router/Header-State-Fix als naechsten Code-Step festgelegt.
-- RDAP77 Selected-User Reload-/Count-Fix als Folgeschritt festgelegt.
+- Zentrale Projekt-/UI-/Roadmap-Dokumentation konsolidiert.
 - Doku-only.
 - Kein Code.
 - Kein Backend.
 - Keine DB-Migration.
-- Keine neue Permission.
-- Kein Delete/Deactivate.
+- Kein Webserver-Deploy.
 ```
