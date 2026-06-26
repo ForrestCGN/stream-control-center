@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP98B_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PARTIAL_DOCS  
+Stand: RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
@@ -20,17 +20,23 @@ RDAP98/RDAP98B:
 - Safe Logging bestaetigt.
 - Public WSS /agent-ws 404 erkannt.
 - Runtime final disabled bestaetigt.
+
+RDAP99:
+- ISPConfig/Nginx Befund dokumentiert.
+- location / nach 127.0.0.1:3010 existiert.
+- Eigener /agent-ws WebSocket Location-Block fehlt.
+- Upgrade-/Connection-Header fuer WebSocket fehlen.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN
+RDAP100_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_CONFIG
 ```
 
 ## Danach
 
 ```text
-Nach RDAP99-Plan: Nginx /agent-ws Proxy gezielt vorbereiten/pruefen.
-Danach erneuter RDAP98/RDAP100 Live-Test nur separat und mit finalem Disable.
+Nach RDAP100: erneuter Agent-Heartbeat-Live-Test ueber public WSS.
+Runtime dabei nur temporaer aktivieren und final wieder deaktivieren.
 ```

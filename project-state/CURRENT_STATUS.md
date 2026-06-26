@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP98B_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PARTIAL_DOCS  
+Stand: RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -17,6 +17,7 @@ RDAP96: Heartbeat-only Stream-PC Agent Client vorbereitet.
 RDAP96B: Lokale Agent-Checks dokumentiert.
 RDAP97: Manueller Agent-Testplan dokumentiert.
 RDAP98B: RDAP98 Teiltest dokumentiert; public /agent-ws liefert 404.
+RDAP99: Nginx/ISPConfig Agent-WS Proxy Plan dokumentiert.
 ```
 
 ## Live-Service
@@ -48,6 +49,15 @@ Actions: false
 productiveAgentRuntime: false
 ```
 
+## RDAP99 Nginx/ISPConfig Befund
+
+```text
+ISPConfig hat fuer mods.forrestcgn.de bereits location / mit proxy_pass http://127.0.0.1:3010/.
+Fuer WebSocket /agent-ws fehlt ein eigener Location-Block.
+Fuer WebSocket fehlen Upgrade-/Connection-Header.
+Naechster Step: RDAP100 gezielter /agent-ws WebSocket Proxy Config/Test.
+```
+
 ## Final bestaetigter Sicherheitszustand
 
 ```text
@@ -76,10 +86,11 @@ Keine DB-Migration.
 Keine neue Permission.
 Keine Secret-Ausgabe.
 Keine Rohpayload-Ausgabe.
+Keine Runtime dauerhaft aktivieren.
 ```
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN
+RDAP100_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_CONFIG
 ```

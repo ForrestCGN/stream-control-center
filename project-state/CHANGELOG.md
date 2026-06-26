@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN
+
+```text
+- RDAP99 Nginx/ISPConfig Agent-WS Proxy Plan dokumentiert.
+- Festgehalten: RDAP98B Teiltest hatte public /agent-ws 404 Not Found ergeben.
+- Festgehalten: ISPConfig hat bereits location / mit proxy_pass http://127.0.0.1:3010/.
+- Festgehalten: eigener location /agent-ws WebSocket-Block fehlt.
+- Festgehalten: Upgrade-/Connection-Header fuer WebSocket fehlen.
+- Geplanter naechster Step: RDAP100_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_CONFIG.
+- RDAP99 ist Doku/Plan-only; keine Nginx-Aenderung, keine Runtime-Aktivierung, kein Agent-Start, kein Webserver-Deploy.
+```
+
 ## 2026-06-26 - RDAP98B_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PARTIAL_DOCS
 
 ```text

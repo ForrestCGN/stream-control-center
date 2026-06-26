@@ -1,37 +1,63 @@
 # NEXT_STEPS
 
-Stand: RDAP98B_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PARTIAL_DOCS  
+Stand: RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN
+RDAP100_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_CONFIG
 ```
 
 ## Ziel
 
-RDAP99 soll den fehlenden public WebSocket-Proxy fuer `/agent-ws` planen:
+RDAP100 soll den fehlenden public WebSocket-Proxy fuer `/agent-ws` gezielt ergaenzen und testen:
 
 ```text
-- Aktuellen Nginx/Public-Routing-Zustand fuer mods.forrestcgn.de pruefen.
-- Klaeren, warum wss://mods.forrestcgn.de/agent-ws 404 Not Found liefert.
-- Plan fuer Proxy nach Node intern 127.0.0.1:3010/agent-ws erstellen.
-- WebSocket Upgrade/Connection Header beruecksichtigen.
-- Keine Nginx-Aenderung ohne separaten Plan/go.
-- Keine Runtime dauerhaft aktivieren.
-- Keine Secrets.
-- Keine Actions.
+- In ISPConfig/Nginx einen separaten location /agent-ws Block ergaenzen.
+- Bestehenden location / Block unveraendert lassen.
+- WebSocket Upgrade/Connection Header setzen.
+- nginx -t ausfuehren.
+- Nginx reloaden.
+- Public /agent-ws erneut testen.
+- Runtime fuer echten Heartbeat-Test nur temporaer aktivieren.
+- Agent lokal starten.
+- /api/remote/agent/status pruefen.
+- Agent stoppen.
+- Runtime final wieder deaktivieren.
+- Final disabled Status pruefen.
 ```
 
 ## Voraussetzung
 
 ```text
-RDAP98B abgeschlossen:
-- RDAP98 Teiltest dokumentiert.
-- Agent startet lokal und loggt sicher.
-- Public /agent-ws liefert 404.
-- Runtime final disabled.
+RDAP99 abgeschlossen:
+- RDAP98 Teiltest war bis public WSS 404 erfolgreich.
+- ISPConfig hat bereits location / nach 127.0.0.1:3010.
+- Fuer /agent-ws fehlt eigener WebSocket Location-Block.
+- Upgrade-/Connection-Header fehlen.
+```
+
+## Geplanter Nginx Block
+
+```nginx
+location /agent-ws {
+    proxy_pass http://127.0.0.1:3010/agent-ws;
+    proxy_http_version 1.1;
+
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+
+    proxy_read_timeout 75s;
+    proxy_connect_timeout 5s;
+    proxy_send_timeout 75s;
+}
 ```
 
 ## Strikt nicht machen
@@ -55,5 +81,4 @@ Keine produktive Agent-Action-Queue.
 Keine Secret-Ausgabe.
 Keine Rohpayload-Ausgabe.
 Keine Runtime dauerhaft aktivieren.
-Keine Nginx-Aenderung ohne Plan und go.
 ```
