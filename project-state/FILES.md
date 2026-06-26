@@ -1,9 +1,21 @@
 # FILES
 
-Stand: RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION  
+Stand: RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP80
+## Geaendert/neu in RDAP80B
+
+```text
+remote-modboard/backend/public/assets/rdap80-agent-status.js
+docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
+
+## Relevante RDAP80-Dateien bleiben bestehen
 
 ```text
 remote-modboard/backend/src/services/agent-status.service.js
@@ -14,11 +26,6 @@ remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/assets/rdap80-agent-status.js
 docs/current/RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
 ```
 
 ## Zentrale Startdateien fuer naechsten Chat
@@ -31,6 +38,7 @@ docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
 docs/current/RDAP79_DOCS_CURRENT_STATE_AND_NEXT_STREAMPC_CONNECTION_PROMPT.md
 docs/current/RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION.md
+docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md

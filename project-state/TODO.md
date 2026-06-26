@@ -1,16 +1,16 @@
 # TODO
 
-Stand: RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION  
+Stand: RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS  
 Datum: 2026-06-26
 
 ## Jetzt
 
 ```text
-RDAP80 ZIP lokal einspielen.
-Node-Checks fuer geaenderte Backend-/Frontend-JS-Dateien ausfuehren.
+RDAP80B ZIP lokal einspielen.
+Node-Check fuer geaenderte Frontend-JS-Datei ausfuehren.
 git status und diff pruefen.
 Wenn sauber: stepdone.cmd.
-Danach Webserver-Deploy, weil remote-modboard/ Code geaendert wurde.
+Danach Webserver-Deploy, weil remote-modboard/ UI-Code geaendert wurde.
 ```
 
 ## Danach

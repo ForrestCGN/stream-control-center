@@ -2,8 +2,8 @@
 
 (function rdap80AgentStatusPage() {
   const ENDPOINT = '/api/remote/agent/status';
-  const PAGE_ID = 'agent-status';
-  const MODULE_ID = 'agent';
+  const PAGE_ID = 'admin-connections';
+  const MODULE_ID = 'admin';
 
   document.addEventListener('DOMContentLoaded', init);
   window.addEventListener('rdap:main-router-page-change', (event) => {
@@ -21,24 +21,16 @@
 
   function registerPage() {
     const registry = window.RemoteModboardModules;
-    if (!registry || typeof registry.registerModule !== 'function' || typeof registry.registerPage !== 'function') return;
-
-    registry.registerModule({
-      id: MODULE_ID,
-      label: 'Agent',
-      icon: '⇄',
-      order: 40,
-      navSubId: 'nav-agent'
-    });
+    if (!registry || typeof registry.registerPage !== 'function') return;
 
     registry.registerPage({
       moduleId: MODULE_ID,
       pageId: PAGE_ID,
-      label: 'Agent-Status',
-      title: 'Agent-Status',
+      label: 'Verbindungen',
+      title: 'Stream-PC Verbindung',
       tab: 'Read-only',
-      section: 'Agent',
-      order: 10,
+      section: 'Admin',
+      order: 60,
       permission: 'agent.status.read'
     });
   }
@@ -53,26 +45,26 @@
     panel.dataset.pagePanel = PAGE_ID;
     panel.hidden = true;
     panel.innerHTML = `
-      <section class="page-header module-page-header cgn-card rdap80-agent-header">
+      <section class="page-header module-page-header cgn-card rdap80-connections-header">
         <div>
-          <p class="cgn-eyebrow">Webserver ↔ Stream-PC</p>
-          <h1>Agent-Status</h1>
-          <p>Read-only Foundation fuer den spaeteren gesicherten Stream-PC-Agent. In RDAP80 werden nur Status, Heartbeat-Modell und Sicherheitsgrenzen angezeigt.</p>
+          <p class="cgn-eyebrow">Admin / Verbindungen</p>
+          <h1>Stream-PC Verbindung</h1>
+          <p>Read-only Status fuer die spaetere gesicherte Verbindung zwischen Webserver und Stream-PC. In RDAP80B wird nur die sichtbare Einordnung korrigiert; Backend und Sicherheitsgrenzen bleiben unveraendert.</p>
         </div>
-        <div class="rdap80-agent-header-actions">
+        <div class="rdap80-connections-header-actions">
           <span class="cgn-chip cgn-chip--warn" id="agentStatusChip">offline</span>
-          <button class="secondaryButton small" type="button" id="agentStatusReloadButton">Agent-Status neu laden</button>
+          <button class="secondaryButton small" type="button" id="agentStatusReloadButton">Verbindung neu laden</button>
         </div>
       </section>
 
-      <section class="metric-grid rdap80-agent-metrics">
-        <article class="metric-card cgn-card"><span>Verbindung</span><strong id="agentConnectionState">—</strong><small>Stream-PC Agent</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
+      <section class="metric-grid rdap80-connections-metrics">
+        <article class="metric-card cgn-card"><span>Verbindung</span><strong id="agentConnectionState">—</strong><small>Stream-PC</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
         <article class="metric-card cgn-card"><span>Heartbeat</span><strong id="agentHeartbeatAt">—</strong><small>letzte Meldung</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
-        <article class="metric-card cgn-card"><span>Agent</span><strong id="agentExpectedName">—</strong><small id="agentExpectedId">—</small><div class="cgn-progress"><i style="width:42%"></i></div></article>
+        <article class="metric-card cgn-card"><span>Ziel</span><strong id="agentExpectedName">—</strong><small id="agentExpectedId">—</small><div class="cgn-progress"><i style="width:42%"></i></div></article>
         <article class="metric-card cgn-card"><span>Actions</span><strong id="agentActionsEnabled">—</strong><small>muss disabled bleiben</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
       </section>
 
-      <section class="page-grid rdap80-agent-grid">
+      <section class="page-grid rdap80-connections-grid">
         <article class="cgn-card">
           <div class="card-head"><div><p class="cgn-eyebrow">Transport</p><h2>Geplante Verbindung</h2></div><span class="cgn-chip cgn-chip--info">WSS geplant</span></div>
           <div class="kv-grid">
@@ -96,7 +88,7 @@
             <div class="kv-row"><span>Heartbeat Receiver</span><strong id="agentHeartbeatReceiver">—</strong></div>
             <div class="kv-row"><span>Speicherung</span><strong id="agentHeartbeatStorage">—</strong></div>
           </div>
-          <div class="rdap80-agent-notice" id="agentStatusNotice">Noch nicht geladen.</div>
+          <div class="rdap80-connections-notice" id="agentStatusNotice">Noch nicht geladen.</div>
         </article>
       </section>
     `;
@@ -113,7 +105,7 @@
     const result = await getJson(ENDPOINT);
     if (!result.ok) {
       renderError(result);
-      updateQuickAgentChip('Agent prüfen', false);
+      updateQuickAgentChip('Verbindung prüfen', false);
       return;
     }
     renderAgentStatus(result.body, reason);
@@ -157,7 +149,7 @@
     setText('agentConnectionState', connectionState);
     setText('agentHeartbeatAt', agent.lastHeartbeatAt ? formatDate(agent.lastHeartbeatAt) : '—');
     setText('agentExpectedName', agent.expectedAgentName || 'Forrest Stream-PC');
-    setText('agentExpectedId', agent.expectedAgentId ? `Agent-ID: ${agent.expectedAgentId}` : 'Agent-ID: —');
+    setText('agentExpectedId', agent.expectedAgentId ? `Ziel-ID: ${agent.expectedAgentId}` : 'Ziel-ID: —');
     setText('agentActionsEnabled', actionsEnabled ? 'aktiv' : 'disabled');
     setText('agentPlannedDirection', transport.plannedDirection || 'stream-pc-agent-to-webserver');
     setText('agentPlannedTransport', String(transport.plannedTransport || 'wss').toUpperCase());
@@ -175,8 +167,8 @@
     }
 
     renderSafety(safety);
-    setText('agentStatusNotice', `RDAP80: Agent-Status read-only geladen (${reason || 'auto'}). Keine produktiven Agent-Actions aktiv.`);
-    updateQuickAgentChip(connected ? 'Agent online' : 'Agent offline', connected);
+    setText('agentStatusNotice', `RDAP80B: Stream-PC-Verbindungsstatus read-only geladen (${reason || 'auto'}). Keine produktiven Remote-Actions aktiv.`);
+    updateQuickAgentChip(connected ? 'Verbindung online' : 'Verbindung offline', connected);
   }
 
   function renderSafety(safety) {
@@ -188,7 +180,7 @@
       ['Keine Shell-/Prozessaktionen', safety.noShellOrProcessActions],
       ['Keine freien Dateioperationen', safety.noFileWrite],
       ['Keine freie URL-Ausführung', safety.noFreeUrlExecution],
-      ['Keine Agent-Actions', safety.noAgentActionExecution]
+      ['Keine Remote-Actions', safety.noAgentActionExecution]
     ];
 
     const list = document.getElementById('agentSafetyList');
@@ -200,7 +192,7 @@
   }
 
   function renderError(result) {
-    setText('agentStatusNotice', `Agent-Status konnte nicht geladen werden: ${escapePlain(result.error || `HTTP ${result.httpStatus || 0}`)}`);
+    setText('agentStatusNotice', `Verbindungsstatus konnte nicht geladen werden: ${escapePlain(result.error || `HTTP ${result.httpStatus || 0}`)}`);
     setText('agentConnectionState', 'prüfen');
     const chip = document.getElementById('agentStatusChip');
     if (chip) {
@@ -218,16 +210,16 @@
   }
 
   function injectStyles() {
-    if (document.getElementById('rdap80AgentStatusStyle')) return;
+    if (document.getElementById('rdap80ConnectionsStatusStyle')) return;
     const style = document.createElement('style');
-    style.id = 'rdap80AgentStatusStyle';
+    style.id = 'rdap80ConnectionsStatusStyle';
     style.textContent = `
-      [data-page-panel="agent-status"].is-active-view{display:grid;gap:18px}
-      .rdap80-agent-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-      .rdap80-agent-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
-      .rdap80-agent-grid .span2{grid-column:1/-1}
-      .rdap80-agent-notice{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.18);color:var(--muted);font-size:13px;line-height:1.35}
-      @media (max-width:900px){.rdap80-agent-header{flex-direction:column}.rdap80-agent-header-actions{justify-content:flex-start}.rdap80-agent-grid .span2{grid-column:auto}}
+      [data-page-panel="admin-connections"].is-active-view{display:grid;gap:18px}
+      .rdap80-connections-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+      .rdap80-connections-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+      .rdap80-connections-grid .span2{grid-column:1/-1}
+      .rdap80-connections-notice{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.18);color:var(--muted);font-size:13px;line-height:1.35}
+      @media (max-width:900px){.rdap80-connections-header{flex-direction:column}.rdap80-connections-header-actions{justify-content:flex-start}.rdap80-connections-grid .span2{grid-column:auto}}
     `;
     document.head.appendChild(style);
   }

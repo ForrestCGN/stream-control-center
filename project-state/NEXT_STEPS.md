@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION  
+Stand: RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS  
 Datum: 2026-06-26
 
 ## Naechster Step
@@ -16,12 +16,13 @@ Agent-Handshake, Agent-ID, Agent-Secret und Heartbeat-Empfang konkret planen.
 Noch keine produktiven Remote-Actions.
 ```
 
-## Ausgangspunkt RDAP80
+## Ausgangspunkt RDAP80B
 
 ```text
 - GET /api/remote/agent/status vorhanden.
-- UI-Page Agent -> Agent-Status vorhanden.
-- Agent ist disabled/offline.
+- UI-Page ist Admin -> Verbindungen / Stream-PC Verbindung.
+- Kein eigenes Hauptmodul Agent in der Navigation.
+- Status ist disabled/offline.
 - Heartbeat-Modell ist read-only vorbereitet.
 - WSS-Pfad /agent-ws ist nur geplant.
 ```

@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION  
+Stand: RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -10,7 +10,8 @@ Projekt: `stream-control-center` / Remote-Modboard / RDAP
 RDAP77B: Module Registry / Admin-Unterseiten sichtbar exklusiv getestet.
 RDAP78C: Admin-Notes Zieluser-/Notice-/Count-Kontext getestet.
 RDAP79: Doku-Abschluss und naechster Fokus Webserver <-> Stream-PC vorbereitet.
-RDAP80: Agent-Status/Heartbeat-Foundation read-only vorbereitet.
+RDAP80: Agent-Status/Heartbeat-Foundation read-only vorbereitet und live bestaetigt.
+RDAP80B: Sichtbare UI-Einordnung von Agent -> Agent-Status zu Admin -> Verbindungen korrigiert.
 ```
 
 ## Admin-Notes Status
@@ -24,16 +25,17 @@ EngelCGN zeigt keine falschen Forrest-Notizen mehr.
 Falscher stale Count wurde in remote-modboard.js korrigiert.
 ```
 
-## Agent-Status Stand
+## Stream-PC-Verbindungsstatus
 
 ```text
 GET /api/remote/agent/status existiert.
 /api/remote/status enthaelt Agent-Summary.
 /api/remote/routes listet die Agent-Statusroute.
-Remote-Modboard UI zeigt Agent -> Agent-Status.
+Remote-Modboard UI zeigt Admin -> Verbindungen.
+Seite heisst Stream-PC Verbindung.
 Status ist read-only und aktuell disabled/offline.
 Heartbeat-Modell ist vorbereitet, aber Receiver/Runtime sind disabled.
-Keine Agent-Actions aktiv.
+Keine Remote-/Agent-Actions aktiv.
 ```
 
 ## Weiterhin deaktiviert/verboten
@@ -45,7 +47,7 @@ Community-Read fuer Admin-Notizen
 Permission-Verwaltung in der UI
 Rollen-/Gruppen-Schreibverwaltung
 Session-Revocation in der UI
-Agent-Actions/OBS/Sound/Overlay/Command/Channelpoints-Control
+Remote-/Agent-Actions/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 

@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS
+
+```text
+- Sichtbare UI-Einordnung korrigiert.
+- Vorher: Agent -> Agent-Status.
+- Nachher: Admin -> Verbindungen / Stream-PC Verbindung.
+- Backend-Route /api/remote/agent/status bleibt unveraendert.
+- Kein eigenes Hauptmodul Agent mehr in der Navigation.
+- Keine Backend-Aenderung.
+- Keine neue Route.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Remote-/Agent-Actions.
+- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+- Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
+```
+
 ## 2026-06-26 - RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION
 
 ```text
