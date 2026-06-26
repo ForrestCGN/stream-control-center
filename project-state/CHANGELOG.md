@@ -1,19 +1,25 @@
 # CHANGELOG
 
+## RDAP55_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PREPARED - 2026-06-26
+
+- Frontend-only Polish fuer RDAP53 Permission-Read-Detail vorbereitet.
+- `remote-modboard/backend/public/assets/rdap53-permission-read-detail.js` erweitert:
+  - Leere Module-/Targetrechte werden verstaendlicher erklaert.
+  - `0 Targets` wird nicht mehr nur generisch als leerer Eintrag angezeigt.
+  - Hinweis: Auth-Modell liefert aktuell 0 `modulePermissions`.
+  - Hinweis: Rollenrechte werden separat unter `Effektive Rollen-Rechte` angezeigt.
+  - Diagnose-Zeilen fuer `rolePermissions` und `modulePermissions` ergaenzt.
+- Keine neue Datei fuer die UI erstellt.
+- Keine Aenderung an `app.js`.
+- Keine Aenderung an `index.html`.
+- Keine Backend-Route.
+- Keine DB-Migration.
+- Keine Writes.
+
 ## RDAP54_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PLAN - 2026-06-26
 
-- RDAP54 als Plan-only dokumentiert.
-- Ausgangslage aus RDAP53B uebernommen:
-  - RDAP53-Karten sind live sichtbar.
-  - Effektive Rollen-Rechte sind sichtbar.
-  - ForrestCGN / owner zeigt 8 Rechte.
-  - Modulbezogene Rechte zeigen 0 Targets.
-  - `model.modulePermissions` liefert aktuell 0 Eintraege.
-- Bewertung dokumentiert:
-  - `0 Targets` ist technisch korrekt.
-  - Anzeige kann aber wie ein Fehler wirken.
-- Naechster empfohlener Step:
-  - RDAP55 als kleiner Frontend-only Text-/Diagnose-Polish in bestehender RDAP53-Datei.
+- RDAP55 geplant.
+- Ziel: 0-Targets-Anzeige bei modulbezogenen Rechten besser erklaeren.
 - Doku-only.
 - Kein Webserver-Deploy noetig.
 
@@ -24,16 +30,7 @@
   - Admin -> User-Detail zeigt RDAP53-Karten.
   - Effektive Rollen-Rechte sichtbar.
   - ForrestCGN / owner zeigt 8 Rechte.
-  - Modulbezogene Rechte sichtbar.
-  - 0 Targets plausibel, weil `model.modulePermissions` leer ist.
+  - Modulbezogene Rechte zeigen 0 Targets.
+  - 0 Targets ist plausibel, weil `model.modulePermissions` leer ist.
 - Doku-only.
 - Kein Webserver-Deploy noetig.
-
-## RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED - 2026-06-26
-
-- Read-only Permission-Detail-Polish vorbereitet.
-- `app.js` erweitert bestehende Script-Injection.
-- `rdap53-permission-read-detail.js` hinzugefuegt.
-- Keine neue Backend-Route.
-- Keine DB-Migration.
-- Keine Writes.

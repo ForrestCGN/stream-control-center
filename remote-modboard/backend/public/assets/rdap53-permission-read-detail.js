@@ -27,9 +27,13 @@
       .rdap53-row strong,.rdap53-row small{display:block}
       .rdap53-row strong{color:#fff;font-size:13px}
       .rdap53-row small{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.35}
+      .rdap53-row--empty{border-style:dashed;border-color:rgba(27,216,255,.24);background:rgba(27,216,255,.055)}
       .rdap53-note{padding:12px;border-radius:16px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.20);color:#dff8ff;line-height:1.45}
       .rdap53-note strong{color:#fff}
-      @media (max-width:1000px){.rdap53-permission-grid{grid-template-columns:1fr}}
+      .rdap53-diagnostic-list{display:grid;gap:6px;margin-top:8px}
+      .rdap53-diagnostic-line{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
+      .rdap53-diagnostic-line strong{color:#fff;text-align:right}
+      @media (max-width:1000px){.rdap53-permission-grid{grid-template-columns:1fr}.rdap53-diagnostic-line{display:block}.rdap53-diagnostic-line strong{text-align:left}}
     `;
     document.head.appendChild(style);
   }
@@ -135,23 +139,35 @@
     const userGroups = findUserRows(model.userGroups, selectedUid, 'group_key');
     const roleKeys = userRoles.map(row => readKey(row, 'role_key')).filter(Boolean);
     const groupKeys = userGroups.map(row => readKey(row, 'group_key')).filter(Boolean);
+    const allRolePermissions = Array.isArray(model.rolePermissions) ? model.rolePermissions : [];
+    const allModulePermissions = Array.isArray(model.modulePermissions) ? model.modulePermissions : [];
 
-    const rolePermissions = uniqueRows((Array.isArray(model.rolePermissions) ? model.rolePermissions : [])
+    const rolePermissions = uniqueRows(allRolePermissions
       .filter(row => roleKeys.includes(readKey(row, 'role_key'))), row => `${readKey(row, 'role_key')}|${readKey(row, 'permission_key')}|${readKey(row, 'effect')}`);
 
-    const modulePermissions = uniqueRows((Array.isArray(model.modulePermissions) ? model.modulePermissions : [])
+    const modulePermissions = uniqueRows(allModulePermissions
       .filter(row => isModulePermissionRelevant(row, roleKeys, groupKeys, selectedUid)), row => [
         readKey(row, 'subject_type'), readKey(row, 'subject_key'), readKey(row, 'permission_key'), readKey(row, 'target_type'), readKey(row, 'target_key'), readKey(row, 'effect')
       ].join('|'));
 
     setChip('rdap53RolePermissionPill', latestResult && latestResult.ok, `${rolePermissions.length} Rechte`);
     setChip('rdap53ModulePermissionPill', latestResult && latestResult.ok, `${modulePermissions.length} Targets`);
-    setHtml('rdap53RolePermissions', renderRows(rolePermissions, renderRolePermissionRow));
-    setHtml('rdap53ModulePermissions', renderRows(modulePermissions, renderModulePermissionRow));
+    setHtml('rdap53RolePermissions', renderRows(rolePermissions, renderRolePermissionRow, renderRolePermissionEmpty));
+    setHtml('rdap53ModulePermissions', renderRows(modulePermissions, renderModulePermissionRow, () => renderModulePermissionEmpty(allRolePermissions, allModulePermissions, rolePermissions)));
 
     const userLabel = selectedUser ? formatUser(selectedUser) : (selectedUid || 'kein User ausgewählt');
     const status = latestResult && latestResult.ok ? 'geladen' : `nicht geladen: ${latestResult ? (latestResult.error || latestResult.httpStatus) : 'wartet'}`;
-    setHtml('rdap53PermissionNote', `User: <strong>${escapeHtml(userLabel)}</strong><br>Rollen: <strong>${escapeHtml(roleKeys.join(', ') || '—')}</strong><br>Gruppen: <strong>${escapeHtml(groupKeys.join(', ') || '—')}</strong><br>Status: <strong>${escapeHtml(status)}</strong>${reason ? `<br>Quelle: <strong>${escapeHtml(reason)}</strong>` : ''}`);
+    setHtml('rdap53PermissionNote', buildDiagnosticNote({
+      userLabel,
+      roleKeys,
+      groupKeys,
+      status,
+      reason,
+      allRolePermissionCount: allRolePermissions.length,
+      allModulePermissionCount: allModulePermissions.length,
+      effectiveRolePermissionCount: rolePermissions.length,
+      relevantModulePermissionCount: modulePermissions.length
+    }));
   }
 
   function getSelectedUserUid() {
@@ -180,10 +196,26 @@
     return false;
   }
 
-  function renderRows(rows, formatter) {
+  function renderRows(rows, formatter, emptyFormatter) {
     const values = Array.isArray(rows) ? rows : [];
-    if (!values.length) return '<div class="rdap53-row"><strong>—</strong><small>Keine passenden read-only Einträge im Auth-Modell gefunden.</small></div>';
+    if (!values.length) return typeof emptyFormatter === 'function'
+      ? emptyFormatter()
+      : '<div class="rdap53-row rdap53-row--empty"><strong>—</strong><small>Keine passenden read-only Einträge im Auth-Modell gefunden.</small></div>';
     return values.slice(0, 20).map(formatter).join('') + (values.length > 20 ? `<div class="rdap53-row"><strong>+${values.length - 20}</strong><small>weitere Einträge nicht angezeigt</small></div>` : '');
+  }
+
+  function renderRolePermissionEmpty() {
+    return '<div class="rdap53-row rdap53-row--empty"><strong>Keine Rollenrechte für diesen User gefunden.</strong><small>Das Auth-Modell wurde gelesen, aber für die ausgewählten Rollen wurden keine passenden rolePermissions gefunden.</small></div>';
+  }
+
+  function renderModulePermissionEmpty(allRolePermissions, allModulePermissions, rolePermissions) {
+    const roleText = rolePermissions && rolePermissions.length
+      ? `${rolePermissions.length} Rollenrecht(e) werden separat unter „Effektive Rollen-Rechte“ angezeigt.`
+      : 'Für diesen User wurden aktuell keine Rollenrechte abgeleitet.';
+    const moduleText = allModulePermissions && allModulePermissions.length
+      ? `${allModulePermissions.length} modulePermissions im Auth-Modell vorhanden, aber keine davon passt zu User/Rollen/Gruppen des ausgewählten Users.`
+      : 'Das Auth-Modell liefert aktuell 0 modulePermissions.';
+    return `<div class="rdap53-row rdap53-row--empty"><strong>Keine Modul-/Targetrechte vorhanden.</strong><small>${escapeHtml(moduleText)} ${escapeHtml(roleText)} Das ist kein Fehler und keine fehlgeschlagene Berechtigungsprüfung.</small></div>`;
   }
 
   function renderRolePermissionRow(row) {
@@ -201,6 +233,20 @@
     const targetKey = readKey(row, 'target_key') || '—';
     const effect = readKey(row, 'effect') || '—';
     return `<div class="rdap53-row"><strong>${escapeHtml(permissionKey)}</strong><small>${escapeHtml(subjectType)}:${escapeHtml(subjectKey)} · ${escapeHtml(targetType)}:${escapeHtml(targetKey)} · Effekt: ${escapeHtml(effect)}</small></div>`;
+  }
+
+  function buildDiagnosticNote({ userLabel, roleKeys, groupKeys, status, reason, allRolePermissionCount, allModulePermissionCount, effectiveRolePermissionCount, relevantModulePermissionCount }) {
+    return `User: <strong>${escapeHtml(userLabel)}</strong><br>`
+      + `Rollen: <strong>${escapeHtml(roleKeys.join(', ') || '—')}</strong><br>`
+      + `Gruppen: <strong>${escapeHtml(groupKeys.join(', ') || '—')}</strong><br>`
+      + `Status: <strong>${escapeHtml(status)}</strong>${reason ? `<br>Quelle: <strong>${escapeHtml(reason)}</strong>` : ''}`
+      + '<div class="rdap53-diagnostic-list">'
+      + `<div class="rdap53-diagnostic-line"><span>rolePermissions gesamt</span><strong>${escapeHtml(String(allRolePermissionCount || 0))}</strong></div>`
+      + `<div class="rdap53-diagnostic-line"><span>effektive Rollenrechte</span><strong>${escapeHtml(String(effectiveRolePermissionCount || 0))}</strong></div>`
+      + `<div class="rdap53-diagnostic-line"><span>modulePermissions gesamt</span><strong>${escapeHtml(String(allModulePermissionCount || 0))}</strong></div>`
+      + `<div class="rdap53-diagnostic-line"><span>passende Module-/Targets</span><strong>${escapeHtml(String(relevantModulePermissionCount || 0))}</strong></div>`
+      + '<div class="rdap53-diagnostic-line"><span>Quelle</span><strong>/api/remote/auth/model</strong></div>'
+      + '</div>';
   }
 
   function uniqueRows(rows, keyFn) {

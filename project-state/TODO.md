@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP54_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PLAN  
+Stand: RDAP55_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PREPARED  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -11,17 +11,20 @@ Datum: 2026-06-26
 - [x] RDAP49B Live-Bestaetigung Admin-User-Detail dokumentiert.
 - [x] RDAP50 Bruecke User-Detail zu Admin-Notizen geplant.
 - [x] RDAP51 Bruecke User-Detail zu Admin-Notizen Frontend-only umgesetzt.
-- [x] RDAP51 live bestaetigt: Kontext-Hinweis, Zieluser-Uebernahme, Ruecksprung und Hinweis ausblenden sichtbar.
 - [x] RDAP51B Live-Bestaetigung dokumentiert.
 - [x] RDAP52 Permission-/Rollen-Read-Details geplant.
 - [x] RDAP53 Permission-Read-Detail-Polish umgesetzt und live sichtbar.
 - [x] RDAP53B Live-Bestaetigung dokumentiert.
-- [x] RDAP54 geplant: 0-Targets-Anzeige bei modulbezogenen Rechten klarer erklaeren.
+- [x] RDAP54 0-Targets-Polish geplant.
+- [x] RDAP55 0-Targets-Polish vorbereitet.
 
 ## Offen / Naechstes
 
-- [ ] RDAP55 vorbereiten: kleiner Frontend-only Text-/Diagnose-Polish fuer leere modulePermissions.
-- [ ] Bestehende RDAP53-Datei erweitern, keine parallele UI erfinden.
+- [ ] RDAP55 lokal testen.
+- [ ] RDAP55 stepdone nach lokalem Test.
+- [ ] RDAP55 Webserver-Deploy aus frischem GitHub/dev-Clone.
+- [ ] RDAP55 live bestaetigen.
+- [ ] RDAP55B Live-Bestaetigung dokumentieren.
 - [ ] Effektive Rechte weiterhin nur read-only darstellen.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
