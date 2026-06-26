@@ -2,9 +2,9 @@
 
 const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
-const { registerAgentRuntimeDisabledSkeleton } = require('./src/services/agent-runtime-disabled.service');
+const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const MODULE_BUILD = 'RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED';
+const MODULE_BUILD = 'RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS';
 
 async function main() {
   const config = loadConfig();
@@ -14,7 +14,7 @@ async function main() {
     console.log('[remote-modboard] admin-note-create-write-confirmed=true admin-note-update=false admin-note-deactivate=false uiWriteButtons=false remoteWritesControlled=true agentActions=false');
   });
 
-  registerAgentRuntimeDisabledSkeleton(server, config, { moduleBuild: MODULE_BUILD });
+  registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD });
 
   process.on('SIGTERM', () => shutdown(server, 'SIGTERM'));
   process.on('SIGINT', () => shutdown(server, 'SIGINT'));

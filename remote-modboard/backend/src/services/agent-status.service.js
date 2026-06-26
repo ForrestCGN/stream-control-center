@@ -1,11 +1,15 @@
 'use strict';
 
 const os = require('os');
-const { buildRejectDiagnosticSummary } = require('./agent-runtime-disabled.service');
+const {
+  MODULE_BUILD: AGENT_RUNTIME_BUILD,
+  STATUS_API_VERSION,
+  buildAgentConnectionSummary,
+  buildRejectDiagnosticSummary
+} = require('./agent-runtime.service');
 
 const MODULE = 'remote_agent_status';
-const MODULE_BUILD = 'RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED';
-const STATUS_API_VERSION = 'rdap_agent86.v1';
+const MODULE_BUILD = AGENT_RUNTIME_BUILD;
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const LOADED_AT = new Date().toISOString();
 
@@ -47,23 +51,28 @@ const HEARTBEAT_MODEL = Object.freeze({
   offlineAfterMs: 120000,
   plannedHeartbeatIntervalMs: 30000,
   storesHeartbeatInMemoryOnlyForNow: true,
-  persistsHeartbeatToDatabase: false
+  persistsHeartbeatToDatabase: false,
+  note: 'RDAP92 akzeptiert maximal Transport; produktiver Heartbeat bleibt fuer RDAP93 separat.'
 });
 
 function buildAgentStatusSummary(context = {}) {
   const runtime = buildRuntimeConfigSummary(context.config);
   const transport = buildTransportSummary(runtime);
   const rejectDiagnostic = buildRejectDiagnosticSummary();
+  const connection = buildAgentConnectionSummary();
 
   return {
-    enabled: false,
-    connected: false,
-    connectionState: 'offline',
+    enabled: runtime.effectiveEnabled,
+    connected: connection.connected,
+    connectionState: connection.connectionState,
     actionsEnabled: false,
     productiveAgentRuntime: false,
     runtimeSkeletonPrepared: runtime.skeletonPrepared,
     runtimeRequestedEnabled: runtime.requestedEnabled,
-    runtimeEffectiveEnabled: false,
+    runtimeAcceptBuildPrepared: runtime.acceptBuildPrepared,
+    runtimeAcceptBuildEnabled: runtime.acceptBuildEnabled,
+    runtimeEffectiveEnabled: runtime.effectiveEnabled,
+    acceptsAgentConnections: runtime.acceptsAgentConnections,
     heartbeatReceiverEnabled: false,
     accessKeyConfigured: runtime.accessKeyConfigured,
     accessKeyExposed: false,
@@ -74,13 +83,19 @@ function buildAgentStatusSummary(context = {}) {
     expectedAgentId: runtime.expectedAgentId,
     expectedAgentName: runtime.expectedAgentName,
     expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
+    agentId: connection.agentId,
+    agentName: connection.agentName,
+    agentVersion: connection.agentVersion,
+    protocolVersion: connection.protocolVersion,
+    connectedSince: connection.connectedSince,
+    lastSeenAt: connection.lastSeenAt,
     lastHeartbeatAt: null,
     heartbeatAgeMs: null,
     stale: false,
     handshakePrecheckPrepared: rejectDiagnostic.handshakePrecheckPrepared,
-    handshakePrecheckAcceptsConnections: false,
+    handshakePrecheckAcceptsConnections: runtime.effectiveEnabled,
     accessKeyComparePrepared: rejectDiagnostic.accessKeyComparePrepared,
-    accessKeyCompareAcceptsConnections: false,
+    accessKeyCompareAcceptsConnections: runtime.effectiveEnabled,
     rejectDiagnosticPrepared: rejectDiagnostic.prepared,
     rejectDiagnosticInMemoryOnly: rejectDiagnostic.inMemoryOnly,
     rejectCount: rejectDiagnostic.rejectCount,
@@ -102,6 +117,7 @@ function buildAgentStatusResponse(context = {}) {
   const runtime = buildRuntimeConfigSummary(context.config);
   const transport = buildTransportSummary(runtime);
   const rejectDiagnostic = buildRejectDiagnosticSummary();
+  const connection = buildAgentConnectionSummary();
 
   return {
     ok: true,
@@ -117,21 +133,22 @@ function buildAgentStatusResponse(context = {}) {
     generatedAt: now,
     loadedAt: LOADED_AT,
     agent: {
-      enabled: false,
-      connected: false,
-      connectionState: 'offline',
-      reason: 'rdap86_access_key_compare_disabled_reject_only',
+      enabled: runtime.effectiveEnabled,
+      connected: connection.connected,
+      connectionState: connection.connectionState,
+      reason: runtime.effectiveEnabled ? 'rdap92_transport_accept_guarded_no_actions' : 'runtime_not_effectively_enabled',
       lastHeartbeatAt: null,
-      connectedSince: null,
+      connectedSince: connection.connectedSince,
+      lastSeenAt: connection.lastSeenAt,
       heartbeatAgeMs: null,
-      reconnectCount: 0,
+      reconnectCount: connection.reconnectCount,
       stale: false,
       actionsEnabled: false,
       productiveActionsEnabled: false,
-      agentId: null,
-      agentName: null,
-      agentVersion: null,
-      protocolVersion: STATUS_API_VERSION,
+      agentId: connection.agentId,
+      agentName: connection.agentName,
+      agentVersion: connection.agentVersion,
+      protocolVersion: connection.protocolVersion || STATUS_API_VERSION,
       expectedAgentId: runtime.expectedAgentId,
       expectedAgentName: runtime.expectedAgentName,
       expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION
@@ -139,21 +156,27 @@ function buildAgentStatusResponse(context = {}) {
     runtime: {
       skeletonPrepared: runtime.skeletonPrepared,
       requestedEnabled: runtime.requestedEnabled,
-      effectiveEnabled: false,
-      wssRuntimeEnabled: false,
+      acceptBuildPrepared: runtime.acceptBuildPrepared,
+      acceptBuildEnabled: runtime.acceptBuildEnabled,
+      twoStepRuntimeGate: runtime.twoStepRuntimeGate,
+      effectiveEnabled: runtime.effectiveEnabled,
+      wssRuntimeEnabled: runtime.wssRuntimeEnabled,
       heartbeatReceiverEnabled: false,
       accessKeyConfigured: runtime.accessKeyConfigured,
       accessKeyExposed: false,
       accessKeyLogged: false,
-      defaultDisabled: true,
+      defaultDisabled: !runtime.effectiveEnabled,
       upgradeGuardPrepared: true,
       handshakePrecheckPrepared: true,
-      handshakePrecheckAcceptsConnections: false,
+      handshakePrecheckAcceptsConnections: runtime.effectiveEnabled,
       accessKeyComparePrepared: true,
-      accessKeyCompareAcceptsConnections: false,
-      acceptsAgentConnections: false
+      accessKeyCompareAcceptsConnections: runtime.effectiveEnabled,
+      acceptsAgentConnections: runtime.acceptsAgentConnections,
+      actionsEnabled: false,
+      productiveAgentRuntime: false
     },
     rejectDiagnostic,
+    connection,
     heartbeat: { ...HEARTBEAT_MODEL },
     transport,
     host: {
@@ -167,8 +190,9 @@ function buildAgentStatusResponse(context = {}) {
     },
     safety: { ...SAFETY },
     warnings: [
-      'RDAP86 vergleicht einen vorhandenen Bearer-Proof nur serverseitig gegen AGENT_ACCESS_KEY und lehnt weiterhin ab.',
-      'WSS/Upgrade-Guard nimmt weiterhin keine produktive Agent-Verbindung an.',
+      'RDAP92 akzeptiert maximal einen guarded WebSocket-Transport, wenn beide Runtime-Gates aktiv sind.',
+      'Agent-Actions bleiben deaktiviert.',
+      'Heartbeat-Receiver bleibt deaktiviert und wird separat geplant.',
       'OBS, Sounds, Overlays, Commands, Shell, Datei-, Prozess- und URL-Ausfuehrung bleiben deaktiviert.',
       'Authorization-Werte, Bearer-Token, AGENT_ACCESS_KEY, Header, Cookies, Query-Werte und rohe IP-Adressen werden nicht in Status, UI oder Logs ausgegeben.'
     ],
@@ -180,6 +204,7 @@ function buildAgentRoutesSummary(context = {}) {
   const runtime = buildRuntimeConfigSummary(context.config);
   const transport = buildTransportSummary(runtime);
   const rejectDiagnostic = buildRejectDiagnosticSummary();
+  const connection = buildAgentConnectionSummary();
 
   return {
     prepared: true,
@@ -192,16 +217,20 @@ function buildAgentRoutesSummary(context = {}) {
     productiveAgentRuntime: false,
     runtimeSkeletonPrepared: runtime.skeletonPrepared,
     runtimeRequestedEnabled: runtime.requestedEnabled,
-    runtimeEffectiveEnabled: false,
+    runtimeAcceptBuildPrepared: runtime.acceptBuildPrepared,
+    runtimeAcceptBuildEnabled: runtime.acceptBuildEnabled,
+    runtimeEffectiveEnabled: runtime.effectiveEnabled,
     heartbeatFoundationPrepared: true,
     heartbeatReceiverEnabled: false,
-    wssRuntimeEnabled: false,
+    wssRuntimeEnabled: runtime.wssRuntimeEnabled,
     upgradeGuardPrepared: true,
     handshakePrecheckPrepared: true,
-    handshakePrecheckAcceptsConnections: false,
+    handshakePrecheckAcceptsConnections: runtime.effectiveEnabled,
     accessKeyComparePrepared: true,
-    accessKeyCompareAcceptsConnections: false,
-    acceptsAgentConnections: false,
+    accessKeyCompareAcceptsConnections: runtime.effectiveEnabled,
+    acceptsAgentConnections: runtime.acceptsAgentConnections,
+    connected: connection.connected,
+    connectionState: connection.connectionState,
     accessKeyConfigured: runtime.accessKeyConfigured,
     accessKeyExposed: false,
     plannedTransport: transport.plannedTransport,
@@ -229,12 +258,22 @@ function buildAgentRoutesSummary(context = {}) {
 
 function buildRuntimeConfigSummary(config = {}) {
   const runtime = config && config.agent && config.agent.runtime ? config.agent.runtime : {};
+  const requestedEnabled = runtime.requestedEnabled === true;
+  const acceptBuildEnabled = runtime.acceptBuildEnabled === true;
+  const effectiveEnabled = requestedEnabled && acceptBuildEnabled;
+
   return {
     skeletonPrepared: runtime.skeletonPrepared === true || true,
-    requestedEnabled: runtime.requestedEnabled === true,
-    effectiveEnabled: false,
-    wssRuntimeEnabled: false,
+    requestedEnabled,
+    acceptBuildPrepared: runtime.acceptBuildPrepared === true,
+    acceptBuildEnabled,
+    twoStepRuntimeGate: runtime.twoStepRuntimeGate === true,
+    effectiveEnabled,
+    wssRuntimeEnabled: effectiveEnabled,
     heartbeatReceiverEnabled: false,
+    acceptsAgentConnections: effectiveEnabled,
+    actionsEnabled: false,
+    productiveAgentRuntime: false,
     wsPath: runtime.wsPath || DEFAULT_TRANSPORT.plannedWsPath,
     expectedAgentId: runtime.expectedAgentId || EXPECTED_AGENT.agentId,
     expectedAgentName: runtime.expectedAgentName || EXPECTED_AGENT.agentName,
@@ -260,11 +299,7 @@ function safeHostname() {
 }
 
 module.exports = {
-  MODULE,
-  MODULE_BUILD,
-  STATUS_API_VERSION,
   buildAgentStatusSummary,
   buildAgentStatusResponse,
-  buildAgentRoutesSummary,
-  buildRuntimeConfigSummary
+  buildAgentRoutesSummary
 };

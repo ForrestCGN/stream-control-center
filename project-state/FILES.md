@@ -1,64 +1,18 @@
 # FILES
 
-Stand: RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN  
+Stand: RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP91
-
-```text
-docs/current/RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP91.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
-
-## Fachlich relevant fuer RDAP91/RDAP92
+## Geaendert/neu in RDAP92
 
 ```text
 remote-modboard/backend/server.js
+remote-modboard/backend/package.json
 remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/services/agent-status.service.js
-remote-modboard/backend/src/services/agent-runtime-disabled.service.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-```
-
-## Voraussichtlich neu/zu pruefen in RDAP92
-
-```text
 remote-modboard/backend/src/services/agent-runtime.service.js
-```
-
-Nur anlegen, wenn fachlich getrennte Verantwortung fuer echten Transport-Accept bestaetigt wird.
-
-## Zentrale Startdateien fuer naechsten Chat
-
-```text
-docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
-docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
-docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
-docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
-docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN.md
-docs/current/RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON.md
-docs/current/RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC.md
-docs/current/RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN.md
-docs/current/RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED.md
-docs/current/RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED.md
-docs/current/RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS.md
-docs/current/RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED.md
-docs/current/RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN.md
-docs/current/RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN.md
-docs/current/RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP91.md
+remote-modboard/backend/src/services/agent-status.service.js
+docs/current/RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP92.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -66,8 +20,14 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Eingefroren
+## Fachlich relevant fuer RDAP92B
 
 ```text
-Admin-Notes nur bei echtem Fehler wieder anfassen.
+remote-modboard/backend/server.js
+remote-modboard/backend/package.json
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/agent-runtime.service.js
+remote-modboard/backend/src/services/agent-status.service.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```

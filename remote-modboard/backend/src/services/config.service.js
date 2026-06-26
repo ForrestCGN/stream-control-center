@@ -5,6 +5,7 @@ const fs = require('fs');
 const dotenv = require('dotenv');
 
 const DEFAULT_ENV_PATH = '/etc/stream-control-center/remote-modboard.env';
+const AGENT_RUNTIME_ACCEPT_BUILD_ENABLED = true;
 
 function loadConfig() {
   const envPath = process.env.REMOTE_MODBOARD_ENV_FILE || DEFAULT_ENV_PATH;
@@ -37,6 +38,7 @@ function loadConfig() {
 
   const agentRuntimeRequested = readBoolean('AGENT_RUNTIME_ENABLED', false);
   const agentAccessKeyConfigured = isConfiguredSecret('AGENT_ACCESS_KEY');
+  const agentRuntimeEffective = agentRuntimeRequested && AGENT_RUNTIME_ACCEPT_BUILD_ENABLED;
 
   const database = {
     engine: readString('DB_ENGINE', 'MariaDB 11.8.6'),
@@ -117,9 +119,15 @@ function loadConfig() {
       runtime: {
         skeletonPrepared: true,
         requestedEnabled: agentRuntimeRequested,
-        effectiveEnabled: false,
-        wssRuntimeEnabled: false,
+        acceptBuildPrepared: true,
+        acceptBuildEnabled: AGENT_RUNTIME_ACCEPT_BUILD_ENABLED,
+        twoStepRuntimeGate: true,
+        effectiveEnabled: agentRuntimeEffective,
+        wssRuntimeEnabled: agentRuntimeEffective,
         heartbeatReceiverEnabled: false,
+        acceptsAgentConnections: agentRuntimeEffective,
+        actionsEnabled: false,
+        productiveAgentRuntime: false,
         wsPath: readString('AGENT_WS_PATH', '/agent-ws'),
         expectedAgentId: readString('AGENT_EXPECTED_ID', 'stream-pc-main'),
         expectedAgentName: readString('AGENT_EXPECTED_NAME', 'Forrest Stream-PC'),
@@ -128,9 +136,10 @@ function loadConfig() {
         accessKeyExposed: false,
         accessKeyLogged: false,
         notes: [
-          'RDAP82 bereitet nur einen disabled Runtime-Skeleton vor.',
-          'AGENT_RUNTIME_ENABLED wird gelesen, bleibt in RDAP82 aber effective false.',
-          'AGENT_ACCESS_KEY wird nur auf Konfiguration geprueft und nie ausgegeben.'
+          'RDAP92 bereitet minimalen Transport-Accept fuer /agent-ws vor.',
+          'AGENT_RUNTIME_ENABLED allein reicht nicht; acceptBuildEnabled ist als zweites Gate im Build gesetzt.',
+          'AGENT_ACCESS_KEY wird nur intern verglichen und nie ausgegeben.',
+          'Heartbeat, Agent-Actions, OBS, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und URL-Ausfuehrung bleiben deaktiviert.'
         ]
       }
     },
@@ -181,153 +190,43 @@ function buildCentralAuthUrl({ baseUrl, pathName, returnTo }) {
   }
 }
 
-function readString(key, fallback) {
-  const value = process.env[key];
-  if (typeof value !== 'string' || value.trim() === '') return fallback;
-  return value.trim();
+function readString(name, fallback) {
+  const value = process.env[name];
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  return trimmed || fallback;
 }
 
-function readList(key, fallback) {
-  const raw = process.env[key];
-  if (typeof raw !== 'string' || raw.trim() === '') return fallback;
-  return raw
-    .split(/[\s,;]+/)
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
+function readBoolean(name, fallback) {
+  const value = process.env[name];
+  if (typeof value !== 'string') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
 }
 
-function readPort(key, fallback) {
-  const raw = process.env[key];
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) return fallback;
-  return parsed;
+function readPort(name, fallback) {
+  const value = Number.parseInt(process.env[name], 10);
+  return Number.isInteger(value) && value > 0 && value < 65536 ? value : fallback;
 }
 
-function readInt(key, fallback) {
-  const raw = process.env[key];
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isInteger(parsed) || parsed < 1) return fallback;
-  return parsed;
+function readInt(name, fallback) {
+  const value = Number.parseInt(process.env[name], 10);
+  return Number.isInteger(value) && value >= 0 ? value : fallback;
 }
 
-function readBoolean(key, fallback) {
-  const raw = process.env[key];
-  if (typeof raw !== 'string' || raw.trim() === '') return Boolean(fallback);
-  const normalized = raw.trim().toLowerCase();
-  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
-  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
-  return Boolean(fallback);
+function readList(name, fallback) {
+  const raw = process.env[name];
+  if (typeof raw !== 'string') return fallback;
+  const values = raw.split(',').map(value => value.trim()).filter(Boolean);
+  return values.length ? values : fallback;
 }
 
-function readScopes(key) {
-  const raw = process.env[key];
-  if (typeof raw !== 'string' || raw.trim() === '') return [];
-  return raw
-    .split(/[\s,]+/)
-    .map((scope) => scope.trim())
-    .filter(Boolean);
+function readScopes(name) {
+  return readList(name, ['user:read:email']);
 }
 
-function isConfiguredSecret(key) {
-  const value = process.env[key];
-  if (typeof value !== 'string' || value.trim() === '') return false;
-  return !/^change-me/i.test(value.trim());
+function isConfiguredSecret(name) {
+  const value = process.env[name];
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isDatabaseConfigured(config) {
-  const db = config && config.database ? config.database : {};
-  return Boolean(db.host && db.name && db.user && db.passwordConfigured);
-}
-
-function buildPublicConfigSummary(config) {
-  return {
-    service: config.service,
-    publicBaseUrl: config.publicBaseUrl,
-    host: config.host,
-    port: config.port,
-    envFileExists: config.envFileExists,
-    envPathHint: config.envPath,
-    centralAuth: {
-      prepared: Boolean(config.centralAuth && config.centralAuth.prepared),
-      mode: config.centralAuth ? config.centralAuth.mode : 'local_twitch_fallback',
-      baseUrl: config.centralAuth ? config.centralAuth.baseUrl : 'https://forrestcgn.de',
-      loginEntryPath: config.centralAuth ? config.centralAuth.loginEntryPath : '/api/remote/auth/login/start',
-      localTwitchStartPath: config.centralAuth ? config.centralAuth.localTwitchStartPath : '/api/remote/auth/twitch/start',
-      loginUrl: config.centralAuth ? config.centralAuth.loginUrl : '/api/remote/auth/twitch/start',
-      centralLoginUrl: config.centralAuth ? config.centralAuth.centralLoginUrl : 'https://forrestcgn.de/login?returnTo=https%3A%2F%2Fmods.forrestcgn.de%2F',
-      centralLogoutUrl: config.centralAuth ? config.centralAuth.centralLogoutUrl : 'https://forrestcgn.de/logout?returnTo=https%3A%2F%2Fmods.forrestcgn.de%2F',
-      sharedDatabasePlanned: Boolean(config.centralAuth && config.centralAuth.sharedDatabasePlanned),
-      sharedCookieDomainPlanned: config.centralAuth ? config.centralAuth.sharedCookieDomainPlanned : '.forrestcgn.de',
-      sessionTables: config.centralAuth ? config.centralAuth.sessionTables : ['dashboard_users', 'dashboard_identities', 'dashboard_sessions']
-    },
-    database: {
-      engine: config.database.engine,
-      driver: config.database.driver,
-      configured: isDatabaseConfigured(config),
-      hostConfigured: Boolean(config.database.host),
-      port: config.database.port,
-      nameConfigured: Boolean(config.database.name),
-      userConfigured: Boolean(config.database.user),
-      passwordConfigured: config.database.passwordConfigured,
-      writeEnabled: Boolean(config.database.writeEnabled),
-      migrationEnabled: false
-    },
-    dashboardAccess: {
-      allowlistConfigured: Boolean(config.dashboardAccess && (
-        (Array.isArray(config.dashboardAccess.allowedLogins) && config.dashboardAccess.allowedLogins.length > 0)
-        || (Array.isArray(config.dashboardAccess.allowedUserUids) && config.dashboardAccess.allowedUserUids.length > 0)
-      )),
-      defaultRole: config.dashboardAccess ? config.dashboardAccess.defaultRole : 'owner'
-    },
-    agent: {
-      runtime: {
-        skeletonPrepared: Boolean(config.agent && config.agent.runtime && config.agent.runtime.skeletonPrepared),
-        requestedEnabled: Boolean(config.agent && config.agent.runtime && config.agent.runtime.requestedEnabled),
-        effectiveEnabled: false,
-        wssRuntimeEnabled: false,
-        heartbeatReceiverEnabled: false,
-        wsPath: config.agent && config.agent.runtime ? config.agent.runtime.wsPath : '/agent-ws',
-        expectedAgentId: config.agent && config.agent.runtime ? config.agent.runtime.expectedAgentId : 'stream-pc-main',
-        expectedAgentName: config.agent && config.agent.runtime ? config.agent.runtime.expectedAgentName : 'Forrest Stream-PC',
-        accessKeyConfigured: Boolean(config.agent && config.agent.runtime && config.agent.runtime.accessKeyConfigured),
-        accessKeyExposed: false,
-        accessKeyLogged: false
-      }
-    },
-    auth: {
-      authEnabled: Boolean(config.auth && config.auth.authEnabled),
-      loginEnabled: Boolean(config.auth && config.auth.loginEnabled),
-      sessionCreationEnabled: Boolean(config.auth && config.auth.sessionCreationEnabled),
-      sessionWriteEnabled: Boolean(config.auth && config.auth.sessionWriteEnabled),
-      loginEntryPath: config.auth ? config.auth.loginEntryPath : '/api/remote/auth/login/start',
-      twitchOAuth: {
-        prepared: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.prepared),
-        requestedEnabled: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.requestedEnabled),
-        effectiveEnabled: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.effectiveEnabled),
-        clientIdConfigured: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.clientIdConfigured),
-        clientSecretConfigured: Boolean(config.auth && config.auth.twitchOAuth && config.auth.twitchOAuth.clientSecretConfigured),
-        redirectUri: config.auth && config.auth.twitchOAuth ? config.auth.twitchOAuth.redirectUri : null,
-        scopes: config.auth && config.auth.twitchOAuth ? config.auth.twitchOAuth.scopes : []
-      },
-      sessions: {
-        requestedEnabled: Boolean(config.auth && config.auth.sessions && config.auth.sessions.requestedEnabled),
-        writeRequested: Boolean(config.auth && config.auth.sessions && config.auth.sessions.writeRequested),
-        effectiveEnabled: Boolean(config.auth && config.auth.sessions && config.auth.sessions.effectiveEnabled),
-        cookieName: config.auth && config.auth.sessions ? config.auth.sessions.cookieName : 'scc_remote_session',
-        stateCookieName: config.auth && config.auth.sessions ? config.auth.sessions.stateCookieName : 'scc_remote_oauth_state',
-        sessionSecretConfigured: Boolean(config.auth && config.auth.sessions && config.auth.sessions.sessionSecretConfigured),
-        oauthStateSecretConfigured: Boolean(config.auth && config.auth.sessions && config.auth.sessions.oauthStateSecretConfigured),
-        ttlSeconds: config.auth && config.auth.sessions ? config.auth.sessions.ttlSeconds : null,
-        secureCookie: config.auth && config.auth.sessions ? Boolean(config.auth.sessions.secureCookie) : true,
-        sameSite: config.auth && config.auth.sessions ? config.auth.sessions.sameSite : 'Lax',
-        sharedCookieDomainPlanned: config.auth && config.auth.sessions ? config.auth.sessions.sharedCookieDomainPlanned : '.forrestcgn.de'
-      }
-    }
-  };
-}
-
-module.exports = {
-  loadConfig,
-  isDatabaseConfigured,
-  buildPublicConfigSummary
-};
+module.exports = { loadConfig };

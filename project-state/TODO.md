@@ -1,53 +1,39 @@
 # TODO
 
-Stand: RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN  
+Stand: RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS  
 Datum: 2026-06-26
 
-## Jetzt erledigt
+## Jetzt vorbereitet
 
 ```text
-RDAP91 Runtime-Accept Transport-disabled Code-Plan dokumentiert:
-- Keine Code-Aenderung.
-- Keine Runtime aktiviert.
-- Keine Verbindung akzeptiert.
-- Keine Actions.
-- Keine DB.
-- Keine neue Permission.
-- Keine Secrets.
-- RDAP92 als erster Backend-Code-Step fuer minimalen Transport-Accept geplant.
-- Keine zweite parallele /agent-ws Registrierung.
-- agent-runtime.service.js ab echtem Accept fachlich sinnvoll.
-- Heartbeat moeglichst separat.
+RDAP92 Backend-Code:
+- minimaler /agent-ws Transport-Accept.
+- Zwei-Stufen-Gate.
+- keine Actions.
+- kein produktiver Heartbeat.
+- keine DB.
+- keine neue Permission.
+- keine Secrets.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS
+RDAP92B_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_LIVE_CONFIRM
 ```
 
-## RDAP92 Aufgaben
+## RDAP92B Aufgaben
 
 ```text
-- Erster Backend-Code-Step fuer minimalen Transport-Accept.
-- Echte Dateien erneut lesen.
-- Bestehende Module/Services bevorzugen.
-- Keine parallele /agent-ws Registrierung.
-- Maximal Transport akzeptieren.
-- Heartbeat/Online/Actions getrennt halten.
-- Keine Secret-Ausgabe.
-```
-
-## Nicht machen
-
-```text
-- Keine weitere Admin-Notes-Politur.
-- Kein Delete/Deactivate.
-- Keine OBS-/Sound-/Overlay-/Command-Actions.
-- Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
-- Keine produktiven Writes.
-- Kein sichtbares Hauptmodul Agent.
-- Keine DB-Migration.
-- Keine neue Permission.
-- Keine Secret-Ausgabe.
+- Lokale Checks bestaetigen.
+- stepdone pruefen.
+- Webserver-Deploy aus frischem GitHub/dev-Clone.
+- Readiness-Loop.
+- Status ohne AGENT_RUNTIME_ENABLED=true.
+- Correct Bearer reject ohne Runtime-Env.
+- AGENT_RUNTIME_ENABLED=true bewusst setzen.
+- Correct Bearer WebSocket Accept.
+- Connected/Close Status.
+- Secret-Safety.
+- Keine Actions.
 ```

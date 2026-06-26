@@ -1,38 +1,32 @@
 # CURRENT_STATUS
 
-Stand: RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN  
+Stand: RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
-## Aktuell bestaetigt
+## Aktuell bestaetigt/vorbereitet
 
 ```text
-RDAP83: In-Memory Reject-Diagnose fuer abgelehnte /agent-ws Versuche live bestaetigt.
-RDAP83B: RDAP83 Live-Bestaetigung dokumentiert.
-RDAP84: Access-Key-Handshake-Plan dokumentiert; Doku-only.
-RDAP85: Handshake-Precheck im bestehenden disabled /agent-ws Guard vorbereitet und live bestaetigt.
-RDAP85B: RDAP85 Live-Bestaetigung dokumentiert.
-RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet und live bestaetigt.
-RDAP86B: RDAP86 Live-Bestaetigung dokumentiert.
-RDAP87: Sicheres AGENT_ACCESS_KEY Env-Setup dokumentiert; Doku-only.
-RDAP87B: AGENT_ACCESS_KEY gesetzt und falscher-Bearer-Reject live bestaetigt; Doku-only.
-RDAP88: Correct-Bearer-Reject-Only-Test live bestaetigt; Doku-only.
-RDAP89: Runtime-Enable-Plan dokumentiert; Doku-only.
-RDAP90: Runtime-Accept disabled Build-Plan dokumentiert; Doku-only.
-RDAP91: Runtime-Accept Transport-disabled Code-Plan dokumentiert; Doku-only.
+RDAP88: Correct-Bearer-Reject-Only-Test live bestaetigt.
+RDAP89: Runtime-Enable-Plan dokumentiert.
+RDAP90: Runtime-Accept disabled Build-Plan dokumentiert.
+RDAP91: Runtime-Accept Transport-disabled Code-Plan dokumentiert.
+RDAP92: Backend-Code fuer minimalen Transport-Accept vorbereitet.
 ```
 
-## RDAP91 Stand
+## RDAP92 Stand
 
 ```text
-- Erster Backend-Code-Step fuer minimalen Transport-Accept ist nur geplant.
-- Keine Code-Aenderung.
-- Keine Runtime wurde aktiviert.
-- Keine Stream-PC Verbindung wurde akzeptiert.
-- Kein echter WebSocket-Handshake wurde gebaut.
-- Kein Heartbeat-Receiver wurde gebaut.
-- Kein Agent wurde online gesetzt.
-- Keine Agent-Actions wurden aktiviert.
+- Neue Datei agent-runtime.service.js vorbereitet.
+- server.js registriert genau einen Agent-Runtime-Registrar.
+- Keine zweite parallele /agent-ws Registrierung.
+- config.service.js enthaelt Zwei-Stufen-Gate.
+- agent-status.service.js meldet RDAP92 Runtime-/Connection-Status.
+- package.json Check-Script enthaelt agent-runtime.service.js.
+- Ohne AGENT_RUNTIME_ENABLED=true bleibt Transport reject-only.
+- Mit AGENT_RUNTIME_ENABLED=true und RDAP92 Build-Gate kann maximal WebSocket-Transport akzeptiert werden.
+- Keine Agent-Actions.
+- Kein produktiver Heartbeat.
 - Keine DB-Migration.
 - Keine neue Permission.
 - Keine Secret-Ausgabe.
@@ -47,38 +41,18 @@ Die Route schreibt nichts.
 Die Route fuehrt keine Aktionen aus.
 /agent-ws ist guarded.
 Handshake-Precheck ist vorbereitet.
-Access-Key-Compare ist vorbereitet und mit gesetztem Key getestet.
-Falscher Bearer liefert invalid_connection_proof.
-Korrekter Bearer liefert runtime_not_effectively_enabled.
-Stream-PC soll spaeter aktiv zum Webserver verbinden.
+Access-Key-Compare ist vorbereitet.
+Transport-Accept ist in RDAP92 guarded vorbereitet.
+Stream-PC soll aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
-```
-
-## Runtime-Accept-Grundsatz
-
-```text
-AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
-
-Spaetere Runtime braucht Zwei-Stufen-Freigabe:
-1. Betreiber-Wunsch per Env.
-2. expliziter Code-/Build-Schalter in separatem Step.
-
-Der erste spaetere Accept-Code-Step darf maximal Transport akzeptieren.
-Actions bleiben false.
-productiveAgentRuntime bleibt false.
-Heartbeat bleibt moeglichst separat.
-Keine zweite parallele /agent-ws Registrierung.
-Ab echtem Accept ist agent-runtime.service.js fachlich sinnvoll.
 ```
 
 ## Sicherheit
 
 ```text
-Keine akzeptierte Agent-Verbindung.
-Kein echter WebSocket-Handshake.
-Kein Heartbeat-Receiver.
-Kein Agent online.
+Keine Agent-Actions.
+Kein produktiver Heartbeat.
 Keine Action-Queue.
 Keine DB-Persistenz.
 Keine Secret-Ausgabe.
@@ -93,47 +67,8 @@ Keine Query-Wert-Ausgabe.
 Keine rohe IP-Ausgabe.
 ```
 
-## Sprachregel
-
-```text
-Sichtbar / Doku / Nutzerfokus:
-- Stream-PC Verbindung
-- Verbindungen
-- Webserver <-> Stream-PC
-
-Intern / Code / Route:
-- agent
-- agent-status
-- /api/remote/agent/status
-- stream-pc-agent
-- /agent-ws
-```
-
-Nicht mehr sichtbar als Hauptmodul verwenden:
-
-```text
-Agent -> Agent-Status
-```
-
-## Weiterhin deaktiviert/verboten
-
-```text
-Admin-Note Deactivate
-Physisches Delete
-Community-Read fuer Admin-Notizen
-Permission-Verwaltung in der UI
-Rollen-/Gruppen-Schreibverwaltung
-Session-Revocation in der UI
-Remote-/Agent-Actions/OBS/Sound/Overlay/Command/Channelpoints-Control
-freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
-produktive Writes ausserhalb explizit freigegebener Admin-Notes Create/Update-Scope
-DB-Migrationen ohne separaten Plan
-neue Permissions ohne separaten Plan
-Secret-Ausgabe in Status/UI/Logs
-```
-
 ## Naechster empfohlener Step
 
 ```text
-RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS
+RDAP92B_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_LIVE_CONFIRM
 ```
