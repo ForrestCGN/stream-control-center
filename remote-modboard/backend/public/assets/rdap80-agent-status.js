@@ -49,7 +49,7 @@
         <div>
           <p class="cgn-eyebrow">Admin / Verbindungen</p>
           <h1>Stream-PC Verbindung</h1>
-          <p>Read-only Status fuer die spaetere gesicherte Verbindung zwischen Webserver und Stream-PC. In RDAP80B wird nur die sichtbare Einordnung korrigiert; Backend und Sicherheitsgrenzen bleiben unveraendert.</p>
+          <p>Read-only Status fuer die gesicherte Verbindung zwischen Webserver und Stream-PC. Zeigt nur Verbindungs- und Heartbeat-Informationen; keine Agent-Actions, keine Start-/Stop-Funktionen.</p>
         </div>
         <div class="rdap80-connections-header-actions">
           <span class="cgn-chip cgn-chip--warn" id="agentStatusChip">offline</span>
@@ -58,15 +58,15 @@
       </section>
 
       <section class="metric-grid rdap80-connections-metrics">
-        <article class="metric-card cgn-card"><span>Verbindung</span><strong id="agentConnectionState">—</strong><small>Stream-PC</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
-        <article class="metric-card cgn-card"><span>Heartbeat</span><strong id="agentHeartbeatAt">—</strong><small>letzte Meldung</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
+        <article class="metric-card cgn-card"><span>Verbindung</span><strong id="agentConnectionState">—</strong><small id="agentConnectionDetail">Stream-PC</small><div class="cgn-progress cgn-progress--warn" id="agentConnectionProgress"><i style="width:8%"></i></div></article>
+        <article class="metric-card cgn-card"><span>Heartbeat</span><strong id="agentHeartbeatAt">—</strong><small id="agentHeartbeatDetail">keine aktive Meldung</small><div class="cgn-progress cgn-progress--warn" id="agentHeartbeatProgress"><i style="width:8%"></i></div></article>
         <article class="metric-card cgn-card"><span>Ziel</span><strong id="agentExpectedName">—</strong><small id="agentExpectedId">—</small><div class="cgn-progress"><i style="width:42%"></i></div></article>
-        <article class="metric-card cgn-card"><span>Actions</span><strong id="agentActionsEnabled">—</strong><small>muss disabled bleiben</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
+        <article class="metric-card cgn-card"><span>Actions</span><strong id="agentActionsEnabled">—</strong><small id="agentActionsDetail">muss disabled bleiben</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
       </section>
 
       <section class="page-grid rdap80-connections-grid">
         <article class="cgn-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Transport</p><h2>Geplante Verbindung</h2></div><span class="cgn-chip cgn-chip--info">WSS geplant</span></div>
+          <div class="card-head"><div><p class="cgn-eyebrow">Transport</p><h2>Geplante Verbindung</h2></div><span class="cgn-chip cgn-chip--info">WSS</span></div>
           <div class="kv-grid">
             <div class="kv-row"><span>Richtung</span><strong id="agentPlannedDirection">—</strong></div>
             <div class="kv-row"><span>Transport</span><strong id="agentPlannedTransport">—</strong></div>
@@ -142,33 +142,81 @@
     const transport = (body && body.transport) || {};
     const safety = (body && body.safety) || {};
 
-    const connectionState = agent.connectionState || 'offline';
     const connected = agent.connected === true;
-    const actionsEnabled = agent.actionsEnabled === true;
+    const stale = agent.stale === true;
+    const actionsEnabled = agent.actionsEnabled === true || body.actionEnabled === true;
+    const productiveAgentRuntime = body.productiveAgentRuntime === true;
+    const viewState = buildConnectionViewState(connected, stale);
 
-    setText('agentConnectionState', connectionState);
+    setText('agentConnectionState', viewState.label);
+    setText('agentConnectionDetail', viewState.detail);
     setText('agentHeartbeatAt', agent.lastHeartbeatAt ? formatDate(agent.lastHeartbeatAt) : '—');
-    setText('agentExpectedName', agent.expectedAgentName || 'Forrest Stream-PC');
+    setText('agentHeartbeatDetail', buildHeartbeatDetail(agent));
+    setText('agentExpectedName', agent.expectedAgentName || agent.agentName || 'Forrest Stream-PC');
     setText('agentExpectedId', agent.expectedAgentId ? `Ziel-ID: ${agent.expectedAgentId}` : 'Ziel-ID: —');
-    setText('agentActionsEnabled', actionsEnabled ? 'aktiv' : 'disabled');
-    setText('agentPlannedDirection', transport.plannedDirection || 'stream-pc-agent-to-webserver');
+    setText('agentActionsEnabled', actionsEnabled ? 'aktiv' : 'deaktiviert');
+    setText('agentActionsDetail', productiveAgentRuntime ? 'produktive Agent-Actions aktiv' : 'keine produktiven Agent-Actions');
+    setText('agentPlannedDirection', formatDirection(transport.plannedDirection));
     setText('agentPlannedTransport', String(transport.plannedTransport || 'wss').toUpperCase());
     setText('agentPlannedWsPath', transport.plannedWsPath || '/agent-ws');
     setText('agentPublicPortRequired', transport.streamPcPublicPortRequired === true ? 'ja' : 'nein');
     setText('agentStatusApiVersion', body.statusApiVersion || '—');
-    setText('agentRuntimeEnabled', body.productiveAgentRuntime === true ? 'aktiv' : 'disabled');
-    setText('agentHeartbeatReceiver', heartbeat.heartbeatReceiverEnabled === true ? 'aktiv' : 'disabled');
-    setText('agentHeartbeatStorage', heartbeat.persistsHeartbeatToDatabase ? 'DB' : 'in-memory geplant / aktuell nichts');
+    setText('agentRuntimeEnabled', agent.enabled === true || (body.runtime && body.runtime.effectiveEnabled === true) ? 'temporär aktiv' : 'deaktiviert');
+    setText('agentHeartbeatReceiver', heartbeat.heartbeatReceiverEnabled === true ? 'aktiv' : 'deaktiviert');
+    setText('agentHeartbeatStorage', heartbeat.lastHeartbeatPayloadStored === true || heartbeat.persistsHeartbeatToDatabase === true ? 'prüfen' : 'in-memory / keine Payload-Speicherung');
+
+    setProgressState('agentConnectionProgress', viewState.ok ? 'ok' : 'warn', viewState.ok ? 78 : 8);
+    setProgressState('agentHeartbeatProgress', connected && !stale ? 'ok' : 'warn', connected && !stale ? 70 : 8);
 
     const chip = document.getElementById('agentStatusChip');
     if (chip) {
-      chip.className = connected ? 'cgn-chip cgn-chip--ok' : 'cgn-chip cgn-chip--warn';
-      chip.textContent = connected ? 'online' : connectionState;
+      chip.className = viewState.ok ? 'cgn-chip cgn-chip--ok' : 'cgn-chip cgn-chip--warn';
+      chip.textContent = viewState.chip;
     }
 
     renderSafety(safety);
-    setText('agentStatusNotice', `RDAP80B: Stream-PC-Verbindungsstatus read-only geladen (${reason || 'auto'}). Keine produktiven Remote-Actions aktiv.`);
-    updateQuickAgentChip(connected ? 'Verbindung online' : 'Verbindung offline', connected);
+    setText('agentStatusNotice', `RDAP103: Stream-PC-Verbindungsstatus read-only geladen (${reason || 'auto'}). Keine Agent-Actions aktiv.`);
+    updateQuickAgentChip(viewState.quickChip, viewState.ok);
+  }
+
+  function buildConnectionViewState(connected, stale) {
+    if (connected && stale) {
+      return {
+        label: 'veraltet',
+        detail: 'Heartbeat zu alt',
+        chip: 'veraltet',
+        quickChip: 'Verbindung veraltet',
+        ok: false
+      };
+    }
+
+    if (connected) {
+      return {
+        label: 'verbunden',
+        detail: 'Stream-PC online',
+        chip: 'online',
+        quickChip: 'Verbindung online',
+        ok: true
+      };
+    }
+
+    return {
+      label: 'offline',
+      detail: 'kein Stream-PC verbunden',
+      chip: 'offline',
+      quickChip: 'Verbindung offline',
+      ok: false
+    };
+  }
+
+  function buildHeartbeatDetail(agent) {
+    if (!agent || !agent.lastHeartbeatAt) return 'keine aktive Meldung';
+
+    const parts = [];
+    if (Number.isFinite(agent.heartbeatAgeMs)) parts.push(`vor ${formatDuration(agent.heartbeatAgeMs)}`);
+    if (agent.heartbeatSeq !== undefined && agent.heartbeatSeq !== null) parts.push(`Seq ${agent.heartbeatSeq}`);
+    if (agent.heartbeatProtocolVersion) parts.push(agent.heartbeatProtocolVersion);
+    return parts.length ? parts.join(' · ') : 'Heartbeat empfangen';
   }
 
   function renderSafety(safety) {
@@ -194,6 +242,9 @@
   function renderError(result) {
     setText('agentStatusNotice', `Verbindungsstatus konnte nicht geladen werden: ${escapePlain(result.error || `HTTP ${result.httpStatus || 0}`)}`);
     setText('agentConnectionState', 'prüfen');
+    setText('agentConnectionDetail', 'Status nicht abrufbar');
+    setText('agentHeartbeatAt', '—');
+    setText('agentHeartbeatDetail', 'keine aktive Meldung');
     const chip = document.getElementById('agentStatusChip');
     if (chip) {
       chip.className = 'cgn-chip cgn-chip--warn';
@@ -229,10 +280,34 @@
     if (el) el.textContent = value === undefined || value === null || value === '' ? '—' : String(value);
   }
 
+  function setProgressState(id, state, width) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('cgn-progress--warn', state !== 'ok');
+    const bar = el.querySelector('i');
+    if (bar) bar.style.width = `${Math.max(0, Math.min(100, Number(width) || 0))}%`;
+  }
+
   function formatDate(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value || '—');
     return date.toLocaleString('de-DE');
+  }
+
+  function formatDuration(ms) {
+    const totalSeconds = Math.max(0, Math.round(Number(ms) / 1000));
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes < 60) return seconds ? `${minutes}m ${seconds}s` : `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const restMinutes = minutes % 60;
+    return restMinutes ? `${hours}h ${restMinutes}m` : `${hours}h`;
+  }
+
+  function formatDirection(value) {
+    if (value === 'stream-pc-agent-to-webserver') return 'Stream-PC → Webserver';
+    return value || 'Stream-PC → Webserver';
   }
 
   function escapePlain(value) {

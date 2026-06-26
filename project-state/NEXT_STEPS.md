@@ -1,38 +1,37 @@
 # NEXT_STEPS
 
-Stand: RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN  
+Stand: RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD
+RDAP103B_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD_LIVE_CONFIRM
 ```
 
 ## Ziel
 
-RDAP103 soll die in RDAP102 geplante Read-only UI-Kachel fuer den Stream-PC Verbindungsstatus vorbereiten:
+RDAP103B soll die RDAP103 UI-Aenderung live bestaetigen:
 
 ```text
-- Bereich: Verbindungen.
-- Kachel: Stream-PC Verbindung.
-- Untertitel: Webserver <-> Stream-PC.
-- Datenquelle: GET /api/remote/agent/status.
-- Anzeigen: verbunden/getrennt/veraltet, letzter Heartbeat, heartbeatAge/stale, Actions disabled.
-- Nutzerfreundliche Bezeichnungen verwenden.
-- Keine Start/Stop Buttons.
+- Nach stepdone Webserver-Deploy aus GitHub/dev durchfuehren.
+- Readiness pruefen.
+- /api/remote/agent/status read-only pruefen.
+- Admin / Verbindungen UI visuell pruefen.
+- Aktualisierte Texte und Status-Semantik bestaetigen.
+- Runtime final disabled pruefen.
+- Keine Runtime-Aktivierung.
 - Keine Agent-Actions.
 ```
 
 ## Voraussetzung
 
 ```text
-RDAP102 abgeschlossen:
-- Plan fuer sichtbaren Stream-PC Verbindungsstatus dokumentiert.
-- Public WSS Heartbeat ist seit RDAP101B live bestaetigt.
-- Runtime final disabled.
+RDAP103 abgeschlossen:
+- Read-only UI-Datei vorbereitet.
+- Keine Backend-Action.
+- Keine neue Runtime-Logik.
 - Keine Secrets.
-- Keine Actions.
 ```
 
 ## Strikt nicht machen
@@ -56,4 +55,5 @@ Keine produktive Agent-Action-Queue.
 Keine Secret-Ausgabe.
 Keine Rohpayload-Ausgabe.
 Keine Runtime dauerhaft aktivieren.
+Keine Runtime-Aktivierung im UI-Live-Confirm.
 ```

@@ -1,34 +1,34 @@
 # TODO
 
-Stand: RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN  
+Stand: RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
 
 ```text
-RDAP100B:
-- Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
-
 RDAP101B:
-- Stream-PC Agent public WSS Heartbeat live bestaetigt.
+- Public WSS Heartbeat live bestaetigt.
 - Runtime final disabled.
-- Keine Secrets.
-- Keine Actions.
 
 RDAP102:
-- Sichtbarer Stream-PC Verbindungsstatus im Dashboard geplant.
-- Bestehende read-only Route /api/remote/agent/status als Datenquelle vorgesehen.
+- Sichtbaren Stream-PC Verbindungsstatus geplant.
+
+RDAP103:
+- Vorhandene Verbindungen-Seite erweitert.
+- Read-only Status-Semantik verbessert.
+- Veralteten RDAP80B-Text aktualisiert.
+- Heartbeat-Details verbessert.
+- Keine Actions/Start/Stop Buttons.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD
+RDAP103B_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD_LIVE_CONFIRM
 ```
 
 ## Danach
 
 ```text
-Nach RDAP103: UI lokal pruefen, Syntax/Status pruefen, dann Doku/Live-Confirm separat.
-Keine Agent-Actions vor separatem Plan.
+Nach UI-Live-Confirm: weitere Dashboard-Verbindungsdetails nur read-only planen oder naechsten sicheren Statusbereich vorbereiten.
 ```
