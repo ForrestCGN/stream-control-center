@@ -3,8 +3,8 @@
 const os = require('os');
 
 const MODULE = 'remote_agent_status';
-const MODULE_BUILD = 'RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION';
-const STATUS_API_VERSION = 'rdap_agent80.v1';
+const MODULE_BUILD = 'RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON';
+const STATUS_API_VERSION = 'rdap_agent82.v1';
 const LOADED_AT = new Date().toISOString();
 
 const EXPECTED_AGENT = Object.freeze({
@@ -12,7 +12,7 @@ const EXPECTED_AGENT = Object.freeze({
   agentName: 'Forrest Stream-PC'
 });
 
-const TRANSPORT = Object.freeze({
+const DEFAULT_TRANSPORT = Object.freeze({
   plannedTransport: 'wss',
   plannedDirection: 'stream-pc-agent-to-webserver',
   plannedWsPath: '/agent-ws',
@@ -48,19 +48,27 @@ const HEARTBEAT_MODEL = Object.freeze({
   persistsHeartbeatToDatabase: false
 });
 
-function buildAgentStatusSummary() {
+function buildAgentStatusSummary(context = {}) {
+  const runtime = buildRuntimeConfigSummary(context.config);
+  const transport = buildTransportSummary(runtime);
   return {
     enabled: false,
     connected: false,
     connectionState: 'offline',
     actionsEnabled: false,
     productiveAgentRuntime: false,
-    plannedTransport: TRANSPORT.plannedTransport,
-    plannedDirection: TRANSPORT.plannedDirection,
-    plannedWsPath: TRANSPORT.plannedWsPath,
-    streamPcPublicPortRequired: TRANSPORT.streamPcPublicPortRequired,
-    expectedAgentId: EXPECTED_AGENT.agentId,
-    expectedAgentName: EXPECTED_AGENT.agentName,
+    runtimeSkeletonPrepared: runtime.skeletonPrepared,
+    runtimeRequestedEnabled: runtime.requestedEnabled,
+    runtimeEffectiveEnabled: false,
+    heartbeatReceiverEnabled: false,
+    accessKeyConfigured: runtime.accessKeyConfigured,
+    accessKeyExposed: false,
+    plannedTransport: transport.plannedTransport,
+    plannedDirection: transport.plannedDirection,
+    plannedWsPath: transport.plannedWsPath,
+    streamPcPublicPortRequired: transport.streamPcPublicPortRequired,
+    expectedAgentId: runtime.expectedAgentId,
+    expectedAgentName: runtime.expectedAgentName,
     lastHeartbeatAt: null,
     heartbeatAgeMs: null,
     stale: false,
@@ -70,6 +78,9 @@ function buildAgentStatusSummary() {
 
 function buildAgentStatusResponse(context = {}) {
   const now = new Date().toISOString();
+  const runtime = buildRuntimeConfigSummary(context.config);
+  const transport = buildTransportSummary(runtime);
+
   return {
     ok: true,
     service: 'remote-modboard',
@@ -87,7 +98,7 @@ function buildAgentStatusResponse(context = {}) {
       enabled: false,
       connected: false,
       connectionState: 'offline',
-      reason: 'rdap80_no_agent_runtime_yet',
+      reason: 'rdap82_runtime_disabled_skeleton_only',
       lastHeartbeatAt: null,
       connectedSince: null,
       heartbeatAgeMs: null,
@@ -99,11 +110,24 @@ function buildAgentStatusResponse(context = {}) {
       agentName: null,
       agentVersion: null,
       protocolVersion: STATUS_API_VERSION,
-      expectedAgentId: EXPECTED_AGENT.agentId,
-      expectedAgentName: EXPECTED_AGENT.agentName
+      expectedAgentId: runtime.expectedAgentId,
+      expectedAgentName: runtime.expectedAgentName
+    },
+    runtime: {
+      skeletonPrepared: runtime.skeletonPrepared,
+      requestedEnabled: runtime.requestedEnabled,
+      effectiveEnabled: false,
+      wssRuntimeEnabled: false,
+      heartbeatReceiverEnabled: false,
+      accessKeyConfigured: runtime.accessKeyConfigured,
+      accessKeyExposed: false,
+      accessKeyLogged: false,
+      defaultDisabled: true,
+      upgradeGuardPrepared: true,
+      acceptsAgentConnections: false
     },
     heartbeat: { ...HEARTBEAT_MODEL },
-    transport: { ...TRANSPORT },
+    transport,
     host: {
       webserverService: 'remote-modboard',
       publicHost: 'mods.forrestcgn.de',
@@ -115,15 +139,19 @@ function buildAgentStatusResponse(context = {}) {
     },
     safety: { ...SAFETY },
     warnings: [
-      'RDAP80 liefert nur eine read-only Agent-Status-Foundation.',
-      'Es existiert noch kein produktiver WSS-Agent-Runtime.',
-      'OBS, Sounds, Overlays, Commands, Shell, Datei-, Prozess- und URL-Ausfuehrung bleiben deaktiviert.'
+      'RDAP82 liefert nur einen Runtime-disabled Skeleton fuer die Stream-PC Verbindung.',
+      'WSS/Upgrade-Guard ist vorbereitet, nimmt aber keine produktive Agent-Verbindung an.',
+      'OBS, Sounds, Overlays, Commands, Shell, Datei-, Prozess- und URL-Ausfuehrung bleiben deaktiviert.',
+      'Geheime Zugangswerte werden nicht in Status, UI oder Logs ausgegeben.'
     ],
     errors: []
   };
 }
 
-function buildAgentRoutesSummary() {
+function buildAgentRoutesSummary(context = {}) {
+  const runtime = buildRuntimeConfigSummary(context.config);
+  const transport = buildTransportSummary(runtime);
+
   return {
     prepared: true,
     route: '/api/remote/agent/status',
@@ -133,15 +161,46 @@ function buildAgentRoutesSummary() {
     writeEnabled: false,
     actionEnabled: false,
     productiveAgentRuntime: false,
+    runtimeSkeletonPrepared: runtime.skeletonPrepared,
+    runtimeRequestedEnabled: runtime.requestedEnabled,
+    runtimeEffectiveEnabled: false,
     heartbeatFoundationPrepared: true,
     heartbeatReceiverEnabled: false,
     wssRuntimeEnabled: false,
-    plannedTransport: TRANSPORT.plannedTransport,
-    plannedDirection: TRANSPORT.plannedDirection,
-    plannedWsPath: TRANSPORT.plannedWsPath,
+    upgradeGuardPrepared: true,
+    acceptsAgentConnections: false,
+    accessKeyConfigured: runtime.accessKeyConfigured,
+    accessKeyExposed: false,
+    plannedTransport: transport.plannedTransport,
+    plannedDirection: transport.plannedDirection,
+    plannedWsPath: transport.plannedWsPath,
     streamPcPublicPortRequired: false,
     noAgentActions: true,
     safety: { ...SAFETY }
+  };
+}
+
+function buildRuntimeConfigSummary(config = {}) {
+  const runtime = config && config.agent && config.agent.runtime ? config.agent.runtime : {};
+  return {
+    skeletonPrepared: runtime.skeletonPrepared === true || true,
+    requestedEnabled: runtime.requestedEnabled === true,
+    effectiveEnabled: false,
+    wssRuntimeEnabled: false,
+    heartbeatReceiverEnabled: false,
+    wsPath: runtime.wsPath || DEFAULT_TRANSPORT.plannedWsPath,
+    expectedAgentId: runtime.expectedAgentId || EXPECTED_AGENT.agentId,
+    expectedAgentName: runtime.expectedAgentName || EXPECTED_AGENT.agentName,
+    accessKeyConfigured: runtime.accessKeyConfigured === true,
+    accessKeyExposed: false,
+    accessKeyLogged: false
+  };
+}
+
+function buildTransportSummary(runtime = {}) {
+  return {
+    ...DEFAULT_TRANSPORT,
+    plannedWsPath: runtime.wsPath || DEFAULT_TRANSPORT.plannedWsPath
   };
 }
 
@@ -159,5 +218,6 @@ module.exports = {
   STATUS_API_VERSION,
   buildAgentStatusSummary,
   buildAgentStatusResponse,
-  buildAgentRoutesSummary
+  buildAgentRoutesSummary,
+  buildRuntimeConfigSummary
 };

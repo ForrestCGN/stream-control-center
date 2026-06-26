@@ -106,7 +106,8 @@ function registerStatusRoutes(app, context) {
           'RDAP62 bereinigt nur Status-Semantik; keine neue UI-Funktion.',
           'Twitch Login und Session-Handling bleiben aktiv und unveraendert.',
           'Admin-Notiz Update-UI, Deactivate und Delete bleiben deaktiviert.',
-          'RDAP80 ergaenzt nur Agent-Status/Heartbeat-Foundation read-only; Remote-Actions bleiben deaktiviert.'
+          'RDAP80 ergaenzt nur Agent-Status/Heartbeat-Foundation read-only; Remote-Actions bleiben deaktiviert.',
+          'RDAP82 bereitet nur einen Runtime-disabled Skeleton fuer die Stream-PC Verbindung vor; Agent-Actions bleiben deaktiviert.'
         ]
       },
       adminNoteWritePlan: {
@@ -155,7 +156,7 @@ function registerStatusRoutes(app, context) {
         note: 'Create und Update sind als Admin-Note Backend-Writes aktiviert; Deactivate/Delete bleiben deaktiviert.'
       },
       database: db,
-      agent: buildAgentStatusSummary(),
+      agent: buildAgentStatusSummary(context),
       permissionsModel: {
         active: false,
         diagnosticReadOnlyResolverPrepared: true,

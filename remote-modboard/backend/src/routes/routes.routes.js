@@ -49,7 +49,7 @@ function registerRoutesRoutes(app, context) {
         { method: 'POST', path: '/api/remote/admin/audit/test-insert', description: 'RDAP36 lokaler Audit-Testinsert mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
         { method: 'GET', path: '/api/remote/admin/locks/test/status', description: 'RDAP37 Lock-Test-Status; schreibt nichts' },
         { method: 'POST', path: '/api/remote/admin/locks/test-cycle', description: 'RDAP37 lokaler Lock-Test mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
-        { method: 'GET', path: '/api/remote/agent/status', description: 'RDAP80 read-only Agent-Status/Heartbeat-Foundation; keine Agent-Actions' },
+        { method: 'GET', path: '/api/remote/agent/status', description: 'RDAP82 read-only Stream-PC-Verbindungsstatus mit Runtime-disabled Skeleton; keine Agent-Actions' },
         { method: 'GET', path: '/', description: 'Remote-Modboard UI' },
         { method: 'GET', path: '/remote', description: 'Remote-Modboard UI Alias' },
         { method: 'GET', path: '/modboard', description: 'Remote-Modboard UI Alias' }
@@ -220,7 +220,7 @@ function registerRoutesRoutes(app, context) {
         uiWriteButtonsEnabled: false,
         routeRemainsReadOnly: true
       },
-      agentStatusFoundation: buildAgentRoutesSummary(),
+      agentStatusFoundation: buildAgentRoutesSummary(context),
       localLanMode: {
         planned: true,
         implemented: false,

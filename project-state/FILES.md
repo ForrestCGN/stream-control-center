@@ -1,13 +1,19 @@
 # FILES
 
-Stand: RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN  
+Stand: RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP81
+## Geaendert/neu in RDAP82
 
 ```text
-docs/current/RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP81.md
+remote-modboard/backend/server.js
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/agent-status.service.js
+remote-modboard/backend/src/services/agent-runtime-disabled.service.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+docs/current/RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP82.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,19 +21,14 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Relevante RDAP80/RDAP80B-Dateien bleiben bestehen
+## Bewusst nicht geaendert
 
 ```text
-remote-modboard/backend/src/services/agent-status.service.js
-remote-modboard/backend/src/routes/agent-status.routes.js
+remote-modboard/backend/package.json
 remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/assets/rdap80-agent-status.js
-docs/current/RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION.md
-docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
-docs/current/RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80C.md
+Datenbank/SQL-Dateien
+Admin-Notes-Dateien
 ```
 
 ## Zentrale Startdateien fuer naechsten Chat
@@ -38,12 +39,9 @@ docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
 docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
 docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/RDAP79_DOCS_CURRENT_STATE_AND_NEXT_STREAMPC_CONNECTION_PROMPT.md
-docs/current/RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION.md
-docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
-docs/current/RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
 docs/current/RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP81.md
+docs/current/RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP82.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -51,19 +49,15 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Fachlich relevant fuer RDAP82
+## Fachlich relevant fuer RDAP83
 
 ```text
 remote-modboard/backend/server.js
-remote-modboard/backend/package.json
-remote-modboard/backend/src/app.js
+remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/agent-status.service.js
-remote-modboard/backend/src/routes/agent-status.routes.js
+remote-modboard/backend/src/services/agent-runtime-disabled.service.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/public/assets/rdap80-agent-status.js
-backend/modules/remote_agent.js
-tools/*
 ```
 
 ## Eingefroren

@@ -1,70 +1,63 @@
 # NEXT_STEPS
 
-Stand: RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN  
+Stand: RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON
+RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC
 ```
 
 ## Ziel
 
 ```text
-Einen technischen Skeleton fuer die spaetere Stream-PC Verbindung planen bzw. vorbereiten, aber Runtime default disabled lassen.
+Nur Diagnose fuer abgelehnte /agent-ws Verbindungsversuche planen.
+Keine akzeptierte Agent-Verbindung.
 Keine produktiven Remote-Actions.
 ```
 
-## Ausgangspunkt RDAP81
+## Ausgangspunkt RDAP82
 
 ```text
-- GET /api/remote/agent/status vorhanden.
-- UI-Page ist Admin -> Verbindungen / Stream-PC Verbindung.
-- Kein eigenes Hauptmodul Agent in der Navigation.
-- Status ist disabled/offline.
-- Heartbeat-Modell ist read-only vorbereitet.
-- WSS-Pfad /agent-ws ist geplant.
-- Agent-ID bleibt stream-pc-main.
-- Agent-Name bleibt Forrest Stream-PC.
-- Zugangsschluessel-Konzept ist dokumentiert.
-- Erste Runtime-Stufe soll In-Memory bleiben.
-- Keine DB-Migration in RDAP81.
+- Runtime-disabled Skeleton ist vorbereitet.
+- /agent-ws Upgrade-Guard ist registriert.
+- Runtime bleibt effective false.
+- WSS Runtime bleibt false.
+- Heartbeat Receiver bleibt false.
+- Access-Key wird nicht ausgegeben.
+- Status bleibt offline/disabled.
+- Keine Agent-Actions.
+- Keine DB-Migration.
 ```
 
-## RDAP82 vorbereitend pruefen
+## RDAP83 vorbereitend pruefen
 
 ```text
 remote-modboard/backend/server.js
-remote-modboard/backend/package.json
-remote-modboard/backend/src/app.js
+remote-modboard/backend/src/services/config.service.js
 remote-modboard/backend/src/services/agent-status.service.js
-remote-modboard/backend/src/routes/agent-status.routes.js
+remote-modboard/backend/src/services/agent-runtime-disabled.service.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/public/assets/rdap80-agent-status.js
-backend/modules/remote_agent.js
-tools/*
 docs/current/*
 project-state/*
 ```
 
-## RDAP82 klaeren
+## RDAP83 klaeren
 
 ```text
-- Gibt es bereits eine passende Server-Andockstelle fuer WSS?
-- Muss package.json spaeter um eine Dependency erweitert werden?
-- Bleibt Runtime per Config/Env default disabled?
-- Wie wird der Verbindungsnachweis serverseitig aus der Umgebung gelesen?
-- Wie wird verhindert, dass geheime Werte in Status/Logs/UI landen?
-- Wie wird ein verbundener Agent In-Memory verwaltet?
-- Wie werden stale/offline berechnet?
-- Welche Statusdaten duerfen im UI sichtbar sein?
+- Sollen abgelehnte /agent-ws Versuche nur in-memory gezaehlt werden?
+- Welche Ablehnungsgruende duerfen sichtbar sein?
+- Welche Daten duerfen niemals geloggt werden?
+- Soll /api/remote/agent/status die letzte Reject-Diagnose anzeigen?
+- Wie bleibt die Diagnose ohne DB-Migration sicher?
 ```
 
 ## Strikt nicht machen
 
 ```text
+Keine akzeptierte Agent-Verbindung.
 Keine OBS-Steuerung.
 Keine Sound-Ausloesung.
 Keine Overlay-Schaltung.

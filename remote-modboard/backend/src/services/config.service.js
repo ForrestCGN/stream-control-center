@@ -35,6 +35,9 @@ function loadConfig() {
   const sessionSecretConfigured = isConfiguredSecret('SESSION_SECRET');
   const oauthStateSecretConfigured = isConfiguredSecret('OAUTH_STATE_SECRET');
 
+  const agentRuntimeRequested = readBoolean('AGENT_RUNTIME_ENABLED', false);
+  const agentAccessKeyConfigured = isConfiguredSecret('AGENT_ACCESS_KEY');
+
   const database = {
     engine: readString('DB_ENGINE', 'MariaDB 11.8.6'),
     driver: 'mysql2/promise',
@@ -109,6 +112,27 @@ function loadConfig() {
       allowedLogins: readList('DASHBOARD_ALLOWED_LOGINS', ['forrestcgn']),
       allowedUserUids: readList('DASHBOARD_ALLOWED_USER_UIDS', []),
       defaultRole: readString('DASHBOARD_DEFAULT_ROLE', 'owner')
+    },
+    agent: {
+      runtime: {
+        skeletonPrepared: true,
+        requestedEnabled: agentRuntimeRequested,
+        effectiveEnabled: false,
+        wssRuntimeEnabled: false,
+        heartbeatReceiverEnabled: false,
+        wsPath: readString('AGENT_WS_PATH', '/agent-ws'),
+        expectedAgentId: readString('AGENT_EXPECTED_ID', 'stream-pc-main'),
+        expectedAgentName: readString('AGENT_EXPECTED_NAME', 'Forrest Stream-PC'),
+        accessKeyConfigured: agentAccessKeyConfigured,
+        accessKeySource: 'environment',
+        accessKeyExposed: false,
+        accessKeyLogged: false,
+        notes: [
+          'RDAP82 bereitet nur einen disabled Runtime-Skeleton vor.',
+          'AGENT_RUNTIME_ENABLED wird gelesen, bleibt in RDAP82 aber effective false.',
+          'AGENT_ACCESS_KEY wird nur auf Konfiguration geprueft und nie ausgegeben.'
+        ]
+      }
     },
     auth: {
       authEnabled: authEffective,
@@ -254,6 +278,21 @@ function buildPublicConfigSummary(config) {
         || (Array.isArray(config.dashboardAccess.allowedUserUids) && config.dashboardAccess.allowedUserUids.length > 0)
       )),
       defaultRole: config.dashboardAccess ? config.dashboardAccess.defaultRole : 'owner'
+    },
+    agent: {
+      runtime: {
+        skeletonPrepared: Boolean(config.agent && config.agent.runtime && config.agent.runtime.skeletonPrepared),
+        requestedEnabled: Boolean(config.agent && config.agent.runtime && config.agent.runtime.requestedEnabled),
+        effectiveEnabled: false,
+        wssRuntimeEnabled: false,
+        heartbeatReceiverEnabled: false,
+        wsPath: config.agent && config.agent.runtime ? config.agent.runtime.wsPath : '/agent-ws',
+        expectedAgentId: config.agent && config.agent.runtime ? config.agent.runtime.expectedAgentId : 'stream-pc-main',
+        expectedAgentName: config.agent && config.agent.runtime ? config.agent.runtime.expectedAgentName : 'Forrest Stream-PC',
+        accessKeyConfigured: Boolean(config.agent && config.agent.runtime && config.agent.runtime.accessKeyConfigured),
+        accessKeyExposed: false,
+        accessKeyLogged: false
+      }
     },
     auth: {
       authEnabled: Boolean(config.auth && config.auth.authEnabled),

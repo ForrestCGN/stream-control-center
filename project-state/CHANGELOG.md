@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON
+
+```text
+- Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet.
+- server.js auf RDAP82 Build gesetzt.
+- Disabled Upgrade-Guard fuer /agent-ws registriert.
+- Neue Datei agent-runtime-disabled.service.js erstellt.
+- Agent Runtime Config in config.service.js vorbereitet.
+- AGENT_RUNTIME_ENABLED wird gelesen, bleibt aber effective false.
+- AGENT_ACCESS_KEY wird nur als configured Boolean behandelt.
+- agent-status.service.js auf rdap_agent82.v1 erweitert.
+- /api/remote/status zeigt RDAP82 Agent-Summary.
+- /api/remote/routes zeigt RDAP82 Agent-Foundation.
+- Keine package.json/ws Dependency-Aenderung.
+- Keine akzeptierte Agent-Verbindung.
+- Keine Agent-Actions.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Admin-Notes-Aenderung.
+```
+
 ## 2026-06-26 - RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN
 
 ```text
@@ -27,7 +48,6 @@
 - RDAP80B serverseitig live bestaetigt dokumentiert.
 - Sichtbare Sprachregel festgelegt: Admin -> Verbindungen / Stream-PC Verbindung.
 - Technischer Agent-Begriff bleibt intern fuer Route/Service/Code erlaubt.
-- Naechsten Step umbenannt zu RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_TOKEN_PLAN.
 - Neuer Chat-Prompt nach RDAP80C erstellt.
 - Doku-only.
 - Kein Code.

@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN  
+Stand: RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -14,17 +14,7 @@ RDAP80: Agent-Status/Heartbeat-Foundation read-only vorbereitet und serverseitig
 RDAP80B: Sichtbare UI-Einordnung von Agent -> Agent-Status zu Admin -> Verbindungen korrigiert und serverseitig live bestaetigt.
 RDAP80C: Live-Abschluss dokumentiert und naechsten Step auf Stream-PC Verbindung statt sichtbares Agent-Modul ausgerichtet.
 RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WSS-Pfad und Heartbeat-Modell geplant; Doku-only.
-```
-
-## Admin-Notes Status
-
-```text
-Admin-Notizen sind fuer jetzt eingefroren.
-User-Detail und Admin-Notizen sind getrennte Admin-Pages.
-Header, Navigation und sichtbares Panel sind synchron.
-ForrestCGN zeigt eigene Notizen.
-EngelCGN zeigt keine falschen Forrest-Notizen mehr.
-Falscher stale Count wurde in remote-modboard.js korrigiert.
+RDAP82: Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet; /agent-ws Upgrade-Guard lehnt disabled ab; keine Actions.
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -40,24 +30,38 @@ Remote-Modboard UI zeigt Admin -> Verbindungen.
 Seite heisst Stream-PC Verbindung.
 Status ist read-only und aktuell disabled/offline.
 Heartbeat-Modell ist vorbereitet, aber Receiver/Runtime sind disabled.
-WSS-Pfad /agent-ws ist geplant.
+WSS-Pfad /agent-ws ist vorbereitet.
 Stream-PC soll spaeter aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## RDAP81 Planung
+## RDAP82 Runtime-disabled Skeleton
 
 ```text
-agentId bleibt: stream-pc-main
-agentName bleibt: Forrest Stream-PC
-Verbindungsnachweis erfolgt spaeter ueber geheimen Zugangsschluessel.
-Geheimer Zugangsschluessel kommt nicht ins Repo, nicht ins Frontend, nicht in URLs und nicht in Logs.
-Heartbeat spaeter alle 30 Sekunden.
-Stale nach 90 Sekunden.
-Offline nach 120 Sekunden.
-Erste Runtime-Stufe bleibt In-Memory.
-Keine DB-Persistenz ohne separaten Plan.
+server.js registriert disabled Upgrade-Guard.
+agent-runtime-disabled.service.js kapselt den Skeleton.
+AGENT_RUNTIME_ENABLED wird gelesen, bleibt aber effective false.
+AGENT_WS_PATH Default: /agent-ws.
+AGENT_EXPECTED_ID Default: stream-pc-main.
+AGENT_EXPECTED_NAME Default: Forrest Stream-PC.
+AGENT_ACCESS_KEY wird nur als configured Boolean behandelt.
+Keine Secrets in Repo, UI, Status oder Logs.
+Keine akzeptierte Agent-Verbindung.
+Kein echter Online-Status.
+Keine Action-Queue.
+Keine DB-Persistenz.
+```
+
+## Admin-Notes Status
+
+```text
+Admin-Notizen sind fuer jetzt eingefroren.
+User-Detail und Admin-Notizen sind getrennte Admin-Pages.
+Header, Navigation und sichtbares Panel sind synchron.
+ForrestCGN zeigt eigene Notizen.
+EngelCGN zeigt keine falschen Forrest-Notizen mehr.
+Falscher stale Count wurde in remote-modboard.js korrigiert.
 ```
 
 ## Sprachregel
@@ -98,14 +102,8 @@ DB-Migrationen ohne separaten Plan
 neue Permissions ohne separaten Plan
 ```
 
-## Naechster Hauptfokus
-
-```text
-Runtime-disabled Skeleton fuer die Stream-PC Verbindung pruefen und planen.
-```
-
 ## Naechster empfohlener Step
 
 ```text
-RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON
+RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC
 ```

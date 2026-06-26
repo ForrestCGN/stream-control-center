@@ -1,35 +1,24 @@
 # TODO
 
-Stand: RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN  
+Stand: RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON  
 Datum: 2026-06-26
 
 ## Jetzt
 
 ```text
-RDAP81 Doku-only lokal einspielen.
-Keine Node-Checks noetig.
+RDAP82 Code+Doku lokal einspielen.
+Node-Checks ausfuehren.
 git status und diff pruefen.
 Wenn sauber: stepdone.cmd.
-Kein Webserver-Deploy, weil nur Doku/project-state geaendert wird.
+Danach Webserver-Deploy, weil remote-modboard Code geaendert wird.
 ```
 
 ## Danach
 
 ```text
-Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP81.md
-RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON vorbereiten.
-```
-
-## RDAP82 Aufgaben
-
-```text
-- Server-/App-Struktur fuer moeglichen WSS-/Receiver-Skeleton pruefen.
-- Runtime default disabled planen.
-- Zugangsschluessel nur aus Umgebung planen/lesen, keinen Wert ins Repo.
-- In-Memory-Agent-Status vorbereiten.
-- Stale/offline-Berechnung planen.
-- Statusroute read-only halten.
-- Keine Actions bauen.
+Webserver-Deploy aus frischem GitHub/dev Clone.
+Serverseitige API-Tests fuer /api/remote/agent/status, /api/remote/status und /api/remote/routes.
+Browser pruefen: Admin -> Verbindungen / Stream-PC Verbindung.
 ```
 
 ## Nicht machen
