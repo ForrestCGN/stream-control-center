@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS  
+Stand: RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,21 +15,27 @@ RDAP85B: RDAP85 Live-Bestaetigung dokumentiert.
 RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet und live bestaetigt.
 RDAP86B: RDAP86 Live-Bestaetigung dokumentiert.
 RDAP87: Sicheres AGENT_ACCESS_KEY Env-Setup dokumentiert; Doku-only.
+RDAP87B: AGENT_ACCESS_KEY gesetzt und falscher-Bearer-Reject live bestaetigt; Doku-only.
 ```
 
-## RDAP87 Stand
+## RDAP87B Stand
 
 ```text
-- AGENT_ACCESS_KEY wird weiterhin nicht im Repo gespeichert.
-- AGENT_ACCESS_KEY wird nicht im Chat/Doku/Status/UI/Logs ausgegeben.
-- Env-Datei fuer Webserver: /etc/stream-control-center/remote-modboard.env.
-- Sicherer Pruefwert nach Setup: runtime.accessKeyConfigured true.
-- Falscher Bearer nach gesetztem Key soll invalid_connection_proof liefern.
-- Korrekter Bearer darf weiterhin nur runtime_not_effectively_enabled liefern, solange Runtime disabled bleibt.
-- Keine Verbindung wird angenommen.
-- Keine Runtime-Aktivierung.
-- Keine Agent-Actions.
-- Keine DB-Migration.
+- AGENT_ACCESS_KEY ist auf dem Webserver gesetzt.
+- runtime.accessKeyConfigured: true.
+- Der echte Key ist nicht im Repo.
+- Der echte Key wurde nicht im Chat/Doku/Status/UI/Logs ausgegeben.
+- Falscher Bearer liefert HTTP 503 / reason=invalid_connection_proof.
+- lastRejectAccessKeyConfigured: true.
+- lastRejectConnectionProofCompared: true.
+- Bearer-Token wird nicht ausgegeben.
+- Bearer-Token-Laenge wird nicht ausgegeben.
+- Bearer-Token-Hash wird nicht ausgegeben.
+- AGENT_ACCESS_KEY wird nicht ausgegeben.
+- Verbindung bleibt disabled/reject-only.
+- acceptsAgentConnections: false.
+- actionEnabled: false.
+- productiveAgentRuntime: false.
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -41,7 +47,7 @@ Die Route schreibt nichts.
 Die Route fuehrt keine Aktionen aus.
 /agent-ws ist guarded.
 Handshake-Precheck ist vorbereitet.
-Access-Key-Compare ist vorbereitet, aber disabled/reject-only.
+Access-Key-Compare ist vorbereitet und mit gesetztem Key getestet.
 Stream-PC soll spaeter aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
@@ -110,5 +116,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+RDAP88_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
 ```

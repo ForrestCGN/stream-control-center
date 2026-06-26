@@ -1,56 +1,56 @@
 # NEXT_STEPS
 
-Stand: RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS  
+Stand: RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+RDAP88_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
 ```
 
 ## Ziel
 
 ```text
-RDAP87 nach manuellem Env-Setup auf dem Webserver live bestaetigen und dokumentieren.
-Nur sichere Statuswerte dokumentieren.
-Keine Backend-Aenderung.
-Keine Runtime-Aktivierung.
-Keine akzeptierte Stream-PC Verbindung.
+Plan fuer spaetere Runtime-Freigabe der Stream-PC Verbindung erstellen.
+Noch keine Runtime aktivieren.
+Noch keine Verbindung akzeptieren.
 Keine produktiven Remote-Actions.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP87
+## Ausgangspunkt RDAP87B
 
 ```text
 - RDAP86 Access-Key-Compare ist live bestaetigt.
-- AGENT_ACCESS_KEY war bisher nicht gesetzt.
-- RDAP87 dokumentiert sicheres Setzen in /etc/stream-control-center/remote-modboard.env.
-- Der echte Key darf nicht in Chat, Doku, Git, Logs, Screenshots oder Status/UI erscheinen.
-- Nach Setup darf nur accessKeyConfigured true sichtbar sein.
-- Runtime bleibt disabled.
+- RDAP87 hat sicheres Env-Setup dokumentiert.
+- AGENT_ACCESS_KEY ist auf dem Webserver gesetzt.
+- accessKeyConfigured true ist live bestaetigt.
+- Falscher Bearer liefert invalid_connection_proof.
+- Verbindung bleibt HTTP 503 / disabled.
 - acceptsAgentConnections bleibt false.
-- Keine Agent-Actions.
-- Keine DB-Migration.
+- actionEnabled bleibt false.
+- productiveAgentRuntime bleibt false.
+- Kein Key/Bearer/Token-Hash/Token-Laenge sichtbar.
 ```
 
-## RDAP87B pruefen
+## RDAP88 planen
 
 ```text
-/api/remote/agent/status
-/api/remote/status
-/api/remote/routes
-/agent-ws Reject-Test mit falschem Bearer nach gesetztem Key
-optional /agent-ws Reject-Test mit korrektem Bearer nur lokal ohne Secret-Ausgabe
+- Bedingungen fuer spaeteren akzeptierten /agent-ws Handshake definieren.
+- Zwei-Stufen-Freigabe beibehalten.
+- AGENT_RUNTIME_ENABLED=true allein darf nicht reichen.
+- Moeglichen zweiten Explicit-Enable-Schalter planen.
+- Heartbeat-Receiver erst separat planen.
+- Agent-online-Status erst separat planen.
+- Agent-Actions strikt getrennt spaeter planen.
 ```
 
 ## Strikt nicht machen
 
 ```text
-Keinen echten AGENT_ACCESS_KEY in Chat/Doku/Git kopieren.
 Keine akzeptierte Agent-Verbindung.
-Keine Runtime-Aktivierung ohne separaten Plan.
+Keine Runtime-Aktivierung ohne separaten Code-Step.
 Keine OBS-Steuerung.
 Keine Sound-Ausloesung.
 Keine Overlay-Schaltung.
