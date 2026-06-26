@@ -1,33 +1,31 @@
 # TODO
 
-Stand: RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC  
+Stand: RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Jetzt
 
 ```text
-RDAP83 lokal einspielen.
-Node-Checks ausfuehren.
+RDAP83B Doku-only lokal einspielen.
+Keine Node-Checks noetig.
 git status und diff pruefen.
 Wenn sauber: stepdone.cmd.
-Danach Webserver-Deploy, weil Code unter remote-modboard/ geaendert wird.
+Kein Webserver-Deploy, weil nur Doku/project-state geaendert wird.
 ```
 
 ## Danach
 
 ```text
-Webserver-Deploy aus frischem GitHub/dev-Clone unter _deploy_tmp.
-Serverseitige Tests fuer /api/remote/agent/status, /api/remote/status und /api/remote/routes.
-Optionalen /agent-ws Reject-Test ausfuehren.
-Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP83.md.
+Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP83B.md.
 RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN vorbereiten.
 ```
 
-## RDAP83 Aufgaben
+## RDAP84 Aufgaben
 
 ```text
-- Nur Diagnose fuer abgelehnte /agent-ws Verbindungsversuche.
-- In-Memory-Zaehler/letzte Ablehnung.
+- Nur planen, wie spaeter ein Zugangsschluessel-Handshake sicher geprueft wird.
+- Access-Key-Quelle und Header-Regeln klaeren.
+- Keine Runtime-Aktivierung.
 - Keine akzeptierte Agent-Verbindung.
 - Keine Actions.
 - Keine DB.

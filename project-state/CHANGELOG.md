@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+
+```text
+- RDAP83 live serverseitig bestaetigt dokumentiert.
+- /api/remote/agent/status mit statusApiVersion rdap_agent83.v1 bestaetigt.
+- runtime.acceptsAgentConnections false bestaetigt.
+- rejectDiagnostic.prepared true bestaetigt.
+- rejectDiagnostic.inMemoryOnly true bestaetigt.
+- rejectDiagnostic.persistsToDatabase false bestaetigt.
+- rejectDiagnostic.rejectCount 0 vor Reject-Test bestaetigt.
+- /api/remote/status .agent mit sicherer Reject-Summary bestaetigt.
+- /api/remote/routes .agentStatusFoundation mit sicherer Reject-Summary bestaetigt.
+- /agent-ws Reject-Test bestaetigt: HTTP 503 Service Unavailable / reason=agent_runtime_disabled.
+- rejectDiagnostic.rejectCount steigt nach Test auf 1.
+- lastRejectReason agent_runtime_disabled bestaetigt.
+- lastRejectPath /agent-ws bestaetigt.
+- lastRejectStatusCode 503 bestaetigt.
+- secretsExposed false bestaetigt.
+- headersLogged false bestaetigt.
+- rawIpLogged false bestaetigt.
+- queryStringLogged false bestaetigt.
+- authorizationHeaderLogged false bestaetigt.
+- cookieHeaderLogged false bestaetigt.
+- actionEnabled false bestaetigt.
+- productiveAgentRuntime false bestaetigt.
+- Naechsten Step RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN vorbereitet.
+- Doku-only.
+- Kein Code.
+- Kein Backend.
+- Keine DB-Migration.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC
 
 ```text

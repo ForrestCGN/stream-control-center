@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC  
+Stand: RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -17,47 +17,41 @@ RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WS
 RDAP82: Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet; /agent-ws Upgrade-Guard lehnt disabled ab; keine Actions.
 RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereitet.
 RDAP83: In-Memory Reject-Diagnose fuer abgelehnte /agent-ws Versuche vorbereitet; keine akzeptierte Verbindung.
+RDAP83B: RDAP83 live serverseitig bestaetigt; /agent-ws Reject-Test bestaetigt; naechsten Step RDAP84 vorbereitet.
 ```
 
-## RDAP83 Stand
+## RDAP83 live bestaetigt
 
 ```text
 /api/remote/agent/status:
 - statusApiVersion: rdap_agent83.v1
 - runtime.acceptsAgentConnections: false
 - rejectDiagnostic.prepared: true
+- rejectDiagnostic.enabled: true
 - rejectDiagnostic.inMemoryOnly: true
-- rejectDiagnostic.rejectCount: number
+- rejectDiagnostic.persistsToDatabase: false
+- rejectDiagnostic.rejectCount: 0 vor Reject-Test
 - rejectDiagnostic.secretsExposed: false
 - rejectDiagnostic.headersLogged: false
 - rejectDiagnostic.rawIpLogged: false
+- rejectDiagnostic.queryStringLogged: false
+- rejectDiagnostic.authorizationHeaderLogged: false
+- rejectDiagnostic.cookieHeaderLogged: false
 
-/api/remote/status .agent:
-- connectionState: offline
-- actionsEnabled: false
-- productiveAgentRuntime: false
-- runtimeSkeletonPrepared: true
-- runtimeEffectiveEnabled: false
-- heartbeatReceiverEnabled: false
-- plannedWsPath: /agent-ws
-- streamPcPublicPortRequired: false
-- expectedAgentId: stream-pc-main
-- expectedAgentName: Forrest Stream-PC
-- rejectDiagnosticPrepared: true
-- rejectDiagnosticInMemoryOnly: true
-- rejectSecretsExposed: false
+/agent-ws Reject-Test:
+- HTTP/1.1 503 Service Unavailable
+- reason=agent_runtime_disabled
+- keine Verbindung angenommen
 
-/api/remote/routes .agentStatusFoundation:
-- runtimeSkeletonPrepared: true
-- runtimeEffectiveEnabled: false
-- heartbeatReceiverEnabled: false
-- wssRuntimeEnabled: false
-- upgradeGuardPrepared: true
-- acceptsAgentConnections: false
-- noAgentActions: true
-- rejectDiagnosticPrepared: true
-- rejectDiagnosticInMemoryOnly: true
-- rejectSecretsExposed: false
+/api/remote/agent/status nach Reject-Test:
+- rejectDiagnostic.rejectCount: 1
+- rejectDiagnostic.lastRejectReason: agent_runtime_disabled
+- rejectDiagnostic.lastRejectPath: /agent-ws
+- rejectDiagnostic.lastRejectStatusCode: 503
+- rejectDiagnostic.lastRejectMethod: GET
+- rejectDiagnostic.lastRejectHasAuthorizationHeader: false
+- rejectDiagnostic.lastRejectHasCookieHeader: false
+- rejectDiagnostic.lastRejectHasQueryString: false
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -80,7 +74,7 @@ Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## Sicherheit RDAP83
+## Sicherheit RDAP83/RDAP83B
 
 ```text
 Keine akzeptierte Agent-Verbindung.

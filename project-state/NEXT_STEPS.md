@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC  
+Stand: RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Naechster Step
@@ -19,12 +19,15 @@ Keine produktiven Remote-Actions.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP83
+## Ausgangspunkt RDAP83B
 
 ```text
-- Runtime-disabled Skeleton ist vorbereitet.
-- /agent-ws Upgrade-Guard ist vorbereitet.
+- RDAP83 ist live serverseitig bestaetigt.
+- Runtime-disabled Skeleton ist live.
+- /agent-ws Upgrade-Guard ist live.
 - Abgelehnte /agent-ws Versuche werden in-memory diagnostiziert.
+- /agent-ws Reject-Test liefert HTTP 503 und reason=agent_runtime_disabled.
+- rejectCount steigt nach Test von 0 auf 1.
 - Runtime bleibt effective false.
 - WSS Runtime bleibt false.
 - Heartbeat Receiver bleibt false.
