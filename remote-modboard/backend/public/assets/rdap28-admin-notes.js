@@ -1,32 +1,41 @@
-'use strict';
+"use strict";
 
 (function () {
   const DEFAULT_TARGET_USER = Object.freeze({
-    userUid: 'tw:127709954',
-    displayName: 'ForrestCGN',
-    loginName: 'forrestcgn',
-    status: 'default'
+    userUid: "tw:127709954",
+    displayName: "ForrestCGN",
+    loginName: "forrestcgn",
+    status: "default"
   });
   const MAX_NOTE_TEXT_LENGTH = 5000;
-  const AUTH_MODEL_ENDPOINT = '/api/remote/auth/model';
-  const READ_ENDPOINT_BASE = '/api/remote/admin/users/admin-notes/read';
-  const CREATE_ENDPOINT = '/api/remote/admin/users/admin-notes/create';
+  const AUTH_MODEL_ENDPOINT = "/api/remote/auth/model";
+  const READ_ENDPOINT_BASE = "/api/remote/admin/users/admin-notes/read";
+  const CREATE_ENDPOINT = "/api/remote/admin/users/admin-notes/create";
+  const UPDATE_ENDPOINT = "/api/remote/admin/users/admin-notes/update";
 
   let latestAdminNotesResult = null;
   let latestCanWrite = false;
+  let latestReadOk = false;
   let createDialogOpen = false;
   let createInFlight = false;
+  let updateState = {
+    noteUid: null,
+    inFlight: false,
+    noticeNoteUid: null,
+    noticeOk: null,
+    noticeText: ""
+  };
   let targetUsersLoaded = false;
   let targetUsers = [DEFAULT_TARGET_USER];
   let filteredTargetUsers = [DEFAULT_TARGET_USER];
   let selectedTargetUser = { ...DEFAULT_TARGET_USER };
-  let targetUserSearchTerm = '';
+  let targetUserSearchTerm = "";
   let latestAuthModelResult = null;
-  let adminDetailSearchTerm = '';
+  let adminDetailSearchTerm = "";
   let selectedAdminDetailUser = { ...DEFAULT_TARGET_USER };
   let notesBridgeContext = null;
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener("DOMContentLoaded", () => {
     injectStyles();
     injectNavigation();
     injectPanel();
@@ -34,19 +43,19 @@
     bindAdminNotesActions();
     bindAdminUserDetailActions();
     exposeTargetSelectionApi();
-    void loadTargetUsers('initial');
-    loadAdminNotes('initial');
+    void loadTargetUsers("initial");
+    loadAdminNotes("initial");
   });
 
-  window.addEventListener('rdap44:select-admin-note-target', (event) => {
+  window.addEventListener("rdap44:select-admin-note-target", (event) => {
     const detail = event && event.detail ? event.detail : {};
-    selectTargetUser(detail.user || detail, { source: 'event' });
+    selectTargetUser(detail.user || detail, { source: "event" });
   });
 
   function injectStyles() {
-    if (document.getElementById('rdap40AdminNotesStyle')) return;
-    const style = document.createElement('style');
-    style.id = 'rdap40AdminNotesStyle';
+    if (document.getElementById("rdap40AdminNotesStyle")) return;
+    const style = document.createElement("style");
+    style.id = "rdap40AdminNotesStyle";
     style.textContent = `
       .admin-note-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--gap);margin-bottom:var(--gap)}
       .admin-note-status-card{min-height:92px}
@@ -68,7 +77,7 @@
       .admin-note-item small{margin-top:4px;color:var(--muted);font-size:12px}
       .admin-note-text{margin-top:10px;white-space:pre-wrap;line-height:1.45;color:var(--text)}
       .admin-note-empty{padding:18px;border-radius:16px;background:rgba(255,255,255,.045);border:1px dashed rgba(27,216,255,.24);color:var(--muted)}
-      .admin-note-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+      .admin-note-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
       .admin-note-safety{display:grid;gap:8px}
       .admin-note-safety .kv-row strong{font-size:12px}
       .admin-note-error{padding:12px;border-radius:15px;background:rgba(255,84,112,.10);border:1px solid rgba(255,84,112,.24);color:#ffdce3}
@@ -81,13 +90,15 @@
       .admin-note-bridge-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
       .admin-note-panel-lock{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:16px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.24);color:var(--muted)}
       .admin-note-panel-lock i{width:28px;height:28px;display:grid;place-items:center;border-radius:999px;background:rgba(255,209,102,.18);color:var(--yellow);font-style:normal;font-weight:900;flex:0 0 auto}
-      .admin-note-create-card{display:grid;gap:10px;margin-top:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(27,216,255,.18)}
-      .admin-note-create-card[hidden]{display:none!important}
-      .admin-note-create-card label{display:grid;gap:6px;color:var(--muted);font-size:12px}
-      .admin-note-create-card textarea{width:100%;min-height:150px;resize:vertical;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(4,7,18,.62);color:var(--text);padding:11px 12px;line-height:1.45;font:inherit;box-sizing:border-box;outline:none}
-      .admin-note-create-card textarea:focus{border-color:rgba(27,216,255,.48);box-shadow:0 0 0 3px rgba(27,216,255,.10)}
-      .admin-note-create-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
-      .admin-note-create-meta strong{color:var(--text)}
+      .admin-note-create-card,.admin-note-update-card{display:grid;gap:10px;margin-top:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(27,216,255,.18)}
+      .admin-note-create-card[hidden],.admin-note-update-card[hidden]{display:none!important}
+      .admin-note-create-card label,.admin-note-update-card label{display:grid;gap:6px;color:var(--muted);font-size:12px}
+      .admin-note-create-card textarea,.admin-note-update-card textarea{width:100%;min-height:150px;resize:vertical;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(4,7,18,.62);color:var(--text);padding:11px 12px;line-height:1.45;font:inherit;box-sizing:border-box;outline:none}
+      .admin-note-create-card textarea:focus,.admin-note-update-card textarea:focus{border-color:rgba(27,216,255,.48);box-shadow:0 0 0 3px rgba(27,216,255,.10)}
+      .admin-note-create-meta,.admin-note-update-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+      .admin-note-create-meta strong,.admin-note-update-meta strong{color:var(--text)}
+      .admin-note-update-card{border-color:rgba(69,245,167,.20);background:rgba(69,245,167,.055)}
+      .admin-note-update-notice{margin-top:10px}
       .admin-note-write-available{background:rgba(69,245,167,.08);border-color:rgba(69,245,167,.20)}
       .admin-note-write-locked{background:rgba(255,209,102,.08);border-color:rgba(255,209,102,.24)}
       .admin-note-danger-note{color:#ffdce3}
@@ -112,26 +123,22 @@
   }
 
   function injectNavigation() {
-    const adminSub = document.getElementById('nav-admin');
+    const adminSub = document.getElementById("nav-admin");
     if (!adminSub) return;
 
     if (!adminSub.querySelector('[data-page="admin-user-detail"]')) {
-      const detailButton = document.createElement('button');
-      detailButton.className = 'nav-link';
-      detailButton.type = 'button';
-      detailButton.dataset.section = 'Admin';
-      detailButton.dataset.title = 'User-Detail';
-      detailButton.dataset.tab = 'read-only';
-      detailButton.dataset.page = 'admin-user-detail';
-      detailButton.textContent = 'User-Detail';
-      detailButton.addEventListener('click', () => {
-        setRdap40Page('admin-user-detail', {
-          section: 'Admin',
-          title: 'User-Detail',
-          tab: 'read-only'
-        });
-        document.body.classList.remove('nav-collapsed');
-        if (!targetUsersLoaded) void loadTargetUsers('detail-nav');
+      const detailButton = document.createElement("button");
+      detailButton.className = "nav-link";
+      detailButton.type = "button";
+      detailButton.dataset.section = "Admin";
+      detailButton.dataset.title = "User-Detail";
+      detailButton.dataset.tab = "read-only";
+      detailButton.dataset.page = "admin-user-detail";
+      detailButton.textContent = "User-Detail";
+      detailButton.addEventListener("click", () => {
+        setRdap40Page("admin-user-detail", { section: "Admin", title: "User-Detail", tab: "read-only" });
+        document.body.classList.remove("nav-collapsed");
+        if (!targetUsersLoaded) void loadTargetUsers("detail-nav");
         renderAdminUserDetail(latestAuthModelResult);
       });
       adminSub.insertBefore(detailButton, adminSub.firstChild || null);
@@ -139,42 +146,38 @@
 
     if (adminSub.querySelector('[data-page="admin-notes"]')) return;
 
-    const button = document.createElement('button');
-    button.className = 'nav-link';
-    button.type = 'button';
-    button.dataset.section = 'Admin';
-    button.dataset.title = 'Admin-Notizen';
-    button.dataset.tab = 'read/create';
-    button.dataset.page = 'admin-notes';
-    button.textContent = 'Admin-Notizen';
-    button.addEventListener('click', () => {
-      setRdap40Page('admin-notes', {
-        section: 'Admin',
-        title: 'Admin-Notizen',
-        tab: 'read/create'
-      });
+    const button = document.createElement("button");
+    button.className = "nav-link";
+    button.type = "button";
+    button.dataset.section = "Admin";
+    button.dataset.title = "Admin-Notizen";
+    button.dataset.tab = "read/create/update";
+    button.dataset.page = "admin-notes";
+    button.textContent = "Admin-Notizen";
+    button.addEventListener("click", () => {
+      setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create/update" });
       clearNotesBridgeContext();
-      document.body.classList.remove('nav-collapsed');
-      if (!targetUsersLoaded) void loadTargetUsers('nav');
-      loadAdminNotes('nav');
+      document.body.classList.remove("nav-collapsed");
+      if (!targetUsersLoaded) void loadTargetUsers("nav");
+      loadAdminNotes("nav");
     });
 
     adminSub.insertBefore(button, adminSub.firstChild || null);
   }
 
   function injectPanel() {
-    const content = document.querySelector('.cgn-content');
-    const footer = content ? content.querySelector('.footer') : null;
+    const content = document.querySelector(".cgn-content");
+    const footer = content ? content.querySelector(".footer") : null;
     if (!content || document.querySelector('[data-page-panel="admin-notes"]')) return;
 
-    const section = document.createElement('section');
-    section.className = 'rdap-view';
-    section.dataset.pagePanel = 'admin-notes';
+    const section = document.createElement("section");
+    section.className = "rdap-view";
+    section.dataset.pagePanel = "admin-notes";
     section.innerHTML = `
       <section class="page-header module-page-header cgn-card">
-        <p class="cgn-eyebrow">Admin / kontrollierter Create</p>
+        <p class="cgn-eyebrow">Admin / kontrollierter Read, Create und Update</p>
         <h1>Admin-Notizen</h1>
-        <p>Anzeige und kontrolliertes Erstellen interner Admin-Notizen. Lesen braucht <strong>admin.users.note.read</strong>, Erstellen braucht <strong>admin.users.note.write</strong> und serverseitiges <strong>confirmWrite</strong>.</p>
+        <p>Anzeige, kontrolliertes Erstellen und kontrolliertes Bearbeiten interner Admin-Notizen. Lesen braucht <strong>admin.users.note.read</strong>, Create/Update brauchen <strong>admin.users.note.write</strong> und serverseitiges <strong>confirmWrite</strong>.</p>
       </section>
 
       <section class="admin-note-bridge-context cgn-card" id="adminNotesBridgeContext" hidden>
@@ -198,18 +201,15 @@
             User suchen nach Name, Login oder UID
             <input id="adminNotesTargetSearch" type="search" autocomplete="off" spellcheck="false" placeholder="z. B. Forrest, forrestcgn oder tw:127709954">
           </label>
-          <button class="secondaryButton small" type="button" id="adminNotesTargetClearSearchButton">Suche leeren</button>
+          <button class="secondaryButton small" type="button" id="adminNotesTargetClearSearchButton">Suche löschen</button>
         </div>
+        <div class="admin-note-target-filter-meta" id="adminNotesTargetFilterMeta">—</div>
         <div class="admin-note-target-row">
           <label>
-            Zieluser-Auswahl aus vorhandener Auth-/Benutzer-Datenquelle
-            <select id="adminNotesTargetSelect" aria-label="Zieluser für Admin-Notizen auswählen"></select>
+            Zieluser
+            <select id="adminNotesTargetSelect" aria-label="Admin-Notiz Zieluser auswählen"></select>
           </label>
           <button class="secondaryButton small" type="button" id="adminNotesTargetReloadButton">User neu laden</button>
-        </div>
-        <div class="admin-note-target-filter-meta">
-          <span>Filter: <strong id="adminNotesTargetFilterText">alle User</strong></span>
-          <span>Treffer: <strong id="adminNotesTargetFilterCount">1 / 1</strong></span>
         </div>
         <div class="kv-grid admin-note-target-summary">
           <div class="kv-row"><span>Name</span><strong id="adminNotesTargetDisplayName">—</strong></div>
@@ -219,42 +219,54 @@
       </section>
 
       <section class="admin-note-grid">
-        <article class="metric-card cgn-card admin-note-status-card"><span>Read</span><strong id="adminNotesCanRead">—</strong><small>admin.users.note.read</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
-        <article class="metric-card cgn-card admin-note-status-card"><span>Write</span><strong id="adminNotesCanWrite">—</strong><small>admin.users.note.write</small><div class="cgn-progress cgn-progress--warn"><i style="width:18%"></i></div></article>
-        <article class="metric-card cgn-card admin-note-status-card"><span>Notizen</span><strong id="adminNotesCount">—</strong><small>für Zieluser</small><div class="cgn-progress"><i style="width:45%"></i></div></article>
-        <article class="metric-card cgn-card admin-note-status-card"><span>Tabelle</span><strong id="adminNotesSchema">—</strong><small>Schema</small><div class="cgn-progress"><i style="width:68%"></i></div></article>
+        <article class="cgn-card admin-note-status-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Read</p><h2>Status</h2></div><span class="cgn-chip cgn-chip--info" id="adminNotesPill">bereit</span></div>
+          <div class="kv-grid">
+            <div class="kv-row"><span>canRead</span><strong id="adminNotesCanRead">—</strong></div>
+            <div class="kv-row"><span>canWrite</span><strong id="adminNotesCanWrite">—</strong></div>
+            <div class="kv-row"><span>Notizen</span><strong id="adminNotesCount">—</strong></div>
+            <div class="kv-row"><span>Schema</span><strong id="adminNotesSchema">—</strong></div>
+          </div>
+        </article>
+        <article class="cgn-card admin-note-status-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Write</p><h2>Create/Update</h2></div><span class="cgn-chip cgn-chip--warn" id="adminNotesWritePill">prüfen</span></div>
+          <div class="admin-note-panel-lock" id="adminNotesWriteLock">
+            <i>!</i>
+            <div><strong id="adminNotesWriteLockTitle">Schreibrecht prüfen</strong><span id="adminNotesWriteLockText">Create/Update werden erst nach erfolgreicher Readroute und serverseitigem Schreibrecht angeboten.</span></div>
+          </div>
+        </article>
+        <article class="cgn-card admin-note-status-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Aktion</p><h2>Neu laden</h2></div><span class="cgn-chip cgn-chip--info">Admin-only</span></div>
+          <div class="admin-note-actions">
+            <button class="secondaryButton small" type="button" id="adminNotesReloadButton">Notizen neu laden</button>
+            <button class="secondaryButton small" type="button" id="adminNotesCreateToggleButton" hidden>Neue Notiz</button>
+          </div>
+        </article>
+        <article class="cgn-card admin-note-status-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Grenzen</p><h2>Weiterhin aus</h2></div><span class="cgn-chip cgn-chip--warn">gesperrt</span></div>
+          <div class="admin-note-danger-note">Deactivate, Delete und Community-Read bleiben deaktiviert.</div>
+        </article>
       </section>
 
       <section class="page-grid">
-        <article class="cgn-card span2">
+        <article class="cgn-card">
           <div class="card-head">
-            <div><p class="cgn-eyebrow">Notizen</p><h2 id="adminNotesListTitle">—</h2></div>
-            <span class="cgn-chip" id="adminNotesPill">lädt</span>
+            <div><p class="cgn-eyebrow">Liste</p><h2 id="adminNotesListTitle">Admin-Notizen</h2></div>
+            <span class="cgn-chip cgn-chip--info">Read/Create/Update</span>
           </div>
-          <div id="adminNotesNotice" class="admin-note-empty">Noch nicht geladen.</div>
+          <div class="admin-note-info" id="adminNotesNotice">Noch nicht geladen.</div>
           <div class="admin-note-list" id="adminNotesList"></div>
         </article>
 
         <article class="cgn-card">
           <div class="card-head">
-            <div><p class="cgn-eyebrow">Aktionen</p><h2>Neue interne Notiz</h2></div>
-            <span class="cgn-chip cgn-chip--warn" id="adminNotesWritePill">prüft</span>
-          </div>
-          <div class="admin-note-actions">
-            <button class="secondaryButton small" type="button" id="adminNotesReloadButton">Neu laden</button>
-            <button class="secondaryButton small" type="button" id="adminNotesCreateToggleButton" hidden>Neue Notiz</button>
-          </div>
-          <div class="admin-note-panel-lock admin-note-write-locked" id="adminNotesWriteLock" style="margin-top:12px">
-            <i>!</i>
-            <div>
-              <strong id="adminNotesWriteLockTitle">Schreiben gesperrt</strong>
-              <span id="adminNotesWriteLockText">Create wird erst sichtbar, wenn die serverseitige Schreibberechtigung erkannt wurde.</span>
-            </div>
+            <div><p class="cgn-eyebrow">Create</p><h2>Neue Admin-Notiz</h2></div>
+            <span class="cgn-chip cgn-chip--info">confirmWrite</span>
           </div>
           <form class="admin-note-create-card" id="adminNotesCreateForm" hidden>
             <label>
-              Interne Admin-Notiz
-              <textarea id="adminNotesCreateText" maxlength="5000" placeholder="Interne Notiz eingeben …"></textarea>
+              Notiztext
+              <textarea id="adminNotesCreateText" maxlength="5000" spellcheck="true" placeholder="Interne Admin-Notiz eingeben"></textarea>
             </label>
             <div class="admin-note-create-meta">
               <span>Zieluser: <strong id="adminNotesCreateTargetUid">—</strong></span>
@@ -266,12 +278,10 @@
             </div>
             <div class="admin-note-panel-lock">
               <i>✓</i>
-              <div>
-                <strong>Sicherheitsweg</strong>
-                <span>Das Frontend sendet nur Create mit confirmWrite=true. Backend entscheidet weiterhin über Session, Permission, Audit, Lock und Readback.</span>
-              </div>
+              <div><strong>Sicherheitsweg</strong><span>Das Frontend sendet nur Create mit confirmWrite=true. Backend entscheidet weiterhin über Session, Permission, Audit, Lock und Readback.</span></div>
             </div>
           </form>
+          <div class="admin-note-info" id="adminNotesCreateResult">Create wird nur bei Schreibrecht angezeigt.</div>
         </article>
 
         <article class="cgn-card">
@@ -284,7 +294,7 @@
             <div class="kv-row"><span>dashboardAccess</span><strong id="adminNotesDashboardAccess">—</strong></div>
             <div class="kv-row"><span>readReason</span><strong id="adminNotesReadReason">—</strong></div>
             <div class="kv-row"><span>writeReason</span><strong id="adminNotesWriteReason">—</strong></div>
-            <div class="kv-row"><span>Hinweis</span><strong>Update/Deactivate/Delete bleiben aus.</strong></div>
+            <div class="kv-row"><span>Hinweis</span><strong>Update nur aktiv; Deactivate/Delete bleiben aus.</strong></div>
           </div>
         </article>
       </section>
@@ -298,13 +308,13 @@
   }
 
   function injectAdminUserDetailPanel() {
-    const content = document.querySelector('.cgn-content');
-    const footer = content ? content.querySelector('.footer') : null;
+    const content = document.querySelector(".cgn-content");
+    const footer = content ? content.querySelector(".footer") : null;
     if (!content || document.querySelector('[data-page-panel="admin-user-detail"]')) return;
 
-    const section = document.createElement('section');
-    section.className = 'rdap-view';
-    section.dataset.pagePanel = 'admin-user-detail';
+    const section = document.createElement("section");
+    section.className = "rdap-view";
+    section.dataset.pagePanel = "admin-user-detail";
     section.innerHTML = `
       <section class="page-header module-page-header cgn-card">
         <p class="cgn-eyebrow">Admin / User-Detail / read-only</p>
@@ -313,19 +323,10 @@
       </section>
 
       <section class="admin-user-detail-card cgn-card">
-        <div class="card-head">
-          <div><p class="cgn-eyebrow">Auswahl</p><h2>User ansehen</h2></div>
-          <span class="cgn-chip cgn-chip--info" id="adminUserDetailPill">read-only</span>
-        </div>
+        <div class="card-head"><div><p class="cgn-eyebrow">Auswahl</p><h2>User ansehen</h2></div><span class="cgn-chip cgn-chip--info" id="adminUserDetailPill">read-only</span></div>
         <div class="admin-user-detail-tools">
-          <label>
-            User suchen
-            <input id="adminUserDetailSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Name, Login oder UID">
-          </label>
-          <label>
-            User
-            <select id="adminUserDetailSelect" aria-label="Admin-User-Detail User auswählen"></select>
-          </label>
+          <label>User suchen<input id="adminUserDetailSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Name, Login oder UID"></label>
+          <label>User<select id="adminUserDetailSelect" aria-label="Admin-User-Detail User auswählen"></select></label>
           <button class="secondaryButton small" type="button" id="adminUserDetailOpenNotesButton">Admin-Notizen öffnen</button>
         </div>
         <div class="kv-grid admin-user-detail-summary">
@@ -341,24 +342,10 @@
       </section>
 
       <section class="page-grid">
-        <article class="cgn-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Rollen</p><h2>Aktive Rollen</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
-          <div class="admin-user-detail-list" id="adminUserDetailRoles">—</div>
-        </article>
-        <article class="cgn-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Gruppen</p><h2>Aktive Gruppen</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
-          <div class="admin-user-detail-list" id="adminUserDetailGroups">—</div>
-        </article>
-        <article class="cgn-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Sessions</p><h2>Session-Auszug</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
-          <div class="admin-user-detail-list" id="adminUserDetailSessions">—</div>
-        </article>
-        <article class="cgn-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Sicherheit</p><h2>Keine Schreibverwaltung</h2></div><span class="cgn-chip cgn-chip--warn">gesperrt</span></div>
-          <div class="admin-user-detail-note">
-            Diese Ansicht nutzt nur <strong>/api/remote/auth/model</strong>. Rollen/Gruppen/Permissions werden nicht vergeben oder entzogen. Admin-Notizen werden ueber die bestehende RDAP44/RDAP47-Auswahl geoeffnet.
-          </div>
-        </article>
+        <article class="cgn-card"><div class="card-head"><div><p class="cgn-eyebrow">Rollen</p><h2>Aktive Rollen</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div><div class="admin-user-detail-list" id="adminUserDetailRoles">—</div></article>
+        <article class="cgn-card"><div class="card-head"><div><p class="cgn-eyebrow">Gruppen</p><h2>Aktive Gruppen</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div><div class="admin-user-detail-list" id="adminUserDetailGroups">—</div></article>
+        <article class="cgn-card"><div class="card-head"><div><p class="cgn-eyebrow">Sessions</p><h2>Session-Auszug</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div><div class="admin-user-detail-list" id="adminUserDetailSessions">—</div></article>
+        <article class="cgn-card"><div class="card-head"><div><p class="cgn-eyebrow">Sicherheit</p><h2>Keine Schreibverwaltung</h2></div><span class="cgn-chip cgn-chip--warn">gesperrt</span></div><div class="admin-user-detail-note">Diese Ansicht nutzt nur <strong>/api/remote/auth/model</strong>. Rollen/Gruppen/Permissions werden nicht vergeben oder entzogen. Admin-Notizen werden ueber die bestehende Auswahl geoeffnet.</div></article>
       </section>
     `;
 
@@ -368,36 +355,36 @@
   }
 
   function bindAdminNotesActions() {
-    bindClick('adminNotesReloadButton', () => loadAdminNotes('manual'));
-    bindClick('adminNotesCreateToggleButton', () => openCreateDialog());
-    bindClick('adminNotesCreateCancelButton', () => closeCreateDialog());
-    bindClick('adminNotesTargetReloadButton', () => loadTargetUsers('manual'));
-    bindClick('adminNotesTargetClearSearchButton', () => clearTargetSearch());
-    bindClick('adminNotesBridgeBackButton', () => returnToAdminUserDetailFromNotes());
-    bindClick('adminNotesBridgeClearButton', () => clearNotesBridgeContext());
+    bindClick("adminNotesReloadButton", () => loadAdminNotes("manual"));
+    bindClick("adminNotesCreateToggleButton", () => openCreateDialog());
+    bindClick("adminNotesCreateCancelButton", () => closeCreateDialog());
+    bindClick("adminNotesTargetReloadButton", () => loadTargetUsers("manual"));
+    bindClick("adminNotesTargetClearSearchButton", () => clearTargetSearch());
+    bindClick("adminNotesBridgeBackButton", () => returnToAdminUserDetailFromNotes());
+    bindClick("adminNotesBridgeClearButton", () => clearNotesBridgeContext());
 
-    const search = document.getElementById('adminNotesTargetSearch');
+    const search = document.getElementById("adminNotesTargetSearch");
     if (search) {
-      search.addEventListener('input', () => {
-        targetUserSearchTerm = search.value || '';
+      search.addEventListener("input", () => {
+        targetUserSearchTerm = search.value || "";
         renderTargetSelect();
       });
     }
 
-    const select = document.getElementById('adminNotesTargetSelect');
+    const select = document.getElementById("adminNotesTargetSelect");
     if (select) {
-      select.addEventListener('change', () => {
+      select.addEventListener("change", () => {
         const user = findTargetUser(select.value) || { userUid: select.value };
-        selectTargetUser(user, { source: 'select' });
+        selectTargetUser(user, { source: "select" });
       });
     }
 
-    const textarea = document.getElementById('adminNotesCreateText');
-    if (textarea) textarea.addEventListener('input', updateCreateCount);
+    const textarea = document.getElementById("adminNotesCreateText");
+    if (textarea) textarea.addEventListener("input", updateCreateCount);
 
-    const form = document.getElementById('adminNotesCreateForm');
+    const form = document.getElementById("adminNotesCreateForm");
     if (form) {
-      form.addEventListener('submit', (event) => {
+      form.addEventListener("submit", (event) => {
         event.preventDefault();
         submitCreateNote();
       });
@@ -405,38 +392,40 @@
   }
 
   function bindAdminUserDetailActions() {
-    const search = document.getElementById('adminUserDetailSearch');
+    const search = document.getElementById("adminUserDetailSearch");
     if (search) {
-      search.addEventListener('input', () => {
-        adminDetailSearchTerm = search.value || '';
+      search.addEventListener("input", () => {
+        adminDetailSearchTerm = search.value || "";
         renderAdminUserDetail(latestAuthModelResult);
       });
     }
 
-    const select = document.getElementById('adminUserDetailSelect');
+    const select = document.getElementById("adminUserDetailSelect");
     if (select) {
-      select.addEventListener('change', () => {
+      select.addEventListener("change", () => {
         const user = findTargetUser(select.value) || { userUid: select.value };
         selectAdminDetailUser(user);
       });
     }
 
-    bindClick('adminUserDetailOpenNotesButton', () => openAdminNotesForDetailUser());
+    bindClick("adminUserDetailOpenNotesButton", () => openAdminNotesForDetailUser());
   }
-
 
   function exposeTargetSelectionApi() {
     window.RdapAdminNotes = window.RdapAdminNotes || {};
-    window.RdapAdminNotes.selectTargetUser = (user) => selectTargetUser(user, { source: 'api' });
+    window.RdapAdminNotes.selectTargetUser = (user) => selectTargetUser(user, { source: "api" });
     window.RdapAdminNotes.getSelectedTargetUser = () => ({ ...selectedTargetUser });
-    window.RdapAdminNotes.reload = () => loadAdminNotes('api');
-    window.RdapAdminNotes.setTargetSearch = (term) => setTargetSearch(term || '');
-    window.RdapAdminNotes.openUserDetail = (user) => { selectAdminDetailUser(user); setRdap40Page('admin-user-detail', { section: 'Admin', title: 'User-Detail', tab: 'read-only' }); };
-    window.RdapAdminNotes.openNotesForUser = (user) => openAdminNotesForUser(user || selectedAdminDetailUser, { source: 'api' });
+    window.RdapAdminNotes.reload = () => loadAdminNotes("api");
+    window.RdapAdminNotes.setTargetSearch = (term) => setTargetSearch(term || "");
+    window.RdapAdminNotes.openUserDetail = (user) => {
+      selectAdminDetailUser(user);
+      setRdap40Page("admin-user-detail", { section: "Admin", title: "User-Detail", tab: "read-only" });
+    };
+    window.RdapAdminNotes.openNotesForUser = (user) => openAdminNotesForUser(user || selectedAdminDetailUser, { source: "api" });
   }
 
   async function loadTargetUsers(reason) {
-    setChipSafe('adminNotesTargetPill', null, reason === 'manual' ? 'lädt neu' : 'lädt');
+    setChipSafe("adminNotesTargetPill", null, reason === "manual" ? "lädt neu" : "lädt");
     const result = await getAdminNotesJson(AUTH_MODEL_ENDPOINT);
     latestAuthModelResult = result;
     const users = extractUsersFromAuthModel(result);
@@ -452,29 +441,27 @@
     renderSelectedTargetUser();
     if (!findTargetUser(selectedAdminDetailUser.userUid)) selectedAdminDetailUser = selectedTargetUser || DEFAULT_TARGET_USER;
     renderAdminUserDetail(result);
-    setChipSafe('adminNotesTargetPill', result && result.ok, `${targetUsers.length} User`);
+    setChipSafe("adminNotesTargetPill", result && result.ok, `${targetUsers.length} User`);
   }
 
   function extractUsersFromAuthModel(result) {
     const body = (result && result.body) || {};
     const model = body.model || {};
     const users = Array.isArray(model.users) ? model.users : [];
-    return users
-      .map(normalizeUser)
-      .filter(user => user && user.userUid);
+    return users.map(normalizeUser).filter(user => user && user.userUid);
   }
 
   function normalizeUser(user) {
-    if (!user || typeof user !== 'object') return null;
-    const userUid = safeString(user.userUid || user.user_uid || user.uid || '');
+    if (!user || typeof user !== "object") return null;
+    const userUid = safeString(user.userUid || user.user_uid || user.uid || "");
     if (!isValidUserUid(userUid)) return null;
     const displayName = safeString(user.displayName || user.display_name || user.loginName || user.login_name || userUid);
-    const loginName = safeString(user.loginName || user.login_name || '');
-    const status = safeString(user.status || '');
-    const roles = safeString(user.roles || '');
-    const groups = safeString(user.groups || '');
-    const lastLoginAt = safeString(user.lastLoginAt || user.last_login_at || '');
-    return { userUid, displayName, loginName, status, roles, groups, lastLoginAt }; 
+    const loginName = safeString(user.loginName || user.login_name || "");
+    const status = safeString(user.status || "");
+    const roles = safeString(user.roles || "");
+    const groups = safeString(user.groups || "");
+    const lastLoginAt = safeString(user.lastLoginAt || user.last_login_at || "");
+    return { userUid, displayName, loginName, status, roles, groups, lastLoginAt };
   }
 
   function mergeTargetUsers(users) {
@@ -486,12 +473,12 @@
     return Array.from(map.values()).sort((a, b) => {
       if (a.userUid === DEFAULT_TARGET_USER.userUid) return -1;
       if (b.userUid === DEFAULT_TARGET_USER.userUid) return 1;
-      return String(a.displayName || a.userUid).localeCompare(String(b.displayName || b.userUid), 'de');
+      return String(a.displayName || a.userUid).localeCompare(String(b.displayName || b.userUid), "de");
     });
   }
 
   function renderTargetSelect() {
-    const select = document.getElementById('adminNotesTargetSelect');
+    const select = document.getElementById("adminNotesTargetSelect");
     if (!select) return;
     const selectedUid = selectedTargetUser.userUid || DEFAULT_TARGET_USER.userUid;
     filteredTargetUsers = filterTargetUsers(targetUsers, targetUserSearchTerm);
@@ -503,19 +490,19 @@
 
     select.innerHTML = filteredTargetUsers.map((user) => {
       const label = formatTargetUserLabel(user);
-      const selected = user.userUid === selectedUid ? ' selected' : '';
+      const selected = user.userUid === selectedUid ? " selected" : "";
       return `<option value="${escapeHtmlLocal(user.userUid)}"${selected}>${escapeHtmlLocal(label)}</option>`;
-    }).join('');
+    }).join("");
     renderTargetFilterMeta();
   }
 
   function renderSelectedTargetUser() {
     const user = selectedTargetUser || DEFAULT_TARGET_USER;
-    setTextSafe('adminNotesTargetDisplayName', user.displayName || user.userUid || '—');
-    setTextSafe('adminNotesTargetLoginName', user.loginName ? `@${user.loginName}` : '—');
-    setTextSafe('adminNotesTargetUserUid', user.userUid || '—');
-    setTextSafe('adminNotesCreateTargetUid', user.userUid || '—');
-    setTextSafe('adminNotesListTitle', formatTargetUserTitle(user));
+    setTextSafe("adminNotesTargetDisplayName", user.displayName || user.userUid || "—");
+    setTextSafe("adminNotesTargetLoginName", user.loginName ? `@${user.loginName}` : "—");
+    setTextSafe("adminNotesTargetUserUid", user.userUid || "—");
+    setTextSafe("adminNotesCreateTargetUid", user.userUid || "—");
+    setTextSafe("adminNotesListTitle", formatTargetUserTitle(user));
     renderNotesBridgeContext();
     renderTargetSelect();
   }
@@ -523,98 +510,73 @@
   function selectTargetUser(user, options) {
     const normalized = normalizeUser(user);
     if (!normalized || !normalized.userUid) return false;
-    if (!findTargetUser(normalized.userUid)) {
-      targetUsers = mergeTargetUsers(targetUsers.concat([normalized]));
-    }
-    const changed = normalized.userUid !== selectedTargetUser.userUid;
+    if (!findTargetUser(normalized.userUid)) targetUsers = mergeTargetUsers(targetUsers.concat([normalized]));
     selectedTargetUser = normalized;
-    if (options && options.source && options.source !== 'user-detail' && notesBridgeContext && notesBridgeContext.userUid !== normalized.userUid) {
-      notesBridgeContext = null;
-    }
     closeCreateDialog({ keepNotice: true });
+    closeUpdateEditor({ keepNotice: false });
     renderSelectedTargetUser();
-    if (changed || !(options && options.skipLoad)) loadAdminNotes(options && options.source ? `target-${options.source}` : 'target-change');
+    if (!(options && options.skipLoad)) loadAdminNotes(options && options.source ? options.source : "select");
     return true;
   }
 
+  function setTargetSearch(term) {
+    targetUserSearchTerm = String(term || "");
+    const input = document.getElementById("adminNotesTargetSearch");
+    if (input) input.value = targetUserSearchTerm;
+    renderTargetSelect();
+  }
+
+  function clearTargetSearch() {
+    setTargetSearch("");
+  }
+
+  function renderTargetFilterMeta() {
+    const el = document.getElementById("adminNotesTargetFilterMeta");
+    if (!el) return;
+    const total = targetUsers.length;
+    const shown = filteredTargetUsers.length;
+    const term = String(targetUserSearchTerm || "").trim();
+    el.innerHTML = term
+      ? `Filter: <strong>${escapeHtmlLocal(term)}</strong> · ${shown} / ${total} User`
+      : `Kein Filter · <strong>${total}</strong> User`;
+  }
+
+  function filterTargetUsers(users, term) {
+    const needle = String(term || "").trim().toLowerCase();
+    if (!needle) return users.slice();
+    return users.filter((user) => [user.userUid, user.displayName, user.loginName, user.status]
+      .some(value => String(value || "").toLowerCase().includes(needle)));
+  }
+
   function findTargetUser(userUid) {
-    return targetUsers.find(user => user.userUid === userUid) || null;
+    const uid = safeString(userUid);
+    return targetUsers.find(user => user.userUid === uid) || null;
   }
 
   async function loadAdminNotes(reason) {
-    const panel = document.querySelector('[data-page-panel="admin-notes"]');
-    if (!panel) return;
+    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
+    latestReadOk = false;
+    latestCanWrite = false;
+    setChipSafe("adminNotesPill", null, reason === "manual" ? "lädt neu" : "lädt");
+    setClass("adminNotesNotice", "admin-note-info");
+    setTextSafe("adminNotesNotice", "Admin-Notizen werden geladen …");
+    setHtmlSafe("adminNotesList", "");
 
-    renderSelectedTargetUser();
-    setChipSafe('adminNotesPill', false, 'lädt');
-    setTextSafe('adminNotesNotice', 'Admin-Notizen werden geladen …');
-    setClass('adminNotesNotice', 'admin-note-empty');
+    if (!isValidUserUid(targetUserUid)) {
+      const result = { ok: false, httpStatus: 400, body: { reason: "invalid_target_user_uid" } };
+      latestAdminNotesResult = result;
+      renderAdminNotesResult(result);
+      return result;
+    }
 
-    const result = await getAdminNotesJson(buildReadEndpoint());
+    const url = `${READ_ENDPOINT_BASE}?targetUserUid=${encodeURIComponent(targetUserUid)}`;
+    const result = await getAdminNotesJson(url);
     latestAdminNotesResult = result;
-    renderAdminNotes(result, reason);
+    renderAdminNotesResult(result);
+    return result;
   }
 
-  function buildReadEndpoint() {
-    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : DEFAULT_TARGET_USER.userUid;
-    return `${READ_ENDPOINT_BASE}?targetUserUid=${encodeURIComponent(targetUserUid)}`;
-  }
-
-  async function getAdminNotesJson(url) {
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: { 'Accept': 'application/json' }
-      });
-      const body = await response.json().catch(() => null);
-      return {
-        ok: response.ok && body && body.ok !== false,
-        httpStatus: response.status,
-        body,
-        error: null
-      };
-    } catch (err) {
-      return {
-        ok: false,
-        httpStatus: 0,
-        body: null,
-        error: err && err.message ? err.message : 'fetch_failed'
-      };
-    }
-  }
-
-  async function postAdminNoteJson(url, body) {
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body || {})
-      });
-      const resultBody = await response.json().catch(() => null);
-      return {
-        ok: response.ok && resultBody && resultBody.ok !== false,
-        httpStatus: response.status,
-        body: resultBody,
-        error: null
-      };
-    } catch (err) {
-      return {
-        ok: false,
-        httpStatus: 0,
-        body: null,
-        error: err && err.message ? err.message : 'fetch_failed'
-      };
-    }
-  }
-
-  function renderAdminNotes(result) {
+  function renderAdminNotesResult(result) {
     const body = (result && result.body) || {};
     const permissions = body.permissions || {};
     const table = body.table || {};
@@ -623,65 +585,68 @@
     const canRead = permissions.effectiveReadPermissionWouldAllow === true || body.canReadAdminNotes === true;
     const canWrite = permissions.effectiveWritePermissionWouldAllow === true || permissions.canWriteAdminNotes === true || body.canWriteAdminNotes === true;
     latestCanWrite = Boolean(canWrite);
+    latestReadOk = Boolean(result && result.ok);
 
-    setValueSafe('adminNotesCanRead', canRead);
-    setValueSafe('adminNotesCanWrite', canWrite);
-    setTextSafe('adminNotesCount', String(valueOr(targetSummary.totalCount, notes.length, 0)));
-    setValueSafe('adminNotesSchema', table.schemaReady === true);
-    setValueSafe('adminNotesLoggedIn', body.loggedIn);
-    setValueSafe('adminNotesDashboardAccess', body.dashboardAccess);
-    setTextSafe('adminNotesReadReason', permissions.readReason || body.reason || '—');
-    setTextSafe('adminNotesWriteReason', permissions.writeReason || '—');
+    setValueSafe("adminNotesCanRead", canRead);
+    setValueSafe("adminNotesCanWrite", canWrite);
+    setTextSafe("adminNotesCount", String(valueOr(targetSummary.totalCount, notes.length, 0)));
+    setValueSafe("adminNotesSchema", table.schemaReady === true);
+    setValueSafe("adminNotesLoggedIn", body.loggedIn);
+    setValueSafe("adminNotesDashboardAccess", body.dashboardAccess);
+    setTextSafe("adminNotesReadReason", permissions.readReason || body.reason || "—");
+    setTextSafe("adminNotesWriteReason", permissions.writeReason || "—");
     renderCreateAvailability(canWrite, result);
 
     if (!result || !result.ok) {
-      setChipSafe('adminNotesPill', false, `HTTP ${result ? result.httpStatus : 0}`);
-      const reason = body.reason || body.error || (result && result.error) || 'admin_note_read_failed';
-      setClass('adminNotesNotice', 'admin-note-error');
-      setTextSafe('adminNotesNotice', `Nicht geladen: ${reason}`);
-      setHtmlSafe('adminNotesList', '');
+      setChipSafe("adminNotesPill", false, `HTTP ${result ? result.httpStatus : 0}`);
+      const reason = body.reason || body.error || (result && result.error) || "admin_note_read_failed";
+      setClass("adminNotesNotice", "admin-note-error");
+      setTextSafe("adminNotesNotice", `Nicht geladen: ${reason}`);
+      setHtmlSafe("adminNotesList", "");
       return;
     }
 
-    setChipSafe('adminNotesPill', true, `${notes.length} geladen`);
+    setChipSafe("adminNotesPill", true, `${notes.length} geladen`);
 
     if (!notes.length) {
-      setClass('adminNotesNotice', 'admin-note-ok');
-      setTextSafe('adminNotesNotice', 'Keine Admin-Notizen vorhanden. Mit Schreibrecht kann hier eine neue interne Admin-Notiz erstellt werden.');
-      setHtmlSafe('adminNotesList', '');
+      setClass("adminNotesNotice", "admin-note-ok");
+      setTextSafe("adminNotesNotice", "Keine Admin-Notizen vorhanden. Mit Schreibrecht kann hier eine neue interne Admin-Notiz erstellt werden.");
+      setHtmlSafe("adminNotesList", "");
       return;
     }
 
-    setClass('adminNotesNotice', 'admin-note-ok');
-    setTextSafe('adminNotesNotice', `${notes.length} Admin-Notiz(en) geladen. Create ist nur sichtbar, wenn admin.users.note.write erlaubt ist.`);
-    setHtmlSafe('adminNotesList', notes.map(renderNote).join(''));
+    setClass("adminNotesNotice", "admin-note-ok");
+    setTextSafe("adminNotesNotice", `${notes.length} Admin-Notiz(en) geladen. Create/Update sind nur sichtbar, wenn admin.users.note.write erlaubt ist.`);
+    setHtmlSafe("adminNotesList", notes.map(renderNote).join(""));
+    bindUpdateButtons();
   }
 
   function renderCreateAvailability(canWrite, result) {
-    const button = document.getElementById('adminNotesCreateToggleButton');
-    const lock = document.getElementById('adminNotesWriteLock');
+    const button = document.getElementById("adminNotesCreateToggleButton");
+    const lock = document.getElementById("adminNotesWriteLock");
     const okRead = Boolean(result && result.ok);
 
     if (button) {
       button.hidden = !(okRead && canWrite);
-      button.disabled = !(okRead && canWrite) || createInFlight;
+      button.disabled = !(okRead && canWrite) || createInFlight || updateState.inFlight;
     }
 
     if (canWrite && okRead) {
-      setChipSafe('adminNotesWritePill', true, 'Create möglich');
-      setTextSafe('adminNotesWriteLockTitle', 'Create freigeschaltet');
-      setTextSafe('adminNotesWriteLockText', 'Schreibrecht wurde serverseitig erkannt. Backend verlangt trotzdem confirmWrite, Audit, Lock und Readback.');
-      if (lock) lock.className = 'admin-note-panel-lock admin-note-write-available';
+      setChipSafe("adminNotesWritePill", true, "Create/Update möglich");
+      setTextSafe("adminNotesWriteLockTitle", "Write freigeschaltet");
+      setTextSafe("adminNotesWriteLockText", "Schreibrecht wurde serverseitig erkannt. Backend verlangt trotzdem confirmWrite, Audit, Lock und Readback.");
+      if (lock) lock.className = "admin-note-panel-lock admin-note-write-available";
       return;
     }
 
     closeCreateDialog({ keepNotice: true });
-    setChipSafe('adminNotesWritePill', false, okRead ? 'kein Write' : 'Read prüfen');
-    setTextSafe('adminNotesWriteLockTitle', okRead ? 'Schreiben nicht sichtbar' : 'Read nicht verfügbar');
-    setTextSafe('adminNotesWriteLockText', okRead
-      ? 'Create-Button bleibt ausgeblendet, solange kein admin.users.note.write erkennbar ist.'
-      : 'Create wird erst angeboten, wenn die Notiz-Readroute erfolgreich geladen wurde.');
-    if (lock) lock.className = 'admin-note-panel-lock admin-note-write-locked';
+    closeUpdateEditor({ keepNotice: true });
+    setChipSafe("adminNotesWritePill", false, okRead ? "kein Write" : "Read prüfen");
+    setTextSafe("adminNotesWriteLockTitle", okRead ? "Schreiben nicht sichtbar" : "Read nicht verfügbar");
+    setTextSafe("adminNotesWriteLockText", okRead
+      ? "Create-/Update-Buttons bleiben ausgeblendet, solange kein admin.users.note.write erkennbar ist."
+      : "Create/Update werden erst angeboten, wenn die Notiz-Readroute erfolgreich geladen wurde.");
+    if (lock) lock.className = "admin-note-panel-lock admin-note-write-locked";
   }
 
   function renderAdminUserDetail(result) {
@@ -694,31 +659,31 @@
     let current = users.find(user => user.userUid === currentUid) || selectedAdminDetailUser || DEFAULT_TARGET_USER;
     if (!filtered.some(user => user.userUid === current.userUid)) filtered.unshift(current);
 
-    const select = document.getElementById('adminUserDetailSelect');
+    const select = document.getElementById("adminUserDetailSelect");
     if (select) {
       select.innerHTML = mergeTargetUsers(filtered).map((user) => {
-        const selected = user.userUid === current.userUid ? ' selected' : '';
+        const selected = user.userUid === current.userUid ? " selected" : "";
         return `<option value="${escapeHtmlLocal(user.userUid)}"${selected}>${escapeHtmlLocal(formatTargetUserLabel(user))}</option>`;
-      }).join('');
+      }).join("");
     }
 
     selectedAdminDetailUser = current;
-    const roles = findUserRows(model.userRoles, current.userUid, 'role_key');
-    const groups = findUserRows(model.userGroups, current.userUid, 'group_key');
-    const sessions = findUserRows(model.sessions, current.userUid, 'status');
+    const roles = findUserRows(model.userRoles, current.userUid, "role_key");
+    const groups = findUserRows(model.userGroups, current.userUid, "group_key");
+    const sessions = findUserRows(model.sessions, current.userUid, "status");
 
-    setChipSafe('adminUserDetailPill', result && result.ok, result && result.ok ? `${filtered.length} / ${users.length} User` : 'read-only');
-    setTextSafe('adminUserDetailName', current.displayName || current.userUid || '—');
-    setTextSafe('adminUserDetailLogin', current.loginName ? `@${current.loginName}` : '—');
-    setTextSafe('adminUserDetailUid', current.userUid || '—');
-    setTextSafe('adminUserDetailStatus', current.status || '—');
-    setTextSafe('adminUserDetailLastLogin', current.lastLoginAt || current.last_login_at || '—');
-    setTextSafe('adminUserDetailRoleCount', String(roles.length));
-    setTextSafe('adminUserDetailGroupCount', String(groups.length));
-    setTextSafe('adminUserDetailSessionCount', String(sessions.length));
-    setHtmlSafe('adminUserDetailRoles', renderAdminUserDetailRows(roles, row => row.role_key || row.roleKey || 'role'));
-    setHtmlSafe('adminUserDetailGroups', renderAdminUserDetailRows(groups, row => row.group_key || row.groupKey || 'group'));
-    setHtmlSafe('adminUserDetailSessions', renderAdminUserDetailRows(sessions, row => row.status || 'session', row => `created: ${row.created_at || row.createdAt || '—'} · expires: ${row.expires_at || row.expiresAt || '—'} · lastSeen: ${row.last_seen_at || row.lastSeenAt || '—'}`));
+    setChipSafe("adminUserDetailPill", result && result.ok, result && result.ok ? `${filtered.length} / ${users.length} User` : "read-only");
+    setTextSafe("adminUserDetailName", current.displayName || current.userUid || "—");
+    setTextSafe("adminUserDetailLogin", current.loginName ? `@${current.loginName}` : "—");
+    setTextSafe("adminUserDetailUid", current.userUid || "—");
+    setTextSafe("adminUserDetailStatus", current.status || "—");
+    setTextSafe("adminUserDetailLastLogin", current.lastLoginAt || current.last_login_at || "—");
+    setTextSafe("adminUserDetailRoleCount", String(roles.length));
+    setTextSafe("adminUserDetailGroupCount", String(groups.length));
+    setTextSafe("adminUserDetailSessionCount", String(sessions.length));
+    setHtmlSafe("adminUserDetailRoles", renderAdminUserDetailRows(roles, row => row.role_key || row.roleKey || "role"));
+    setHtmlSafe("adminUserDetailGroups", renderAdminUserDetailRows(groups, row => row.group_key || row.groupKey || "group"));
+    setHtmlSafe("adminUserDetailSessions", renderAdminUserDetailRows(sessions, row => row.status || "session", row => `created: ${row.created_at || row.createdAt || "—"} · expires: ${row.expires_at || row.expiresAt || "—"} · lastSeen: ${row.last_seen_at || row.lastSeenAt || "—"}`));
   }
 
   function selectAdminDetailUser(user) {
@@ -731,7 +696,7 @@
   }
 
   function openAdminNotesForDetailUser() {
-    openAdminNotesForUser(selectedAdminDetailUser || DEFAULT_TARGET_USER, { source: 'user-detail' });
+    openAdminNotesForUser(selectedAdminDetailUser || DEFAULT_TARGET_USER, { source: "user-detail" });
   }
 
   function openAdminNotesForUser(user, options) {
@@ -740,27 +705,27 @@
     notesBridgeContext = {
       userUid: normalized.userUid,
       displayName: normalized.displayName || normalized.userUid,
-      loginName: normalized.loginName || '',
-      source: options && options.source ? options.source : 'user-detail'
+      loginName: normalized.loginName || "",
+      source: options && options.source ? options.source : "user-detail"
     };
-    if (!selectTargetUser(normalized, { source: 'user-detail', skipLoad: true })) return false;
-    setRdap40Page('admin-notes', { section: 'Admin', title: 'Admin-Notizen', tab: 'read/create' });
+    if (!selectTargetUser(normalized, { source: "user-detail", skipLoad: true })) return false;
+    setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create/update" });
     renderNotesBridgeContext();
-    loadAdminNotes('user-detail');
+    loadAdminNotes("user-detail");
     return true;
   }
 
   function renderNotesBridgeContext() {
     const context = notesBridgeContext;
-    const box = document.getElementById('adminNotesBridgeContext');
+    const box = document.getElementById("adminNotesBridgeContext");
     if (!box) return;
     if (!context || context.userUid !== (selectedTargetUser && selectedTargetUser.userUid)) {
       box.hidden = true;
       return;
     }
     const label = formatTargetUserLabel(context);
-    setTextSafe('adminNotesBridgeTitle', 'Aus User-Detail geöffnet');
-    setTextSafe('adminNotesBridgeText', `${label} wurde aus Admin -> User-Detail übernommen. Read/Create verwenden weiterhin exakt diesen Zieluser.`);
+    setTextSafe("adminNotesBridgeTitle", "Aus User-Detail geöffnet");
+    setTextSafe("adminNotesBridgeText", `${label} wurde aus Admin -> User-Detail übernommen. Read/Create/Update verwenden weiterhin exakt diesen Zieluser.`);
     box.hidden = false;
   }
 
@@ -772,7 +737,7 @@
   function returnToAdminUserDetailFromNotes() {
     const user = notesBridgeContext ? (findTargetUser(notesBridgeContext.userUid) || notesBridgeContext) : selectedTargetUser;
     selectAdminDetailUser(user || DEFAULT_TARGET_USER);
-    setRdap40Page('admin-user-detail', { section: 'Admin', title: 'User-Detail', tab: 'read-only' });
+    setRdap40Page("admin-user-detail", { section: "Admin", title: "User-Detail", tab: "read-only" });
   }
 
   function findUserRows(rows, userUid, keyField) {
@@ -786,74 +751,221 @@
     if (!values.length) return '<div class="admin-user-detail-row"><strong>—</strong><small>Keine aktiven Einträge gefunden</small></div>';
     return values.slice(0, 12).map((row) => {
       const title = titleFormatter(row);
-      const detail = detailFormatter ? detailFormatter(row) : `granted: ${row.granted_at || row.grantedAt || '—'} · by: ${row.granted_by || row.grantedBy || '—'}`;
+      const detail = detailFormatter ? detailFormatter(row) : `granted: ${row.granted_at || row.grantedAt || "—"} · by: ${row.granted_by || row.grantedBy || "—"}`;
       return `<div class="admin-user-detail-row"><strong>${escapeHtmlLocal(title)}</strong><small>${escapeHtmlLocal(detail)}</small></div>`;
-    }).join('') + (values.length > 12 ? `<div class="admin-user-detail-row"><strong>+${values.length - 12}</strong><small>weitere Einträge nicht angezeigt</small></div>` : '');
-  }
-
-  function toCamelKey(value) {
-    return String(value || '').replace(/_([a-z])/g, (_, chr) => chr.toUpperCase());
+    }).join("") + (values.length > 12 ? `<div class="admin-user-detail-row"><strong>+${values.length - 12}</strong><small>weitere Einträge nicht angezeigt</small></div>` : "");
   }
 
   function renderNote(note) {
-    const title = note.noteUid || note.note_uid || 'admin-note';
-    const status = note.status || '—';
-    const updated = note.updatedAt || note.updated_at || note.createdAt || note.created_at || '—';
-    const text = note.noteText || note.note_text || '';
+    const noteUid = note.noteUid || note.note_uid || "";
+    const title = noteUid || "admin-note";
+    const status = note.status || "—";
+    const updated = note.updatedAt || note.updated_at || note.createdAt || note.created_at || "—";
+    const text = note.noteText || note.note_text || "";
+    const canUpdate = canShowUpdateForNote(note);
+    const isEditing = updateState.noteUid === noteUid;
+    const notice = updateState.noticeNoteUid === noteUid && updateState.noticeText
+      ? `<div class="admin-note-update-notice ${updateState.noticeOk === false ? "admin-note-error" : "admin-note-ok"}">${escapeHtmlLocal(updateState.noticeText)}</div>`
+      : "";
+    const actions = canUpdate
+      ? `<div class="admin-note-actions"><button class="secondaryButton small admin-note-update-open" type="button" data-note-uid="${escapeHtmlLocal(noteUid)}" ${updateState.inFlight ? "disabled" : ""}>Bearbeiten</button></div>`
+      : "";
     return `
-      <div class="admin-note-item">
+      <div class="admin-note-item" data-note-uid="${escapeHtmlLocal(noteUid)}">
         <strong>${escapeHtmlLocal(title)}</strong>
         <small>Status: ${escapeHtmlLocal(status)} · Aktualisiert: ${escapeHtmlLocal(updated)}</small>
-        <div class="admin-note-text">${escapeHtmlLocal(text || '—')}</div>
+        <div class="admin-note-text">${escapeHtmlLocal(text || "—")}</div>
+        ${actions}
+        ${isEditing ? renderUpdateEditor(note, text) : ""}
+        ${notice}
       </div>
     `;
   }
 
+  function canShowUpdateForNote(note) {
+    const noteUid = note && (note.noteUid || note.note_uid);
+    const status = String((note && note.status) || "").toLowerCase();
+    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
+    return Boolean(latestReadOk && latestCanWrite && noteUid && isValidUserUid(targetUserUid) && status === "active");
+  }
+
+  function renderUpdateEditor(note, text) {
+    const noteUid = note.noteUid || note.note_uid || "";
+    return `
+      <form class="admin-note-update-card" data-update-form="${escapeHtmlLocal(noteUid)}">
+        <label>
+          Notiz bearbeiten
+          <textarea data-update-text="${escapeHtmlLocal(noteUid)}" maxlength="5000" spellcheck="true">${escapeHtmlLocal(text || "")}</textarea>
+        </label>
+        <div class="admin-note-update-meta">
+          <span>Notiz: <strong>${escapeHtmlLocal(noteUid)}</strong></span>
+          <span><strong data-update-count="${escapeHtmlLocal(noteUid)}">${String(text || "").length}</strong> / 5000 Zeichen</span>
+        </div>
+        <div class="admin-note-actions">
+          <button class="secondaryButton small admin-note-update-submit" type="submit" data-note-uid="${escapeHtmlLocal(noteUid)}" ${updateState.inFlight ? "disabled" : ""}>Speichern</button>
+          <button class="secondaryButton small admin-note-update-cancel" type="button" data-note-uid="${escapeHtmlLocal(noteUid)}" ${updateState.inFlight ? "disabled" : ""}>Abbrechen</button>
+        </div>
+        <div class="admin-note-panel-lock">
+          <i>✓</i>
+          <div><strong>Sicherheitsweg</strong><span>Das Frontend sendet nur Update mit confirmWrite=true. Backend entscheidet weiter ueber Session, Permission, Audit, Lock und Readback.</span></div>
+        </div>
+      </form>
+    `;
+  }
+
+  function bindUpdateButtons() {
+    document.querySelectorAll(".admin-note-update-open").forEach((button) => {
+      button.addEventListener("click", () => openUpdateEditor(button.dataset.noteUid || ""));
+    });
+    document.querySelectorAll(".admin-note-update-cancel").forEach((button) => {
+      button.addEventListener("click", () => closeUpdateEditor({ keepNotice: false }));
+    });
+    document.querySelectorAll(".admin-note-update-card").forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const button = form.querySelector(".admin-note-update-submit");
+        submitUpdateNote(button ? button.dataset.noteUid : "");
+      });
+    });
+    document.querySelectorAll("[data-update-text]").forEach((textarea) => {
+      textarea.addEventListener("input", () => updateUpdateCount(textarea.dataset.updateText || ""));
+    });
+  }
+
+  function openUpdateEditor(noteUid) {
+    if (updateState.inFlight || !latestCanWrite || !latestReadOk || !noteUid) return;
+    closeCreateDialog({ keepNotice: true });
+    updateState = { noteUid, inFlight: false, noticeNoteUid: null, noticeOk: null, noticeText: "" };
+    renderAdminNotesResult(latestAdminNotesResult);
+    window.setTimeout(() => {
+      const textarea = document.querySelector(`[data-update-text="${cssEscapeLocal(noteUid)}"]`);
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }
+    }, 0);
+  }
+
+  function closeUpdateEditor(options) {
+    if (updateState.inFlight) return;
+    const keepNotice = Boolean(options && options.keepNotice);
+    updateState = {
+      noteUid: null,
+      inFlight: false,
+      noticeNoteUid: keepNotice ? updateState.noticeNoteUid : null,
+      noticeOk: keepNotice ? updateState.noticeOk : null,
+      noticeText: keepNotice ? updateState.noticeText : ""
+    };
+    if (latestAdminNotesResult) renderAdminNotesResult(latestAdminNotesResult);
+  }
+
+  function updateUpdateCount(noteUid) {
+    const textarea = document.querySelector(`[data-update-text="${cssEscapeLocal(noteUid)}"]`);
+    const counter = document.querySelector(`[data-update-count="${cssEscapeLocal(noteUid)}"]`);
+    if (counter) counter.textContent = textarea && typeof textarea.value === "string" ? String(textarea.value.length) : "0";
+  }
+
+  async function submitUpdateNote(noteUid) {
+    if (updateState.inFlight) return;
+    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
+    const textarea = document.querySelector(`[data-update-text="${cssEscapeLocal(noteUid)}"]`);
+    const noteText = textarea && typeof textarea.value === "string" ? textarea.value.trim() : "";
+
+    if (!latestReadOk || !latestCanWrite) {
+      showUpdateResult(noteUid, false, "Update ist nicht freigeschaltet.");
+      return;
+    }
+    if (!isValidUserUid(targetUserUid)) {
+      showUpdateResult(noteUid, false, "Zieluser ist ungültig.");
+      return;
+    }
+    if (!noteUid) {
+      showUpdateResult(noteUid, false, "Notiz-ID fehlt.");
+      return;
+    }
+    if (!noteText) {
+      showUpdateResult(noteUid, false, "Bitte zuerst einen Notiztext eingeben.");
+      if (textarea) textarea.focus();
+      return;
+    }
+    if (noteText.length > MAX_NOTE_TEXT_LENGTH) {
+      showUpdateResult(noteUid, false, `Notiz ist zu lang. Maximum: ${MAX_NOTE_TEXT_LENGTH} Zeichen.`);
+      return;
+    }
+
+    updateState = { ...updateState, noteUid, inFlight: true, noticeNoteUid: noteUid, noticeOk: null, noticeText: "Notiz wird gespeichert …" };
+    renderAdminNotesResult(latestAdminNotesResult);
+
+    const result = await postAdminNoteJson(UPDATE_ENDPOINT, {
+      confirmWrite: true,
+      targetUserUid,
+      noteUid,
+      noteText
+    });
+
+    if (!result.ok) {
+      const body = (result && result.body) || {};
+      const reason = body.reason || body.error || result.error || `HTTP ${result.httpStatus || 0}`;
+      updateState = { noteUid, inFlight: false, noticeNoteUid: noteUid, noticeOk: false, noticeText: `Update fehlgeschlagen: ${reason}` };
+      renderAdminNotesResult(latestAdminNotesResult);
+      return;
+    }
+
+    updateState = { noteUid: null, inFlight: false, noticeNoteUid: noteUid, noticeOk: true, noticeText: "Notiz gespeichert. Liste wird aktualisiert …" };
+    await loadAdminNotes("update-success");
+  }
+
+  function showUpdateResult(noteUid, ok, message) {
+    updateState = { ...updateState, noteUid: updateState.noteUid || noteUid, noticeNoteUid: noteUid, noticeOk: ok, noticeText: message };
+    if (latestAdminNotesResult) renderAdminNotesResult(latestAdminNotesResult);
+  }
+
   function openCreateDialog() {
-    if (!latestCanWrite || createInFlight) return;
+    if (!latestCanWrite || createInFlight || updateState.inFlight) return;
+    closeUpdateEditor({ keepNotice: true });
     createDialogOpen = true;
-    const form = document.getElementById('adminNotesCreateForm');
+    const form = document.getElementById("adminNotesCreateForm");
     if (form) form.hidden = false;
     updateCreateCount();
     window.setTimeout(() => {
-      const textarea = document.getElementById('adminNotesCreateText');
+      const textarea = document.getElementById("adminNotesCreateText");
       if (textarea) textarea.focus();
     }, 0);
   }
 
   function closeCreateDialog(options) {
     createDialogOpen = false;
-    const form = document.getElementById('adminNotesCreateForm');
+    const form = document.getElementById("adminNotesCreateForm");
     if (form) form.hidden = true;
-    const textarea = document.getElementById('adminNotesCreateText');
-    if (textarea && !(options && options.keepNotice)) textarea.value = '';
+    const textarea = document.getElementById("adminNotesCreateText");
+    if (textarea && !(options && options.keepNotice)) textarea.value = "";
     updateCreateCount();
   }
 
   function updateCreateCount() {
-    const textarea = document.getElementById('adminNotesCreateText');
-    const count = textarea && typeof textarea.value === 'string' ? textarea.value.length : 0;
-    setTextSafe('adminNotesCreateCount', String(count));
+    const textarea = document.getElementById("adminNotesCreateText");
+    const count = textarea && typeof textarea.value === "string" ? textarea.value.length : 0;
+    setTextSafe("adminNotesCreateCount", String(count));
   }
 
   async function submitCreateNote() {
     if (createInFlight) return;
     if (!latestCanWrite) {
-      showCreateResult(false, 'Create ist nicht freigeschaltet.');
+      showCreateResult(false, "Create ist nicht freigeschaltet.");
       return;
     }
 
-    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : '';
+    const targetUserUid = selectedTargetUser && selectedTargetUser.userUid ? selectedTargetUser.userUid : "";
     if (!isValidUserUid(targetUserUid)) {
-      showCreateResult(false, 'Zieluser ist ungültig.');
+      showCreateResult(false, "Zieluser ist ungültig.");
       return;
     }
 
-    const textarea = document.getElementById('adminNotesCreateText');
-    const noteText = textarea && typeof textarea.value === 'string' ? textarea.value.trim() : '';
+    const textarea = document.getElementById("adminNotesCreateText");
+    const noteText = textarea && typeof textarea.value === "string" ? textarea.value.trim() : "";
 
     if (!noteText) {
-      showCreateResult(false, 'Bitte zuerst einen Notiztext eingeben.');
+      showCreateResult(false, "Bitte zuerst einen Notiztext eingeben.");
       if (textarea) textarea.focus();
       return;
     }
@@ -865,7 +977,7 @@
 
     createInFlight = true;
     setCreateBusy(true);
-    showCreateResult(null, 'Notiz wird erstellt …');
+    showCreateResult(null, "Notiz wird erstellt …");
 
     const result = await postAdminNoteJson(CREATE_ENDPOINT, {
       confirmWrite: true,
@@ -884,175 +996,158 @@
     }
 
     const body = result.body || {};
-    const noteUid = body.noteUid || (body.note && (body.note.noteUid || body.note.note_uid)) || 'neue Notiz';
+    const noteUid = body.noteUid || (body.note && (body.note.noteUid || body.note.note_uid)) || "neue Notiz";
     showCreateResult(true, `Notiz erstellt: ${noteUid}. Liste wird aktualisiert …`);
 
-    if (textarea) textarea.value = '';
+    if (textarea) textarea.value = "";
     closeCreateDialog({ keepNotice: true });
-    await loadAdminNotes('create-success');
+    await loadAdminNotes("create-success");
   }
 
   function setCreateBusy(busy) {
-    const submit = document.getElementById('adminNotesCreateSubmitButton');
-    const cancel = document.getElementById('adminNotesCreateCancelButton');
-    const toggle = document.getElementById('adminNotesCreateToggleButton');
-    const reload = document.getElementById('adminNotesReloadButton');
-    const select = document.getElementById('adminNotesTargetSelect');
-    const search = document.getElementById('adminNotesTargetSearch');
-    const clearSearch = document.getElementById('adminNotesTargetClearSearchButton');
-    const targetReload = document.getElementById('adminNotesTargetReloadButton');
-    if (submit) submit.disabled = Boolean(busy);
-    if (cancel) cancel.disabled = Boolean(busy);
-    if (toggle) toggle.disabled = Boolean(busy) || !latestCanWrite;
-    if (reload) reload.disabled = Boolean(busy);
-    if (select) select.disabled = Boolean(busy);
-    if (search) search.disabled = Boolean(busy);
-    if (clearSearch) clearSearch.disabled = Boolean(busy);
-    if (targetReload) targetReload.disabled = Boolean(busy);
+    const submit = document.getElementById("adminNotesCreateSubmitButton");
+    const cancel = document.getElementById("adminNotesCreateCancelButton");
+    const toggle = document.getElementById("adminNotesCreateToggleButton");
+    [submit, cancel, toggle].forEach((button) => {
+      if (button) button.disabled = Boolean(busy);
+    });
   }
 
   function showCreateResult(ok, message) {
-    if (ok === true) setClass('adminNotesNotice', 'admin-note-ok');
-    else if (ok === false) setClass('adminNotesNotice', 'admin-note-error');
-    else setClass('adminNotesNotice', 'admin-note-info');
-    setTextSafe('adminNotesNotice', message || '—');
+    const el = document.getElementById("adminNotesCreateResult");
+    if (!el) return;
+    setClass("adminNotesCreateResult", ok === false ? "admin-note-error" : (ok === true ? "admin-note-ok" : "admin-note-info"));
+    el.textContent = message || "";
   }
 
-  function setRdap40Page(page, meta) {
-    const safePage = cssEscapeLocal(page);
-    const exists = document.querySelector(`[data-page-panel="${safePage}"]`);
-    const current = exists ? page : 'overview';
-    const section = meta && meta.section ? meta.section : 'Admin';
-    const title = meta && meta.title ? meta.title : 'Admin-Notizen';
-    const tab = meta && meta.tab ? meta.tab : 'read/create';
+  async function getAdminNotesJson(url) {
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "same-origin",
+        headers: { "Accept": "application/json" }
+      });
+      const body = await readJsonBody(response);
+      return { ok: response.ok && Boolean(body && body.ok !== false), httpStatus: response.status, body };
+    } catch (err) {
+      return { ok: false, httpStatus: 0, error: err && err.message ? err.message : "request_failed", body: null };
+    }
+  }
 
-    document.querySelectorAll('.nav-link[data-page]').forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.page === current);
-    });
-    document.querySelectorAll('[data-page-panel]').forEach((panel) => {
-      panel.classList.toggle('is-active-view', panel.dataset.pagePanel === current);
-    });
+  async function postAdminNoteJson(url, payload) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const body = await readJsonBody(response);
+      return { ok: response.ok && Boolean(body && body.ok !== false), httpStatus: response.status, body };
+    } catch (err) {
+      return { ok: false, httpStatus: 0, error: err && err.message ? err.message : "request_failed", body: null };
+    }
+  }
 
-    setTextSafe('sectionLabel', section);
-    const pageTitle = document.getElementById('pageTitle');
-    if (pageTitle) {
-      pageTitle.innerHTML = `${escapeHtmlLocal(title)}${tab ? ` <span class="tab-part">${escapeHtmlLocal(tab)}</span>` : ''}`;
+  async function readJsonBody(response) {
+    try {
+      return await response.json();
+    } catch (err) {
+      return { ok: false, reason: "invalid_json_response" };
     }
   }
 
   function bindClick(id, handler) {
-    const node = document.getElementById(id);
-    if (node) node.addEventListener('click', handler);
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", handler);
   }
 
-  function setChipSafe(id, ok, text) {
-    const node = document.getElementById(id);
-    if (!node) return;
-    node.textContent = text;
-    node.className = ok === true ? 'cgn-chip cgn-chip--ok' : ok === false ? 'cgn-chip cgn-chip--warn' : 'cgn-chip cgn-chip--info';
-  }
-
-  function setValueSafe(id, value) {
-    const node = document.getElementById(id);
-    if (!node) return;
-    node.textContent = value === true ? 'true' : value === false ? 'false' : (value == null || value === '' ? '—' : String(value));
-    node.className = value === true ? 'valueTrue' : value === false ? 'valueFalse' : 'valueNeutral';
+  function setRdap40Page(page, meta) {
+    document.querySelectorAll(".rdap-view").forEach((panel) => {
+      panel.hidden = panel.dataset.pagePanel !== page;
+    });
+    document.querySelectorAll(".nav-link").forEach((button) => {
+      if (button.dataset && button.dataset.page) button.classList.toggle("active", button.dataset.page === page);
+    });
+    if (meta) {
+      const title = document.querySelector("[data-rdap-page-title]") || document.getElementById("pageTitle");
+      if (title && meta.title) title.textContent = meta.title;
+    }
   }
 
   function setTextSafe(id, value) {
-    const node = document.getElementById(id);
-    if (node) node.textContent = value == null || value === '' ? '—' : String(value);
+    const el = document.getElementById(id);
+    if (el) el.textContent = value == null || value === "" ? "—" : String(value);
   }
 
-  function setHtmlSafe(id, value) {
-    const node = document.getElementById(id);
-    if (node) node.innerHTML = value || '';
+  function setHtmlSafe(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html || "";
+  }
+
+  function setValueSafe(id, value) {
+    setTextSafe(id, value === true ? "ja" : (value === false ? "nein" : "—"));
   }
 
   function setClass(id, className) {
-    const node = document.getElementById(id);
-    if (node) node.className = className || '';
+    const el = document.getElementById(id);
+    if (el) el.className = className || "";
+  }
+
+  function setChipSafe(id, ok, label) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = label || "—";
+    el.className = "cgn-chip " + (ok === true ? "cgn-chip--ok" : (ok === false ? "cgn-chip--warn" : "cgn-chip--info"));
+  }
+
+  function formatTargetUserLabel(user) {
+    const display = safeString(user.displayName || user.display_name || user.userUid || user.user_uid || "User");
+    const login = safeString(user.loginName || user.login_name || "");
+    const uid = safeString(user.userUid || user.user_uid || "");
+    const loginPart = login ? ` @${login}` : "";
+    const uidPart = uid ? ` (${uid})` : "";
+    return `${display}${loginPart}${uidPart}`;
+  }
+
+  function formatTargetUserTitle(user) {
+    const display = safeString(user.displayName || user.userUid || "Admin-Notizen");
+    return `Admin-Notizen für ${display}`;
+  }
+
+  function toCamelKey(value) {
+    return String(value || "").replace(/_([a-z])/g, (_, chr) => chr.toUpperCase());
   }
 
   function valueOr() {
     for (let i = 0; i < arguments.length; i += 1) {
       const value = arguments[i];
-      if (value !== undefined && value !== null && value !== '') return value;
+      if (value !== undefined && value !== null && value !== "") return value;
     }
     return null;
   }
 
-  function setTargetSearch(term) {
-    targetUserSearchTerm = safeString(term);
-    const input = document.getElementById('adminNotesTargetSearch');
-    if (input) input.value = targetUserSearchTerm;
-    renderTargetSelect();
-  }
-
-  function clearTargetSearch() {
-    setTargetSearch('');
-    const input = document.getElementById('adminNotesTargetSearch');
-    if (input) input.focus();
-  }
-
-  function filterTargetUsers(users, term) {
-    const source = Array.isArray(users) ? users : [];
-    const normalizedTerm = normalizeSearchTerm(term);
-    if (!normalizedTerm) return source.slice();
-    return source.filter((user) => normalizeSearchTerm([
-      user.displayName || '',
-      user.loginName || '',
-      user.userUid || '',
-      user.status || '',
-      user.roles || ''
-    ].join(' ')).includes(normalizedTerm));
-  }
-
-  function renderTargetFilterMeta() {
-    const total = Array.isArray(targetUsers) ? targetUsers.length : 0;
-    const filtered = Array.isArray(filteredTargetUsers) ? filteredTargetUsers.length : 0;
-    const term = safeString(targetUserSearchTerm);
-    setTextSafe('adminNotesTargetFilterText', term ? `"${term}"` : 'alle User');
-    setTextSafe('adminNotesTargetFilterCount', `${filtered} / ${total}`);
-  }
-
-  function normalizeSearchTerm(value) {
-    return safeString(value)
-      .toLocaleLowerCase('de-DE')
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '');
-  }
-
-  function formatTargetUserLabel(user) {
-    const name = user.displayName || user.loginName || user.userUid;
-    const login = user.loginName ? ` @${user.loginName}` : '';
-    return `${name}${login} · ${user.userUid}`;
-  }
-
-  function formatTargetUserTitle(user) {
-    const name = user.displayName || user.loginName || 'Zieluser';
-    return `${name} / ${user.userUid || '—'}`;
-  }
-
   function isValidUserUid(value) {
-    return typeof value === 'string' && /^[a-zA-Z0-9:_-]{1,128}$/.test(value.trim());
+    return typeof value === "string" && /^[a-zA-Z0-9:_-]{1,128}$/.test(value.trim());
   }
 
   function safeString(value) {
-    return value == null ? '' : String(value).trim();
-  }
-
-  function cssEscapeLocal(value) {
-    if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(String(value));
-    return String(value).replace(/[^A-Za-z0-9_-]/g, '\\$&');
+    return String(value == null ? "" : value).trim();
   }
 
   function escapeHtmlLocal(value) {
-    return String(value)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
-})();
+
+  function cssEscapeLocal(value) {
+    const text = String(value == null ? "" : value);
+    if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(text);
+    return text.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+  }
+}());

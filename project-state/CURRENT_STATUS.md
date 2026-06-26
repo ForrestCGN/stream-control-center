@@ -1,83 +1,39 @@
 # CURRENT_STATUS
 
-Stand: RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN  
+Stand: RDAP64_ADMIN_NOTE_UPDATE_UI_IMPLEMENTATION  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
-## Aktuell bestaetigt
+## Aktuell bestätigt
 
 ```text
-RDAP59 klaerte: Admin-Notizen bleiben vorerst Admin-only; kein Community-Read.
-RDAP60 klaerte: Update und Deactivate werden nicht gemeinsam gebaut; zuerst nur Update.
-RDAP61 aktivierte Backend-Update fuer aktive Admin-Notizen.
-RDAP61B dokumentierte die Live-Bestaetigung von RDAP61.
-RDAP62 bereinigte die Status-Semantik nach RDAP61.
-RDAP62B dokumentierte die Live-Bestaetigung von RDAP62.
-RDAP63 plante die Update-UI, ohne sie zu bauen.
+RDAP61: Admin-Note Update-Backend live aktiv.
+RDAP62: Status-Semantik live bereinigt.
+RDAP63: Update-UI-Scope geplant.
+RDAP64: Update-UI in bestehender Admin-Notes-UI implementiert.
 ```
 
-## Aktueller Admin-Notes Stand
-
-```text
-GET  /api/remote/admin/users/admin-notes/read
-POST /api/remote/admin/users/admin-notes/create
-POST /api/remote/admin/users/admin-notes/update      -> Backend confirmed aktiv
-POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
-```
-
-## Bestehende UI
+## RDAP64 Umsetzung
 
 ```text
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ```
 
-Aktuell gebaut:
+Umgesetzt:
 
 ```text
-Read-Liste
-Zieluser-Auswahl
-Create-Button/Form bei Schreibrecht
-Create mit confirmWrite:true
-Reload nach erfolgreichem Create
-```
-
-Noch nicht gebaut:
-
-```text
-Update-Button
-Update-Edit-Panel
-Update-Busy-State
-Update-Fehleranzeige
-```
-
-## RDAP63 Entscheidung
-
-```text
-Update-UI soll spaeter in die bestehende Admin-Notes-UI integriert werden.
-Keine neue Seite.
-Keine neue Backend-Route.
-Kein paralleles UI-Modul.
-Nur aktive Notizen.
-Nur bei erfolgreicher Readroute und Schreibrecht.
-Nach Erfolg immer Reload ueber Readroute.
+UPDATE_ENDPOINT ergänzt.
+Bearbeiten-Button pro aktiver Notiz ergänzt.
+Inline-Edit-Panel in derselben Notizkarte ergänzt.
+Speichern sendet confirmWrite:true, targetUserUid, noteUid und noteText.
+Busy-State und sichtbare Fehleranzeige ergänzt.
+Nach Erfolg wird die bestehende Readroute neu geladen.
 Keine Optimistic-Mutation.
-```
-
-## Live-System
-
-```text
-Webserver: mods.forrestcgn.de
-Service: scc-remote-modboard.service
-Live-Pfad: /opt/stream-control-center/remote-modboard
-DB: MariaDB 11.8.6 / c3stream_control
-DB-Client: /root/rdap29_mysql_client.cnf
-Branch: dev
 ```
 
 ## Weiterhin deaktiviert
 
 ```text
-Admin-Note Update-UI ist noch nicht gebaut
 Admin-Note Deactivate
 Physisches Delete
 Community-Read fuer Admin-Notizen
@@ -88,8 +44,8 @@ Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
-## Naechster empfohlener Step
+## Nächster empfohlener Step
 
 ```text
-RDAP64_ADMIN_NOTE_UPDATE_UI_IMPLEMENTATION
+RDAP64 Webserver-Deploy und danach RDAP64B_ADMIN_NOTE_UPDATE_UI_LIVE_CONFIRMED_DOCS
 ```

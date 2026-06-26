@@ -1,26 +1,14 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN
+## 2026-06-26 - RDAP64_ADMIN_NOTE_UPDATE_UI_IMPLEMENTATION
 
 ```text
-Doku-only / Plan-only.
-Update-UI-Scope fuer bestehende Admin-Notes-UI geplant.
-Keine UI-Code-Aenderung.
-Kein Backend-Code.
-Kein Webserver-Deploy noetig.
-Naechster empfohlener Step: RDAP64_ADMIN_NOTE_UPDATE_UI_IMPLEMENTATION.
-```
-
-Festgelegt:
-
-```text
-Update-Button spaeter nur in Admin -> Admin-Notizen.
-Nur aktive Notizen.
-Nur bei erfolgreicher Readroute und Schreibrecht.
-confirmWrite:true im JSON-Body.
-Nach Erfolg Readroute neu laden.
+Bestehende Admin-Notes-UI um kontrollierte Update-UI erweitert.
+UPDATE_ENDPOINT ergänzt.
+Bearbeiten-Button pro aktiver Notiz ergänzt.
+Inline-Edit mit Zeichenzähler, Busy-State und Fehleranzeige ergänzt.
+Update sendet confirmWrite:true im JSON-Body.
+Nach Erfolg wird die Readroute neu geladen.
 Keine Optimistic-Mutation.
-Kein Deactivate.
-Kein Delete.
-Keine Community-Read-Freigabe.
+Deactivate/Delete/Community-Read bleiben aus.
 ```
