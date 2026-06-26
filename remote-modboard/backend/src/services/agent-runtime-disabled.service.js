@@ -1,8 +1,32 @@
 'use strict';
 
 const MODULE = 'remote_agent_runtime_disabled';
-const MODULE_BUILD = 'RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON';
-const STATUS_API_VERSION = 'rdap_agent82.v1';
+const MODULE_BUILD = 'RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC';
+const STATUS_API_VERSION = 'rdap_agent83.v1';
+
+const REJECT_DIAGNOSTIC = {
+  prepared: true,
+  enabled: true,
+  inMemoryOnly: true,
+  persistsToDatabase: false,
+  rejectCount: 0,
+  lastRejectAt: null,
+  lastRejectReason: null,
+  lastRejectPath: null,
+  lastRejectStatusCode: null,
+  lastRejectMethod: null,
+  lastRejectHasAuthorizationHeader: false,
+  lastRejectHasCookieHeader: false,
+  lastRejectHasQueryString: false,
+  lastRejectUserAgentHint: null,
+  secretsExposed: false,
+  secretsLogged: false,
+  headersLogged: false,
+  rawIpLogged: false,
+  queryStringLogged: false,
+  authorizationHeaderLogged: false,
+  cookieHeaderLogged: false
+};
 
 function registerAgentRuntimeDisabledSkeleton(server, config = {}, options = {}) {
   const agentRuntime = getAgentRuntimeConfig(config);
@@ -21,6 +45,12 @@ function registerAgentRuntimeDisabledSkeleton(server, config = {}, options = {})
   server.on('upgrade', (req, socket) => {
     if (!isAgentWsPath(req, wsPath, config)) return;
 
+    recordRejectDiagnostic(req, {
+      code: 503,
+      reason: 'agent_runtime_disabled',
+      wsPath
+    });
+
     rejectUpgrade(socket, {
       code: 503,
       reason: 'agent_runtime_disabled',
@@ -28,7 +58,7 @@ function registerAgentRuntimeDisabledSkeleton(server, config = {}, options = {})
     });
   });
 
-  console.log(`[remote-agent-runtime] ${MODULE_BUILD} registered disabled upgrade guard for ${wsPath}. Runtime enabled=false, actions=false.`);
+  console.log(`[remote-agent-runtime] ${MODULE_BUILD} registered disabled upgrade guard for ${wsPath}. Runtime enabled=false, actions=false, rejectDiagnostic=in-memory.`);
 
   return buildRegistrationSummary({
     registered: true,
@@ -70,7 +100,8 @@ function buildRegistrationSummary(input = {}) {
     productiveAgentRuntime: false,
     noAgentActions: true,
     readOnly: true,
-    writeEnabled: false
+    writeEnabled: false,
+    rejectDiagnostic: buildRejectDiagnosticSummary()
   };
 }
 
@@ -84,6 +115,73 @@ function isAgentWsPath(req, wsPath, config = {}) {
   } catch (err) {
     return req.url === wsPath || req.url.startsWith(`${wsPath}?`);
   }
+}
+
+function recordRejectDiagnostic(req, details = {}) {
+  const safePath = extractSafePath(req, details.wsPath || '/agent-ws');
+
+  REJECT_DIAGNOSTIC.rejectCount += 1;
+  REJECT_DIAGNOSTIC.lastRejectAt = new Date().toISOString();
+  REJECT_DIAGNOSTIC.lastRejectReason = safeReason(details.reason || 'agent_runtime_disabled');
+  REJECT_DIAGNOSTIC.lastRejectPath = safePath;
+  REJECT_DIAGNOSTIC.lastRejectStatusCode = Number.isInteger(details.code) ? details.code : 503;
+  REJECT_DIAGNOSTIC.lastRejectMethod = safeMethod(req && req.method ? req.method : 'GET');
+  REJECT_DIAGNOSTIC.lastRejectHasAuthorizationHeader = hasHeader(req, 'authorization');
+  REJECT_DIAGNOSTIC.lastRejectHasCookieHeader = hasHeader(req, 'cookie');
+  REJECT_DIAGNOSTIC.lastRejectHasQueryString = hasQueryString(req);
+  REJECT_DIAGNOSTIC.lastRejectUserAgentHint = safeUserAgentHint(req);
+
+  REJECT_DIAGNOSTIC.secretsExposed = false;
+  REJECT_DIAGNOSTIC.secretsLogged = false;
+  REJECT_DIAGNOSTIC.headersLogged = false;
+  REJECT_DIAGNOSTIC.rawIpLogged = false;
+  REJECT_DIAGNOSTIC.queryStringLogged = false;
+  REJECT_DIAGNOSTIC.authorizationHeaderLogged = false;
+  REJECT_DIAGNOSTIC.cookieHeaderLogged = false;
+}
+
+function buildRejectDiagnosticSummary() {
+  return {
+    prepared: true,
+    enabled: true,
+    inMemoryOnly: true,
+    persistsToDatabase: false,
+    rejectCount: REJECT_DIAGNOSTIC.rejectCount,
+    lastRejectAt: REJECT_DIAGNOSTIC.lastRejectAt,
+    lastRejectReason: REJECT_DIAGNOSTIC.lastRejectReason,
+    lastRejectPath: REJECT_DIAGNOSTIC.lastRejectPath,
+    lastRejectStatusCode: REJECT_DIAGNOSTIC.lastRejectStatusCode,
+    lastRejectMethod: REJECT_DIAGNOSTIC.lastRejectMethod,
+    lastRejectHasAuthorizationHeader: REJECT_DIAGNOSTIC.lastRejectHasAuthorizationHeader,
+    lastRejectHasCookieHeader: REJECT_DIAGNOSTIC.lastRejectHasCookieHeader,
+    lastRejectHasQueryString: REJECT_DIAGNOSTIC.lastRejectHasQueryString,
+    lastRejectUserAgentHint: REJECT_DIAGNOSTIC.lastRejectUserAgentHint,
+    visibleRejectReasons: [
+      'agent_runtime_disabled',
+      'malformed_upgrade_request',
+      'invalid_agent_ws_path'
+    ],
+    neverLogged: [
+      'authorization_header_value',
+      'agent_access_key',
+      'cookies',
+      'complete_headers',
+      'query_string_values',
+      'raw_ip_address',
+      'request_body',
+      'local_absolute_paths'
+    ],
+    secretsExposed: false,
+    secretsLogged: false,
+    headersLogged: false,
+    rawIpLogged: false,
+    queryStringLogged: false,
+    authorizationHeaderLogged: false,
+    cookieHeaderLogged: false,
+    acceptsAgentConnections: false,
+    actionEnabled: false,
+    productiveAgentRuntime: false
+  };
 }
 
 function rejectUpgrade(socket, details = {}) {
@@ -104,15 +202,57 @@ function rejectUpgrade(socket, details = {}) {
       ].join('\r\n'));
     }
   } catch (err) {
-    // Intentionally do not log request headers or connection secrets.
+    // Intentionally do not log request headers, IP addresses, cookies or connection secrets.
   } finally {
     if (socket && typeof socket.destroy === 'function') socket.destroy();
   }
 }
 
+function extractSafePath(req, fallback) {
+  if (!req || typeof req.url !== 'string') return fallback || '/agent-ws';
+
+  try {
+    const parsed = new URL(req.url, 'https://mods.forrestcgn.de');
+    return safeReason(parsed.pathname || fallback || '/agent-ws');
+  } catch (err) {
+    const rawPath = req.url.split('?')[0] || fallback || '/agent-ws';
+    return safeReason(rawPath);
+  }
+}
+
+function hasQueryString(req) {
+  if (!req || typeof req.url !== 'string') return false;
+  return req.url.includes('?');
+}
+
+function hasHeader(req, headerName) {
+  if (!req || !req.headers || typeof req.headers !== 'object') return false;
+  return Object.prototype.hasOwnProperty.call(req.headers, headerName);
+}
+
+function safeMethod(value) {
+  return String(value || 'GET')
+    .replace(/[^A-Z]/g, '')
+    .slice(0, 16) || 'GET';
+}
+
+function safeUserAgentHint(req) {
+  if (!req || !req.headers || typeof req.headers['user-agent'] !== 'string') return null;
+
+  const raw = req.headers['user-agent'].trim();
+  if (!raw) return null;
+
+  const firstToken = raw.split(/[\s/;()]+/).filter(Boolean)[0] || '';
+  const safe = firstToken
+    .replace(/[^a-zA-Z0-9_.:\-]/g, '')
+    .slice(0, 40);
+
+  return safe || 'present';
+}
+
 function safeReason(value) {
   return String(value || '')
-    .replace(/[^a-zA-Z0-9_.:\-\s]/g, '')
+    .replace(/[^a-zA-Z0-9_.:\-\s/]/g, '')
     .slice(0, 160);
 }
 
@@ -122,5 +262,6 @@ module.exports = {
   STATUS_API_VERSION,
   registerAgentRuntimeDisabledSkeleton,
   getAgentRuntimeConfig,
-  buildRegistrationSummary
+  buildRegistrationSummary,
+  buildRejectDiagnosticSummary
 };

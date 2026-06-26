@@ -1,28 +1,30 @@
 # NEXT_STEPS
 
-Stand: RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC
+RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN
 ```
 
 ## Ziel
 
 ```text
-Nur Diagnose fuer abgelehnte /agent-ws Verbindungsversuche planen.
+Nur planen, wie spaeter ein Zugangsschluessel-Handshake sicher geprueft wird.
+Keine Runtime-Aktivierung.
 Keine akzeptierte Agent-Verbindung.
 Keine produktiven Remote-Actions.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP82B
+## Ausgangspunkt RDAP83
 
 ```text
-- Runtime-disabled Skeleton ist live bestaetigt.
+- Runtime-disabled Skeleton ist vorbereitet.
 - /agent-ws Upgrade-Guard ist vorbereitet.
+- Abgelehnte /agent-ws Versuche werden in-memory diagnostiziert.
 - Runtime bleibt effective false.
 - WSS Runtime bleibt false.
 - Heartbeat Receiver bleibt false.
@@ -33,7 +35,7 @@ Keine Secret-Ausgabe.
 - Keine DB-Migration.
 ```
 
-## RDAP83 vorbereitend pruefen
+## RDAP84 vorbereitend pruefen
 
 ```text
 remote-modboard/backend/server.js
@@ -46,21 +48,22 @@ docs/current/*
 project-state/*
 ```
 
-## RDAP83 klaeren
+## RDAP84 klaeren
 
 ```text
-- Sollen abgelehnte /agent-ws Versuche nur in-memory gezaehlt werden?
-- Welche Ablehnungsgruende duerfen sichtbar sein?
-- Welche Daten duerfen niemals geloggt werden?
-- Soll /api/remote/agent/status die letzte Reject-Diagnose anzeigen?
-- Wie bleibt die Diagnose ohne DB-Migration sicher?
-- Wie wird verhindert, dass Header/Secrets/IP-Details unnötig offenliegen?
+- Wie wird der Zugangsschluessel serverseitig gelesen, ohne ihn auszugeben?
+- Welche Header sind fuer den spaeteren Handshake erlaubt?
+- Wie wird invalid_connection_proof sicher diagnostiziert, ohne Secret-Werte zu loggen?
+- Bleibt die erste echte Runtime weiter in-memory only?
+- Wie wird verhindert, dass AGENT_RUNTIME_ENABLED=true allein eine produktive Verbindung freischaltet?
+- Welche Statuswerte duerfen sichtbar sein?
 ```
 
 ## Strikt nicht machen
 
 ```text
 Keine akzeptierte Agent-Verbindung.
+Keine Runtime-Aktivierung ohne separaten Plan.
 Keine OBS-Steuerung.
 Keine Sound-Ausloesung.
 Keine Overlay-Schaltung.

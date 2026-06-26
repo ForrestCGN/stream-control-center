@@ -4,7 +4,7 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntimeDisabledSkeleton } = require('./src/services/agent-runtime-disabled.service');
 
-const MODULE_BUILD = 'RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON';
+const MODULE_BUILD = 'RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC';
 
 async function main() {
   const config = loadConfig();

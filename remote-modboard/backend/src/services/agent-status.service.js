@@ -1,10 +1,11 @@
 'use strict';
 
 const os = require('os');
+const { buildRejectDiagnosticSummary } = require('./agent-runtime-disabled.service');
 
 const MODULE = 'remote_agent_status';
-const MODULE_BUILD = 'RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON';
-const STATUS_API_VERSION = 'rdap_agent82.v1';
+const MODULE_BUILD = 'RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC';
+const STATUS_API_VERSION = 'rdap_agent83.v1';
 const LOADED_AT = new Date().toISOString();
 
 const EXPECTED_AGENT = Object.freeze({
@@ -51,6 +52,8 @@ const HEARTBEAT_MODEL = Object.freeze({
 function buildAgentStatusSummary(context = {}) {
   const runtime = buildRuntimeConfigSummary(context.config);
   const transport = buildTransportSummary(runtime);
+  const rejectDiagnostic = buildRejectDiagnosticSummary();
+
   return {
     enabled: false,
     connected: false,
@@ -72,6 +75,12 @@ function buildAgentStatusSummary(context = {}) {
     lastHeartbeatAt: null,
     heartbeatAgeMs: null,
     stale: false,
+    rejectDiagnosticPrepared: rejectDiagnostic.prepared,
+    rejectDiagnosticInMemoryOnly: rejectDiagnostic.inMemoryOnly,
+    rejectCount: rejectDiagnostic.rejectCount,
+    lastRejectAt: rejectDiagnostic.lastRejectAt,
+    lastRejectReason: rejectDiagnostic.lastRejectReason,
+    rejectSecretsExposed: false,
     statusApiVersion: STATUS_API_VERSION
   };
 }
@@ -80,6 +89,7 @@ function buildAgentStatusResponse(context = {}) {
   const now = new Date().toISOString();
   const runtime = buildRuntimeConfigSummary(context.config);
   const transport = buildTransportSummary(runtime);
+  const rejectDiagnostic = buildRejectDiagnosticSummary();
 
   return {
     ok: true,
@@ -98,7 +108,7 @@ function buildAgentStatusResponse(context = {}) {
       enabled: false,
       connected: false,
       connectionState: 'offline',
-      reason: 'rdap82_runtime_disabled_skeleton_only',
+      reason: 'rdap83_runtime_disabled_reject_diagnostic_only',
       lastHeartbeatAt: null,
       connectedSince: null,
       heartbeatAgeMs: null,
@@ -126,6 +136,7 @@ function buildAgentStatusResponse(context = {}) {
       upgradeGuardPrepared: true,
       acceptsAgentConnections: false
     },
+    rejectDiagnostic,
     heartbeat: { ...HEARTBEAT_MODEL },
     transport,
     host: {
@@ -139,10 +150,10 @@ function buildAgentStatusResponse(context = {}) {
     },
     safety: { ...SAFETY },
     warnings: [
-      'RDAP82 liefert nur einen Runtime-disabled Skeleton fuer die Stream-PC Verbindung.',
-      'WSS/Upgrade-Guard ist vorbereitet, nimmt aber keine produktive Agent-Verbindung an.',
+      'RDAP83 liefert nur eine In-Memory-Diagnose fuer abgelehnte /agent-ws Verbindungsversuche.',
+      'WSS/Upgrade-Guard nimmt weiterhin keine produktive Agent-Verbindung an.',
       'OBS, Sounds, Overlays, Commands, Shell, Datei-, Prozess- und URL-Ausfuehrung bleiben deaktiviert.',
-      'Geheime Zugangswerte werden nicht in Status, UI oder Logs ausgegeben.'
+      'Geheime Zugangswerte, Header, Cookies, Query-Werte und rohe IP-Adressen werden nicht in Status, UI oder Logs ausgegeben.'
     ],
     errors: []
   };
@@ -151,6 +162,7 @@ function buildAgentStatusResponse(context = {}) {
 function buildAgentRoutesSummary(context = {}) {
   const runtime = buildRuntimeConfigSummary(context.config);
   const transport = buildTransportSummary(runtime);
+  const rejectDiagnostic = buildRejectDiagnosticSummary();
 
   return {
     prepared: true,
@@ -175,6 +187,12 @@ function buildAgentRoutesSummary(context = {}) {
     plannedDirection: transport.plannedDirection,
     plannedWsPath: transport.plannedWsPath,
     streamPcPublicPortRequired: false,
+    rejectDiagnosticPrepared: rejectDiagnostic.prepared,
+    rejectDiagnosticInMemoryOnly: rejectDiagnostic.inMemoryOnly,
+    rejectCount: rejectDiagnostic.rejectCount,
+    lastRejectAt: rejectDiagnostic.lastRejectAt,
+    lastRejectReason: rejectDiagnostic.lastRejectReason,
+    rejectSecretsExposed: false,
     noAgentActions: true,
     safety: { ...SAFETY }
   };

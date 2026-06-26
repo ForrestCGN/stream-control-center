@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -16,24 +16,21 @@ RDAP80C: Live-Abschluss dokumentiert und naechsten Step auf Stream-PC Verbindung
 RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WSS-Pfad und Heartbeat-Modell geplant; Doku-only.
 RDAP82: Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet; /agent-ws Upgrade-Guard lehnt disabled ab; keine Actions.
 RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereitet.
+RDAP83: In-Memory Reject-Diagnose fuer abgelehnte /agent-ws Versuche vorbereitet; keine akzeptierte Verbindung.
 ```
 
-## RDAP82 live bestaetigt
+## RDAP83 Stand
 
 ```text
 /api/remote/agent/status:
-- statusApiVersion: rdap_agent82.v1
-- runtime.skeletonPrepared: true
-- runtime.requestedEnabled: false
-- runtime.effectiveEnabled: false
-- runtime.wssRuntimeEnabled: false
-- runtime.heartbeatReceiverEnabled: false
-- runtime.accessKeyConfigured: false
-- runtime.accessKeyExposed: false
-- runtime.accessKeyLogged: false
-- runtime.defaultDisabled: true
-- runtime.upgradeGuardPrepared: true
+- statusApiVersion: rdap_agent83.v1
 - runtime.acceptsAgentConnections: false
+- rejectDiagnostic.prepared: true
+- rejectDiagnostic.inMemoryOnly: true
+- rejectDiagnostic.rejectCount: number
+- rejectDiagnostic.secretsExposed: false
+- rejectDiagnostic.headersLogged: false
+- rejectDiagnostic.rawIpLogged: false
 
 /api/remote/status .agent:
 - connectionState: offline
@@ -46,6 +43,9 @@ RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereit
 - streamPcPublicPortRequired: false
 - expectedAgentId: stream-pc-main
 - expectedAgentName: Forrest Stream-PC
+- rejectDiagnosticPrepared: true
+- rejectDiagnosticInMemoryOnly: true
+- rejectSecretsExposed: false
 
 /api/remote/routes .agentStatusFoundation:
 - runtimeSkeletonPrepared: true
@@ -55,6 +55,9 @@ RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereit
 - upgradeGuardPrepared: true
 - acceptsAgentConnections: false
 - noAgentActions: true
+- rejectDiagnosticPrepared: true
+- rejectDiagnosticInMemoryOnly: true
+- rejectSecretsExposed: false
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -71,26 +74,27 @@ Seite heisst Stream-PC Verbindung.
 Status ist read-only und aktuell disabled/offline.
 Heartbeat-Modell ist vorbereitet, aber Receiver/Runtime sind disabled.
 WSS-Pfad /agent-ws ist vorbereitet und guarded.
+Abgelehnte /agent-ws Versuche werden in-memory gezaehlt.
 Stream-PC soll spaeter aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## RDAP82 Runtime-disabled Skeleton
+## Sicherheit RDAP83
 
 ```text
-server.js registriert disabled Upgrade-Guard.
-agent-runtime-disabled.service.js kapselt den Skeleton.
-AGENT_RUNTIME_ENABLED wird gelesen, bleibt aber effective false.
-AGENT_WS_PATH Default: /agent-ws.
-AGENT_EXPECTED_ID Default: stream-pc-main.
-AGENT_EXPECTED_NAME Default: Forrest Stream-PC.
-AGENT_ACCESS_KEY wird nur als configured Boolean behandelt.
-Keine Secrets in Repo, UI, Status oder Logs.
 Keine akzeptierte Agent-Verbindung.
-Kein echter Online-Status.
+Kein echter WebSocket-Handshake.
+Kein Heartbeat-Receiver.
+Kein Agent online.
 Keine Action-Queue.
 Keine DB-Persistenz.
+Keine Secret-Ausgabe.
+Keine Header-Wert-Ausgabe.
+Keine Cookie-Wert-Ausgabe.
+Keine Authorization-Wert-Ausgabe.
+Keine Query-Wert-Ausgabe.
+Keine rohe IP-Ausgabe.
 ```
 
 ## Admin-Notes Status
@@ -146,5 +150,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC
+RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN
 ```

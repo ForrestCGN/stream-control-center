@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC
+
+```text
+- /agent-ws Reject-Diagnose vorbereitet.
+- Diagnose bleibt in-memory only.
+- Reject-Zaehler fuer abgelehnte /agent-ws Verbindungsversuche ergaenzt.
+- Letzte sichere Ablehnung wird ohne Secret-/Header-/Cookie-/Query-/IP-Werte gespeichert.
+- agent-runtime-disabled.service.js erweitert.
+- agent-status.service.js auf rdap_agent83.v1 erweitert.
+- /api/remote/agent/status zeigt rejectDiagnostic.
+- /api/remote/status .agent zeigt sichere Reject-Summary.
+- /api/remote/routes .agentStatusFoundation zeigt sichere Reject-Summary.
+- server.js MODULE_BUILD auf RDAP83 gesetzt.
+- Keine akzeptierte Agent-Verbindung.
+- Kein echter WebSocket-Handshake.
+- Kein Heartbeat-Receiver.
+- Keine Agent-Actions.
+- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+- Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Admin-Notes-Aenderung.
+- Keine Secret-Ausgabe.
+```
+
 ## 2026-06-26 - RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 
 ```text

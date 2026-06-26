@@ -1,30 +1,33 @@
 # TODO
 
-Stand: RDAP82B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC  
 Datum: 2026-06-26
 
 ## Jetzt
 
 ```text
-RDAP82B Doku-only lokal einspielen.
-Keine Node-Checks noetig.
+RDAP83 lokal einspielen.
+Node-Checks ausfuehren.
 git status und diff pruefen.
 Wenn sauber: stepdone.cmd.
-Kein Webserver-Deploy, weil nur Doku/project-state geaendert wird.
+Danach Webserver-Deploy, weil Code unter remote-modboard/ geaendert wird.
 ```
 
 ## Danach
 
 ```text
-Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP82B.md
-RDAP83_STREAM_PC_CONNECTION_HANDSHAKE_REJECT_DIAGNOSTIC vorbereiten.
+Webserver-Deploy aus frischem GitHub/dev-Clone unter _deploy_tmp.
+Serverseitige Tests fuer /api/remote/agent/status, /api/remote/status und /api/remote/routes.
+Optionalen /agent-ws Reject-Test ausfuehren.
+Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP83.md.
+RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN vorbereiten.
 ```
 
 ## RDAP83 Aufgaben
 
 ```text
-- Nur Diagnose fuer abgelehnte /agent-ws Verbindungsversuche planen.
-- In-Memory-Zaehler/letzte Ablehnung pruefen.
+- Nur Diagnose fuer abgelehnte /agent-ws Verbindungsversuche.
+- In-Memory-Zaehler/letzte Ablehnung.
 - Keine akzeptierte Agent-Verbindung.
 - Keine Actions.
 - Keine DB.
