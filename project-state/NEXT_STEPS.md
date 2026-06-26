@@ -1,41 +1,37 @@
 # NEXT_STEPS
 
-Stand: RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE  
+Stand: RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS
+RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN
 ```
 
 ## Ziel
 
-RDAP96B soll den RDAP96-Agent-Client lokal pruefen und dokumentieren:
+RDAP97 soll einen separaten manuellen Testplan fuer den RDAP96-Agent-Client vorbereiten:
 
 ```text
-- node --check fuer Agent-Dateien bestaetigen.
-- npm --prefix remote-modboard/stream-pc-agent run check bestaetigen.
-- git status pruefen.
-- Kein Webserver-Deploy, wenn nur Agent-Client und Doku betroffen sind.
-- Noch kein Webserver-Live-Test ohne separaten Plan.
-```
-
-## Danach moeglich
-
-```text
-RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN
-```
-
-Nur als separater Plan:
-
-```text
-- Runtime temporaer aktivieren.
-- Agent manuell mit lokal gesetztem Secret starten.
+- Runtime auf dem Webserver nur temporaer aktivieren.
+- Agent Client nur manuell starten.
+- Lokales Secret nur lokal setzen, niemals in Chat/Git/Doku.
 - /api/remote/agent/status pruefen.
+- Gueltigen Heartbeat bestaetigen.
 - Runtime final wieder deaktivieren.
-- Keine Secret-Ausgabe.
+- Finalen disabled Status pruefen.
 - Keine Actions.
+```
+
+## Voraussetzung
+
+```text
+RDAP96B abgeschlossen:
+- node --check fuer Agent-Dateien bestaetigt.
+- npm --prefix remote-modboard/stream-pc-agent run check bestaetigt.
+- git status sauber nach stepdone.cmd.
+- Kein Webserver-Deploy noetig.
 ```
 
 ## Strikt nicht machen

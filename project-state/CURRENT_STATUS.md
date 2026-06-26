@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE  
+Stand: RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -14,6 +14,7 @@ RDAP94B: Heartbeat Live-Confirm erfolgreich durchgefuehrt.
 RDAP94D: Live-Confirm dokumentiert.
 RDAP95: Minimaler Stream-PC Agent Client geplant.
 RDAP96: Heartbeat-only Stream-PC Agent Client vorbereitet.
+RDAP96B: Lokale Agent-Checks dokumentiert.
 ```
 
 ## Live-Service
@@ -29,19 +30,6 @@ Interner Dienst: http://127.0.0.1:3010
 ```text
 statusApiVersion=rdap_agent94.v1
 moduleBuild=RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
-```
-
-## RDAP94B bestaetigt
-
-```text
-WebSocket 101: OK
-Heartbeat read-only/in-memory: OK
-Valid Heartbeat live sichtbar: OK
-Forbidden Heartbeat abgelehnt: OK
-Actions: false
-productiveAgentRuntime: false
-Keine Secret-Ausgabe sichtbar: OK
-Keine Rohpayload-Ausgabe sichtbar: OK
 ```
 
 ## Final bestaetigter Sicherheitszustand
@@ -76,6 +64,16 @@ Kein Backend-Code geaendert.
 Keine Runtime dauerhaft aktiviert.
 ```
 
+## RDAP96B dokumentiert
+
+```text
+Lokale Check-Bestaetigung fuer RDAP96-Agent vorbereitet.
+node --check fuer Agent-Dateien dokumentiert.
+npm --prefix remote-modboard/stream-pc-agent run check dokumentiert.
+Kein Webserver-Deploy noetig.
+Kein Webserver-Live-Test in RDAP96B.
+```
+
 ## Sicherheitsgrenzen
 
 ```text
@@ -97,5 +95,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS
+RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN
 ```

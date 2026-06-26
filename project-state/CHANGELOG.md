@@ -1,27 +1,39 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS
+
+```text
+- Lokalen Check-/Dokumentationsstep nach RDAP96 dokumentiert.
+- Bestaetigungsziel fuer node --check der Agent-Dateien festgehalten:
+  remote-modboard/stream-pc-agent/src/agent-client.js
+  remote-modboard/stream-pc-agent/src/config.js
+  remote-modboard/stream-pc-agent/src/logger.js
+- Bestaetigungsziel fuer npm --prefix remote-modboard/stream-pc-agent run check festgehalten.
+- Dokumentiert: kein Agent-Code, kein Backend-Code, keine Runtime-Aenderung, kein Live-Test.
+- Dokumentiert: kein Webserver-Deploy noetig.
+- NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP96B angelegt.
+- Naechster Step: RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN.
+```
+
 ## 2026-06-26 - RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE
 
 ```text
-- Neue Agent-Komponente erstellt: remote-modboard/stream-pc-agent/.
-- package.json fuer scc-stream-pc-agent erstellt.
-- src/config.js erstellt: liest SCC_AGENT_* Umgebungsvariablen, keine .env-Autoloads, keine Secret-Ausgabe.
-- src/logger.js erstellt: sichere JSON-Logs, filtert sensible Key-Namen.
-- src/agent-client.js erstellt: ws/wss Verbindung per Node built-ins net/tls/crypto, guarded Header, Heartbeat-only, Reconnect-Backoff, sauberer Shutdown.
-- README.md fuer manuellen Start und Secret-Regeln erstellt.
-- Keine externe ws-Abhaengigkeit eingebaut.
+- Heartbeat-only Stream-PC Agent Client vorbereitet.
+- Neue Agent-Komponente remote-modboard/stream-pc-agent/ erstellt.
+- package.json fuer eigenes Agent-Paket angelegt.
+- src/config.js fuer sichere Env-Konfiguration angelegt.
+- src/logger.js fuer sicheres Logging ohne Secrets/Header/Token/Rohpayloads angelegt.
+- src/agent-client.js fuer WebSocket-Handshake und minimalen Heartbeat angelegt.
+- README.md fuer manuellen Start und Secret-Regeln angelegt.
+- Node built-ins only: net/tls/crypto.
+- Keine externe ws-Abhaengigkeit.
+- Agent kann ws:// und wss://.
+- Agent setzt guarded Header fuer /agent-ws.
+- Agent sendet minimalen Heartbeat.
+- Agent reconnectet mit Backoff.
 - Keine Agent-Actions.
-- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
-- Keine freie Shell/Datei/Prozess/URL-Ausfuehrung.
-- Keine Prozessliste, Dateiliste, Env-Dumps oder Pfad-Dumps.
-- Keine DB-Migration.
-- Keine neue Permission.
-- Keine Secret-Ausgabe.
-- Keine Rohpayload-Ausgabe.
 - Kein Backend-Code geaendert.
 - Keine Runtime dauerhaft aktiviert.
-- NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP96 angelegt.
-- Naechster Step: RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS.
 ```
 
 ## 2026-06-26 - RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN
@@ -53,7 +65,4 @@
 - Bestaetigt: Forbidden Heartbeat wird mit heartbeat_forbidden_fields abgelehnt.
 - Bestaetigt: Runtime final wieder deaktiviert.
 - Dokumentiert: keine Secret-Ausgabe, keine Rohpayload-Ausgabe, keine DB-Migration, keine neue Permission, keine Agent-Actions.
-- NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP94D angelegt.
-- Naechster Step: RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN.
-- Doku-only; kein Code, keine DB, keine Runtime-Aenderung, kein Webserver-Deploy noetig.
 ```
