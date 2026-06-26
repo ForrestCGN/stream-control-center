@@ -1,33 +1,35 @@
 # NEXT_STEPS
 
-Stand: RDAP101B_STREAM_PC_CONNECTION_AGENT_PUBLIC_WSS_HEARTBEAT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN
+RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD
 ```
 
 ## Ziel
 
-RDAP102 soll planen, wie der jetzt live bestaetigte Stream-PC Verbindungsstatus sichtbar im Remote-Modboard/Dashboard angezeigt wird:
+RDAP103 soll die in RDAP102 geplante Read-only UI-Kachel fuer den Stream-PC Verbindungsstatus vorbereiten:
 
 ```text
-- Bestehende Status-/Routes-/UI-Struktur pruefen.
-- Sichtbaren Status fuer Webserver <-> Stream-PC planen.
-- Anzeigen: verbunden/getrennt, letzter Heartbeat, heartbeatAge/stale, Actions disabled.
-- Nutzerfreundliche Bezeichnungen verwenden: Stream-PC Verbindung, Verbindungen, Webserver <-> Stream-PC.
-- Erst Plan/Doku, keine direkte Action-Funktion.
+- Bereich: Verbindungen.
+- Kachel: Stream-PC Verbindung.
+- Untertitel: Webserver <-> Stream-PC.
+- Datenquelle: GET /api/remote/agent/status.
+- Anzeigen: verbunden/getrennt/veraltet, letzter Heartbeat, heartbeatAge/stale, Actions disabled.
+- Nutzerfreundliche Bezeichnungen verwenden.
+- Keine Start/Stop Buttons.
 - Keine Agent-Actions.
 ```
 
 ## Voraussetzung
 
 ```text
-RDAP101B abgeschlossen:
-- Public WSS Heartbeat live bestaetigt.
-- Agent connected und heartbeatSeq=4 bestaetigt.
+RDAP102 abgeschlossen:
+- Plan fuer sichtbaren Stream-PC Verbindungsstatus dokumentiert.
+- Public WSS Heartbeat ist seit RDAP101B live bestaetigt.
 - Runtime final disabled.
 - Keine Secrets.
 - Keine Actions.

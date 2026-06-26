@@ -1,45 +1,34 @@
 # TODO
 
-Stand: RDAP101B_STREAM_PC_CONNECTION_AGENT_PUBLIC_WSS_HEARTBEAT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
 
 ```text
-RDAP96:
-- Heartbeat-only Stream-PC Agent Client vorbereitet.
+RDAP100B:
+- Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
 
-RDAP96B:
-- Lokale Agent-Checks dokumentiert.
+RDAP101B:
+- Stream-PC Agent public WSS Heartbeat live bestaetigt.
+- Runtime final disabled.
+- Keine Secrets.
+- Keine Actions.
 
-RDAP97:
-- Manueller Agent-Testplan dokumentiert.
-
-RDAP98/RDAP98B:
-- Agent lokal gestartet.
-- Safe Logging bestaetigt.
-- Public WSS /agent-ws 404 erkannt.
-- Runtime final disabled bestaetigt.
-
-RDAP99/RDAP100B:
-- Nginx/ISPConfig /agent-ws WebSocket Proxy geplant und live bestaetigt.
-- Public WebSocket-Upgrade erreicht Backend-Handler.
-
-RDAP101/RDAP101B:
-- Agent lokal ueber public WSS verbunden.
-- Gueltiger Heartbeat live bestaetigt.
-- Runtime final disabled bestaetigt.
+RDAP102:
+- Sichtbarer Stream-PC Verbindungsstatus im Dashboard geplant.
+- Bestehende read-only Route /api/remote/agent/status als Datenquelle vorgesehen.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN
+RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD
 ```
 
 ## Danach
 
 ```text
-Nach RDAP102-Plan: Statusanzeige im bestehenden Remote-Modboard/Dashboard gezielt vorbereiten.
-Weiterhin keine Agent-Actions und keine produktive Action-Queue.
+Nach RDAP103: UI lokal pruefen, Syntax/Status pruefen, dann Doku/Live-Confirm separat.
+Keine Agent-Actions vor separatem Plan.
 ```

@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP101B_STREAM_PC_CONNECTION_AGENT_PUBLIC_WSS_HEARTBEAT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -20,6 +20,7 @@ RDAP98B: RDAP98 Teiltest dokumentiert; public /agent-ws lieferte 404.
 RDAP99: Nginx/ISPConfig Agent-WS Proxy Plan dokumentiert.
 RDAP100B: Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
 RDAP101B: Stream-PC Agent public WSS Heartbeat live bestaetigt.
+RDAP102: Sichtbarer Stream-PC Verbindungsstatus im Dashboard geplant.
 ```
 
 ## Live-Service
@@ -41,9 +42,6 @@ moduleBuild=RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
 ## RDAP101B Ergebnis
 
 ```text
-Vorab disabled Status: OK
-Runtime temporaer aktiviert: OK
-Stream-PC Agent lokal gestartet: OK
 Public WSS connected: OK
 Gueltiger Heartbeat ueber public WSS bestaetigt: OK
 heartbeatSeq=4
@@ -59,6 +57,19 @@ Agent lokal gestoppt: OK
 Runtime final disabled: OK
 Keine Secrets: OK
 Keine Actions: OK
+```
+
+## RDAP102 Ergebnis
+
+```text
+Sichtbare UI-Anzeige geplant:
+- Bereich: Verbindungen
+- Kachel: Stream-PC Verbindung
+- Untertitel: Webserver <-> Stream-PC
+- Datenquelle: GET /api/remote/agent/status
+- Read-only
+- Keine Start/Stop Buttons
+- Keine Agent-Actions
 ```
 
 ## Final bestaetigter Sicherheitszustand
@@ -79,8 +90,7 @@ productiveAgentRuntime=false
 Keine Agent-Actions.
 Keine OBS-Steuerung.
 Keine Sound-/Overlay-/Command-/Channelpoints-Steuerung.
-Keine freie Shell.
-Keine freie Datei-/Prozess-/URL-Ausfuehrung.
+Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
 Keine Prozessliste.
 Keine Dateiliste.
 Keine Env-Dumps.
@@ -94,5 +104,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN
+RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD
 ```

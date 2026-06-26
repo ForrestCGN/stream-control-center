@@ -1,22 +1,17 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP101B_STREAM_PC_CONNECTION_AGENT_PUBLIC_WSS_HEARTBEAT_LIVE_CONFIRMED_DOCS
+## 2026-06-26 - RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN
 
 ```text
-- RDAP101 public WSS Heartbeat Live-Test dokumentiert.
-- Bestaetigt: Vorab disabled Status OK.
-- Bestaetigt: Runtime wurde nur temporaer aktiviert.
-- Bestaetigt: Stream-PC Agent lokal gestartet.
-- Bestaetigt: Agent verband sich ueber wss://mods.forrestcgn.de/agent-ws.
-- Bestaetigt: Gueltiger Heartbeat ueber public WSS empfangen.
-- Bestaetigt: heartbeatSeq=4 und heartbeatProtocolVersion=rdap-agent-heartbeat.v1.
-- Bestaetigt: stale=false und lastHeartbeatPayloadStored=false.
-- Bestaetigt: actionEnabled=false und productiveAgentRuntime=false.
-- Bestaetigt: heartbeatExecutesActions=false, heartbeatAcceptsCommands=false, heartbeatAcceptsCapabilities=false.
-- Bestaetigt: Agent lokal gestoppt.
-- Bestaetigt: Runtime final wieder deaktiviert.
-- Bestaetigt: keine Secrets im Chat/Git/Doku.
-- Bestaetigt: keine Agent-Actions.
-- Naechster Step: RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN.
-- Doku-only; kein Code, keine Nginx-Aenderung, keine Runtime-Aenderung, kein Webserver-Deploy noetig.
+- Plan fuer sichtbaren Stream-PC Verbindungsstatus im Remote-Modboard/Dashboard dokumentiert.
+- Geplanter UI-Bereich: Verbindungen.
+- Geplante Kachel: Stream-PC Verbindung.
+- Geplanter Untertitel: Webserver <-> Stream-PC.
+- Datenquelle: bestehende read-only Route GET /api/remote/agent/status.
+- Anzeige geplant fuer verbunden/getrennt/veraltet, letzter Heartbeat, heartbeatAge, stale und Actions disabled.
+- Keine Start/Stop Buttons geplant.
+- Keine Agent-Actions geplant.
+- Keine Secret-/Header-/Token-/Rohpayload-Anzeige geplant.
+- Naechster Step: RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD.
+- Doku-only; kein Code, keine Runtime-Aenderung, keine Nginx-Aenderung, kein Webserver-Deploy noetig.
 ```
