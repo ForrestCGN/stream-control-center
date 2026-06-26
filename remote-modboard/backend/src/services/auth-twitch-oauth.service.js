@@ -6,6 +6,7 @@ const { createLoginSession } = require('./auth-session-write.service');
 const TWITCH_AUTHORIZE_URL = 'https://id.twitch.tv/oauth2/authorize';
 const TWITCH_TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
 const TWITCH_USERS_URL = 'https://api.twitch.tv/helix/users';
+const TWITCH_OAUTH_START_RELEASE_ENV = 'RDAP_TWITCH_OAUTH_START_RELEASED';
 
 function buildTwitchStart({ context, req, res }) {
   const config = context.config;
@@ -150,6 +151,7 @@ async function readTwitchUser(config, accessToken) {
 
 function buildAuthGuard(config) {
   if (!config || !config.auth || config.auth.authEnabled !== true) return { allowed: false, reason: 'auth_disabled' };
+  if (!isEnvEnabled(process.env[TWITCH_OAUTH_START_RELEASE_ENV])) return { allowed: false, reason: 'twitch_oauth_start_not_released' };
   if (!config.auth.twitchOAuth || config.auth.twitchOAuth.effectiveEnabled !== true) return { allowed: false, reason: 'twitch_oauth_disabled' };
   if (!config.auth.sessions || config.auth.sessions.effectiveEnabled !== true) return { allowed: false, reason: 'sessions_disabled' };
   if (!config.auth.sessionWriteEnabled) return { allowed: false, reason: 'session_write_disabled' };
@@ -183,14 +185,16 @@ function buildDisabledResponse({ context, reason, route, action }) {
       prepared: Boolean(twitchOAuth.prepared),
       requestedEnabled: Boolean(twitchOAuth.requestedEnabled),
       effectiveEnabled: Boolean(twitchOAuth.effectiveEnabled),
-      startRouteEnabled: Boolean(twitchOAuth.effectiveEnabled),
-      callbackRouteEnabled: Boolean(twitchOAuth.effectiveEnabled),
-      redirectToTwitch: Boolean(twitchOAuth.effectiveEnabled),
-      tokenExchangeEnabled: Boolean(twitchOAuth.effectiveEnabled),
+      startRouteEnabled: Boolean(twitchOAuth.effectiveEnabled && isEnvEnabled(process.env[TWITCH_OAUTH_START_RELEASE_ENV])),
+      callbackRouteEnabled: Boolean(twitchOAuth.effectiveEnabled && isEnvEnabled(process.env[TWITCH_OAUTH_START_RELEASE_ENV])),
+      redirectToTwitch: Boolean(twitchOAuth.effectiveEnabled && isEnvEnabled(process.env[TWITCH_OAUTH_START_RELEASE_ENV])),
+      tokenExchangeEnabled: Boolean(twitchOAuth.effectiveEnabled && isEnvEnabled(process.env[TWITCH_OAUTH_START_RELEASE_ENV])),
       clientIdConfigured: Boolean(twitchOAuth.clientIdConfigured),
       clientSecretConfigured: Boolean(twitchOAuth.clientSecretConfigured),
       redirectUri: twitchOAuth.redirectUri || null,
-      scopes: Array.isArray(twitchOAuth.scopes) ? twitchOAuth.scopes : []
+      scopes: Array.isArray(twitchOAuth.scopes) ? twitchOAuth.scopes : [],
+      explicitStartReleaseRequired: TWITCH_OAUTH_START_RELEASE_ENV,
+      explicitStartReleased: isEnvEnabled(process.env[TWITCH_OAUTH_START_RELEASE_ENV])
     },
     sessions: {
       requestedEnabled: Boolean(sessions.requestedEnabled),
@@ -200,12 +204,13 @@ function buildDisabledResponse({ context, reason, route, action }) {
       sessionSecretConfigured: Boolean(sessions.sessionSecretConfigured),
       oauthStateSecretConfigured: Boolean(sessions.oauthStateSecretConfigured),
       createSession: Boolean(authConfig.sessionCreationEnabled),
-      setCookie: Boolean(sessions.effectiveEnabled)
+      setCookie: Boolean(sessions.effectiveEnabled && isEnvEnabled(process.env[TWITCH_OAUTH_START_RELEASE_ENV]))
     },
     databaseWriteEnabled: false,
     agentActionsEnabled: false,
     safety: context.safety,
     notes: [
+      `RDAP45: Twitch OAuth Start bleibt gesperrt, bis ${TWITCH_OAUTH_START_RELEASE_ENV}=true explizit gesetzt wird.`,
       'Ohne AUTH_ENABLED, TWITCH_OAUTH_ENABLED, SESSION_ENABLED, AUTH_SESSION_WRITE_ENABLED und Secrets bleibt Login gesperrt.',
       'Remote-Writes/Agent-Actions/OBS/Sound/Overlay/Commands bleiben weiterhin deaktiviert.',
       'Auth-DB-Writes sind ausschließlich fuer User/Identity/Session vorgesehen.'
@@ -348,6 +353,10 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function isEnvEnabled(value) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
 }
 
 module.exports = {

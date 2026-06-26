@@ -1,13 +1,14 @@
 # FILES
 
-Stand: RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS  
+Stand: RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED  
 Datum: 2026-06-26
 
-## Geaendert in RDAP44B
+## Geaendert in RDAP45
 
 ```text
-docs/current/RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP44B.md
+remote-modboard/backend/src/services/auth-twitch-oauth.service.js
+docs/current/RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP45.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,32 +16,41 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Keine Code-Dateien in RDAP44B
+## Code-Aenderung RDAP45
 
 ```text
-RDAP44B ist Doku-/Live-Bestaetigung-only.
-Kein Backend-Code.
-Kein Frontend-Code.
-Keine DB-Migration.
-Keine Config-Aenderung.
-Kein Webserver-Deploy noetig.
+remote-modboard/backend/src/services/auth-twitch-oauth.service.js
 ```
 
-## Code-Datei aus RDAP44
+Zweck:
+
+```text
+Twitch-OAuth-Start bleibt ohne explizites RDAP_TWITCH_OAUTH_START_RELEASED=true gesperrt.
+```
+
+## Nicht geaendert in RDAP45
+
+```text
+remote-modboard/backend/src/routes/auth-twitch.routes.js
+remote-modboard/backend/src/routes/auth-login.routes.js
+tools/remote-modboard-deploy.sh
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+```
+
+## RDAP44 relevante UI-Datei
 
 ```text
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ```
 
-## RDAP44 Live-relevante UI
+## Aktuelle relevante Auth-Routen
 
 ```text
-Admin -> Admin-Notizen
-Zieluser-Auswahl / Dropdown
-Name/Login/UID Anzeige
-Read/Write/Notizen/Tabelle Metriken
-Notizenliste
-Create-Form mit Zieluser-Anzeige
+GET  /api/remote/auth/twitch/start
+GET  /api/remote/auth/twitch/callback
+GET  /api/remote/auth/login/start
+GET  /api/remote/auth/login/plan
+POST /api/remote/auth/logout
 ```
 
 ## Aktuelle relevante Admin-Note-Routen
@@ -51,17 +61,3 @@ POST /api/remote/admin/users/admin-notes/create
 POST /api/remote/admin/users/admin-notes/update      -> disabled
 POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
-
-## Naechster Dateibereich fuer RDAP45
-
-Vor RDAP45 echte Dateien pruefen/suchen:
-
-```text
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/routes/*auth*.js
-remote-modboard/backend/src/services/*auth*.service.js
-tools/remote-modboard-deploy.sh
-```
-
-Falls die exakten Auth-Dateien anders heissen, per GitHub/dev suchen und nicht raten.

@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS  
+Stand: RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -19,11 +19,18 @@ Datum: 2026-06-26
 - [x] RDAP44 Admin-Notizen-UI mit Zieluser-Auswahl umgesetzt.
 - [x] RDAP44 live funktional bestaetigt: Dropdown sichtbar, Default ForrestCGN / tw:127709954, Read/Create nutzen Zieluser.
 - [x] RDAP44B Live-Bestaetigung dokumentiert.
+- [x] RDAP45 OAuth-Safety-Fix vorbereitet: Twitch-Start braucht jetzt explizites RDAP_TWITCH_OAUTH_START_RELEASED=true.
 
 ## Offen / Naechstes
 
-- [ ] RDAP45 OAuth-Safety-Befund pruefen: `/api/remote/auth/twitch/start` liefert HTTP 302 statt erwartetem HTTP 403.
-- [ ] Entscheiden, ob der OAuth-Safety-Check angepasst werden muss oder die Twitch-Start-Route haerter blockiert werden soll.
+- [ ] RDAP45 lokal per `installstep.cmd` einspielen.
+- [ ] RDAP45 `node --check` fuer `auth-twitch-oauth.service.js` ausfuehren.
+- [ ] RDAP45 per `stepdone.cmd` nach GitHub/dev bringen.
+- [ ] RDAP45 Webserver-Deploy aus frischem GitHub/dev-Clone ausfuehren.
+- [ ] Nach Deploy bestaetigen: `/api/remote/auth/twitch/start` liefert HTTP 403.
+- [ ] Nach Deploy bestaetigen: `/api/remote/auth/twitch/callback` liefert HTTP 403.
+- [ ] Nach Deploy bestaetigen: Deploy-Script laeuft ohne OAuth-Safety-Fehler durch.
+- [ ] Danach RDAP45B Live-Bestaetigung dokumentieren.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen-UI vermischen.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.

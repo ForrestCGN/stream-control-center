@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED - 2026-06-26
+
+- OAuth-Safety-Befund aus RDAP44-Deploy behandelt:
+  - `twitch/start HTTP 302`
+  - `twitch/callback HTTP 403`
+  - Deploy-Script erwartet `403/403`
+- Option A umgesetzt:
+  - Twitch-OAuth-Start bleibt fuer den aktuellen Safety-Stand gesperrt.
+  - Deploy-Script bleibt unveraendert.
+- `auth-twitch-oauth.service.js` erweitert:
+  - neuer expliziter Release-Gate `RDAP_TWITCH_OAUTH_START_RELEASED=true`
+  - ohne dieses Gate liefert der Auth-Guard `twitch_oauth_start_not_released`
+  - Start/Callback bleiben dadurch 403, auch wenn aeltere Auth-/OAuth-/Session-/DB-Gates aktiv sind.
+- Keine Admin-Notizen-UI-Aenderung.
+- Keine DB-Migration.
+- Keine Permission-Verwaltung.
+- Keine neuen produktiven Admin-Writes.
+
 ## RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS - 2026-06-26
 
 - RDAP44 Live-Bestaetigung dokumentiert.

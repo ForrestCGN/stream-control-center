@@ -1,65 +1,60 @@
 # NEXT_STEPS
 
-Stand: RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS  
+Stand: RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_OR_DECISION
+RDAP45 Webserver-Deploy und Live-Bestaetigung
 ```
 
-## Ziel RDAP45
+## Ziel
 
 ```text
-Beim RDAP44 Webserver-Deploy/Deploy-Script wurde ein OAuth-Safety-Befund sichtbar:
-twitch/start HTTP 302
-twitch/callback HTTP 403
-Erwartet war 403/403.
+Der vorbereitete RDAP45-Safety-Fix muss live bestaetigt werden.
 ```
 
-RDAP45 soll klaeren:
+## Erwartung nach Deploy
 
 ```text
-1. Warum /api/remote/auth/twitch/start HTTP 302 liefert.
-2. Ob die Route absichtlich aktiv ist oder fuer den aktuellen Safety-Stand 403 liefern muss.
-3. Ob der Deploy-Safety-Check veraltet ist oder die Route korrigiert werden muss.
-4. Welche Aenderung noetig ist, ohne Admin-Notizen-UI, DB oder Permissions nebenbei anzufassen.
+/api/remote/auth/twitch/start    -> 403
+/api/remote/auth/twitch/callback -> 403
+remote-modboard-deploy.sh laeuft ohne OAuth-Safety-Fehler durch.
 ```
 
-## Vor RDAP45 zuerst echte Dateien pruefen
+## Deploy-Standard
 
-```text
-docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
-docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
-docs/current/RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS.md
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/routes/*auth*.js
-remote-modboard/backend/src/services/*auth*.service.js
-tools/remote-modboard-deploy.sh
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED
+cd RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED
+sudo bash tools/remote-modboard-deploy.sh RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED dev
 ```
 
-Falls die Auth-Dateien anders heissen, zuerst GitHub/dev durchsuchen und nicht raten.
+## Tests nach Deploy
 
-## Nicht in RDAP45 aendern
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://mods.forrestcgn.de/api/remote/auth/twitch/start
+curl -s -o /dev/null -w "%{http_code}\n" https://mods.forrestcgn.de/api/remote/auth/twitch/callback
+curl -fsS http://127.0.0.1:3010/assets/rdap28-admin-notes.js | grep -n "adminNotesTargetSelect\|DEFAULT_TARGET_USER" | head
+```
+
+## Nicht in diesem Follow-up aendern
 
 ```text
 Keine Admin-Notizen-UI-Aenderung.
-Keine Admin-Note Update-Funktion.
-Keine Admin-Note Deactivate-Funktion.
-Kein Delete.
-Keine Permission-Verwaltung.
 Keine DB-Migration.
-Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
+Keine Permission-Verwaltung.
 Keine neuen produktiven Writes.
+Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 ```
 
-## RDAP44 ist abgeschlossen
+## Danach
+
+Wenn live bestaetigt:
 
 ```text
-Admin-Notizen haben jetzt Zieluser-Auswahl.
-Default bleibt ForrestCGN / tw:127709954.
-Read/Create nutzen den ausgewaehlten Zieluser.
-RDAP44 ist live funktional bestaetigt.
+RDAP45B_REMOTE_AUTH_TWITCH_START_SAFETY_LIVE_CONFIRMED_DOCS
 ```

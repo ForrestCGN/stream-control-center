@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS  
+Stand: RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,6 +15,7 @@ RDAP42B dokumentiert den RDAP42 Live-Stand.
 RDAP43 plant Zieluser-Auswahl/Admin-User-Detail fuer Admin-Notizen.
 RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED ist live funktional bestaetigt.
 RDAP44B dokumentiert die RDAP44 Live-Bestaetigung.
+RDAP45 OAuth-Start-Safety-Fix ist vorbereitet.
 ```
 
 ## Live-System
@@ -54,29 +55,21 @@ Tabelle: true.
 Create-Form zeigt Zieluser: tw:127709954.
 ```
 
-Asset-Pruefung live:
+## RDAP45 vorbereiteter Safety-Fix
 
 ```text
-DEFAULT_TARGET_USER vorhanden.
-adminNotesTargetSelect vorhanden.
-selectedTargetUser vorhanden.
-TARGET_USER_UID nicht mehr vorhanden.
-```
-
-## Separater offener Befund
-
-```text
-OAuth-Safety-Befund beim Deploy-Script:
+Beim Deploy-Script war sichtbar:
 twitch/start HTTP 302
 twitch/callback HTTP 403
 Erwartet war 403/403.
 ```
 
-Wichtig:
+RDAP45 setzt Option A um:
 
 ```text
-RDAP44 UI ist funktional live bestaetigt.
-Der OAuth-Safety-Befund ist separat zu behandeln und nicht Teil der Admin-Notizen-UI.
+Twitch-OAuth-Start bleibt fuer den aktuellen Safety-Stand gesperrt.
+Ohne RDAP_TWITCH_OAUTH_START_RELEASED=true liefert der Auth-Guard reason twitch_oauth_start_not_released.
+Deploy-Script-Erwartung 403/403 bleibt unveraendert.
 ```
 
 ## Weiterhin deaktiviert
@@ -88,16 +81,17 @@ Physisches Delete
 Community-Read fuer Admin-Notizen
 Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 Permission-Vergabe in der UI
+Twitch-OAuth-Start ohne explizites RDAP_TWITCH_OAUTH_START_RELEASED=true
 ```
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_OR_DECISION
+RDAP45 Webserver-Deploy und Live-Bestaetigung
 ```
 
 Ziel:
 
 ```text
-OAuth-Safety-Befund pruefen: Warum liefert /api/remote/auth/twitch/start HTTP 302 statt erwartetem HTTP 403?
+Pruefen, dass /api/remote/auth/twitch/start wieder 403 liefert und das Deploy-Script ohne OAuth-Safety-Fehler durchlaeuft.
 ```
