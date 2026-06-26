@@ -1,25 +1,45 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+
+```text
+- RDAP85 live serverseitig bestaetigt dokumentiert.
+- /api/remote/agent/status mit statusApiVersion rdap_agent85.v1 bestaetigt.
+- runtime.handshakePrecheckPrepared true bestaetigt.
+- runtime.handshakePrecheckAcceptsConnections false bestaetigt.
+- runtime.acceptsAgentConnections false bestaetigt.
+- /api/remote/status .agent bestaetigt.
+- /api/remote/routes .agentStatusFoundation bestaetigt.
+- Reject-Test ohne Agent-ID dokumentiert: HTTP 503 / reason=missing_agent_id.
+- Reject-Test mit falscher Agent-ID dokumentiert: HTTP 503 / reason=unknown_agent_id.
+- Reject-Test mit richtiger Agent-ID + Protokoll, aber ohne Auth dokumentiert: HTTP 503 / reason=missing_connection_proof.
+- rejectCount 3 bestaetigt.
+- lastRejectReason missing_connection_proof bestaetigt.
+- lastRejectAgentIdHint stream-pc-main bestaetigt.
+- lastRejectProtocolHint rdap-agent-handshake.v1 bestaetigt.
+- secretsExposed false bestaetigt.
+- headersLogged false bestaetigt.
+- rawIpLogged false bestaetigt.
+- actionEnabled false bestaetigt.
+- productiveAgentRuntime false bestaetigt.
+- Naechsten Step RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED vorbereitet.
+- Doku-only.
+- Kein Code.
+- Kein Backend.
+- Keine DB-Migration.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED
 
 ```text
-- Handshake-Precheck im bestehenden disabled /agent-ws Guard vorbereitet.
-- server.js MODULE_BUILD auf RDAP85 gesetzt.
-- agent-runtime-disabled.service.js erweitert.
-- agent-status.service.js auf rdap_agent85.v1 erweitert.
-- /api/remote/agent/status zeigt Handshake-Precheck-Summary.
-- /api/remote/status .agent zeigt sichere Handshake-Precheck-Summary.
-- /api/remote/routes .agentStatusFoundation zeigt sichere Handshake-Precheck-Summary.
-- Sichere Ablehnungsgruende ergaenzt:
-  - runtime_not_effectively_enabled
-  - missing_agent_id
-  - unknown_agent_id
-  - missing_connection_proof
-  - invalid_connection_proof
-  - protocol_version_unsupported
-- Diagnose bleibt in-memory only.
-- Header-Werte, Authorization-Werte, Cookie-Werte, Query-Werte und rohe IPs werden nicht gespeichert oder geloggt.
-- Verbindungen werden weiterhin mit 503 abgelehnt.
+- /agent-ws Handshake-Precheck im bestehenden disabled Guard vorbereitet.
+- Verbindungen werden weiterhin immer mit 503 abgelehnt.
+- statusApiVersion auf rdap_agent85.v1 gesetzt.
+- MODULE_BUILD auf RDAP85 gesetzt.
+- Sichere Ablehnungsgruende ergaenzt: runtime_not_effectively_enabled, missing_agent_id, unknown_agent_id, missing_connection_proof, invalid_connection_proof, protocol_version_unsupported.
+- Diagnose um sichere Header-Hints erweitert.
+- Keine Header-Werte, Cookies, Authorization-Werte, Query-Werte oder IPs werden geloggt.
 - Keine akzeptierte Agent-Verbindung.
 - Kein echter WebSocket-Handshake.
 - Kein Heartbeat-Receiver.
@@ -36,38 +56,27 @@
 
 ```text
 - Access-Key-Handshake-Plan fuer Stream-PC Verbindung dokumentiert.
-- Geplanter Header-Vertrag dokumentiert:
-  - Authorization: Bearer <secret>
-  - X-SCC-Agent-Id: stream-pc-main
-  - X-SCC-Agent-Version: <version>
-  - X-SCC-Agent-Protocol: rdap-agent-handshake.v1
-- Zwei-Stufen-Freigabe festgelegt.
-- AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
+- Geplanter Header-Vertrag dokumentiert.
+- Zwei-Stufen-Freigabe festgelegt: AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
 - Geplante sichere Ablehnungsgruende dokumentiert.
 - Sichtbare Diagnosegrenzen dokumentiert.
-- Keine Runtime-Aktivierung.
-- Keine akzeptierte Verbindung.
-- Keine DB.
-- Keine neue Permission.
-- Keine Secret-Ausgabe.
+- Naechsten Step RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED vorbereitet.
 - Doku-only.
+- Kein Code.
+- Kein Backend.
+- Keine DB-Migration.
+- Kein Webserver-Deploy noetig.
 ```
 
 ## 2026-06-26 - RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 
 ```text
 - RDAP83 live serverseitig bestaetigt dokumentiert.
-- /api/remote/agent/status mit statusApiVersion rdap_agent83.v1 bestaetigt.
-- rejectDiagnosticPrepared true bestaetigt.
-- rejectDiagnosticInMemoryOnly true bestaetigt.
-- /agent-ws Reject-Test mit HTTP 503 und reason=agent_runtime_disabled bestaetigt.
-- rejectCount steigt nach Test von 0 auf 1.
-- acceptsAgentConnections false bestaetigt.
-- actionEnabled false bestaetigt.
-- productiveAgentRuntime false bestaetigt.
-- secretsExposed false bestaetigt.
-- headersLogged false bestaetigt.
-- rawIpLogged false bestaetigt.
+- /agent-ws Reject-Test dokumentiert.
+- rejectCount 1 nach Reject-Test bestaetigt.
+- Keine akzeptierte Verbindung bestaetigt.
+- Keine Agent-Actions bestaetigt.
+- Keine DB/Secrets bestaetigt.
 - Naechsten Step RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN vorbereitet.
 - Doku-only.
 - Kein Code.

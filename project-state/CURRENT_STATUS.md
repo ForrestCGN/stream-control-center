@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED  
+Stand: RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -17,12 +17,13 @@ RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WS
 RDAP82: Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet; /agent-ws Upgrade-Guard lehnt disabled ab; keine Actions.
 RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereitet.
 RDAP83: In-Memory Reject-Diagnose fuer abgelehnte /agent-ws Versuche vorbereitet; keine akzeptierte Verbindung.
-RDAP83B: RDAP83 live bestaetigt und dokumentiert.
+RDAP83B: RDAP83 live serverseitig bestaetigt.
 RDAP84: Access-Key-Handshake-Plan dokumentiert; Doku-only.
-RDAP85: Handshake-Precheck im bestehenden disabled Guard vorbereitet; Verbindungen bleiben abgelehnt.
+RDAP85: Handshake-Precheck disabled vorbereitet; Header-Ablehnungsgruende sicher diagnostiziert; keine akzeptierte Verbindung.
+RDAP85B: RDAP85 live serverseitig bestaetigt und naechsten Step RDAP86 vorbereitet; Doku-only.
 ```
 
-## RDAP85 Stand
+## RDAP85 live bestaetigt
 
 ```text
 /api/remote/agent/status:
@@ -47,7 +48,6 @@ RDAP85: Handshake-Precheck im bestehenden disabled Guard vorbereitet; Verbindung
 - runtimeEffectiveEnabled: false
 - heartbeatReceiverEnabled: false
 - plannedWsPath: /agent-ws
-- streamPcPublicPortRequired: false
 - expectedAgentId: stream-pc-main
 - expectedAgentName: Forrest Stream-PC
 - expectedProtocolVersion: rdap-agent-handshake.v1
@@ -72,6 +72,33 @@ RDAP85: Handshake-Precheck im bestehenden disabled Guard vorbereitet; Verbindung
 - rejectSecretsExposed: false
 ```
 
+## RDAP85 Reject-Tests bestaetigt
+
+```text
+Ohne Agent-ID/Auth:
+- HTTP/1.1 503 Service Unavailable
+- reason=missing_agent_id
+
+Mit falscher Agent-ID:
+- HTTP/1.1 503 Service Unavailable
+- reason=unknown_agent_id
+
+Mit richtiger Agent-ID + Protokoll, aber ohne Auth:
+- HTTP/1.1 503 Service Unavailable
+- reason=missing_connection_proof
+
+Danach:
+- rejectCount: 3
+- lastRejectReason: missing_connection_proof
+- lastRejectPath: /agent-ws
+- lastRejectStatusCode: 503
+- lastRejectHasAgentIdHeader: true
+- lastRejectHasProtocolHeader: true
+- lastRejectAgentIdHint: stream-pc-main
+- lastRejectProtocolHint: rdap-agent-handshake.v1
+- lastRejectHasAuthorizationHeader: false
+```
+
 ## Stream-PC-Verbindungsstatus
 
 ```text
@@ -93,7 +120,7 @@ Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## Sicherheit RDAP85
+## Sicherheit RDAP85B
 
 ```text
 Keine akzeptierte Agent-Verbindung.
@@ -163,5 +190,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED
 ```

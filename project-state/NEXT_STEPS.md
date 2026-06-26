@@ -1,33 +1,34 @@
 # NEXT_STEPS
 
-Stand: RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED  
+Stand: RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED
 ```
 
 ## Ziel
 
 ```text
-RDAP85 nach Webserver-Deploy live bestaetigen und dokumentieren.
-Handshake-Precheck-Reject-Tests dokumentieren.
-Keine Backend-Aenderung.
+Access-Key-Vergleich gegen AGENT_ACCESS_KEY vorbereiten.
+Verbindungen weiterhin ablehnen.
 Keine Runtime-Aktivierung.
 Keine akzeptierte Agent-Verbindung.
 Keine produktiven Remote-Actions.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP85
+## Ausgangspunkt RDAP85B
 
 ```text
-- Runtime-disabled Skeleton ist vorbereitet.
-- /agent-ws Upgrade-Guard ist vorbereitet.
-- Handshake-Precheck im disabled Guard ist vorbereitet.
+- Runtime-disabled Skeleton ist live.
+- /agent-ws Upgrade-Guard ist live.
+- Handshake-Precheck ist live.
 - Abgelehnte /agent-ws Versuche werden in-memory diagnostiziert.
+- missing_agent_id, unknown_agent_id und missing_connection_proof wurden live getestet.
+- rejectCount stieg nach drei Tests auf 3.
 - Runtime bleibt effective false.
 - WSS Runtime bleibt false.
 - Heartbeat Receiver bleibt false.
@@ -38,13 +39,29 @@ Keine Secret-Ausgabe.
 - Keine DB-Migration.
 ```
 
-## RDAP85B vorbereitend pruefen
+## RDAP86 vorbereitend pruefen
 
 ```text
-curl -fsS http://127.0.0.1:3010/api/remote/agent/status | jq '.statusApiVersion, .runtime, .rejectDiagnostic'
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.agent'
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.agentStatusFoundation'
-/agent-ws Reject-Tests ohne Header, falscher Agent-ID und richtiger ID ohne Auth
+remote-modboard/backend/server.js
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/agent-status.service.js
+remote-modboard/backend/src/services/agent-runtime-disabled.service.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+docs/current/*
+project-state/*
+```
+
+## RDAP86 klaeren
+
+```text
+- Wie wird AGENT_ACCESS_KEY sicher aus der bestehenden Config/Env gelesen?
+- Wie wird Authorization: Bearer <wert> serverseitig verglichen, ohne den Wert zu speichern/loggen?
+- Wie wird falscher Bearer-Wert als invalid_connection_proof diagnostiziert?
+- Was passiert bei korrektem Bearer-Wert, solange Runtime disabled bleibt?
+- Bleibt die Antwort weiterhin HTTP 503?
+- Welche Boolean-/Hint-Felder duerfen sichtbar sein?
+- Wie wird verhindert, dass ein korrektes Secret schon eine Verbindung akzeptiert?
 ```
 
 ## Strikt nicht machen
