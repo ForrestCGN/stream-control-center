@@ -1,11 +1,12 @@
 # FILES
 
-Stand: RDAP65A_ADMIN_NOTES_BROWSER_VERIFICATION_DOC  
+Stand: RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION  
 Datum: 2026-06-26
 
-## Fuer RDAP65B besonders wichtig
+## Fuer Admin-Notes / RDAP64D-Router-Fix wichtig
 
 ```text
+remote-modboard/backend/public/index.html
 remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
 remote-modboard/backend/src/app.js
@@ -14,23 +15,24 @@ remote-modboard/backend/src/app.js
 ## Bedeutung
 
 ```text
-remote-modboard.js:
-- echter Haupt-Router
-- bindNavigation()
-- setPage()
-- currentPage
-- is-active-view
-- RDAP64D: Delegation fuer spaeter injizierte Navigation
-- RDAP64D: window.RdapMainRouter mit setPage/loadDashboard/getCurrentPage
-
-rdap28-admin-notes.js:
-- fachliches Admin-Notes-Modul
-- enthaelt RDAP64 Update-UI-Code
-- wird live durch app.js injiziert
+index.html:
+- Dashboard-Shell.
+- enthaelt statisch remote-modboard.js.
 
 app.js:
-- injiziert rdap28-admin-notes.js in die ausgelieferte Dashboard-HTML
-- dadurch war die Ursache vor RDAP64D nicht nur fehlende Script-Ladung, sondern Router-/Sichtbarkeitskollision
+- injiziert live zusaetzliche Admin-UI-Scripte.
+- rdap28-admin-notes.js wird live injiziert.
+
+remote-modboard.js:
+- echter Haupt-Router.
+- bindNavigation()/setPage()/currentPage.
+- is-active-view als Sichtbarkeitsmechanik.
+- RDAP64D korrigierte die Router-/Hidden-Kollision.
+
+rdap28-admin-notes.js:
+- fachliches Admin-Notes-Modul.
+- enthaelt Read/Create/Update-UI.
+- Backend-Update nutzt confirmWrite:true.
 ```
 
 ## Backend-Dateien fuer Abgleich
@@ -49,5 +51,6 @@ remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.servi
 docs/current/RDAP64D_ADMIN_NOTE_UPDATE_UI_MAIN_ROUTER_INTEGRATION_LIVE_CONFIRMED.md
 docs/current/RDAP64E_DOKU_STATUS_AFTER_ROUTER_FIX.md
 docs/current/RDAP65A_ADMIN_NOTES_BROWSER_VERIFICATION_DOC.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP65A.md
+docs/current/RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP65B.md
 ```

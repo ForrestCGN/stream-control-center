@@ -1,18 +1,19 @@
 # NEXT_STEPS
 
-Stand: RDAP65A_ADMIN_NOTES_BROWSER_VERIFICATION_DOC  
+Stand: RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION
+RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN
 ```
 
 ## Ziel
 
 ```text
-Die noch offenen fachlichen Browser-Pruefpunkte nach RDAP64D einzeln bestaetigen oder bei Auffaelligkeit nur den Befund dokumentieren. Erst danach naechsten kleinen Scope planen.
+Auf Basis der bestaetigten Admin-Notes-Erfolgswege den naechsten kleinen, sicheren Scope planen.
+Kein Code ohne vorherigen Scope-Plan.
 ```
 
 ## Ausgangslage
@@ -23,30 +24,31 @@ Server-Checks sind ok.
 Browser-Konsole ist sauber.
 Admin-Notes-Sichtbarkeit wurde ueber Haupt-Router korrigiert.
 Backend wurde nicht geaendert.
-RDAP65A dokumentiert, dass der detaillierte Fachtest noch nicht vollstaendig einzeln festgehalten ist.
+RDAP65B bestaetigt fachlich:
+- Admin-Notizen Inhalt sichtbar.
+- Create funktioniert.
+- Update-Speichern funktioniert.
+- User-Detail funktioniert.
+- Navigation bleibt stabil.
+- Delete/Deactivate nicht sichtbar.
 ```
 
-## Pruefung vor neuem Code
+## Moegliche naechste Mini-Scopes
 
 ```text
-- Admin -> Admin-Notizen oeffnet Inhalt.
-- Admin -> User-Detail oeffnet Inhalt.
-- Wechsel zu Benutzerverwaltung/Rollen/Sicherheit/Overview funktioniert weiter.
-- Update-UI erscheint nur fuer aktive Notizen mit Write-Recht.
-- Speichern nutzt confirmWrite:true.
-- Erfolg laedt die Notizen neu.
-- Fehler werden sichtbar angezeigt.
-- Deactivate/Delete erscheinen nicht.
-```
+1. Admin-Notes UI-Polish:
+   - Lesbarkeit der Karten verbessern.
+   - Create-/Update-Hinweise klarer machen.
+   - Bearbeiten-Zustand kompakter fuehren.
 
-## Erlaubter naechster Scope
+2. Status-Semantik angleichen:
+   - Diagnosewerte wie moduleBuild/statusApiVersion weniger verwirrend darstellen.
+   - Nur Status-/Doku-/Semantik, keine neue Produktivfunktion.
 
-```text
-Plan-only oder Doku-only bevorzugt, solange Browser-Fachtest noch nicht voll dokumentiert ist.
-Moegliche naechste Mini-Scopes erst nach Befund:
-- UI-Polish fuer Admin-Notes, falls sichtbar aber unklar.
-- Status-Semantik im Backend dokumentieren/angleichen, falls moduleBuild/statusApiVersion fuer Diagnose verwirrend bleibt.
-- Admin-Notes Zieluser-Auswahl verbessern, ohne neue Schreibrechte.
+3. Admin-Notes Zieluser-Auswahl verbessern:
+   - Suche/Select nutzerfreundlicher machen.
+   - Keine neuen Schreibrechte.
+   - Keine neue Permission.
 ```
 
 ## Nicht aendern
@@ -62,9 +64,9 @@ Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 Keine parallele Zweitnavigation.
 ```
 
-## Doku-only Hinweis
+## Empfehlung
 
 ```text
-RDAP65A ist Doku-only.
-Nach installstep/checks/stepdone ist kein Webserver-Deploy notwendig.
+RDAP66 sollte Plan-only sein.
+Danach erst einen kleinen Code-Step auswaehlen.
 ```

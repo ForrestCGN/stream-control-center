@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP65A_ADMIN_NOTES_BROWSER_VERIFICATION_DOC  
+Stand: RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -17,24 +17,36 @@ RDAP64C: Existing-Nav-Bind-Hotfix versucht, live weiterhin leer.
 RDAP64D: Admin-Notes ueber Haupt-Router sichtbar gemacht, live bestaetigt.
 RDAP64E: Doku-/Status-Step nach RDAP64D auf GitHub/dev abgeschlossen.
 RDAP65A: Bestaetigten Live-Stand und offene fachliche Browser-Pruefpunkte dokumentiert.
+RDAP65B: Admin-Notes fachlich im Browser bestaetigt; Create, Update, User-Detail und Navigation funktionieren.
 ```
 
-## Live-Befund nach RDAP64D
+## Live-/Browser-Befund nach RDAP65B
 
 ```text
-Server-Checks auf Webserver erfolgreich:
-
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.ok, .service, .moduleBuild'
--> true
--> "remote-modboard"
--> "RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED"
-
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.ok, .statusApiVersion'
--> true
--> "rdap_admin_note_ui_status42.v1"
-
-Browser-Konsole: sauber.
-Nutzerbestaetigung: "Alles ok, konsole sauber".
+Server-Checks auf Webserver erfolgreich.
+Browser-Konsole sauber.
+Admin -> Admin-Notizen zeigt Inhalt.
+Liste laedt 4 Admin-Notiz(en).
+Create funktioniert sichtbar.
+Create erzeugte Notiz:
+admin_note_20260626095139_76c977525140
+Liste wird nach Create aktualisiert.
+Write-Kontext sichtbar: Read/Create/Update.
+confirmWrite-Kontext sichtbar.
+Aktive Notiz wird angezeigt.
+Bearbeiten-Button sichtbar.
+Update-Speichern funktioniert.
+Text wurde sichtbar aktualisiert auf:
+tedt1
+Zeitstempel wurde aktualisiert:
+2026-06-26T09:53:02.000Z
+Erfolgsmeldung sichtbar:
+Notiz gespeichert. Liste wird aktualisiert ...
+Admin -> User-Detail zeigt Inhalt.
+User-Daten ForrestCGN / @forrestcgn / UID sichtbar.
+Wechsel zu Sicherheit funktioniert.
+Sicherheit/Diagnose zeigt HTTP-200-Karten.
+Deactivate/Delete sind nicht sichtbar.
 ```
 
 ## Wichtige Einordnung
@@ -66,17 +78,11 @@ POST /api/remote/admin/users/admin-notes/update      -> Backend confirmed aktiv
 POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
 
-## Noch offen vor neuem Code
+## Optional noch offen
 
 ```text
-- Admin -> Admin-Notizen zeigt Inhalt einzeln bestaetigen.
-- Admin -> User-Detail zeigt Inhalt einzeln bestaetigen.
-- Navigation Overview/Benutzerverwaltung/Rollen/Sicherheit einzeln bestaetigen.
-- Update-UI Sichtbarkeit bei aktiver Notiz mit Write-Recht bestaetigen.
-- Update-Speichern mit confirmWrite:true bestaetigen oder Fehler dokumentieren.
-- Erfolg-Reload der Notizen bestaetigen.
-- Sichtbare Fehleranzeige bestaetigen.
-- Deactivate/Delete Nicht-Sichtbarkeit bestaetigen.
+Fehlerfall-Test fuer Update/Create ist nicht explizit erzwungen worden.
+Das ist kein Blocker fuer den bestaetigten Erfolgsweg.
 ```
 
 ## Weiterhin deaktiviert/verboten
@@ -95,5 +101,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION
+RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN
 ```
