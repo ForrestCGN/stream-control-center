@@ -1,25 +1,27 @@
 # NEXT_STEPS
 
-Stand: RDAP92C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN
+RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
 ```
 
 ## Ziel
 
 ```text
-Heartbeat-Modell read-only planen.
-Noch keine Actions.
-Kein OBS/Sound/Overlay/Command.
-Keine freie Shell/Datei/Prozess/URL.
-Keine DB-Migration im ersten Heartbeat-Plan.
-In-Memory Heartbeat/Stale/Offline sauber definieren.
-Payload minimal und sicher definieren.
-Secret-Safety fortsetzen.
+Heartbeat read-only in-memory umsetzen.
+Bestehende Runtime-/Status-Services erweitern.
+Keine neue parallele /agent-ws Struktur.
+Nur minimalen Heartbeat-Payload akzeptieren.
+lastHeartbeatAt setzen.
+heartbeatAgeMs berechnen.
+stale/offline ableiten.
+Keine Actions.
+Keine DB.
+Keine Secrets.
 ```
 
 ## Ausgangspunkt
@@ -34,6 +36,14 @@ RDAP92/RDAP92B:
 - Actions false.
 - Heartbeat false.
 - Runtime final wieder deaktiviert.
+
+RDAP93:
+- Heartbeat-Modell read-only geplant.
+- Payload minimal definiert.
+- In-Memory-only.
+- Keine Actions.
+- Keine DB.
+- Keine Secrets.
 ```
 
 ## Strikt nicht machen
@@ -50,5 +60,7 @@ Keine produktiven Writes.
 Keine DB-Migration ohne separaten Plan.
 Keine neue Permission ohne separaten Plan.
 Keine produktive Agent-Action-Queue.
+Keine Capabilities-Freigabe.
 Keine Secret-Ausgabe.
+Keine Rohpayload-Ausgabe.
 ```

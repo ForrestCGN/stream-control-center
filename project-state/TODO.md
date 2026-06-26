@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP92C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -27,23 +27,33 @@ RDAP92B:
 - Actions false bestaetigt.
 - Heartbeat false bestaetigt.
 - Runtime final wieder deaktiviert.
+
+RDAP93:
+- Heartbeat read-only Modell geplant.
+- Doku-only.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN
+RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
 ```
 
-## RDAP93 Aufgaben
+## RDAP94 Aufgaben
 
 ```text
-- Heartbeat read-only planen.
-- In-Memory lastHeartbeatAt/heartbeatAgeMs/stale/offline Modell definieren.
-- Payload minimal und sicher definieren.
-- Kein Action-System.
-- Kein OBS/Sound/Overlay/Command.
-- Keine freie Shell/Datei/Prozess/URL.
-- Keine DB-Migration im ersten Heartbeat-Plan.
-- Secret-Safety fortsetzen.
+- Bestehende Runtime-/Status-Services erweitern.
+- Keine parallele /agent-ws Struktur.
+- Heartbeat Textframes/JSON minimal lesen.
+- type=heartbeat pruefen.
+- protocolVersion=rdap-agent-heartbeat.v1 pruefen.
+- agentId=stream-pc-main pruefen.
+- lastHeartbeatAt setzen.
+- heartbeatAgeMs berechnen.
+- stale/offline ableiten.
+- Payload-Groessenlimit.
+- Forbidden Fields ablehnen/ignorieren.
+- Keine Actions.
+- Keine DB.
+- Keine Secrets.
 ```

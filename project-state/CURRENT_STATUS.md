@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP92C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,6 +15,7 @@ RDAP92: Backend-Code fuer minimalen Transport-Accept vorbereitet und live deploy
 RDAP92_FIX1: config.service.js Exports wiederhergestellt; /api/remote/status wieder HTTP 200.
 RDAP92B: Transport-Accept live getestet und final wieder deaktiviert.
 RDAP92C: Live-Confirm und Next Prompt dokumentiert.
+RDAP93: Heartbeat read-only Modell geplant; Doku-only.
 ```
 
 ## RDAP92/RDAP92B Live-Ergebnis
@@ -37,6 +38,18 @@ RDAP92C: Live-Confirm und Next Prompt dokumentiert.
 - AGENT_RUNTIME_ENABLED final wieder false.
 ```
 
+## RDAP93 Plan
+
+```text
+- Heartbeat read-only geplant.
+- Kein Code.
+- Kein Heartbeat-Receiver.
+- Keine Runtime-Aktivierung.
+- Keine Actions.
+- Keine DB.
+- Keine Secrets.
+```
+
 ## Finaler Sicherheitszustand
 
 ```text
@@ -50,20 +63,18 @@ productiveAgentRuntime=false
 heartbeatReceiverEnabled=false
 ```
 
-## Stream-PC-Verbindungsstatus
+## Heartbeat-Zielbild
 
 ```text
-GET /api/remote/agent/status existiert.
-Die Route ist read-only.
-Die Route schreibt nichts.
-Die Route fuehrt keine Aktionen aus.
-/agent-ws ist guarded.
-Handshake-Precheck ist vorbereitet.
-Access-Key-Compare ist vorbereitet.
-Transport-Accept ist in RDAP92 guarded live getestet.
-Stream-PC soll aktiv zum Webserver verbinden.
-Keine Portfreigabe am Stream-PC.
-Keine Remote-/Agent-Actions aktiv.
+- In-Memory lastHeartbeatAt.
+- heartbeatAgeMs.
+- stale/offline Ableitung.
+- plannedHeartbeatIntervalMs=30000.
+- staleAfterMs=90000.
+- offlineAfterMs=120000.
+- keine Actions.
+- keine DB.
+- keine Secrets.
 ```
 
 ## Sicherheit
@@ -83,10 +94,11 @@ Keine Cookie-Wert-Ausgabe.
 Keine Authorization-Wert-Ausgabe.
 Keine Query-Wert-Ausgabe.
 Keine rohe IP-Ausgabe.
+Keine Rohpayload-Ausgabe.
 ```
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN
+RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
 ```
