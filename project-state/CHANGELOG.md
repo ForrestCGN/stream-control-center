@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED
+
+```text
+- Correct-Bearer-Reject-Only-Test auf dem Webserver live bestaetigt.
+- AGENT_ACCESS_KEY wurde nur lokal aus /etc/stream-control-center/remote-modboard.env gelesen.
+- Echter AGENT_ACCESS_KEY wurde nicht in Chat/Doku/Git/Status/UI/Logs dokumentiert.
+- Bearer-Wert wurde nicht ausgegeben.
+- Token-Laenge wurde nicht ausgegeben.
+- Token-Hash wurde nicht ausgegeben.
+- Correct Bearer bestaetigt: HTTP 503 / reason=runtime_not_effectively_enabled.
+- /api/remote/agent/status mit statusApiVersion rdap_agent86.v1 bestaetigt.
+- runtime.accessKeyConfigured true bestaetigt.
+- runtime.acceptsAgentConnections false bestaetigt.
+- runtime.effectiveEnabled false bestaetigt.
+- rejectDiagnostic.lastRejectReason runtime_not_effectively_enabled bestaetigt.
+- rejectDiagnostic.lastRejectAccessKeyConfigured true bestaetigt.
+- rejectDiagnostic.lastRejectConnectionProofCompared true bestaetigt.
+- secretsExposed false bestaetigt.
+- bearerTokenLogged false bestaetigt.
+- tokenLengthLogged false bestaetigt.
+- tokenHashLogged false bestaetigt.
+- actionEnabled false bestaetigt.
+- productiveAgentRuntime false bestaetigt.
+- Keine akzeptierte Stream-PC Verbindung.
+- Keine Runtime-Aktivierung.
+- Keine Agent-Actions.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Naechsten Step RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN vorbereitet.
+- Doku-only.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 
 ```text

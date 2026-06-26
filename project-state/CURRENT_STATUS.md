@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -16,22 +16,30 @@ RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet u
 RDAP86B: RDAP86 Live-Bestaetigung dokumentiert.
 RDAP87: Sicheres AGENT_ACCESS_KEY Env-Setup dokumentiert; Doku-only.
 RDAP87B: AGENT_ACCESS_KEY gesetzt und falscher-Bearer-Reject live bestaetigt; Doku-only.
+RDAP88: Correct-Bearer-Reject-Only-Test live bestaetigt; Doku-only.
 ```
 
-## RDAP87B Stand
+## RDAP88 Stand
 
 ```text
 - AGENT_ACCESS_KEY ist auf dem Webserver gesetzt.
+- Der echte Key wurde nicht im Chat/Doku/Git/Status/UI/Logs ausgegeben.
+- Der Correct-Bearer-Test wurde nur lokal auf dem Webserver ausgefuehrt.
+- Bearer-Token wurde nicht ausgegeben.
+- Bearer-Token-Laenge wurde nicht ausgegeben.
+- Bearer-Token-Hash wurde nicht ausgegeben.
+- Correct Bearer liefert HTTP 503 / reason=runtime_not_effectively_enabled.
+- statusApiVersion: rdap_agent86.v1.
 - runtime.accessKeyConfigured: true.
-- Der echte Key ist nicht im Repo.
-- Der echte Key wurde nicht im Chat/Doku/Status/UI/Logs ausgegeben.
-- Falscher Bearer liefert HTTP 503 / reason=invalid_connection_proof.
+- runtime.acceptsAgentConnections: false.
+- runtime.effectiveEnabled: false.
+- lastRejectReason: runtime_not_effectively_enabled.
 - lastRejectAccessKeyConfigured: true.
 - lastRejectConnectionProofCompared: true.
-- Bearer-Token wird nicht ausgegeben.
-- Bearer-Token-Laenge wird nicht ausgegeben.
-- Bearer-Token-Hash wird nicht ausgegeben.
-- AGENT_ACCESS_KEY wird nicht ausgegeben.
+- secretsExposed: false.
+- bearerTokenLogged: false.
+- tokenLengthLogged: false.
+- tokenHashLogged: false.
 - Verbindung bleibt disabled/reject-only.
 - acceptsAgentConnections: false.
 - actionEnabled: false.
@@ -48,6 +56,8 @@ Die Route fuehrt keine Aktionen aus.
 /agent-ws ist guarded.
 Handshake-Precheck ist vorbereitet.
 Access-Key-Compare ist vorbereitet und mit gesetztem Key getestet.
+Falscher Bearer liefert invalid_connection_proof.
+Korrekter Bearer liefert runtime_not_effectively_enabled.
 Stream-PC soll spaeter aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
@@ -116,5 +126,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP88_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
+RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
 ```

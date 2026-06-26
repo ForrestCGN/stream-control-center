@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP87B
+## Geaendert/neu in RDAP88
 
 ```text
-docs/current/RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP87B.md
+docs/current/RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP88.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,7 +15,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Fachlich relevant fuer RDAP87B/RDAP88
+## Fachlich relevant fuer RDAP88/RDAP89
 
 ```text
 remote-modboard/backend/server.js
@@ -46,7 +46,8 @@ docs/current/RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED.md
 docs/current/RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
 docs/current/RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS.md
 docs/current/RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP87B.md
+docs/current/RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP88.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

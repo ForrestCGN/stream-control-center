@@ -1,15 +1,23 @@
 # TODO
 
-Stand: RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED  
 Datum: 2026-06-26
 
 ## Jetzt erledigt
 
 ```text
-RDAP87B Live-Bestaetigung dokumentiert:
-- AGENT_ACCESS_KEY auf Webserver gesetzt.
-- accessKeyConfigured true.
-- Falscher Bearer -> invalid_connection_proof.
+RDAP88 Correct-Bearer-Reject-Only-Test live bestaetigt:
+- AGENT_ACCESS_KEY lokal auf Webserver geladen.
+- Echter Key nicht ausgegeben.
+- Bearer nicht ausgegeben.
+- Token-Laenge nicht ausgegeben.
+- Token-Hash nicht ausgegeben.
+- Korrekter Bearer -> HTTP 503 / reason=runtime_not_effectively_enabled.
+- runtime.accessKeyConfigured true.
+- runtime.acceptsAgentConnections false.
+- runtime.effectiveEnabled false.
+- lastRejectAccessKeyConfigured true.
+- lastRejectConnectionProofCompared true.
 - Keine Verbindung.
 - Keine Actions.
 - Keine DB.
@@ -19,16 +27,17 @@ RDAP87B Live-Bestaetigung dokumentiert:
 ## Naechster Schritt
 
 ```text
-RDAP88_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
+RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
 ```
 
-## RDAP88 Aufgaben
+## RDAP89 Aufgaben
 
 ```text
 - Runtime-Freigabe nur planen, noch nicht aktivieren.
 - Bedingungen fuer spaeteren Accept dokumentieren.
 - Zwei-Stufen-Freigabe festlegen.
 - AGENT_RUNTIME_ENABLED=true allein darf nicht reichen.
+- Optionalen zweiten Explicit-Enable-Schalter planen.
 - Heartbeat/Online/Actions getrennt halten.
 - Keine Secret-Ausgabe.
 ```
