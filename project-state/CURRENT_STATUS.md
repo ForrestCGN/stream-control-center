@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP67_ADMIN_NOTES_UI_POLISH  
+Stand: RDAP68_ADMIN_NOTES_UI_POLISH_LIVE_VERIFICATION_DOC  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -20,36 +20,33 @@ RDAP65A: Bestaetigten Live-Stand und offene fachliche Browser-Pruefpunkte dokume
 RDAP65B: Admin-Notes fachlich im Browser bestaetigt; Create, Update, User-Detail und Navigation funktionieren.
 RDAP66: Naechsten sicheren Scope geplant; RDAP67 soll Admin-Notes UI-Polish werden.
 RDAP67: Admin-Notes UI-Polish vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
+RDAP68: RDAP67 live fachlich bestaetigt; Layout weiter verbesserungswuerdig.
 ```
 
-## Live-/Browser-Befund nach RDAP65B
+## Live-/Browser-Befund nach RDAP68
 
 ```text
-Server-Checks auf Webserver erfolgreich.
-Browser-Konsole sauber.
-Admin -> Admin-Notizen zeigt Inhalt.
-Liste laedt 4 Admin-Notiz(en).
-Create funktioniert sichtbar.
-Update-Speichern funktioniert.
-Admin -> User-Detail zeigt Inhalt.
-Wechsel zu Sicherheit funktioniert.
-Sicherheit/Diagnose zeigt HTTP-200-Karten.
-Deactivate/Delete sind nicht sichtbar.
+RDAP67 ist live deployed.
+/api/remote/status ok.
+/api/remote/routes ok.
+Public UI HTTP 200.
+Admin -> Admin-Notizen sichtbar.
+Liste zeigt 4 Admin-Notizen.
+Bearbeiten funktioniert.
+Speichern funktioniert.
+Navigation stabil.
+Delete/Deactivate nicht sichtbar.
 ```
 
-## RDAP67 Umsetzung
+## Layout-Befund
 
 ```text
-Geaendert:
-remote-modboard/backend/public/assets/remote-modboard.js
-
-Art:
-- idempotente Style-Injection rdap67AdminNotesPolishStyle
-- Admin-Notes-Karten lesbarer
-- Metadaten/Notiztext besser getrennt
-- Erfolg/Fehler/Info-Hinweise klarer
-- Bearbeiten-Editor optisch kompakter
-- Create-Karte optisch klarer
+RDAP67 trennt Metadaten und Notiztext besser.
+Die Ansicht ist aber noch nicht optimal uebersichtlich.
+Obere Statuskarten nehmen viel Platz ein.
+Create-Karte ist zu gross.
+Liste startet zu weit unten.
+Notizkarten sollten kompakter werden.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -77,5 +74,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP68_ADMIN_NOTES_UI_POLISH_LIVE_VERIFICATION_DOC
+RDAP69_ADMIN_NOTES_COMPACT_LAYOUT
 ```

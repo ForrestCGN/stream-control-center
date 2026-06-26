@@ -1,27 +1,25 @@
 # TODO
 
-Stand: RDAP67_ADMIN_NOTES_UI_POLISH  
+Stand: RDAP68_ADMIN_NOTES_UI_POLISH_LIVE_VERIFICATION_DOC  
 Datum: 2026-06-26
 
 ## Als Naechstes
 
 ```text
-RDAP68_ADMIN_NOTES_UI_POLISH_LIVE_VERIFICATION_DOC
+RDAP69_ADMIN_NOTES_COMPACT_LAYOUT
 ```
 
 Aufgaben:
 
 ```text
-- RDAP67 lokal installieren.
-- node --check fuer remote-modboard.js und rdap28-admin-notes.js ausfuehren.
-- stepdone.cmd nur wenn sauber.
-- Danach Webserver-Deploy, weil Frontend-Code unter remote-modboard/ geaendert wurde.
-- Browser pruefen:
-  - Admin-Notizen sichtbar.
-  - UI-Polish sichtbar und nicht stoerend.
-  - Create/Update weiterhin ok.
-  - User-Detail/Navigation weiterhin ok.
-  - Delete/Deactivate nicht sichtbar.
+- Startdateien lesen.
+- RDAP69 Plan nennen.
+- Auf go warten.
+- Danach kompaktes Admin-Notes Layout als Frontend-only ZIP bauen.
+- Keine Backend-/DB-/Permission-Aenderung.
+- Nach lokalem Test stepdone.cmd.
+- Danach Webserver-Deploy, wenn remote-modboard/ geaendert wurde.
+- Browser pruefen.
 ```
 
 ## Nicht machen
@@ -33,4 +31,5 @@ Aufgaben:
 - Keine neue Permission.
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
+- Keine Session-Revocation UI.
 ```
