@@ -1,18 +1,18 @@
 # NEXT_STEPS
 
-Stand: RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST  
+Stand: RDAP74_ADMIN_NOTES_HEADER_ACTIONS_DEDUP  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP74_ADMIN_NOTES_HUMAN_READABLE_LIST_LIVE_VERIFICATION_DOC
+RDAP75_ADMIN_NOTES_HEADER_ACTIONS_LIVE_VERIFICATION_DOC
 ```
 
 ## Ziel
 
 ```text
-RDAP73 nach Webserver-Deploy fachlich im Browser bestaetigen und dokumentieren.
+RDAP74 nach Webserver-Deploy fachlich im Browser bestaetigen und dokumentieren.
 ```
 
 ## Zu pruefen
@@ -20,10 +20,11 @@ RDAP73 nach Webserver-Deploy fachlich im Browser bestaetigen und dokumentieren.
 ```text
 - Admin -> Admin-Notizen weiterhin sichtbar.
 - Navigation bleibt stabil.
-- technische Chips Admin-only / Read/Create/Update nicht mehr prominent sichtbar.
-- Hinweistext knapp, z. B. "4 Notizen geladen".
-- Notiz-Ueberschriften sind menschlich lesbar.
-- Create funktioniert weiterhin.
+- Buttons "Notizen neu laden" und "Neue Notiz" stehen im oberen Header rechts.
+- Separate Toolbar "Admin-Notizen" ist nicht mehr sichtbar.
+- Liste "Admin-Notizen fuer ForrestCGN" bleibt sichtbar.
+- Hinweistext bleibt kurz, z. B. "4 Notizen geladen".
+- Neue Notiz funktioniert weiterhin.
 - Update-Speichern funktioniert weiterhin.
 - Erfolg/Fehler sichtbar.
 - Delete/Deactivate sind nicht sichtbar.
@@ -43,4 +44,4 @@ Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 Keine parallele Zweitnavigation.
 ```
 
-RDAP73 braucht nach `stepdone.cmd` Webserver-Deploy, weil Frontend-Code unter `remote-modboard/` geaendert wurde.
+RDAP74 braucht nach `stepdone.cmd` Webserver-Deploy, weil Frontend-Code unter `remote-modboard/` geaendert wurde.

@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST  
+Stand: RDAP74_ADMIN_NOTES_HEADER_ACTIONS_DEDUP  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -10,12 +10,7 @@ Projekt: `stream-control-center` / Remote-Modboard / RDAP
 RDAP61: Admin-Note Update-Backend live aktiv.
 RDAP62: Status-Semantik live bereinigt.
 RDAP62B: Live-Befund dokumentiert.
-RDAP63: Update-UI-Scope geplant.
-RDAP64: Update-UI in rdap28-admin-notes.js implementiert, aber live nicht sichtbar.
-RDAP64B: Router/Tab-Hotfix versucht, live nicht ausreichend.
-RDAP64C: Existing-Nav-Bind-Hotfix versucht, live weiterhin leer.
 RDAP64D: Admin-Notes ueber Haupt-Router sichtbar gemacht, live bestaetigt.
-RDAP64E: Doku-/Status-Step nach RDAP64D auf GitHub/dev abgeschlossen.
 RDAP65B: Admin-Notes fachlich im Browser bestaetigt; Create, Update, User-Detail und Navigation funktionieren.
 RDAP67: Admin-Notes UI-Polish vorbereitet; Frontend-only.
 RDAP68: RDAP67 live fachlich bestaetigt; Layout weiter verbesserungswuerdig.
@@ -24,20 +19,21 @@ RDAP70: RDAP69 live technisch bestaetigt; Layout fachlich weiterhin zu technisch
 RDAP71: Admin-Notes Clean-Layout vorbereitet; Frontend-only.
 RDAP72: technische Statusbloecke in Normalansicht ausgeblendet; Frontend-only.
 RDAP73: Admin-Notes-Liste menschlicher lesbar gemacht; Frontend-only.
+RDAP74: Header/Toolbar-Doppelstand bereinigt; Frontend-only.
 ```
 
-## RDAP73 Umsetzung
+## RDAP74 Umsetzung
 
 ```text
 Geaendert:
 remote-modboard/backend/public/assets/remote-modboard.js
 
 Art:
-- idempotente Style-Injection rdap73AdminNotesHumanReadableListStyle
-- technische Chips Admin-only / Read/Create/Update in Hauptansicht ausgeblendet
-- Hinweistext vereinfacht
-- technische noteUid nicht mehr als sichtbare Hauptueberschrift
-- Notiz-Titel menschlich formatiert
+- idempotente Style-Injection rdap74AdminNotesHeaderActionsDedupStyle
+- initAdminNotesHeaderActionsDedup() ergaenzt
+- Buttons "Notizen neu laden" und "Neue Notiz" in oberen Admin-Notizen-Header verschoben
+- separate Toolbar "Admin-Notizen" ausgeblendet
+- bestehende Button-IDs/Eventhandler bleiben erhalten
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -65,5 +61,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP74_ADMIN_NOTES_HUMAN_READABLE_LIST_LIVE_VERIFICATION_DOC
+RDAP75_ADMIN_NOTES_HEADER_ACTIONS_LIVE_VERIFICATION_DOC
 ```

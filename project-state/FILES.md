@@ -1,9 +1,9 @@
 # FILES
 
-Stand: RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST  
+Stand: RDAP74_ADMIN_NOTES_HEADER_ACTIONS_DEDUP  
 Datum: 2026-06-26
 
-## Geaendert in RDAP73
+## Geaendert in RDAP74
 
 ```text
 remote-modboard/backend/public/assets/remote-modboard.js
@@ -18,8 +18,8 @@ remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ## Doku
 
 ```text
-docs/current/RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP73.md
+docs/current/RDAP74_ADMIN_NOTES_HEADER_ACTIONS_DEDUP.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP74.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

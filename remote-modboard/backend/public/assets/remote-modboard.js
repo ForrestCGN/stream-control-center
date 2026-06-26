@@ -39,6 +39,7 @@ window.addEventListener('scroll', () => {
 document.addEventListener('DOMContentLoaded', () => {
   exposeMainRouterApi();
   injectAdminNotesPolishStyles();
+  initAdminNotesHeaderActionsDedup();
   installAdminNotesHumanReadableList();
   bindNavigation();
   bindDelegatedNavigation();
@@ -62,13 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function injectAdminNotesPolishStyles() {
-  if (document.getElementById('rdap73AdminNotesHumanReadableListStyle')) return;
-  ['rdap72AdminNotesHideTechnicalStatusStyle', 'rdap71AdminNotesCleanLayoutStyle', 'rdap69AdminNotesCompactLayoutStyle', 'rdap67AdminNotesPolishStyle'].forEach((id) => {
+  if (document.getElementById('rdap74AdminNotesHeaderActionsDedupStyle')) return;
+  ['rdap73AdminNotesHumanReadableListStyle', 'rdap72AdminNotesHideTechnicalStatusStyle', 'rdap71AdminNotesCleanLayoutStyle', 'rdap69AdminNotesCompactLayoutStyle', 'rdap67AdminNotesPolishStyle'].forEach((id) => {
     const oldStyle = document.getElementById(id);
     if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
   });
   const style = document.createElement('style');
-  style.id = 'rdap73AdminNotesHumanReadableListStyle';
+  style.id = 'rdap74AdminNotesHeaderActionsDedupStyle';
   style.textContent = `
     [data-page-panel="admin-notes"]{display:grid!important;gap:12px!important}
     [data-page-panel="admin-notes"] .module-page-header{padding:14px 16px!important;margin-bottom:0!important;border-radius:18px!important}
@@ -176,10 +177,52 @@ function injectAdminNotesPolishStyles() {
     .admin-note-item > strong:first-child{font-size:16px!important;letter-spacing:0!important}
     .admin-note-item > small{font-size:11.5px!important;color:var(--muted)!important}
 
+    /* RDAP74: Header-Aktionen deduplizieren - Buttons in oberen Header, separate Toolbar ausblenden. */
+    [data-page-panel="admin-notes"] .module-page-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;min-height:58px!important}
+    [data-page-panel="admin-notes"] .module-page-header h1{flex:1 1 auto!important}
+    [data-page-panel="admin-notes"] .module-page-header.admin-note-header-with-actions{background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(27,216,255,.035))!important}
+    [data-page-panel="admin-notes"] .module-page-header .admin-note-header-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;margin:0!important;padding:0!important;border:0!important;flex:0 0 auto!important}
+    [data-page-panel="admin-notes"] .module-page-header .admin-note-header-actions .secondaryButton{min-height:36px!important;padding:7px 14px!important;border-radius:14px!important;font-size:13px!important}
+    .admin-note-grid .admin-note-status-card:nth-child(3),
+    .admin-note-grid .admin-note-status-card.admin-note-action-card-moved{display:none!important}
+    [data-page-panel="admin-notes"] > .page-grid > .cgn-card:nth-child(1) .card-head h2{font-size:20px!important}
+    #adminNotesNotice{font-size:13px!important}
+    @media (max-width:720px){[data-page-panel="admin-notes"] .module-page-header{align-items:flex-start!important;flex-direction:column!important}[data-page-panel="admin-notes"] .module-page-header .admin-note-header-actions{width:100%!important;justify-content:flex-start!important;flex-wrap:wrap!important}[data-page-panel="admin-notes"] .module-page-header .admin-note-header-actions .secondaryButton{flex:1 1 auto!important}}
+
   `;
   document.head.appendChild(style);
 }
 
+function initAdminNotesHeaderActionsDedup() {
+  if (document.documentElement.dataset.rdap74HeaderActionsDedupBound === '1') return;
+  document.documentElement.dataset.rdap74HeaderActionsDedupBound = '1';
+
+  const relocate = () => {
+    const panel = document.querySelector('[data-page-panel="admin-notes"]');
+    const header = panel ? panel.querySelector('.module-page-header') : null;
+    const actionCard = panel ? panel.querySelector('.admin-note-grid .admin-note-status-card:nth-child(3)') : null;
+    const actions = actionCard ? actionCard.querySelector('.admin-note-actions') : null;
+    if (!panel || !header || !actionCard || !actions) return false;
+
+    if (actions.dataset.rdap74HeaderActionsMoved === '1') return true;
+    actions.dataset.rdap74HeaderActionsMoved = '1';
+    actions.classList.add('admin-note-header-actions');
+    header.classList.add('admin-note-header-with-actions');
+    actionCard.classList.add('admin-note-action-card-moved');
+    header.appendChild(actions);
+    return true;
+  };
+
+  relocate();
+  let attempts = 0;
+  const timer = window.setInterval(() => {
+    attempts += 1;
+    if (relocate() || attempts >= 50) window.clearInterval(timer);
+  }, 100);
+
+  const observer = new MutationObserver(() => { relocate(); });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+}
 
 function installAdminNotesHumanReadableList() {
   if (document.documentElement.dataset.rdap73AdminNotesHumanReadableBound === '1') return;

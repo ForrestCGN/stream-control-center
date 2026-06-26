@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP74_ADMIN_NOTES_HEADER_ACTIONS_DEDUP
+
+```text
+- Admin-Notes Header/Toolbar-Doppelstand bereinigt.
+- Frontend-only Style-Injection rdap74AdminNotesHeaderActionsDedupStyle ergaenzt.
+- Alte Admin-Notes Style-Injections RDAP73/RDAP72/RDAP71/RDAP69/RDAP67 werden beim Laden entfernt.
+- initAdminNotesHeaderActionsDedup() ergaenzt.
+- Bestehende Button-Zeile mit "Notizen neu laden" und "Neue Notiz" in den oberen Admin-Notizen-Header verschoben.
+- Separate Toolbar mit erneutem "Admin-Notizen" ausgeblendet.
+- Bestehende Button-IDs/Eventhandler bleiben erhalten.
+- Keine Backend-Route geaendert.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Kein Delete/Deactivate.
+```
+
 ## 2026-06-26 - RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST
 
 ```text
