@@ -1,38 +1,34 @@
 # TODO
 
-Stand: RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED  
+Stand: RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
-## Jetzt
+## Jetzt erledigt
 
 ```text
-RDAP86 lokal einspielen.
-Node-Checks ausfuehren.
-git status und diff pruefen.
-Wenn sauber: stepdone.cmd.
-Danach Webserver-Deploy, weil Code unter remote-modboard/ geaendert wird.
+RDAP86 live bestaetigt.
+RDAP86B dokumentiert.
+Kein Webserver-Deploy fuer RDAP86B noetig, weil Doku-only.
 ```
 
 ## Danach
 
 ```text
-Webserver-Deploy aus frischem GitHub/dev-Clone unter _deploy_tmp.
-Serverseitige Tests fuer /api/remote/agent/status, /api/remote/status und /api/remote/routes.
-/agent-ws Reject-Tests fuer Auth-Schema und Bearer-Vergleich ausfuehren.
-RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT vorbereiten.
+RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS vorbereiten.
+Sichere Env-Key-Setzung planen/dokumentieren.
+Keine Secrets in Repo/Chat/Doku/Logs/Status.
 ```
 
-## RDAP86 Aufgaben
+## RDAP87 Aufgaben
 
 ```text
-- Access-Key-Compare fuer /agent-ws disabled Guard.
-- AGENT_ACCESS_KEY nur serverseitig lesen.
-- Authorization Bearer nur intern vergleichen.
-- falsches Auth-Schema -> invalid_connection_proof.
-- nicht gesetzter Key -> access_key_not_configured.
-- falscher Bearer -> invalid_connection_proof.
-- korrekter Bearer -> runtime_not_effectively_enabled.
-- Keine akzeptierte Agent-Verbindung.
+- AGENT_ACCESS_KEY nur auf Webserver in /etc/stream-control-center/remote-modboard.env setzen/dokumentieren.
+- Sichere Rechte/Ownership fuer Env-Datei beschreiben.
+- Service-Restart/Readiness-Check beschreiben.
+- Statuspruefung accessKeyConfigured true beschreiben.
+- Kein echter Key im Chat.
+- Kein echter Key im Repo.
+- Keine akzeptierte Verbindung.
 - Keine Actions.
 - Keine DB.
 - Keine Secret-Ausgabe.

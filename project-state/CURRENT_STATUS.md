@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED  
+Stand: RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -12,10 +12,11 @@ RDAP83B: RDAP83 Live-Bestaetigung dokumentiert.
 RDAP84: Access-Key-Handshake-Plan dokumentiert; Doku-only.
 RDAP85: Handshake-Precheck im bestehenden disabled /agent-ws Guard vorbereitet und live bestaetigt.
 RDAP85B: RDAP85 Live-Bestaetigung dokumentiert.
-RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet; Live-Test steht nach Deploy an.
+RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet und live bestaetigt.
+RDAP86B: RDAP86 Live-Bestaetigung dokumentiert.
 ```
 
-## RDAP86 Stand
+## RDAP86 live bestaetigter Stand
 
 ```text
 /api/remote/agent/status:
@@ -25,6 +26,7 @@ RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet; 
 - runtime.accessKeyCompareAcceptsConnections: false
 - rejectDiagnostic.accessKeyComparePrepared: true
 - rejectDiagnostic.accessKeyCompareAcceptsConnections: false
+- rejectDiagnostic.visibleRejectReasons enthaelt access_key_not_configured
 - rejectDiagnostic.secretsExposed: false
 - rejectDiagnostic.bearerTokenLogged: false
 - rejectDiagnostic.tokenLengthLogged: false
@@ -50,6 +52,30 @@ RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet; 
 - noAgentActions: true
 ```
 
+## RDAP86 Reject-Tests bestaetigt
+
+```text
+Falsches Auth-Schema:
+- HTTP 503
+- reason=invalid_connection_proof
+
+Bearer bei nicht gesetztem AGENT_ACCESS_KEY:
+- HTTP 503
+- reason=access_key_not_configured
+
+Finale Reject-Diagnose:
+- rejectCount: 2
+- lastRejectReason: access_key_not_configured
+- lastRejectHasAuthorizationHeader: true
+- lastRejectHasAgentIdHeader: true
+- lastRejectHasProtocolHeader: true
+- lastRejectAccessKeyConfigured: false
+- lastRejectConnectionProofCompared: false
+- acceptsAgentConnections: false
+- actionEnabled: false
+- productiveAgentRuntime: false
+```
+
 ## Stream-PC-Verbindungsstatus
 
 ```text
@@ -65,10 +91,10 @@ Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## Sicherheit RDAP86
+## Sicherheit RDAP86B
 
 ```text
-Keine akzeptierte Agent-Verbindung.
+Keine akzeptierte Stream-PC Verbindung.
 Kein echter WebSocket-Handshake.
 Kein Heartbeat-Receiver.
 Kein Agent online.
@@ -128,5 +154,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS
 ```

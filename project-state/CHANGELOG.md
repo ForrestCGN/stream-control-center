@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+
+```text
+- RDAP86 live serverseitig bestaetigt dokumentiert.
+- /api/remote/agent/status mit statusApiVersion rdap_agent86.v1 bestaetigt.
+- /api/remote/status .agent bestaetigt.
+- /api/remote/routes .agentStatusFoundation bestaetigt.
+- Access-Key-Compare prepared/disabled bestaetigt.
+- Reject-Test falsches Auth-Schema bestaetigt: HTTP 503 / reason=invalid_connection_proof.
+- Reject-Test Bearer bei nicht gesetztem AGENT_ACCESS_KEY bestaetigt: HTTP 503 / reason=access_key_not_configured.
+- rejectCount 2 bestaetigt.
+- lastRejectReason access_key_not_configured bestaetigt.
+- lastRejectAccessKeyConfigured false bestaetigt.
+- lastRejectConnectionProofCompared false bestaetigt.
+- Keine Verbindung, keine Actions, keine DB, keine Secrets bestaetigt.
+- bearerTokenLogged false, tokenLengthLogged false und tokenHashLogged false bestaetigt.
+- Naechsten Step RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS vorbereitet.
+- Doku-only.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED
 
 ```text

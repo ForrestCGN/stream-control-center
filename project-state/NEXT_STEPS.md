@@ -1,31 +1,36 @@
 # NEXT_STEPS
 
-Stand: RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED  
+Stand: RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
+RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS
 ```
 
 ## Ziel
 
 ```text
-RDAP86 nach Webserver-Deploy live bestaetigen und dokumentieren.
-Access-Key-Compare-Reject-Tests dokumentieren.
-Keine Backend-Aenderung.
-Keine Runtime-Aktivierung.
-Keine akzeptierte Agent-Verbindung.
+Sicher dokumentieren, wie AGENT_ACCESS_KEY auf dem Webserver gesetzt wird.
+Doku-only bevorzugt.
+Kein Key im Repo.
+Kein Key im Chat.
+Kein Key in Logs.
+Kein Key in Status/UI.
+Nur sichere Pruefung: accessKeyConfigured true.
+Noch keine akzeptierte Stream-PC Verbindung.
+Noch keine Runtime-Aktivierung.
 Keine produktiven Remote-Actions.
-Keine Secret-Ausgabe.
+Keine DB-Migration.
+Keine neue Permission.
 ```
 
-## Ausgangspunkt RDAP86
+## Ausgangspunkt RDAP86B
 
 ```text
-- Runtime-disabled Skeleton ist vorbereitet.
-- /agent-ws Upgrade-Guard ist vorbereitet.
+- RDAP86 ist live bestaetigt.
+- /agent-ws Upgrade-Guard ist aktiv und reject-only.
 - Handshake-Precheck ist vorbereitet.
 - Access-Key-Compare ist vorbereitet.
 - Runtime bleibt effective false.
@@ -39,21 +44,19 @@ Keine Secret-Ausgabe.
 - Keine DB-Migration.
 ```
 
-## RDAP86B pruefen
+## RDAP87 pruefen
 
 ```text
-/api/remote/agent/status
-/api/remote/status
-/api/remote/routes
-/agent-ws Reject-Test mit falschem Auth-Schema
-/agent-ws Reject-Test mit falschem Bearer-Wert
-optional /agent-ws Reject-Test mit korrekt gesetztem AGENT_ACCESS_KEY nur ohne Secret-Ausgabe
+/etc/stream-control-center/remote-modboard.env existiert auf Webserver.
+AGENT_ACCESS_KEY darf nur dort gesetzt werden, nicht im Repo.
+Secret-Wert niemals in Chat, Doku, Logs oder Status kopieren.
+Status darf nur accessKeyConfigured true/false zeigen.
 ```
 
 ## Strikt nicht machen
 
 ```text
-Keine akzeptierte Agent-Verbindung.
+Keine akzeptierte Stream-PC Verbindung.
 Keine Runtime-Aktivierung ohne separaten Plan.
 Keine OBS-Steuerung.
 Keine Sound-Ausloesung.

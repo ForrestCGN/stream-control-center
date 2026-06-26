@@ -1,16 +1,13 @@
 # FILES
 
-Stand: RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED  
+Stand: RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP86
+## Geaendert/neu in RDAP86B
 
 ```text
-remote-modboard/backend/server.js
-remote-modboard/backend/src/services/agent-runtime-disabled.service.js
-remote-modboard/backend/src/services/agent-status.service.js
-docs/current/RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP86.md
+docs/current/RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP86B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -18,7 +15,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Fachlich relevant fuer RDAP86
+## Fachlich relevant fuer naechsten Step RDAP87
 
 ```text
 remote-modboard/backend/server.js
@@ -27,6 +24,7 @@ remote-modboard/backend/src/services/agent-status.service.js
 remote-modboard/backend/src/services/agent-runtime-disabled.service.js
 remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
+/etc/stream-control-center/remote-modboard.env auf Webserver, aber Secret-Werte niemals in Repo/Chat/Doku kopieren
 ```
 
 ## Zentrale Startdateien fuer naechsten Chat
@@ -46,7 +44,8 @@ docs/current/RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN.md
 docs/current/RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED.md
 docs/current/RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
 docs/current/RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP86.md
+docs/current/RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP86B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
