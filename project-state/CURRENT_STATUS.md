@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN  
+Stand: RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -11,14 +11,12 @@ RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED ist live erfolgreich getestet.
 RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC ist live erfolgreich getestet.
 RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED ist live erfolgreich getestet.
 RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP ist live erfolgreich getestet.
-RDAP43 plant Zieluser-Auswahl/Admin-User-Detail fuer Admin-Notizen.
 RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED ist live funktional bestaetigt.
 RDAP45B Deploy-Safety wurde an aktiv genutzten Login angepasst.
 RDAP45C dokumentiert die RDAP45B Live-Bestaetigung.
-RDAP46 plant den naechsten kleinen Admin-Notizen-Komfort-Step.
-RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist live bestaetigt.
-RDAP47B dokumentiert die RDAP47 Live-Bestaetigung.
-RDAP48 plant eine Admin-User-Detailseite read-only.
+RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist live bestaetigt und dokumentiert.
+RDAP48 Admin-User-Detail read-only wurde geplant.
+RDAP49 Admin-User-Detail read-only ist vorbereitet.
 ```
 
 ## Live-System
@@ -53,39 +51,18 @@ Das ist keine Freigabe fuer Remote-Writes, Agent-Actions, OBS, Sound, Overlay, C
 ```text
 Admin -> Admin-Notizen zeigt eine Zieluser-Auswahl.
 Default ist ForrestCGN / tw:127709954.
-Zieluser-Suche/Filter ist live.
-Ausgewaehlter User steuert die Read-Route per targetUserUid.
-Create nutzt denselben ausgewaehlten targetUserUid.
+Zieluser-Suche/Filter ist live bestaetigt.
+Read/Create nutzen weiterhin den ausgewaehlten targetUserUid.
 Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
 ```
 
-## RDAP47B Live-Bestaetigung
+## RDAP49 vorbereiteter User-Detail-Stand
 
 ```text
-Suchfeld sichtbar.
-Suche nach "Forrest" funktioniert.
-Trefferanzeige: 1 / 2.
-Zieluser ForrestCGN / tw:127709954 bleibt ausgewaehlt.
-Read true.
-Write true.
-3 Admin-Notizen geladen.
-Create-Form nutzt weiterhin Zieluser tw:127709954.
-```
-
-## RDAP48 Plan-Ergebnis
-
-```text
-Naechster sinnvoller Schritt:
-RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
-```
-
-Ziel:
-
-```text
-Admin-User-Detailseite/read-only Detailbereich.
-Daten aus vorhandenem /api/remote/auth/model nutzen.
-Rollen/Gruppen/Sessions fuer ausgewaehlten User anzeigen.
-Admin-Notizen fuer denselben User ueber vorhandene RDAP44/RDAP47 Struktur verlinken.
+Admin -> User-Detail wird frontend-only ergaenzt.
+Datenquelle ist GET /api/remote/auth/model.
+User-Kopf, Rollen, Gruppen und Sessions werden read-only angezeigt.
+Button Admin-Notizen oeffnen nutzt vorhandene Zieluser-Auswahl.
 ```
 
 ## Weiterhin deaktiviert
@@ -103,5 +80,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
+RDAP49 Webserver-Deploy und Live-Bestaetigung
 ```

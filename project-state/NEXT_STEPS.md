@@ -1,90 +1,64 @@
 # NEXT_STEPS
 
-Stand: RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN  
+Stand: RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
+RDAP49 Webserver-Deploy und Live-Bestaetigung
 ```
 
-## Ziel RDAP49
+## Ziel
 
 ```text
-Eine sichtbare Admin-User-Detailseite/read-only Detailansicht vorbereiten.
+Die vorbereitete Admin-User-Detailseite read-only live bestaetigen.
 ```
 
-## Scope
+## Deploy-Standard
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
+cd RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
+sudo bash tools/remote-modboard-deploy.sh RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED dev
+```
+
+## Tests nach Deploy
+
+```bash
+curl -fsS http://127.0.0.1:3010/assets/rdap28-admin-notes.js | grep -n "admin-user-detail\|Admin-User-Detail\|openUserDetail"
+curl -s -o /dev/null -w "twitch/start HTTP %{http_code}
+" https://mods.forrestcgn.de/api/remote/auth/twitch/start
+curl -s -o /dev/null -w "twitch/callback HTTP %{http_code}
+" https://mods.forrestcgn.de/api/remote/auth/twitch/callback
+```
+
+## Browser-Test
 
 ```text
-Frontend-only.
-Daten aus bestehendem /api/remote/auth/model nutzen.
-User-Auswahl/Suche nach Name/Login/UID.
-User-Kopf anzeigen: displayName, loginName, userUid, status, lastLoginAt.
-Rollen/Gruppen/Sessions fuer den User read-only anzeigen.
-Button/Link zu Admin-Notizen fuer diesen User ueber vorhandene RDAP44/RDAP47 API.
+Admin -> User-Detail sichtbar.
+ForrestCGN / tw:127709954 sichtbar.
+Rollen/Gruppen/Sessions read-only sichtbar, soweit Daten vorhanden.
+Button Admin-Notizen oeffnen setzt denselben User in Admin-Notizen.
+Admin-Notizen Read/Create bleiben unveraendert.
+```
+
+## Nicht in diesem Step aendern
+
+```text
 Keine Backend-Aenderung.
 Keine DB-Migration.
-Keine Permission-Schreibfunktion.
-```
-
-## Vor RDAP49 zuerst pruefen
-
-```text
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/src/routes/auth-model.routes.js
-remote-modboard/backend/src/services/auth-db-read.service.js
-```
-
-## Bestehende Datenquelle
-
-```text
-GET /api/remote/auth/model
-```
-
-Liefert read-only:
-
-```text
-model.users
-model.userRoles
-model.userGroups
-model.roles
-model.groups
-model.permissions
-model.rolePermissions
-model.modulePermissions
-model.sessions
-```
-
-## Akzeptanzkriterien RDAP49
-
-```text
-Admin-User-Detail read-only sichtbar.
-Mindestens ForrestCGN / tw:127709954 wird korrekt angezeigt.
-Rollen/Gruppen/Sessions werden angezeigt, soweit im Auth-Modell vorhanden.
-Admin-Notizen fuer ausgewaehlten User koennen ueber vorhandene Zieluser-Auswahl geoeffnet werden.
-Keine Backend-Datei geaendert.
-Keine DB-Migration.
-Kein Admin-Note Update/Deactivate/Delete.
-Login-/OAuth-Safety bleibt unveraendert.
-```
-
-## Nicht in RDAP49 tun
-
-```text
-Keine Permission-Vergabe.
-Keine Rollen-/Gruppen-Aenderung.
-Keine Admin-Note Update/Deactivate/Delete-Funktion.
-Keine Community-Read-Anbindung fuer Admin-Notizen.
+Keine Permission-Verwaltung.
+Kein Admin-Note Update.
+Kein Admin-Note Deactivate.
+Kein Delete.
+Keine Community-Read-Anbindung.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
-Keine neue Backend-Route, wenn /api/remote/auth/model ausreicht.
 ```
 
-## Danach moeglich
+## Danach
 
 ```text
 RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS

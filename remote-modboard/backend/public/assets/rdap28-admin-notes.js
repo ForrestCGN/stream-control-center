@@ -21,12 +21,17 @@
   let filteredTargetUsers = [DEFAULT_TARGET_USER];
   let selectedTargetUser = { ...DEFAULT_TARGET_USER };
   let targetUserSearchTerm = '';
+  let latestAuthModelResult = null;
+  let adminDetailSearchTerm = '';
+  let selectedAdminDetailUser = { ...DEFAULT_TARGET_USER };
 
   document.addEventListener('DOMContentLoaded', () => {
     injectStyles();
     injectNavigation();
     injectPanel();
+    injectAdminUserDetailPanel();
     bindAdminNotesActions();
+    bindAdminUserDetailActions();
     exposeTargetSelectionApi();
     void loadTargetUsers('initial');
     loadAdminNotes('initial');
@@ -80,15 +85,53 @@
       .admin-note-write-available{background:rgba(69,245,167,.08);border-color:rgba(69,245,167,.20)}
       .admin-note-write-locked{background:rgba(255,209,102,.08);border-color:rgba(255,209,102,.24)}
       .admin-note-danger-note{color:#ffdce3}
+      .admin-user-detail-card{display:grid;gap:12px;margin-bottom:var(--gap)}
+      .admin-user-detail-tools{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr) auto;gap:10px;align-items:end}
+      .admin-user-detail-tools label{display:grid;gap:6px;color:var(--muted);font-size:12px}
+      .admin-user-detail-tools input,.admin-user-detail-tools select{width:100%;min-height:38px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(4,7,18,.76);color:var(--text);padding:8px 10px;font:inherit;outline:none;box-sizing:border-box}
+      .admin-user-detail-tools input:focus,.admin-user-detail-tools select:focus{border-color:rgba(27,216,255,.48);box-shadow:0 0 0 3px rgba(27,216,255,.10)}
+      .admin-user-detail-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+      .admin-user-detail-summary .kv-row strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .admin-user-detail-list{display:grid;gap:8px}
+      .admin-user-detail-row{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07)}
+      .admin-user-detail-row strong,.admin-user-detail-row small{display:block}
+      .admin-user-detail-row strong{color:#fff;font-size:13px}
+      .admin-user-detail-row small{color:var(--muted);font-size:12px;margin-top:3px}
+      .admin-user-detail-note{padding:12px;border-radius:16px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.20);color:#dff8ff}
+      @media (max-width:1000px){.admin-user-detail-tools{grid-template-columns:1fr}.admin-user-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
       @media (max-width:1000px){.admin-note-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-note-target-summary{grid-template-columns:1fr}}
-      @media (max-width:640px){.admin-note-grid{grid-template-columns:1fr}.admin-note-target-row,.admin-note-target-tools{grid-template-columns:1fr}}
+      @media (max-width:640px){.admin-note-grid{grid-template-columns:1fr}.admin-note-target-row,.admin-note-target-tools{grid-template-columns:1fr}.admin-user-detail-summary{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
 
   function injectNavigation() {
     const adminSub = document.getElementById('nav-admin');
-    if (!adminSub || adminSub.querySelector('[data-page="admin-notes"]')) return;
+    if (!adminSub) return;
+
+    if (!adminSub.querySelector('[data-page="admin-user-detail"]')) {
+      const detailButton = document.createElement('button');
+      detailButton.className = 'nav-link';
+      detailButton.type = 'button';
+      detailButton.dataset.section = 'Admin';
+      detailButton.dataset.title = 'User-Detail';
+      detailButton.dataset.tab = 'read-only';
+      detailButton.dataset.page = 'admin-user-detail';
+      detailButton.textContent = 'User-Detail';
+      detailButton.addEventListener('click', () => {
+        setRdap40Page('admin-user-detail', {
+          section: 'Admin',
+          title: 'User-Detail',
+          tab: 'read-only'
+        });
+        document.body.classList.remove('nav-collapsed');
+        if (!targetUsersLoaded) void loadTargetUsers('detail-nav');
+        renderAdminUserDetail(latestAuthModelResult);
+      });
+      adminSub.insertBefore(detailButton, adminSub.firstChild || null);
+    }
+
+    if (adminSub.querySelector('[data-page="admin-notes"]')) return;
 
     const button = document.createElement('button');
     button.className = 'nav-link';
@@ -236,6 +279,76 @@
     renderTargetSelect();
   }
 
+  function injectAdminUserDetailPanel() {
+    const content = document.querySelector('.cgn-content');
+    const footer = content ? content.querySelector('.footer') : null;
+    if (!content || document.querySelector('[data-page-panel="admin-user-detail"]')) return;
+
+    const section = document.createElement('section');
+    section.className = 'rdap-view';
+    section.dataset.pagePanel = 'admin-user-detail';
+    section.innerHTML = `
+      <section class="page-header module-page-header cgn-card">
+        <p class="cgn-eyebrow">Admin / User-Detail / read-only</p>
+        <h1>Admin-User-Detail</h1>
+        <p>Einzelansicht fuer Dashboard-User aus dem vorhandenen Auth-Modell. Diese Ansicht zeigt nur Daten an und schreibt keine Rollen, Gruppen, Permissions oder Notizen.</p>
+      </section>
+
+      <section class="admin-user-detail-card cgn-card">
+        <div class="card-head">
+          <div><p class="cgn-eyebrow">Auswahl</p><h2>User ansehen</h2></div>
+          <span class="cgn-chip cgn-chip--info" id="adminUserDetailPill">read-only</span>
+        </div>
+        <div class="admin-user-detail-tools">
+          <label>
+            User suchen
+            <input id="adminUserDetailSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Name, Login oder UID">
+          </label>
+          <label>
+            User
+            <select id="adminUserDetailSelect" aria-label="Admin-User-Detail User auswählen"></select>
+          </label>
+          <button class="secondaryButton small" type="button" id="adminUserDetailOpenNotesButton">Admin-Notizen öffnen</button>
+        </div>
+        <div class="kv-grid admin-user-detail-summary">
+          <div class="kv-row"><span>Name</span><strong id="adminUserDetailName">—</strong></div>
+          <div class="kv-row"><span>Login</span><strong id="adminUserDetailLogin">—</strong></div>
+          <div class="kv-row"><span>UID</span><strong id="adminUserDetailUid">—</strong></div>
+          <div class="kv-row"><span>Status</span><strong id="adminUserDetailStatus">—</strong></div>
+          <div class="kv-row"><span>Letzter Login</span><strong id="adminUserDetailLastLogin">—</strong></div>
+          <div class="kv-row"><span>Rollen</span><strong id="adminUserDetailRoleCount">—</strong></div>
+          <div class="kv-row"><span>Gruppen</span><strong id="adminUserDetailGroupCount">—</strong></div>
+          <div class="kv-row"><span>Sessions</span><strong id="adminUserDetailSessionCount">—</strong></div>
+        </div>
+      </section>
+
+      <section class="page-grid">
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Rollen</p><h2>Aktive Rollen</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+          <div class="admin-user-detail-list" id="adminUserDetailRoles">—</div>
+        </article>
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Gruppen</p><h2>Aktive Gruppen</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+          <div class="admin-user-detail-list" id="adminUserDetailGroups">—</div>
+        </article>
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Sessions</p><h2>Session-Auszug</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+          <div class="admin-user-detail-list" id="adminUserDetailSessions">—</div>
+        </article>
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Sicherheit</p><h2>Keine Schreibverwaltung</h2></div><span class="cgn-chip cgn-chip--warn">gesperrt</span></div>
+          <div class="admin-user-detail-note">
+            Diese Ansicht nutzt nur <strong>/api/remote/auth/model</strong>. Rollen/Gruppen/Permissions werden nicht vergeben oder entzogen. Admin-Notizen werden ueber die bestehende RDAP44/RDAP47-Auswahl geoeffnet.
+          </div>
+        </article>
+      </section>
+    `;
+
+    if (footer) content.insertBefore(section, footer);
+    else content.appendChild(section);
+    renderAdminUserDetail(null);
+  }
+
   function bindAdminNotesActions() {
     bindClick('adminNotesReloadButton', () => loadAdminNotes('manual'));
     bindClick('adminNotesCreateToggleButton', () => openCreateDialog());
@@ -271,17 +384,40 @@
     }
   }
 
+  function bindAdminUserDetailActions() {
+    const search = document.getElementById('adminUserDetailSearch');
+    if (search) {
+      search.addEventListener('input', () => {
+        adminDetailSearchTerm = search.value || '';
+        renderAdminUserDetail(latestAuthModelResult);
+      });
+    }
+
+    const select = document.getElementById('adminUserDetailSelect');
+    if (select) {
+      select.addEventListener('change', () => {
+        const user = findTargetUser(select.value) || { userUid: select.value };
+        selectAdminDetailUser(user);
+      });
+    }
+
+    bindClick('adminUserDetailOpenNotesButton', () => openAdminNotesForDetailUser());
+  }
+
+
   function exposeTargetSelectionApi() {
     window.RdapAdminNotes = window.RdapAdminNotes || {};
     window.RdapAdminNotes.selectTargetUser = (user) => selectTargetUser(user, { source: 'api' });
     window.RdapAdminNotes.getSelectedTargetUser = () => ({ ...selectedTargetUser });
     window.RdapAdminNotes.reload = () => loadAdminNotes('api');
     window.RdapAdminNotes.setTargetSearch = (term) => setTargetSearch(term || '');
+    window.RdapAdminNotes.openUserDetail = (user) => { selectAdminDetailUser(user); setRdap40Page('admin-user-detail', { section: 'Admin', title: 'User-Detail', tab: 'read-only' }); };
   }
 
   async function loadTargetUsers(reason) {
     setChipSafe('adminNotesTargetPill', null, reason === 'manual' ? 'lädt neu' : 'lädt');
     const result = await getAdminNotesJson(AUTH_MODEL_ENDPOINT);
+    latestAuthModelResult = result;
     const users = extractUsersFromAuthModel(result);
     targetUsers = mergeTargetUsers([DEFAULT_TARGET_USER].concat(users));
     targetUsersLoaded = true;
@@ -293,6 +429,8 @@
 
     renderTargetSelect();
     renderSelectedTargetUser();
+    if (!findTargetUser(selectedAdminDetailUser.userUid)) selectedAdminDetailUser = selectedTargetUser || DEFAULT_TARGET_USER;
+    renderAdminUserDetail(result);
     setChipSafe('adminNotesTargetPill', result && result.ok, `${targetUsers.length} User`);
   }
 
@@ -313,7 +451,9 @@
     const loginName = safeString(user.loginName || user.login_name || '');
     const status = safeString(user.status || '');
     const roles = safeString(user.roles || '');
-    return { userUid, displayName, loginName, status, roles };
+    const groups = safeString(user.groups || '');
+    const lastLoginAt = safeString(user.lastLoginAt || user.last_login_at || '');
+    return { userUid, displayName, loginName, status, roles, groups, lastLoginAt }; 
   }
 
   function mergeTargetUsers(users) {
@@ -517,6 +657,79 @@
       ? 'Create-Button bleibt ausgeblendet, solange kein admin.users.note.write erkennbar ist.'
       : 'Create wird erst angeboten, wenn die Notiz-Readroute erfolgreich geladen wurde.');
     if (lock) lock.className = 'admin-note-panel-lock admin-note-write-locked';
+  }
+
+  function renderAdminUserDetail(result) {
+    const body = (result && result.body) || (latestAuthModelResult && latestAuthModelResult.body) || {};
+    const model = body.model || {};
+    const users = mergeTargetUsers([DEFAULT_TARGET_USER].concat(Array.isArray(model.users) ? model.users : targetUsers));
+    const filtered = filterTargetUsers(users, adminDetailSearchTerm);
+    const currentUid = selectedAdminDetailUser.userUid || selectedTargetUser.userUid || DEFAULT_TARGET_USER.userUid;
+
+    let current = users.find(user => user.userUid === currentUid) || selectedAdminDetailUser || DEFAULT_TARGET_USER;
+    if (!filtered.some(user => user.userUid === current.userUid)) filtered.unshift(current);
+
+    const select = document.getElementById('adminUserDetailSelect');
+    if (select) {
+      select.innerHTML = mergeTargetUsers(filtered).map((user) => {
+        const selected = user.userUid === current.userUid ? ' selected' : '';
+        return `<option value="${escapeHtmlLocal(user.userUid)}"${selected}>${escapeHtmlLocal(formatTargetUserLabel(user))}</option>`;
+      }).join('');
+    }
+
+    selectedAdminDetailUser = current;
+    const roles = findUserRows(model.userRoles, current.userUid, 'role_key');
+    const groups = findUserRows(model.userGroups, current.userUid, 'group_key');
+    const sessions = findUserRows(model.sessions, current.userUid, 'status');
+
+    setChipSafe('adminUserDetailPill', result && result.ok, result && result.ok ? `${filtered.length} / ${users.length} User` : 'read-only');
+    setTextSafe('adminUserDetailName', current.displayName || current.userUid || '—');
+    setTextSafe('adminUserDetailLogin', current.loginName ? `@${current.loginName}` : '—');
+    setTextSafe('adminUserDetailUid', current.userUid || '—');
+    setTextSafe('adminUserDetailStatus', current.status || '—');
+    setTextSafe('adminUserDetailLastLogin', current.lastLoginAt || current.last_login_at || '—');
+    setTextSafe('adminUserDetailRoleCount', String(roles.length));
+    setTextSafe('adminUserDetailGroupCount', String(groups.length));
+    setTextSafe('adminUserDetailSessionCount', String(sessions.length));
+    setHtmlSafe('adminUserDetailRoles', renderAdminUserDetailRows(roles, row => row.role_key || row.roleKey || 'role'));
+    setHtmlSafe('adminUserDetailGroups', renderAdminUserDetailRows(groups, row => row.group_key || row.groupKey || 'group'));
+    setHtmlSafe('adminUserDetailSessions', renderAdminUserDetailRows(sessions, row => row.status || 'session', row => `created: ${row.created_at || row.createdAt || '—'} · expires: ${row.expires_at || row.expiresAt || '—'} · lastSeen: ${row.last_seen_at || row.lastSeenAt || '—'}`));
+  }
+
+  function selectAdminDetailUser(user) {
+    const normalized = normalizeUser(user);
+    if (!normalized || !normalized.userUid) return false;
+    if (!findTargetUser(normalized.userUid)) targetUsers = mergeTargetUsers(targetUsers.concat([normalized]));
+    selectedAdminDetailUser = normalized;
+    renderAdminUserDetail(latestAuthModelResult);
+    return true;
+  }
+
+  function openAdminNotesForDetailUser() {
+    const user = selectedAdminDetailUser || DEFAULT_TARGET_USER;
+    if (!selectTargetUser(user, { source: 'user-detail', skipLoad: true })) return;
+    setRdap40Page('admin-notes', { section: 'Admin', title: 'Admin-Notizen', tab: 'read/create' });
+    loadAdminNotes('user-detail');
+  }
+
+  function findUserRows(rows, userUid, keyField) {
+    return (Array.isArray(rows) ? rows : [])
+      .filter(row => row && (row.user_uid || row.userUid) === userUid)
+      .filter(row => !row.revoked_at && !row.revokedAt && (keyField ? (row[keyField] || row[toCamelKey(keyField)]) : true));
+  }
+
+  function renderAdminUserDetailRows(rows, titleFormatter, detailFormatter) {
+    const values = Array.isArray(rows) ? rows : [];
+    if (!values.length) return '<div class="admin-user-detail-row"><strong>—</strong><small>Keine aktiven Einträge gefunden</small></div>';
+    return values.slice(0, 12).map((row) => {
+      const title = titleFormatter(row);
+      const detail = detailFormatter ? detailFormatter(row) : `granted: ${row.granted_at || row.grantedAt || '—'} · by: ${row.granted_by || row.grantedBy || '—'}`;
+      return `<div class="admin-user-detail-row"><strong>${escapeHtmlLocal(title)}</strong><small>${escapeHtmlLocal(detail)}</small></div>`;
+    }).join('') + (values.length > 12 ? `<div class="admin-user-detail-row"><strong>+${values.length - 12}</strong><small>weitere Einträge nicht angezeigt</small></div>` : '');
+  }
+
+  function toCamelKey(value) {
+    return String(value || '').replace(/_([a-z])/g, (_, chr) => chr.toUpperCase());
   }
 
   function renderNote(note) {

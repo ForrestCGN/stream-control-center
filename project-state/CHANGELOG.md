@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED - 2026-06-26
+
+- Admin-User-Detail read-only vorbereitet.
+- `rdap28-admin-notes.js` erweitert:
+  - neue Ansicht `Admin -> User-Detail`.
+  - User-Auswahl/Suche aus vorhandenem Auth-Modell.
+  - User-Kopf mit Name/Login/UID/Status/letztem Login.
+  - Rollen/Gruppen/Sessions read-only.
+  - Button `Admin-Notizen öffnen` nutzt vorhandene RDAP44/RDAP47 Zieluser-Auswahl.
+  - Diagnose-/Komfort-API `window.RdapAdminNotes.openUserDetail(user)`.
+- Keine Backend-Aenderung.
+- Keine DB-Migration.
+- Keine Permission-Verwaltung.
+- Kein Admin-Note Update/Deactivate/Delete.
+
+
 ## RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN - 2026-06-26
 
 - Naechsten sichtbaren Admin-User-Schritt geplant:
