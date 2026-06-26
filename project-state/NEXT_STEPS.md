@@ -1,51 +1,56 @@
 # NEXT_STEPS
 
-Stand: RDAP64D_ADMIN_NOTE_UPDATE_UI_MAIN_ROUTER_INTEGRATION_PREP  
+Stand: RDAP64E_DOKU_STATUS_AFTER_ROUTER_FIX  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP64D_ADMIN_NOTE_UPDATE_UI_MAIN_ROUTER_INTEGRATION
+RDAP65_ADMIN_NOTES_UI_VERIFICATION_AND_NEXT_SCOPE_PLAN
 ```
 
 ## Ziel
 
 ```text
-Admin-Note Update-UI sauber ueber den echten Haupt-Router / Haupt-Loader anbinden.
+RDAP64D nicht erneut blind hotfixen, sondern fachlich im Browser verifizieren und den naechsten kleinen Admin-Notes-Scope sauber planen.
 ```
 
 ## Ausgangslage
 
 ```text
-RDAP64/RDAP64B/RDAP64C haben die UI-Datei erweitert/hotgefixt.
-Live bleibt Admin -> Admin-Notizen leer.
-Konsole zeigt keinen Fehler.
-index.html laedt nur remote-modboard.js.
-Der echte Router ist remote-modboard.js.
+RDAP64D ist live deployed.
+Server-Checks sind ok.
+Browser-Konsole ist sauber.
+Admin-Notes-Sichtbarkeit wurde ueber Haupt-Router korrigiert.
+Backend wurde nicht geaendert.
 ```
 
-## Erlaubter Scope
+## Pruefung vor neuem Code
 
 ```text
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-optional remote-modboard/backend/public/index.html
+- Admin -> Admin-Notizen oeffnet Inhalt.
+- Admin -> User-Detail oeffnet Inhalt.
+- Wechsel zu Benutzerverwaltung/Rollen/Sicherheit/Overview funktioniert weiter.
+- Update-UI erscheint nur fuer aktive Notizen mit Write-Recht.
+- Speichern nutzt confirmWrite:true.
+- Erfolg laedt die Notizen neu.
+- Fehler werden sichtbar angezeigt.
+- Deactivate/Delete erscheinen nicht.
 ```
 
-## Umsetzungsrichtung
+## Erlaubter naechster Scope
 
 ```text
-Methode B:
-remote-modboard.js bleibt Haupt-Router.
-Admin-Notes wird bewusst ueber Haupt-Router/Haupt-Loader integriert.
-Keine getrennte parallele Router-/Hidden-/Active-Logik.
+Plan-only oder Doku-only bevorzugt, solange Browser-Fachtest noch nicht voll dokumentiert ist.
+Moegliche naechste Mini-Scopes erst nach Befund:
+- UI-Polish fuer Admin-Notes, falls sichtbar aber unklar.
+- Status-Semantik im Backend dokumentieren/angleichen, falls moduleBuild/statusApiVersion fuer Diagnose verwirrend bleibt.
+- Admin-Notes Zieluser-Auswahl verbessern, ohne neue Schreibrechte.
 ```
 
 ## Nicht aendern
 
 ```text
-Keine Backend-Route.
 Keine DB-Migration.
 Keine neue Permission.
 Kein Deactivate.
@@ -53,18 +58,12 @@ Kein Delete.
 Keine Community-Read-Freigabe.
 Keine Rollen-/Gruppen-/Permission-Writes.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
+Keine parallele Zweitnavigation.
 ```
 
-## Checks
+## Doku-only Hinweis
 
-```powershell
-cd D:\Git\stream-control-center
-
-node --check .\remote-modboard\backend\public\assets\remote-modboard.js
-node --check .\remote-modboard\backend\public\assets\rdap28-admin-notes.js
-
-git status --short
-git diff --stat
+```text
+RDAP64E ist Doku-only.
+Nach installstep/checks/stepdone ist kein Webserver-Deploy notwendig.
 ```
-
-RDAP64D braucht nach `stepdone.cmd` Webserver-Deploy.

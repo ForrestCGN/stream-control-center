@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP64D_ADMIN_NOTE_UPDATE_UI_MAIN_ROUTER_INTEGRATION_PREP  
+Stand: RDAP64E_DOKU_STATUS_AFTER_ROUTER_FIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -14,32 +14,45 @@ RDAP63: Update-UI-Scope geplant.
 RDAP64: Update-UI in rdap28-admin-notes.js implementiert, aber live nicht sichtbar.
 RDAP64B: Router/Tab-Hotfix versucht, live nicht ausreichend.
 RDAP64C: Existing-Nav-Bind-Hotfix versucht, live weiterhin leer.
+RDAP64D: Admin-Notes ueber Haupt-Router sichtbar gemacht, live bestaetigt.
+RDAP64E: Doku-/Status-Step nach RDAP64D vorbereitet.
 ```
 
-## Live-Befund nach RDAP64C
+## Live-Befund nach RDAP64D
 
 ```text
-Admin -> Admin-Notizen wird in Navigation/Titel angezeigt.
-Inhaltsbereich bleibt leer.
-STRG+F5 hat nichts geaendert.
-Browser-Konsole zeigt keine Fehler.
+Server-Checks auf Webserver erfolgreich:
+
+curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.ok, .service, .moduleBuild'
+-> true
+-> "remote-modboard"
+-> "RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED"
+
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.ok, .statusApiVersion'
+-> true
+-> "rdap_admin_note_ui_status42.v1"
+
+Browser-Konsole: sauber.
 ```
 
-## Wichtige Erkenntnis
+## Wichtige Einordnung
 
 ```text
-remote-modboard/backend/public/index.html laedt nur /assets/remote-modboard.js.
-rdap28-admin-notes.js ist nicht direkt in index.html eingebunden.
-Der echte Dashboard-Router sitzt in remote-modboard.js.
-remote-modboard.js nutzt setPage(), currentPage und is-active-view.
+RDAP64D war ein Frontend-/Router-Step.
+Dass moduleBuild weiterhin RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED meldet, ist nicht automatisch ein Fehler.
+Backend-/Status-Routen wurden in RDAP64D bewusst nicht veraendert.
 ```
 
-## Entscheidung
+## RDAP64D technische Wirkung
 
 ```text
-Nicht weiter blind rdap28-admin-notes.js hotfixen.
-Naechster Step soll Methode B nutzen:
-Admin-Notes sauber ueber den Haupt-Router / Haupt-Loader integrieren.
+remote-modboard.js bleibt Haupt-Router.
+Navigation fuer spaeter injizierte nav-link[data-page] wird ueber Delegation erfasst.
+setPage() ist wieder zentrale Sichtbarkeitsinstanz.
+Fremde hidden-Zustaende auf data-page-panel werden vor dem is-active-view-Toggle bereinigt.
+is-active und active werden synchron gesetzt.
+window.RdapMainRouter stellt setPage/loadDashboard/getCurrentPage bereit.
+rdap28-admin-notes.js bleibt fachliches Admin-Notes-Modul.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -67,5 +80,13 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP64D_ADMIN_NOTE_UPDATE_UI_MAIN_ROUTER_INTEGRATION
+RDAP65_ADMIN_NOTES_UI_VERIFICATION_AND_NEXT_SCOPE_PLAN
+```
+
+Ziel des naechsten Steps:
+
+```text
+- Im Browser fachlich pruefen: Admin-Notizen Inhalt, User-Detail Inhalt, Update-UI sichtbar, Update erfolgreich.
+- Danach naechsten produktiven Mini-Scope planen.
+- Kein Delete/Deactivate ohne gesonderten Plan- und Safety-Step.
 ```
