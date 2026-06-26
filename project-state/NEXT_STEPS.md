@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP94_FIX1_MODULE_BUILD_CONTEXT  
+Stand: RDAP94C_LIVE_DEFAULT_CONFIRMED_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Naechster Step
@@ -12,14 +12,15 @@ RDAP94B_STREAM_PC_CONNECTION_HEARTBEAT_LIVE_CONFIRM
 ## Ziel
 
 ```text
-RDAP94/RDAP94_FIX1 lokal und live bestaetigen.
-Webserver-Deploy nach stepdone.
-Build-Kontext pruefen.
-Heartbeat read-only mit beiden Gates pruefen.
-Valid heartbeat pruefen.
-Forbidden heartbeat pruefen.
-Actions/DB/Secrets false bestaetigen.
-Runtime final wieder deaktivieren.
+RDAP94/RDAP94_FIX1 sind live im sicheren Default bestaetigt.
+Jetzt Heartbeat Live-Confirm testen:
+- Runtime temporaer bewusst aktivieren.
+- WebSocket 101 pruefen.
+- Valid heartbeat pruefen.
+- lastHeartbeatAt / heartbeatAgeMs / heartbeatSeq / heartbeatProtocolVersion / stale pruefen.
+- Forbidden heartbeat pruefen.
+- Actions/DB/Secrets false bestaetigen.
+- Runtime final wieder deaktivieren.
 ```
 
 ## Strikt nicht machen

@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP94C_LIVE_DEFAULT_CONFIRMED_AND_NEXT_PROMPT
+
+```text
+- RDAP94/RDAP94_FIX1 Live Default dokumentiert.
+- Echter Systemd-Service dokumentiert: scc-remote-modboard.service.
+- Live WorkingDirectory dokumentiert: /opt/stream-control-center/remote-modboard/backend.
+- Service-Log mit RDAP94 Build-Kontext dokumentiert.
+- /api/remote/status Header X-Remote-Modboard-Build mit RDAP94 dokumentiert.
+- /api/remote/agent/status Default bestaetigt:
+  statusApiVersion=rdap_agent94.v1
+  moduleBuild=RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
+  runtime.requestedEnabled=false
+  runtime.effectiveEnabled=false
+  runtime.acceptsAgentConnections=false
+  runtime.heartbeatReceiverEnabled=false
+  actionEnabled=false
+  productiveAgentRuntime=false
+- NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP94C angelegt.
+- Naechster Step: RDAP94B_STREAM_PC_CONNECTION_HEARTBEAT_LIVE_CONFIRM.
+- Doku-only; kein Code, keine DB, keine Runtime-Aenderung, kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP94_FIX1_MODULE_BUILD_CONTEXT
 
 ```text

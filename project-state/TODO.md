@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP94_FIX1_MODULE_BUILD_CONTEXT  
+Stand: RDAP94C_LIVE_DEFAULT_CONFIRMED_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
@@ -16,10 +16,22 @@ RDAP94:
 
 RDAP94_FIX1:
 - server.js Build-Kontext auf RDAP94 korrigiert.
+
+RDAP94C:
+- Live Default nach Deploy bestaetigt.
+- Echter Service-Name dokumentiert: scc-remote-modboard.service.
+- RDAP94 Build-Kontext live bestaetigt.
+- Runtime/Heartbeat/Actions im Default false bestaetigt.
 ```
 
 ## Naechster Schritt
 
 ```text
 RDAP94B_STREAM_PC_CONNECTION_HEARTBEAT_LIVE_CONFIRM
+```
+
+## Danach
+
+```text
+RDAP94D oder RDAP95: Heartbeat Live-Confirm dokumentieren und naechsten sicheren Stream-PC-Verbindungsstep planen.
 ```

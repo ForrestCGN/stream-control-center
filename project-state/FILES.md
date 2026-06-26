@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP94_FIX1_MODULE_BUILD_CONTEXT  
+Stand: RDAP94C_LIVE_DEFAULT_CONFIRMED_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP94_FIX1
+## Geaendert/neu in RDAP94C
 
 ```text
-remote-modboard/backend/server.js
-docs/current/RDAP94_FIX1_MODULE_BUILD_CONTEXT.md
+docs/current/RDAP94C_LIVE_DEFAULT_CONFIRMED_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP94C.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -27,6 +27,8 @@ remote-modboard/backend/src/routes/status.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 docs/current/RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE.md
 docs/current/RDAP94_FIX1_MODULE_BUILD_CONTEXT.md
+docs/current/RDAP94C_LIVE_DEFAULT_CONFIRMED_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP94C.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
