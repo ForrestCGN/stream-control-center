@@ -1,48 +1,31 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP
-
-RDAP62 bereinigt die Status-Semantik nach RDAP61/RDAP61B.
-
-Ergebnis:
+## RDAP62B_ADMIN_NOTE_UPDATE_STATUS_LIVE_CONFIRMED_DOCS - 2026-06-26
 
 ```text
-/api/remote/status sagt nicht mehr pauschal, Update sei deaktiviert.
-Create-Backend und Create-UI werden getrennt angezeigt.
-Update-Backend wird als aktiv angezeigt.
-Update-UI bleibt als nicht gebaut angezeigt.
-Deactivate/Delete bleiben deaktiviert/verboten.
-Community-Read bleibt verboten.
+Doku-only / Live-Confirmed-Docs.
+RDAP62 Live-Deploy dokumentiert.
+Status-Semantik live bestaetigt:
+- statusApiVersion rdap_admin_note_update_status62.v1
+- Update-Backend aktiv
+- Update-UI nicht gebaut
+- Deactivate/Delete deaktiviert
+- Community-Read verboten
+/routes-Bestaetigung weiter dokumentiert:
+- adminNoteUpdateConfirmed aktiv
+- disabled-Service enthaelt nur noch deactivate
+Projektstatus aktualisiert.
+Next-Chat-Prompt nach RDAP62B erstellt.
 ```
 
-Geaendert:
-
-```text
-remote-modboard/backend/src/routes/status.routes.js
-docs/current/RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP62.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-```
-
-Nicht geaendert:
-
-```text
-Keine Update-UI.
-Kein Deactivate.
-Kein Delete.
+Keine Code-Aenderung.
+Keine Backend-/Frontend-Datei geaendert.
 Keine DB-Migration.
-Keine neue Permission.
-Keine Rollen-/Gruppen-/Permission-Writes.
-Keine Community-Read-Freigabe.
-Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-```
+Kein Webserver-Deploy noetig.
 
 Naechster empfohlener Step:
 
 ```text
-RDAP62B_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_LIVE_CONFIRMED_DOCS
+RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN
 ```
+
