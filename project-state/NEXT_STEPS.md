@@ -1,41 +1,48 @@
 # NEXT_STEPS
 
-Stand: RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION  
+Stand: RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS
+RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP
 ```
 
 ## Ziel
 
 ```text
-RDAP61 live bestaetigen und dokumentieren.
+Status-/Routen-Semantik nach RDAP61 bereinigen.
 ```
 
-## Nach lokalem Stepdone deployen
+## Warum
 
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
-cd RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
-sudo bash tools/remote-modboard-deploy.sh RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION dev
+RDAP61 ist live bestaetigt:
+
+```text
+Admin-Note Update Backend ist aktiv.
+Update-UI ist nicht gebaut.
+Deactivate bleibt disabled.
+Delete bleibt verboten.
 ```
 
-## Live-Checks
+Im Live-Status existieren aber noch aeltere RDAP42-Hinweise, die pauschal sagen, Update sei deaktiviert.
 
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/status | jq
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.adminNoteUpdateConfirmed, .adminUsersAdminNoteWriteDisabled'
+## Richtung RDAP62
+
+```text
+- /api/remote/status bereinigen.
+- /api/remote/routes Semantik falls noetig angleichen.
+- Create-UI und Update-Backend getrennt anzeigen.
+- Update-Backend als aktiv anzeigen.
+- Update-UI weiter als nicht gebaut anzeigen.
+- Deactivate/Delete weiter deaktiviert anzeigen.
 ```
 
 ## Nicht direkt aendern
 
 ```text
-Keine Update-UI ohne separaten Plan.
+Keine Update-UI.
 Kein Deactivate.
 Kein Delete.
 Keine DB-Migration.
@@ -44,3 +51,11 @@ Keine Community-Read-Freigabe.
 Keine Rollen-/Gruppen-/Permission-Writes.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 ```
+
+## Danach moeglich
+
+```text
+RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN
+```
+
+Aber erst nach sauberer Status-Semantik.

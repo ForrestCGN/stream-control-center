@@ -1,17 +1,40 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
+## 2026-06-26 - RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS
 
-RDAP61 aktiviert den kontrollierten Backend-Update-Scope fuer aktive Admin-Notizen.
+RDAP61B dokumentiert die Live-Bestaetigung von RDAP61.
+
+Live bestaetigt:
+
+```text
+Service ok: true.
+POST /api/remote/admin/users/admin-notes/update ist Backend-confirmed aktiv.
+adminNoteUpdateConfirmed.prepared: true.
+adminNoteUpdateConfirmed.writeEnabled: true.
+adminNoteUpdateConfirmed.productiveWritesEnabled: true.
+adminNoteUpdateConfirmed.adminNoteUpdateEnabled: true.
+adminNoteUpdateConfirmed.adminNoteCreateStillEnabled: true.
+adminNoteUpdateConfirmed.adminNoteDeactivateEnabled: false.
+adminNoteUpdateConfirmed.uiWriteButtonsEnabled: false.
+adminNoteUpdateConfirmed.frontendUpdateUiPrepared: false.
+adminNoteUpdateConfirmed.physicalDeleteEnabled: false.
+adminNoteUpdateConfirmed.communityPagesMayReadAdminNotes: false.
+adminNoteUpdateConfirmed.activeNotesOnly: true.
+adminNoteUpdateConfirmed.rawNoteTextLogged: false.
+```
+
+Disabled-Service live bestaetigt:
+
+```text
+adminUsersAdminNoteWriteDisabled.routes enthaelt nur noch /api/remote/admin/users/admin-notes/deactivate.
+previouslyDisabledRouteNowConfirmed: /api/remote/admin/users/admin-notes/update.
+```
 
 Geaendert:
 
 ```text
-remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-docs/current/RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP61.md
+docs/current/RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP61B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -19,31 +42,27 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-Ergebnis:
+Nicht geaendert:
 
 ```text
-POST /api/remote/admin/users/admin-notes/update nutzt jetzt den confirmed-Service.
-Create bleibt erhalten.
-Update ist nur fuer aktive Notizen erlaubt.
-Update schreibt nur note_text, updated_by_user_uid und updated_at.
-Audit loggt keine raw note_text Inhalte.
-Readback ist Pflicht.
+Keine Code-Aenderung.
+Keine Backend-Route.
+Keine Frontend-UI.
+Keine Service-Aenderung.
+Keine DB-Migration.
+Keine Writes.
+Kein Webserver-Deploy noetig.
 ```
 
-Weiterhin nicht umgesetzt:
+Bekannter Follow-up:
 
 ```text
-Keine Update-UI.
-Kein Deactivate.
-Kein Delete.
-Keine DB-Migration.
-Keine neue Permission.
-Keine Community-Read-Freigabe.
-Keine Rollen-/Gruppen-/Permission-Writes.
+/api/remote/status enthaelt noch aeltere RDAP42-Status-/Hinweistexte, die pauschal sagen, Update sei deaktiviert.
+Naechster Step soll Status-Semantik nach RDAP61 bereinigen.
 ```
 
 Naechster empfohlener Step:
 
 ```text
-RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS
+RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP
 ```

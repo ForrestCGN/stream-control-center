@@ -1,16 +1,13 @@
 # FILES
 
-Stand: RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION  
+Stand: RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
-## In RDAP61 geaendert
+## In RDAP61B geaendert
 
 ```text
-remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-docs/current/RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP61.md
+docs/current/RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP61B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -18,22 +15,25 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Nicht geaendert in RDAP61
+## Nicht geaendert in RDAP61B
 
 ```text
+remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
+remote-modboard/backend/src/routes/admin-users.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/src/services/admin-user-admin-note-write-disabled.service.js
-remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
 remote-modboard/backend/src/app.js
-remote-modboard/backend/public/index.html
 ```
 
 ## Hinweis
 
+RDAP61B ist Doku-only / Live-Confirmed-Docs.
+
 ```text
-RDAP61 ist Backend-Code.
-Node-Checks noetig.
-Nach stepdone ist Webserver-Deploy noetig.
-Keine UI-Aenderung.
+Kein Node-Check noetig.
+Kein Webserver-Deploy noetig.
+Keine Backend-Route.
+Keine Frontend-UI.
 Keine DB-Migration.
+Keine Writes.
 ```
