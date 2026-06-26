@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP45C_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_LIVE_CONFIRMED_DOCS  
+Stand: RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -18,6 +18,7 @@ RDAP44B dokumentiert die RDAP44 Live-Bestaetigung.
 RDAP45 OAuth-Start-Gate wurde vorbereitet.
 RDAP45B Deploy-Safety wurde an aktiv genutzten Login angepasst.
 RDAP45C dokumentiert die RDAP45B Live-Bestaetigung.
+RDAP46 plant den naechsten kleinen Admin-Notizen-/Admin-User-Schritt.
 ```
 
 ## Live-System
@@ -38,7 +39,7 @@ Twitch-Login ist aktiv/freigegeben.
 Live-Env: RDAP_TWITCH_OAUTH_START_RELEASED=true.
 GET /api/remote/auth/twitch/start liefert bei aktivem Login HTTP 302.
 GET /api/remote/auth/twitch/callback liefert ohne gueltigen OAuth-State HTTP 403.
-Login funktioniert wieder.
+Login funktioniert.
 ```
 
 Einordnung:
@@ -60,34 +61,16 @@ Create nutzt bestehende RDAP39 Backend-Route.
 Nach erfolgreichem Create laedt die UI die Notizliste ueber RDAP39C-Readback neu.
 ```
 
-## RDAP44 Live-Bestaetigung bleibt gueltig
+## RDAP46 Ergebnis
 
 ```text
-Zieluser-Auswahl sichtbar.
-Dropdown sichtbar.
-Default ForrestCGN @forrestcgn / tw:127709954.
-Name/Login/UID werden angezeigt.
-Read: true.
-Write: true.
-Notizen: 3.
-Tabelle: true.
-Create-Form zeigt Zieluser: tw:127709954.
-```
-
-Asset-Pruefung live:
-
-```text
-DEFAULT_TARGET_USER vorhanden.
-adminNotesTargetSelect vorhanden.
-TARGET_USER_UID nicht mehr vorhanden.
-```
-
-## RDAP45B Live-Bestaetigung
-
-```text
-twitch/start HTTP 302
-twitch/callback HTTP 403
-Login ok
+Naechster kleiner Schritt bewusst geplant.
+Empfehlung: RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED.
+RDAP47 soll die Zieluser-Auswahl komfortabler machen.
+Empfohlener Scope: Frontend-only Such-/Filterfeld in rdap28-admin-notes.js.
+Keine Code-Aenderung in RDAP46.
+Keine DB-Migration.
+Kein Webserver-Deploy noetig.
 ```
 
 ## Weiterhin deaktiviert
@@ -105,12 +88,11 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN
+RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED
 ```
 
 Ziel:
 
 ```text
-Naechsten kleinen Admin-Notizen-/Admin-User-Schritt bewusst planen.
-Nicht blind Update/Delete/Permission bauen.
+Admin-Notizen-Zieluser-Auswahl komfortabler machen: Such-/Filterfeld nach Name/Login/UID, ohne Backend-/DB-/Permission-Aenderung.
 ```

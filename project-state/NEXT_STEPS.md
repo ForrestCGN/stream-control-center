@@ -1,74 +1,91 @@
 # NEXT_STEPS
 
-Stand: RDAP45C_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_LIVE_CONFIRMED_DOCS  
+Stand: RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN
+RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED
 ```
 
-## Ziel RDAP46
+## Ziel RDAP47
 
 ```text
-Nach RDAP44/RDAP45C den naechsten kleinen Schritt bewusst planen.
-Admin-Notizen-Zieluser-Auswahl ist live.
-Login/Deploy-Safety ist wieder konsistent.
+Admin-Notizen-Zieluser-Auswahl komfortabler machen.
 ```
 
-## Moegliche Richtungen
+Konkreter kleiner Scope:
 
 ```text
-1. Admin-Notizen Zieluser-Auswahl komfortabler machen.
-2. Echte Admin-User-Detailseite planen.
-3. Admin-Note Update separat planen.
-4. Admin-Note Deactivate separat planen.
-5. Permission-Verwaltung separat planen, nicht mit Admin-Notizen vermischen.
+Frontend-only in remote-modboard/backend/public/assets/rdap28-admin-notes.js.
+Such-/Filterfeld fuer Zieluser-Auswahl.
+Filter nach displayName/loginName/userUid.
+Default ForrestCGN / tw:127709954 bleibt immer verfuegbar.
+Ausgewaehlter User bleibt eindeutig sichtbar.
+Read/Create nutzen weiterhin selectedTargetUser.userUid.
 ```
 
-## Empfehlung
+## Warum dieser Step
 
 ```text
-Zuerst ein kleiner Plan-/Doku-Step:
-RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN
+Sichtbarer Nutzen.
+Geringes Risiko.
+Keine neue Backend-Route.
+Keine DB-Migration.
+Keine neuen Writes.
+Bestehende RDAP44-Struktur wird erweitert statt parallel neu gebaut.
 ```
 
-Darin klaeren:
+## Vor RDAP47 zuerst echte Dateien pruefen
 
 ```text
-Welche Funktion bringt sichtbaren Nutzen?
-Welche bestehende Struktur wird erweitert?
-Welche Rechte braucht der Step?
-Welche Writes waeren betroffen?
-Welche Safety-Gates bleiben aus?
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
+docs/current/RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN.md
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/public/index.html
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
 ```
 
-## Nicht direkt als naechstes tun
+## Nicht in RDAP47 aendern
 
 ```text
+Keine Admin-Note Update-Funktion.
+Keine Admin-Note Deactivate-Funktion.
 Kein physisches Delete.
-Keine Permission-Verwaltung nebenbei.
+Keine Permission-Verwaltung.
 Keine Community-Read-Anbindung fuer Admin-Notizen.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 Keine freien Shell-/Datei-/Prozess-/URL-Ausfuehrungen.
-Keine DB-Migration ohne separaten Plan.
+Keine DB-Migration.
 ```
 
-## Aktueller Login-/Safety-Stand
+## Test-Erwartung fuer RDAP47
 
 ```text
-Twitch-Login aktiv/freigegeben.
-twitch/start HTTP 302 ist korrekt.
-twitch/callback ohne gueltigen OAuth-State HTTP 403 ist Pflicht.
-Deploy-Safety akzeptiert diesen Zustand seit RDAP45B.
+node --check remote-modboard/backend/public/assets/rdap28-admin-notes.js
+Admin -> Admin-Notizen oeffnen.
+Zieluser-Suche sichtbar.
+Suche filtert nach Name/Login/UID.
+ForrestCGN / tw:127709954 bleibt Default und verfuegbar.
+Auswahl laedt Notizen fuer Zieluser.
+Create-Form zeigt gewaehlten Zieluser.
+Login bleibt ok.
+twitch/start HTTP 302 bei aktivem Login bleibt korrekt.
+twitch/callback HTTP 403 ohne State bleibt korrekt.
 ```
 
-## RDAP44 bleibt abgeschlossen
+## Danach moegliche groessere Steps
 
 ```text
-Admin-Notizen haben Zieluser-Auswahl.
-Default bleibt ForrestCGN / tw:127709954.
-Read/Create nutzen den ausgewaehlten Zieluser.
-RDAP44 ist live funktional bestaetigt.
+Admin-User-Detailseite planen.
+Admin-Note Update separat planen.
+Admin-Note Deactivate separat planen.
+Permission-Verwaltung separat planen.
 ```
