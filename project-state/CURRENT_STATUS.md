@@ -1,35 +1,53 @@
 # CURRENT_STATUS
 
-Stand: RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS  
+Stand: RDAP92C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
-## Aktuell bestaetigt/vorbereitet
+## Aktuell bestaetigt
 
 ```text
 RDAP88: Correct-Bearer-Reject-Only-Test live bestaetigt.
 RDAP89: Runtime-Enable-Plan dokumentiert.
 RDAP90: Runtime-Accept disabled Build-Plan dokumentiert.
 RDAP91: Runtime-Accept Transport-disabled Code-Plan dokumentiert.
-RDAP92: Backend-Code fuer minimalen Transport-Accept vorbereitet.
+RDAP92: Backend-Code fuer minimalen Transport-Accept vorbereitet und live deployed.
+RDAP92_FIX1: config.service.js Exports wiederhergestellt; /api/remote/status wieder HTTP 200.
+RDAP92B: Transport-Accept live getestet und final wieder deaktiviert.
+RDAP92C: Live-Confirm und Next Prompt dokumentiert.
 ```
 
-## RDAP92 Stand
+## RDAP92/RDAP92B Live-Ergebnis
 
 ```text
-- Neue Datei agent-runtime.service.js vorbereitet.
-- server.js registriert genau einen Agent-Runtime-Registrar.
-- Keine zweite parallele /agent-ws Registrierung.
-- config.service.js enthaelt Zwei-Stufen-Gate.
-- agent-status.service.js meldet RDAP92 Runtime-/Connection-Status.
-- package.json Check-Script enthaelt agent-runtime.service.js.
-- Ohne AGENT_RUNTIME_ENABLED=true bleibt Transport reject-only.
-- Mit AGENT_RUNTIME_ENABLED=true und RDAP92 Build-Gate kann maximal WebSocket-Transport akzeptiert werden.
-- Keine Agent-Actions.
-- Kein produktiver Heartbeat.
-- Keine DB-Migration.
-- Keine neue Permission.
-- Keine Secret-Ausgabe.
+- /api/remote/status liefert HTTP 200.
+- /api/remote/agent/status liefert rdap_agent92.v1.
+- Zwei-Stufen-Gate funktioniert.
+- Correct Bearer allein reicht nicht.
+- Ohne AGENT_RUNTIME_ENABLED=true bleibt runtime_not_effectively_enabled.
+- Mit AGENT_RUNTIME_ENABLED=true und Build-Gate wird WebSocket-Transport akzeptiert.
+- HTTP/1.1 101 Switching Protocols bestaetigt.
+- X-SCC-Agent-Runtime: rdap92-transport-only bestaetigt.
+- X-SCC-Agent-Actions: disabled bestaetigt.
+- connected true waehrend Verbindung bestaetigt.
+- close/offline bestaetigt.
+- Actions false bestaetigt.
+- Heartbeat false bestaetigt.
+- productiveAgentRuntime false bestaetigt.
+- AGENT_RUNTIME_ENABLED final wieder false.
+```
+
+## Finaler Sicherheitszustand
+
+```text
+AGENT_RUNTIME_ENABLED=false
+runtime.requestedEnabled=false
+runtime.effectiveEnabled=false
+runtime.acceptsAgentConnections=false
+agent.connected=false
+actionsEnabled=false
+productiveAgentRuntime=false
+heartbeatReceiverEnabled=false
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -42,7 +60,7 @@ Die Route fuehrt keine Aktionen aus.
 /agent-ws ist guarded.
 Handshake-Precheck ist vorbereitet.
 Access-Key-Compare ist vorbereitet.
-Transport-Accept ist in RDAP92 guarded vorbereitet.
+Transport-Accept ist in RDAP92 guarded live getestet.
 Stream-PC soll aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
@@ -70,5 +88,5 @@ Keine rohe IP-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP92B_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_LIVE_CONFIRM
+RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN
 ```

@@ -1,9 +1,9 @@
 # TODO
 
-Stand: RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS  
+Stand: RDAP92C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
-## Jetzt vorbereitet
+## Erledigt
 
 ```text
 RDAP92 Backend-Code:
@@ -14,26 +14,36 @@ RDAP92 Backend-Code:
 - keine DB.
 - keine neue Permission.
 - keine Secrets.
+
+RDAP92_FIX1:
+- config.service.js Exports wiederhergestellt.
+- /api/remote/status wieder HTTP 200.
+
+RDAP92B:
+- Correct Bearer reject ohne Runtime-Aktivierung bestaetigt.
+- Runtime bewusst aktiviert.
+- HTTP 101 WebSocket Transport-Accept bestaetigt.
+- Connected/Close Status bestaetigt.
+- Actions false bestaetigt.
+- Heartbeat false bestaetigt.
+- Runtime final wieder deaktiviert.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP92B_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_LIVE_CONFIRM
+RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN
 ```
 
-## RDAP92B Aufgaben
+## RDAP93 Aufgaben
 
 ```text
-- Lokale Checks bestaetigen.
-- stepdone pruefen.
-- Webserver-Deploy aus frischem GitHub/dev-Clone.
-- Readiness-Loop.
-- Status ohne AGENT_RUNTIME_ENABLED=true.
-- Correct Bearer reject ohne Runtime-Env.
-- AGENT_RUNTIME_ENABLED=true bewusst setzen.
-- Correct Bearer WebSocket Accept.
-- Connected/Close Status.
-- Secret-Safety.
-- Keine Actions.
+- Heartbeat read-only planen.
+- In-Memory lastHeartbeatAt/heartbeatAgeMs/stale/offline Modell definieren.
+- Payload minimal und sicher definieren.
+- Kein Action-System.
+- Kein OBS/Sound/Overlay/Command.
+- Keine freie Shell/Datei/Prozess/URL.
+- Keine DB-Migration im ersten Heartbeat-Plan.
+- Secret-Safety fortsetzen.
 ```

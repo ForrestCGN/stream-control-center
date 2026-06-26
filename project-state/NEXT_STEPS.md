@@ -1,22 +1,39 @@
 # NEXT_STEPS
 
-Stand: RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS  
+Stand: RDAP92C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP92B_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_LIVE_CONFIRM
+RDAP93_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_PLAN
 ```
 
 ## Ziel
 
 ```text
-RDAP92 lokal und live bestaetigen.
-Webserver-Deploy nach stepdone.
-Transport-Accept mit beiden Gates pruefen.
-Connected/Close Status pruefen.
-Keine Actions und keine Secrets bestaetigen.
+Heartbeat-Modell read-only planen.
+Noch keine Actions.
+Kein OBS/Sound/Overlay/Command.
+Keine freie Shell/Datei/Prozess/URL.
+Keine DB-Migration im ersten Heartbeat-Plan.
+In-Memory Heartbeat/Stale/Offline sauber definieren.
+Payload minimal und sicher definieren.
+Secret-Safety fortsetzen.
+```
+
+## Ausgangspunkt
+
+```text
+RDAP92/RDAP92B:
+- Minimaler /agent-ws Transport-Accept live bestaetigt.
+- Zwei-Stufen-Gate funktioniert.
+- Correct Bearer allein reicht nicht.
+- HTTP 101 Switching Protocols mit beiden Gates bestaetigt.
+- Connected/Close Status bestaetigt.
+- Actions false.
+- Heartbeat false.
+- Runtime final wieder deaktiviert.
 ```
 
 ## Strikt nicht machen
