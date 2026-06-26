@@ -668,17 +668,32 @@
     return result.rdapRequestSeq === adminNotesLoadSeq && result.rdapTargetUserUid === currentUid;
   }
 
+  function getAdminNoteTargetUserUid(note) {
+    if (!note || typeof note !== "object") return "";
+    return safeString(note.targetUserUid || note.target_user_uid || note.userUid || note.user_uid || "");
+  }
+
+  function filterAdminNotesForTarget(notes, targetUserUid) {
+    const values = Array.isArray(notes) ? notes : [];
+    const expectedUid = safeString(targetUserUid);
+    if (!expectedUid) return [];
+    return values.filter((note) => getAdminNoteTargetUserUid(note) === expectedUid);
+  }
+
   function renderAdminNotesResult(result) {
     if (!isCurrentAdminNotesRequest(result)) return;
 
     const body = (result && result.body) || {};
     const permissions = body.permissions || {};
     const table = body.table || {};
-    const targetSummary = body.targetSummary || {};
     const notes = Array.isArray(body.notes) ? body.notes : [];
     const renderTarget = result.rdapTargetUser || selectedTargetUser || DEFAULT_TARGET_USER;
     const targetLabel = formatTargetUserLabel(renderTarget);
+    const requestedTargetUid = result.rdapTargetUserUid || (renderTarget && renderTarget.userUid) || "";
     const responseTargetUid = result.rdapResponseTargetUserUid || "";
+    const scopedNotes = filterAdminNotesForTarget(notes, requestedTargetUid);
+    const droppedNotes = notes.length - scopedNotes.length;
+    const noteCount = scopedNotes.length;
     const canRead = permissions.effectiveReadPermissionWouldAllow === true || body.canReadAdminNotes === true;
     const canWrite = permissions.effectiveWritePermissionWouldAllow === true || permissions.canWriteAdminNotes === true || body.canWriteAdminNotes === true;
     latestCanWrite = Boolean(canWrite);
@@ -686,7 +701,6 @@
 
     setValueSafe("adminNotesCanRead", canRead);
     setValueSafe("adminNotesCanWrite", canWrite);
-    const noteCount = valueOr(targetSummary.totalCount, notes.length, 0);
     setTextSafe("adminNotesCount", String(noteCount));
     setValueSafe("adminNotesSchema", table.schemaReady === true);
     setValueSafe("adminNotesLoggedIn", body.loggedIn);
@@ -695,7 +709,7 @@
     setTextSafe("adminNotesWriteReason", permissions.writeReason || "—");
     renderCreateAvailability(canWrite, result);
 
-    if (responseTargetUid && responseTargetUid !== result.rdapTargetUserUid) {
+    if (responseTargetUid && responseTargetUid !== requestedTargetUid) {
       latestReadOk = false;
       latestCanWrite = false;
       setChipSafe("adminNotesPill", false, "Zieluser-Konflikt");
@@ -717,16 +731,18 @@
 
     setChipSafe("adminNotesPill", true, `${noteCount} geladen`);
 
-    if (!notes.length) {
-      setClass("adminNotesNotice", "admin-note-ok");
-      setTextSafe("adminNotesNotice", `Keine Admin-Notizen fuer ${targetLabel} vorhanden. Mit Schreibrecht kann hier eine neue interne Admin-Notiz erstellt werden.`);
+    if (!scopedNotes.length) {
+      setClass("adminNotesNotice", droppedNotes > 0 ? "admin-note-info" : "admin-note-ok");
+      const suffix = droppedNotes > 0 ? ` ${droppedNotes} Antwort-Notiz(en) gehoerten nicht zu diesem Zieluser und wurden nicht angezeigt.` : "";
+      setTextSafe("adminNotesNotice", `Keine Admin-Notizen fuer ${targetLabel} vorhanden.${suffix} Mit Schreibrecht kann hier eine neue interne Admin-Notiz erstellt werden.`);
       setHtmlSafe("adminNotesList", "");
       return;
     }
 
-    setClass("adminNotesNotice", "admin-note-ok");
-    setTextSafe("adminNotesNotice", `${noteCount} Admin-Notiz(en) fuer ${targetLabel} geladen. Create/Update sind nur sichtbar, wenn admin.users.note.write erlaubt ist.`);
-    setHtmlSafe("adminNotesList", notes.map(renderNote).join(""));
+    setClass("adminNotesNotice", droppedNotes > 0 ? "admin-note-info" : "admin-note-ok");
+    const suffix = droppedNotes > 0 ? ` ${droppedNotes} fremde Antwort-Notiz(en) wurden ausgefiltert.` : "";
+    setTextSafe("adminNotesNotice", `${noteCount} Admin-Notiz(en) fuer ${targetLabel} geladen.${suffix} Create/Update sind nur sichtbar, wenn admin.users.note.write erlaubt ist.`);
+    setHtmlSafe("adminNotesList", scopedNotes.map(renderNote).join(""));
     bindUpdateButtons();
   }
 

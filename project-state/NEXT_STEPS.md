@@ -1,21 +1,32 @@
 # NEXT_STEPS
 
-Stand: RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX  
+Stand: RDAP78B_ADMIN_NOTES_READ_RESPONSE_USER_SCOPE_FIX  
 Datum: 2026-06-26
 
-## Naechster empfohlener Step
+## Naechster Schritt
 
 ```text
-RDAP79_ADMIN_NOTES_UI_POLISH_AFTER_STATE_FIX
+RDAP78B im Browser pruefen.
 ```
 
-## Ziel
+## Browserpruefung
 
 ```text
-Nachdem Router/Panel-State und Zieluser-Kontext stabil sind, kann Admin-Notes optisch weiter poliert werden.
+Admin -> Admin-Notizen
+ForrestCGN auswaehlen: Count/Liste nur ForrestCGN.
+EngelCGN auswaehlen: Count/Liste nur EngelCGN.
+Wenn EngelCGN keine eigenen Notizen hat: 0 geladen / keine Notizen fuer EngelCGN.
+Zurueckwechsel darf keine alten Daten stehen lassen.
 ```
 
-## Nicht aendern
+## Danach
+
+```text
+Wenn sauber: naechster kleiner UI-/Registry-Aufraeumstep.
+Wenn nicht sauber: Diagnose-Step fuer echte Read-Response-Struktur, ohne Writes.
+```
+
+## Nicht machen
 
 ```text
 Keine DB-Migration.

@@ -1,15 +1,15 @@
 # CURRENT_STATUS
 
-Stand: RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX  
+Stand: RDAP78B_ADMIN_NOTES_READ_RESPONSE_USER_SCOPE_FIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ## Aktuell bestaetigt
 
 ```text
-RDAP76D: Admin-Modul-/Page-Registry-Zielstruktur dokumentiert; Doku-only.
-RDAP77B: Modul-/Page-Registry mit exklusiver Panel-Sichtbarkeit fuer Admin-Unterseiten getestet.
-RDAP78: Admin-Notes Zieluser-/Count-/Reload-Kontext vorbereitet.
+RDAP77B: Module Registry Panel Mount und Visibility Fix getestet.
+RDAP78: Selected-User Reload/Count-Fix vorbereitet.
+RDAP78B: Read-Response wird frontendseitig strikt auf aktuell ausgewaehlten Zieluser gescoped.
 ```
 
 ## Strukturstand
@@ -18,16 +18,16 @@ RDAP78: Admin-Notes Zieluser-/Count-/Reload-Kontext vorbereitet.
 remote-modboard.js fuehrt Haupt-Router und Frontend-Registry.
 Admin wird als Obermodul registriert.
 Admin-Notizen und User-Detail sind Admin-Pages.
-Inaktive Panels werden konsequent versteckt.
+Inaktive Panels werden per hidden und is-active-view konsequent versteckt.
 ```
 
-## Admin-Notes Kontextstand
+## Admin-Notes Zieluser-Scope
 
 ```text
-Userwechsel setzt alte Liste/Count zurueck.
-Read-Request nutzt den aktuell ausgewaehlten Zieluser.
-Verspaetete Antworten fuer alte Zieluser werden ignoriert.
-Count/Notice nennen den aktuellen Zieluser.
+Read-Request nutzt targetUserUid.
+Verspaetete Antworten werden ignoriert.
+Count/Liste basieren nur noch auf Notizen, deren target_user_uid/targetUserUid zum aktuell ausgewaehlten Zieluser passt.
+Fremde Antwort-Notizen werden ausgefiltert und nicht angezeigt.
 ```
 
 ## Weiterhin deaktiviert/verboten
@@ -46,5 +46,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP79_ADMIN_NOTES_UI_POLISH_AFTER_STATE_FIX
+Nach Browserbestaetigung entscheiden: UI-/Registry-Aufraeumstep oder Read-Response-Diagnose.
 ```

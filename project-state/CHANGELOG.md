@@ -1,15 +1,11 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
+## 2026-06-26 - RDAP78B_ADMIN_NOTES_READ_RESPONSE_USER_SCOPE_FIX
 
 ```text
-- Admin-Notes Zieluser-Kontext stabilisiert.
-- Userwechsel setzt alte Liste/Count/Write-State sofort zurueck.
-- Read-Request wird an den aktuellen selectedTargetUser gebunden.
-- Verspaetete Antworten fuer alte Zieluser werden ignoriert.
-- Count/Notice nennen den aktuellen Zieluser.
-- Create/Update ignorieren Rueckantworten, wenn zwischenzeitlich der Zieluser gewechselt wurde.
-- Frontend-only.
+- Admin-Notes Read-Response wird frontendseitig strikt auf aktuell ausgewaehlten Zieluser gescoped.
+- Count basiert nur noch auf Notizen, deren target_user_uid/targetUserUid zum Zieluser passt.
+- Fremde Antwort-Notizen werden nicht angezeigt.
 - Kein Backend.
 - Keine DB.
 - Keine neue Permission.
