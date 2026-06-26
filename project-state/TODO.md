@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP55B_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP56_PERMISSION_DETAIL_NEXT_SCOPE_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -19,12 +19,13 @@ Datum: 2026-06-26
 - [x] RDAP54 Empty-Targets-Polish geplant.
 - [x] RDAP55 Empty-Targets-Polish umgesetzt und live sichtbar.
 - [x] RDAP55B Live-Bestaetigung dokumentiert.
+- [x] RDAP56 naechsten Permission-Detail-Scope geplant.
 
 ## Offen / Naechstes
 
-- [ ] RDAP56 planen: Permission-Detail naechsten Scope entscheiden.
-- [ ] Pruefen, ob weitere read-only Erklaerung der einzelnen Permission-Keys sinnvoll ist.
-- [ ] Pruefen, ob der Permission-Read-Detail-Strang vorerst abgeschlossen werden kann.
+- [ ] RDAP57 planen/umsetzen: Effektive Rollenrechte read-only nach Bereichen gruppieren.
+- [ ] Admin-/Write-nahe Rechte klar als Modellanzeige markieren.
+- [ ] Bestehende 0-Targets-Erklaerung beibehalten.
 - [ ] Effektive Rechte weiterhin nur read-only darstellen.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.

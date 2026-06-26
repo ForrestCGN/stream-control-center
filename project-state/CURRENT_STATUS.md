@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP55B_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP56_PERMISSION_DETAIL_NEXT_SCOPE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -19,6 +19,7 @@ RDAP53B dokumentiert die RDAP53 Live-Bestaetigung.
 RDAP54 Empty-Targets-Polish wurde geplant.
 RDAP55 Empty-Targets-Polish ist vorbereitet, deployed und live sichtbar.
 RDAP55B dokumentiert die RDAP55 Live-Bestaetigung.
+RDAP56 Permission-Detail naechster Scope wurde geplant.
 ```
 
 ## RDAP55 live bestaetigter Stand
@@ -29,9 +30,18 @@ ForrestCGN @forrestcgn / tw:127709954 ist auswaehlbar.
 Effektive Rollen-Rechte bleiben sichtbar.
 8 Rollenrechte werden angezeigt.
 Modulbezogene Rechte bleibt sichtbar.
-0 Targets wird jetzt klar erklaert.
+0 Targets wird klar erklaert.
 Diagnose zeigt rolePermissions/modulePermissions-Zaehler.
 Keine Schreibbuttons fuer Rollen/Gruppen/Permissions/Sessions sichtbar.
+```
+
+## RDAP56 Bewertung
+
+```text
+Permission-Read-Detail-Strang ist fachlich nutzbar und live bestaetigt.
+Direkte Permission-Writes sind nicht freigegeben.
+Direkte Rollen-/Gruppenverwaltung ist nicht freigegeben.
+Naechster sinnvoller Scope ist read-only Kategorien-/Erklaerungs-Polish oder Abschluss des Strangs.
 ```
 
 ## Live-System
@@ -81,5 +91,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP56_PERMISSION_DETAIL_NEXT_SCOPE_PLAN
+RDAP57_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_PREPARED
 ```
