@@ -1,18 +1,18 @@
 # NEXT_STEPS
 
-Stand: RDAP64E_DOKU_STATUS_AFTER_ROUTER_FIX  
+Stand: RDAP65A_ADMIN_NOTES_BROWSER_VERIFICATION_DOC  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP65_ADMIN_NOTES_UI_VERIFICATION_AND_NEXT_SCOPE_PLAN
+RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION
 ```
 
 ## Ziel
 
 ```text
-RDAP64D nicht erneut blind hotfixen, sondern fachlich im Browser verifizieren und den naechsten kleinen Admin-Notes-Scope sauber planen.
+Die noch offenen fachlichen Browser-Pruefpunkte nach RDAP64D einzeln bestaetigen oder bei Auffaelligkeit nur den Befund dokumentieren. Erst danach naechsten kleinen Scope planen.
 ```
 
 ## Ausgangslage
@@ -23,6 +23,7 @@ Server-Checks sind ok.
 Browser-Konsole ist sauber.
 Admin-Notes-Sichtbarkeit wurde ueber Haupt-Router korrigiert.
 Backend wurde nicht geaendert.
+RDAP65A dokumentiert, dass der detaillierte Fachtest noch nicht vollstaendig einzeln festgehalten ist.
 ```
 
 ## Pruefung vor neuem Code
@@ -64,6 +65,6 @@ Keine parallele Zweitnavigation.
 ## Doku-only Hinweis
 
 ```text
-RDAP64E ist Doku-only.
+RDAP65A ist Doku-only.
 Nach installstep/checks/stepdone ist kein Webserver-Deploy notwendig.
 ```

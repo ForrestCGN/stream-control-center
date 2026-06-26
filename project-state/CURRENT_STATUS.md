@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP64E_DOKU_STATUS_AFTER_ROUTER_FIX  
+Stand: RDAP65A_ADMIN_NOTES_BROWSER_VERIFICATION_DOC  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,7 +15,8 @@ RDAP64: Update-UI in rdap28-admin-notes.js implementiert, aber live nicht sichtb
 RDAP64B: Router/Tab-Hotfix versucht, live nicht ausreichend.
 RDAP64C: Existing-Nav-Bind-Hotfix versucht, live weiterhin leer.
 RDAP64D: Admin-Notes ueber Haupt-Router sichtbar gemacht, live bestaetigt.
-RDAP64E: Doku-/Status-Step nach RDAP64D vorbereitet.
+RDAP64E: Doku-/Status-Step nach RDAP64D auf GitHub/dev abgeschlossen.
+RDAP65A: Bestaetigten Live-Stand und offene fachliche Browser-Pruefpunkte dokumentiert.
 ```
 
 ## Live-Befund nach RDAP64D
@@ -33,6 +34,7 @@ curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.ok, .statusApiVersion'
 -> "rdap_admin_note_ui_status42.v1"
 
 Browser-Konsole: sauber.
+Nutzerbestaetigung: "Alles ok, konsole sauber".
 ```
 
 ## Wichtige Einordnung
@@ -64,6 +66,19 @@ POST /api/remote/admin/users/admin-notes/update      -> Backend confirmed aktiv
 POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
 
+## Noch offen vor neuem Code
+
+```text
+- Admin -> Admin-Notizen zeigt Inhalt einzeln bestaetigen.
+- Admin -> User-Detail zeigt Inhalt einzeln bestaetigen.
+- Navigation Overview/Benutzerverwaltung/Rollen/Sicherheit einzeln bestaetigen.
+- Update-UI Sichtbarkeit bei aktiver Notiz mit Write-Recht bestaetigen.
+- Update-Speichern mit confirmWrite:true bestaetigen oder Fehler dokumentieren.
+- Erfolg-Reload der Notizen bestaetigen.
+- Sichtbare Fehleranzeige bestaetigen.
+- Deactivate/Delete Nicht-Sichtbarkeit bestaetigen.
+```
+
 ## Weiterhin deaktiviert/verboten
 
 ```text
@@ -80,13 +95,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP65_ADMIN_NOTES_UI_VERIFICATION_AND_NEXT_SCOPE_PLAN
-```
-
-Ziel des naechsten Steps:
-
-```text
-- Im Browser fachlich pruefen: Admin-Notizen Inhalt, User-Detail Inhalt, Update-UI sichtbar, Update erfolgreich.
-- Danach naechsten produktiven Mini-Scope planen.
-- Kein Delete/Deactivate ohne gesonderten Plan- und Safety-Step.
+RDAP65B_ADMIN_NOTES_FULL_BROWSER_VERIFICATION_OR_NEXT_SCOPE_DECISION
 ```
