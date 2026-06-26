@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED - 2026-06-26
+
+- RDAP45 Live-Befund korrigiert:
+  - Der Login-Button nutzt den Twitch-OAuth-Start bereits produktiv.
+  - Mit `RDAP_TWITCH_OAUTH_START_RELEASED=true` liefert `/api/remote/auth/twitch/start` korrekt HTTP `302`.
+  - `/api/remote/auth/twitch/callback` ohne gueltigen OAuth-State liefert weiterhin HTTP `403`.
+- Deploy-Script angepasst:
+  - `twitch/start HTTP 302` ist erlaubt, wenn Login/OAuth-Start bewusst aktiv ist.
+  - `twitch/start HTTP 403` ist erlaubt, wenn Login/OAuth-Start gesperrt ist.
+  - `twitch/callback HTTP 403` bleibt Pflicht fuer Callback ohne gueltigen OAuth-State.
+  - Andere Start-Statuscodes schlagen weiter fehl.
+- Einordnung dokumentiert:
+  - Aktiver Login/OAuth-Session-Scope ist nicht gleich Remote-Writes.
+  - Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Commands bleiben gesperrt.
+- Keine Admin-Notizen-UI-Aenderung.
+- Keine DB-Migration.
+- Keine Permission-Verwaltung.
+- Keine neuen produktiven Admin-Writes.
+
 ## RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED - 2026-06-26
 
 - OAuth-Safety-Befund aus RDAP44-Deploy behandelt:

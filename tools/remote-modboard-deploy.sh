@@ -147,14 +147,28 @@ curl -fsS https://mods.forrestcgn.de/api/remote/status | head -c 500
 echo
 
 echo
-echo "=== 12) OAuth muss weiter 403 sein ==="
+echo "=== 12) OAuth/Login Safety testen ==="
 START_CODE="$(curl -s -o /dev/null -w "%{http_code}" https://mods.forrestcgn.de/api/remote/auth/twitch/start)"
 CALLBACK_CODE="$(curl -s -o /dev/null -w "%{http_code}" https://mods.forrestcgn.de/api/remote/auth/twitch/callback)"
 echo "twitch/start HTTP $START_CODE"
 echo "twitch/callback HTTP $CALLBACK_CODE"
 
-if [ "$START_CODE" != "403" ] || [ "$CALLBACK_CODE" != "403" ]; then
-  echo "[fehler] OAuth Safety verletzt. Erwartet 403/403."
+case "$START_CODE" in
+  302)
+    echo "[ok] Twitch-Start liefert 302: Login/OAuth-Start ist bewusst aktiv/freigegeben."
+    ;;
+  403)
+    echo "[ok] Twitch-Start liefert 403: Login/OAuth-Start ist gesperrt."
+    ;;
+  *)
+    echo "[fehler] Unerwarteter Twitch-Start-Status. Erwartet 302 bei aktivem Login oder 403 bei gesperrtem Login."
+    echo "Backup liegt hier: $BACKUP"
+    exit 1
+    ;;
+esac
+
+if [ "$CALLBACK_CODE" != "403" ]; then
+  echo "[fehler] OAuth Callback ohne gueltigen State muss 403 bleiben."
   echo "Backup liegt hier: $BACKUP"
   exit 1
 fi

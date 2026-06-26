@@ -1,14 +1,14 @@
 # FILES
 
-Stand: RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED  
+Stand: RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED  
 Datum: 2026-06-26
 
-## Geaendert in RDAP45
+## Geaendert in RDAP45B
 
 ```text
-remote-modboard/backend/src/services/auth-twitch-oauth.service.js
-docs/current/RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_PREPARED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP45.md
+tools/remote-modboard-deploy.sh
+docs/current/RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP45B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -16,31 +16,37 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Code-Aenderung RDAP45
+## Code-/Script-Aenderung RDAP45B
 
 ```text
-remote-modboard/backend/src/services/auth-twitch-oauth.service.js
+tools/remote-modboard-deploy.sh
 ```
 
 Zweck:
 
 ```text
-Twitch-OAuth-Start bleibt ohne explizites RDAP_TWITCH_OAUTH_START_RELEASED=true gesperrt.
+OAuth/Login-Safety-Check im Deploy-Script an realen aktiven Login anpassen.
+`/api/remote/auth/twitch/start` darf 302 liefern, wenn Login bewusst aktiv/freigegeben ist.
+`/api/remote/auth/twitch/start` darf 403 liefern, wenn Login gesperrt ist.
+`/api/remote/auth/twitch/callback` ohne gueltigen OAuth-State muss 403 bleiben.
 ```
 
-## Nicht geaendert in RDAP45
+## Nicht geaendert in RDAP45B
 
 ```text
+remote-modboard/backend/src/services/auth-twitch-oauth.service.js
 remote-modboard/backend/src/routes/auth-twitch.routes.js
 remote-modboard/backend/src/routes/auth-login.routes.js
-tools/remote-modboard-deploy.sh
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ```
 
-## RDAP44 relevante UI-Datei
+## Relevante Auth-Dateien geprueft
 
 ```text
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
+remote-modboard/backend/src/services/auth-twitch-oauth.service.js
+remote-modboard/backend/src/services/auth-login-entry.service.js
+remote-modboard/backend/src/routes/auth-login.routes.js
+tools/remote-modboard-deploy.sh
 ```
 
 ## Aktuelle relevante Auth-Routen
