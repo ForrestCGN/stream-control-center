@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD
+
+```text
+- Zentrale Projektuebersicht fuer Remote-Modboard/RDAP erstellt.
+- UI-/Design- und Seitenstruktur dokumentiert.
+- Aktuelle Roadmap konsolidiert.
+- Neuer Next-Chat-Prompt nach Doku-Konsolidierung erstellt.
+- project-state Dateien auf den konsolidierten Stand aktualisiert.
+- Admin-Notes Ist-Stand, offene Befunde und naechste Steps zusammengefuehrt.
+- Historische kleine RDAP-Dateien bleiben erhalten und wurden nicht geloescht.
+- Doku-only.
+- Kein Code.
+- Kein Backend.
+- Keine DB-Migration.
+- Keine neue Route.
+- Keine neue Permission.
+- Kein Delete/Deactivate.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP75B_ADMIN_NOTES_DOCS_AND_NEXT_CHAT_PROMPT
 
 ```text

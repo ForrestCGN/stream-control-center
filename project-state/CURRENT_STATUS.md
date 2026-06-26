@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP75B_ADMIN_NOTES_DOCS_AND_NEXT_CHAT_PROMPT  
+Stand: RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -14,6 +14,16 @@ RDAP65B: Admin-Notes fachlich im Browser bestaetigt; Create, Update, User-Detail
 RDAP67-RDAP74: Admin-Notes UI schrittweise enttechnisiert; Frontend-only.
 RDAP75: Design-Contract und Findings dokumentiert.
 RDAP75B: Doku-/Uebergabe-Stand und neuer Chat-Prompt aktualisiert.
+RDAP76B: Zentrale Projekt-/UI-/Roadmap-Dokumentation konsolidiert; Doku-only.
+```
+
+## Zentrale Doku ab jetzt
+
+```text
+docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
+docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
+docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_DOCS_CONSOLIDATION.md
 ```
 
 ## Aktueller Browser-/Design-Befund
@@ -54,7 +64,7 @@ Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
-## Naechster empfohlener Step
+## Naechster empfohlener Code-Step
 
 ```text
 RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
