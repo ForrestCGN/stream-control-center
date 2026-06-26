@@ -1,66 +1,34 @@
 # NEXT_STEPS
 
-Stand: RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN  
+Stand: RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED
+RDAP53 lokal installieren/testen, danach stepdone.cmd und Webserver-Deploy aus frischem GitHub/dev-Clone.
 ```
 
-## Ziel
+## Lokale Pruefung
 
 ```text
-Frontend-only read-only Permission-/Rollen-Detailansicht im bestehenden Admin-Bereich vorbereiten.
+node --check .\remote-modboard\backend\src\app.js
+node --check .\remote-modboard\backend\public\assets\rdap53-permission-read-detail.js
+git status --short
 ```
 
-## Richtung
+## Live-Pruefung nach Deploy
 
 ```text
-- Bestehendes /api/remote/auth/model auswerten.
-- Bestehende Admin-User-Detail-/Rollen-&-Rechte-Struktur erweitern.
-- Rollen, Gruppen, Role-Permissions und Module-Permissions read-only einordnen.
-- Effektive Rechte nur anzeigen/erklaeren.
-- Module/Targets gruppieren, soweit Daten eindeutig vorhanden sind.
-- Safety-Hinweis sichtbar halten: Frontend zeigt nur an, Backend entscheidet.
-- Keine Rollen-/Permission-Vergabe.
-- Keine Session-Revocation.
-- Keine neue Backend-Route, wenn vorhandene Daten reichen.
+Admin -> User-Detail oeffnen.
+ForrestCGN @forrestcgn / tw:127709954 auswaehlen.
+Neue Permission-/Module-/Target-Read-Detail-Karten muessen sichtbar sein.
+Bestehende Bridge zu Admin-Notizen muss weiter funktionieren.
+Keine Schreibbuttons fuer Rollen/Gruppen/Permissions/Sessions sichtbar.
 ```
 
-## Vorher pruefen
+## Danach
 
 ```text
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP52.md
-docs/current/RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN.md
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/src/routes/auth-model.routes.js
-remote-modboard/backend/src/services/auth-db-read.service.js
-```
-
-## Nicht in diesem Step aendern
-
-```text
-Keine Backend-Aenderung ohne separaten Plan.
-Keine DB-Migration.
-Keine Permission-Verwaltung mit Writes.
-Kein Admin-Note Update.
-Kein Admin-Note Deactivate.
-Kein Delete.
-Keine Community-Read-Anbindung.
-Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-```
-
-## Erwarteter Testumfang fuer RDAP53
-
-```text
-Node-Syntaxchecks fuer geaenderte JS-Dateien.
-UI-Funktion im Browser pruefen.
-GET /api/remote/auth/model bleibt Datenquelle.
-Keine Write-Routen aktiviert.
-Keine produktiven Writes.
-Nach lokalem stepdone bei Frontend-Code: Webserver-Deploy aus frischem GitHub/dev-Clone.
+RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS
 ```

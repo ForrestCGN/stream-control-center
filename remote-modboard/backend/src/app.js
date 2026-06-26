@@ -56,7 +56,7 @@ function createApp({ config, moduleBuild }) {
 
       res.setHeader('X-Remote-Modboard-Ui', 'readonly');
       res.setHeader('Cache-Control', 'no-store');
-      res.type('html').send(injectRdap28AdminNotesUi(html));
+      res.type('html').send(injectRdapAdminUi(html));
     });
   });
 
@@ -103,12 +103,20 @@ function createApp({ config, moduleBuild }) {
   return app;
 }
 
-function injectRdap28AdminNotesUi(html) {
-  const scriptTag = '<script src="/assets/rdap28-admin-notes.js" defer></script>';
+function injectRdapAdminUi(html) {
   if (typeof html !== 'string') return html;
-  if (html.includes('/assets/rdap28-admin-notes.js')) return html;
+  let result = injectScriptOnce(html, '/assets/rdap28-admin-notes.js');
+  result = injectScriptOnce(result, '/assets/rdap53-permission-read-detail.js');
+  return result;
+}
+
+function injectScriptOnce(html, src) {
+  const scriptTag = `<script src="${src}" defer></script>`;
+  if (html.includes(src)) return html;
   if (html.includes('</body>')) return html.replace('</body>', `  ${scriptTag}\n</body>`);
   return `${html}\n${scriptTag}\n`;
 }
 
-module.exports = { createApp, injectRdap28AdminNotesUi };
+const injectRdap28AdminNotesUi = injectRdapAdminUi;
+
+module.exports = { createApp, injectRdapAdminUi, injectRdap28AdminNotesUi, injectScriptOnce };

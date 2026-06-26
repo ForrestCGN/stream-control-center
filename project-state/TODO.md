@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN  
+Stand: RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -14,13 +14,13 @@ Datum: 2026-06-26
 - [x] RDAP51 live bestaetigt: Kontext-Hinweis, Zieluser-Uebernahme, Ruecksprung und Hinweis ausblenden sichtbar.
 - [x] RDAP51B Live-Bestaetigung dokumentiert.
 - [x] RDAP52 Permission-/Rollen-Read-Details geplant.
+- [x] RDAP53 Permission-/Rollen-Read-Details vorbereitet.
 
 ## Offen / Naechstes
 
-- [ ] RDAP53 Permission-/Rollen-Read-Details frontend-only vorbereiten.
-- [ ] Pruefen, welche Detaildaten aus `/api/remote/auth/model` fuer die Umsetzung eindeutig reichen.
-- [ ] Effektive Rechte read-only darstellen, bevor irgendeine Permission-Schreibverwaltung geplant wird.
-- [ ] Bei fehlender Gruppierung/Quelle nicht raten, sondern Datenluecke dokumentieren.
+- [ ] RDAP53 lokal testen und live deployen.
+- [ ] RDAP53B Live-Bestaetigung dokumentieren.
+- [ ] Effektive Rechte erst weiter ausbauen, wenn Live-Befund zeigt, welche Modell-Daten in der Praxis aussagekraeftig sind.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.

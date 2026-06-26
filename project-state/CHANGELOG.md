@@ -1,60 +1,26 @@
 # CHANGELOG
 
+## RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED - 2026-06-26
+
+- Permission-/Rollen-/Module-Read-Detail-Polish vorbereitet.
+- `remote-modboard/backend/src/app.js` erweitert:
+  - bestehende RDAP28/RDAP51 UI-Injektion bleibt erhalten.
+  - `rdap53-permission-read-detail.js` wird zusaetzlich einmalig eingebunden.
+  - Rueckwaertskompatibler Export `injectRdap28AdminNotesUi` bleibt erhalten.
+- Neues Frontend-Asset `remote-modboard/backend/public/assets/rdap53-permission-read-detail.js` erstellt:
+  - liest nur `/api/remote/auth/model`.
+  - zeigt fuer den ausgewaehlten Admin-User read-only Rollen-Permissions.
+  - zeigt relevante Module-/Target-Permissions fuer Rollen/Gruppen/User.
+  - zeigt Diagnosehinweis, dass Frontend keine Sicherheitsentscheidung trifft.
+- Keine neue Backend-Route.
+- Keine DB-Migration.
+- Keine Permission-Writes.
+- Keine Rollen-/Gruppen-/Session-Schreibverwaltung.
+
 ## RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN - 2026-06-26
 
 - Permission-/Rollen-Read-Detail-Polish geplant.
-- Ziel:
-  - Ausgewaehlten Admin-User besser read-only erklaeren.
-  - Rollen, Gruppen, Permissions und Module/Targets sichtbarer machen.
-  - Bestehendes `/api/remote/auth/model` zuerst weiterverwenden.
-  - Keine neue Backend-Route, wenn vorhandene Daten reichen.
-- Geplant fuer spaeteren Umsetzungsstep:
-  - Frontend-only Erweiterung der bestehenden Admin-User-Detail-/Rollen-&-Rechte-Struktur.
-  - Effektive Rechte nur anzeigen/erklaeren.
-  - Safety-Hinweis: Frontend zeigt nur an, Backend entscheidet.
-- Doku-only.
-- Keine Code-Aenderung.
-- Keine Backend-Aenderung.
-- Keine DB-Migration.
-- Keine Permission-Verwaltung.
-- Keine Rollen-/Gruppen-Schreibverwaltung.
-- Keine Session-Revocation.
-- Kein Admin-Note Update/Deactivate/Delete.
-- Kein Webserver-Deploy noetig.
-
-## RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS - 2026-06-26
-
-- RDAP51 Live-Bestaetigung dokumentiert.
-- Bestaetigt:
-  - Admin-Notizen werden aus User-Detail heraus geoeffnet.
-  - Kontext-Hinweis `Aus User-Detail geoeffnet` ist sichtbar.
-  - ForrestCGN @forrestcgn / `tw:127709954` wird korrekt uebernommen.
-  - Hinweis bestaetigt, dass Read/Create weiterhin exakt diesen Zieluser verwenden.
-  - Button `Zurueck zum User-Detail` ist sichtbar.
-  - Button `Hinweis ausblenden` ist sichtbar.
-- Doku-only.
-- Kein Webserver-Deploy noetig.
-
-## RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED - 2026-06-26
-
-- Bruecke User-Detail -> Admin-Notizen Frontend-only vorbereitet.
-- `rdap28-admin-notes.js` erweitert:
-  - Kontext-Hinweis in Admin-Notizen bei Oeffnung aus User-Detail.
-  - Sichtbare Uebernahme des Zielusers.
-  - Ruecksprung zum User-Detail.
-  - Hinweis ausblenden.
-  - Komfort-/Diagnose-API `window.RdapAdminNotes.openNotesForUser(user)`.
-- Keine Backend-Aenderung.
-- Keine DB-Migration.
-- Keine Permission-Verwaltung.
-- Kein Admin-Note Update/Deactivate/Delete.
-
-## RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN - 2026-06-26
-
-- Bruecke User-Detail -> Admin-Notizen geplant.
-- Ziel:
-  - Button Admin-Notizen oeffnen uebernimmt denselben Zieluser.
-  - Admin-Notizen zeigt Kontext-Hinweis.
-  - Optional Ruecksprung zum User-Detail.
+- Ziel: bessere read-only Sicht auf User-Rollen, Gruppen, Permissions und Module/Targets.
+- Bestehende Datenquelle `/api/remote/auth/model` reicht fuer den vorbereiteten UI-Step.
 - Keine Code-Aenderung.
 - Kein Webserver-Deploy noetig.
