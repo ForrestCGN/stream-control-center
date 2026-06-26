@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP72_ADMIN_NOTES_HIDE_TECHNICAL_STATUS
+
+```text
+- Admin-Notes Normalansicht weiter enttechnisiert.
+- Frontend-only Style-Injection rdap72AdminNotesHideTechnicalStatusStyle ergaenzt.
+- Alte RDAP71/RDAP69/RDAP67 Admin-Notes Style-Injections werden entfernt.
+- Technische Read/Write/Grenzen-Bloecke in der normalen Arbeitsansicht ausgeblendet.
+- Lange technische Header-Erklaerung ausgeblendet.
+- Aktionsleiste mit Neu laden/Neue Notiz bleibt sichtbar.
+- Liste bleibt prominent.
+- Keine Backend-Route geaendert.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Kein Delete/Deactivate.
+```
+
 ## 2026-06-26 - RDAP71_ADMIN_NOTES_CLEAN_LAYOUT
 
 ```text

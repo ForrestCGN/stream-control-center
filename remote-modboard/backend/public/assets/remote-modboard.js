@@ -61,13 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function injectAdminNotesPolishStyles() {
-  if (document.getElementById('rdap71AdminNotesCleanLayoutStyle')) return;
-  ['rdap69AdminNotesCompactLayoutStyle', 'rdap67AdminNotesPolishStyle'].forEach((id) => {
+  if (document.getElementById('rdap72AdminNotesHideTechnicalStatusStyle')) return;
+  ['rdap71AdminNotesCleanLayoutStyle', 'rdap69AdminNotesCompactLayoutStyle', 'rdap67AdminNotesPolishStyle'].forEach((id) => {
     const oldStyle = document.getElementById(id);
     if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
   });
   const style = document.createElement('style');
-  style.id = 'rdap71AdminNotesCleanLayoutStyle';
+  style.id = 'rdap72AdminNotesHideTechnicalStatusStyle';
   style.textContent = `
     [data-page-panel="admin-notes"]{display:grid!important;gap:12px!important}
     [data-page-panel="admin-notes"] .module-page-header{padding:14px 16px!important;margin-bottom:0!important;border-radius:18px!important}
@@ -148,6 +148,26 @@ function injectAdminNotesPolishStyles() {
 
     @media (max-width:980px){.admin-note-target-tools,.admin-note-target-row{grid-template-columns:1fr!important}.admin-note-target-summary{grid-template-columns:1fr!important}.admin-note-grid .admin-note-status-card:nth-child(3){align-items:flex-start!important;flex-direction:column!important}.admin-note-grid .admin-note-status-card:nth-child(3) .admin-note-actions{justify-content:flex-start!important}.admin-note-grid .admin-note-status-card:not(:nth-child(3)){grid-template-columns:1fr!important}}
     @media (max-width:640px){[data-page-panel="admin-notes"] .module-page-header h1{font-size:20px!important}.admin-note-grid .admin-note-status-card:nth-child(3){padding:10px!important}.admin-note-grid .admin-note-status-card:nth-child(3) .admin-note-actions{width:100%!important}.admin-note-grid .admin-note-status-card:nth-child(3) .secondaryButton{flex:1 1 auto!important}.admin-note-item{padding:11px 12px 11px 14px!important}.admin-note-create-card textarea,.admin-note-update-editor textarea{min-height:108px!important}}
+
+    /* RDAP72: Normalbetrieb enttechnisieren - Diagnose bleibt im DOM, aber nicht dominant sichtbar. */
+    [data-page-panel="admin-notes"] .module-page-header .cgn-eyebrow{display:none!important}
+    [data-page-panel="admin-notes"] .module-page-header p:not(.cgn-eyebrow){display:none!important}
+    [data-page-panel="admin-notes"] .module-page-header{padding:12px 14px!important}
+    [data-page-panel="admin-notes"] .module-page-header h1{font-size:23px!important}
+    .admin-note-grid{order:2!important;display:block!important;margin:0!important}
+    .admin-note-grid .admin-note-status-card:nth-child(1),
+    .admin-note-grid .admin-note-status-card:nth-child(2),
+    .admin-note-grid .admin-note-status-card:nth-child(4){display:none!important}
+    .admin-note-grid .admin-note-status-card:nth-child(3){display:flex!important;margin:0 0 10px 0!important;padding:9px 12px!important;min-height:0!important;border-radius:16px!important}
+    .admin-note-grid .admin-note-status-card:nth-child(3) .cgn-eyebrow{display:none!important}
+    .admin-note-grid .admin-note-status-card:nth-child(3) .card-head h2{font-size:0!important}
+    .admin-note-grid .admin-note-status-card:nth-child(3) .card-head h2:before{content:"Admin-Notizen";font-size:17px!important;line-height:1.1!important;color:var(--text)!important}
+    .admin-note-grid .admin-note-status-card:nth-child(3) .cgn-chip{font-size:11.5px!important;padding:5px 8px!important;opacity:.82!important}
+    [data-page-panel="admin-notes"] > .page-grid{gap:10px!important}
+    [data-page-panel="admin-notes"] > .page-grid > .cgn-card:nth-child(1){margin-top:0!important}
+    [data-page-panel="admin-notes"] > .page-grid > .cgn-card:nth-child(1) .card-head .cgn-chip{font-size:11.5px!important;opacity:.78!important}
+    #adminNotesNotice{font-size:12px!important;padding:7px 9px!important}
+
   `;
   document.head.appendChild(style);
 }

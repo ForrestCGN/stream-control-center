@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP71_ADMIN_NOTES_CLEAN_LAYOUT  
+Stand: RDAP72_ADMIN_NOTES_HIDE_TECHNICAL_STATUS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -24,35 +24,21 @@ RDAP68: RDAP67 live fachlich bestaetigt; Layout weiter verbesserungswuerdig.
 RDAP69: Admin-Notes Compact-Layout vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
 RDAP70: RDAP69 live technisch bestaetigt; Layout fachlich weiterhin zu technisch und noch nicht Zielansicht.
 RDAP71: Admin-Notes Clean-Layout vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
+RDAP72: Admin-Notes technische Statusbloecke fuer Normalansicht ausgeblendet; Frontend-only.
 ```
 
-## Live-/Browser-Befund nach RDAP70
-
-```text
-RDAP69 ist live deployed.
-/api/remote/status ok.
-/api/remote/routes ok.
-Public UI HTTP 200.
-Admin -> Admin-Notizen sichtbar.
-Navigation stabil.
-Delete/Deactivate nicht sichtbar.
-```
-
-## RDAP71 Umsetzung
+## RDAP72 Umsetzung
 
 ```text
 Geaendert:
 remote-modboard/backend/public/assets/remote-modboard.js
 
 Art:
-- idempotente Style-Injection rdap71AdminNotesCleanLayoutStyle
-- alte RDAP69/RDAP67 Admin-Notes Style-Injections werden beim Laden entfernt, falls vorhanden
-- Aktion/Neu laden/Neue Notiz als schmalere Toolbar dargestellt
-- technische Read/Write/Grenzen-Infos weniger dominant
-- Create-Bereich nicht mehr dauerhaft als grosser rechter Kasten sichtbar
-- Create-Formular nur sichtbar, wenn Neue Notiz geoeffnet ist
-- Sicherheit/Diagnose-Karte in Arbeitsansicht ausgeblendet
-- Liste/Notizkarten klarer im Fokus
+- idempotente Style-Injection rdap72AdminNotesHideTechnicalStatusStyle
+- alte RDAP71/RDAP69/RDAP67 Style-Injections werden entfernt
+- Read/Write/Grenzen-Diagnosekarten nicht mehr prominent in Normalansicht
+- lange technische Header-Erklaerung ausgeblendet
+- Aktionsleiste und Notizen-Liste bleiben sichtbar
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -80,5 +66,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP72_ADMIN_NOTES_CLEAN_LAYOUT_LIVE_VERIFICATION_DOC
+RDAP73_ADMIN_NOTES_HIDE_TECHNICAL_STATUS_LIVE_VERIFICATION_DOC
 ```

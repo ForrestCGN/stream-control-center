@@ -1,30 +1,30 @@
 # NEXT_STEPS
 
-Stand: RDAP71_ADMIN_NOTES_CLEAN_LAYOUT  
+Stand: RDAP72_ADMIN_NOTES_HIDE_TECHNICAL_STATUS  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP72_ADMIN_NOTES_CLEAN_LAYOUT_LIVE_VERIFICATION_DOC
+RDAP73_ADMIN_NOTES_HIDE_TECHNICAL_STATUS_LIVE_VERIFICATION_DOC
 ```
 
 ## Ziel
 
 ```text
-RDAP71 nach Webserver-Deploy fachlich im Browser bestaetigen und dokumentieren.
+RDAP72 nach Webserver-Deploy fachlich im Browser bestaetigen und dokumentieren.
 ```
 
 ## Zu pruefen
 
 ```text
 - Admin -> Admin-Notizen weiterhin sichtbar.
-- Ansicht wirkt weniger debug-lastig.
-- Toolbar mit Neu laden / Neue Notiz ist sichtbar.
-- Technische Read/Write/Grenzen-Infos sind nicht mehr dominant.
-- Create-Bereich ist nicht dauerhaft als grosser rechter Kasten sichtbar.
-- Neue Notiz oeffnet weiterhin das Formular.
-- Create funktioniert weiterhin.
+- Technische Read/Write/Grenzen-Bloecke sind nicht mehr prominent.
+- Neu laden ist sichtbar.
+- Neue Notiz ist sichtbar.
+- Create-Formular oeffnet weiterhin nur bei Bedarf.
+- Liste ist prominent sichtbar.
+- Bearbeiten funktioniert weiterhin.
 - Update-Speichern funktioniert weiterhin.
 - Erfolg/Fehler sichtbar.
 - User-Detail funktioniert weiterhin.
@@ -45,3 +45,5 @@ Keine Rollen-/Gruppen-/Permission-Writes.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 Keine parallele Zweitnavigation.
 ```
+
+RDAP72 braucht nach `stepdone.cmd` Webserver-Deploy, weil Frontend-Code unter `remote-modboard/` geaendert wurde.
