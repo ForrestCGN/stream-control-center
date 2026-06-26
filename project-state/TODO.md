@@ -1,26 +1,27 @@
 # TODO
 
-Stand: RDAP72_ADMIN_NOTES_HIDE_TECHNICAL_STATUS  
+Stand: RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST  
 Datum: 2026-06-26
 
 ## Als Naechstes
 
 ```text
-RDAP73_ADMIN_NOTES_HIDE_TECHNICAL_STATUS_LIVE_VERIFICATION_DOC
+RDAP74_ADMIN_NOTES_HUMAN_READABLE_LIST_LIVE_VERIFICATION_DOC
 ```
 
 Aufgaben:
 
 ```text
-- RDAP72 lokal installieren.
+- RDAP73 lokal installieren.
 - node --check fuer remote-modboard.js und rdap28-admin-notes.js ausfuehren.
 - stepdone.cmd nur wenn sauber.
 - Danach Webserver-Deploy, weil Frontend-Code unter remote-modboard/ geaendert wurde.
 - Browser pruefen:
   - Admin-Notizen sichtbar.
-  - technische Statusbloecke nicht mehr prominent.
+  - technische Chips nicht prominent.
+  - Hinweistext knapp.
+  - Notiz-Titel menschlich lesbar.
   - Create/Update weiterhin ok.
-  - User-Detail/Navigation weiterhin ok.
   - Delete/Deactivate nicht sichtbar.
 ```
 

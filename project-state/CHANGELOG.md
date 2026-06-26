@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST
+
+```text
+- Admin-Notes-Liste weiter enttechnisiert.
+- Frontend-only Style-Injection rdap73AdminNotesHumanReadableListStyle ergaenzt.
+- Alte Admin-Notes Style-Injections RDAP72/RDAP71/RDAP69/RDAP67 werden beim Laden entfernt.
+- Technische Chips Admin-only / Read/Create/Update aus Hauptansicht ausgeblendet.
+- Hinweistext in Liste vereinfacht.
+- Technische noteUid wird nicht mehr als sichtbare Hauptueberschrift angezeigt.
+- Notiz-Titel wird menschlich aus noteUid formatiert.
+- Keine Backend-Route geaendert.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Kein Delete/Deactivate.
+```
+
 ## 2026-06-26 - RDAP72_ADMIN_NOTES_HIDE_TECHNICAL_STATUS
 
 ```text

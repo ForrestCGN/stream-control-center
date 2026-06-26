@@ -39,6 +39,7 @@ window.addEventListener('scroll', () => {
 document.addEventListener('DOMContentLoaded', () => {
   exposeMainRouterApi();
   injectAdminNotesPolishStyles();
+  installAdminNotesHumanReadableList();
   bindNavigation();
   bindDelegatedNavigation();
   bindOptional('refreshButton', 'click', () => loadDashboard('manual'));
@@ -61,13 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function injectAdminNotesPolishStyles() {
-  if (document.getElementById('rdap72AdminNotesHideTechnicalStatusStyle')) return;
-  ['rdap71AdminNotesCleanLayoutStyle', 'rdap69AdminNotesCompactLayoutStyle', 'rdap67AdminNotesPolishStyle'].forEach((id) => {
+  if (document.getElementById('rdap73AdminNotesHumanReadableListStyle')) return;
+  ['rdap72AdminNotesHideTechnicalStatusStyle', 'rdap71AdminNotesCleanLayoutStyle', 'rdap69AdminNotesCompactLayoutStyle', 'rdap67AdminNotesPolishStyle'].forEach((id) => {
     const oldStyle = document.getElementById(id);
     if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
   });
   const style = document.createElement('style');
-  style.id = 'rdap72AdminNotesHideTechnicalStatusStyle';
+  style.id = 'rdap73AdminNotesHumanReadableListStyle';
   style.textContent = `
     [data-page-panel="admin-notes"]{display:grid!important;gap:12px!important}
     [data-page-panel="admin-notes"] .module-page-header{padding:14px 16px!important;margin-bottom:0!important;border-radius:18px!important}
@@ -168,8 +169,91 @@ function injectAdminNotesPolishStyles() {
     [data-page-panel="admin-notes"] > .page-grid > .cgn-card:nth-child(1) .card-head .cgn-chip{font-size:11.5px!important;opacity:.78!important}
     #adminNotesNotice{font-size:12px!important;padding:7px 9px!important}
 
+    /* RDAP73: technische Labels aus der Hauptansicht nehmen und Liste lesbarer benennen. */
+    .admin-note-grid .admin-note-status-card:nth-child(3) .cgn-chip{display:none!important}
+    [data-page-panel="admin-notes"] > .page-grid > .cgn-card:nth-child(1) .card-head .cgn-chip{display:none!important}
+    [data-page-panel="admin-notes"] > .page-grid > .cgn-card:nth-child(1) .card-head{align-items:flex-start!important}
+    .admin-note-item > strong:first-child{font-size:16px!important;letter-spacing:0!important}
+    .admin-note-item > small{font-size:11.5px!important;color:var(--muted)!important}
+
   `;
   document.head.appendChild(style);
+}
+
+
+function installAdminNotesHumanReadableList() {
+  if (document.documentElement.dataset.rdap73AdminNotesHumanReadableBound === '1') return;
+  document.documentElement.dataset.rdap73AdminNotesHumanReadableBound = '1';
+
+  const apply = () => {
+    simplifyAdminNotesNotice();
+    document.querySelectorAll('#adminNotesList .admin-note-item').forEach(humanizeAdminNoteItem);
+  };
+
+  window.setTimeout(apply, 0);
+  window.setTimeout(apply, 100);
+  const observer = new MutationObserver(() => window.setTimeout(apply, 0));
+  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+}
+
+function simplifyAdminNotesNotice() {
+  const notice = document.getElementById('adminNotesNotice');
+  if (!notice) return;
+  const source = notice.dataset.rdap73OriginalText || notice.textContent || '';
+  const countMatch = source.match(/(\d+)\s+Admin-Notiz/i) || (notice.textContent || '').match(/(\d+)\s+Admin-Notiz/i);
+  if (!countMatch) return;
+  const count = Number(countMatch[1]);
+  const label = count === 1 ? '1 Notiz geladen' : `${count} Notizen geladen`;
+  if (notice.textContent.trim() !== label) {
+    notice.dataset.rdap73OriginalText = source;
+    notice.textContent = label;
+  }
+}
+
+function humanizeAdminNoteItem(item) {
+  if (!item || item.dataset.rdap73Humanized === '1') return;
+  const title = item.querySelector('strong');
+  if (title) {
+    const raw = (title.textContent || '').trim();
+    const readable = formatAdminNoteUidTitle(raw);
+    if (readable) {
+      title.dataset.rdap73OriginalNoteUid = raw;
+      title.textContent = readable;
+    }
+  }
+
+  const meta = item.querySelector('small');
+  if (meta) {
+    const rawMeta = (meta.textContent || '').trim();
+    const readableMeta = formatAdminNoteMeta(rawMeta);
+    if (readableMeta) {
+      meta.dataset.rdap73OriginalMeta = rawMeta;
+      meta.textContent = readableMeta;
+    }
+  }
+  item.dataset.rdap73Humanized = '1';
+}
+
+function formatAdminNoteUidTitle(value) {
+  const match = String(value || '').match(/^admin_note_(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_/);
+  if (!match) return '';
+  const [, year, month, day, hour, minute] = match;
+  return `Notiz vom ${day}.${month}.${year} um ${hour}:${minute} Uhr`;
+}
+
+function formatAdminNoteMeta(value) {
+  const statusMatch = String(value || '').match(/Status:\s*([^·]+?)(?:\s*·|$)/i);
+  const dateMatch = String(value || '').match(/Aktualisiert:\s*(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/i);
+  const parts = [];
+  if (dateMatch) {
+    const [, year, month, day, hour, minute] = dateMatch;
+    parts.push(`Aktualisiert: ${day}.${month}.${year}, ${hour}:${minute} Uhr`);
+  }
+  if (statusMatch) {
+    const status = statusMatch[1].trim();
+    parts.push(status === 'active' ? 'aktiv' : `Status: ${status}`);
+  }
+  return parts.join(' · ');
 }
 
 function bindNavigation() {

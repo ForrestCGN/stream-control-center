@@ -1,9 +1,9 @@
 # FILES
 
-Stand: RDAP72_ADMIN_NOTES_HIDE_TECHNICAL_STATUS  
+Stand: RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST  
 Datum: 2026-06-26
 
-## Geaendert in RDAP72
+## Geaendert in RDAP73
 
 ```text
 remote-modboard/backend/public/assets/remote-modboard.js
@@ -18,8 +18,8 @@ remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ## Doku
 
 ```text
-docs/current/RDAP72_ADMIN_NOTES_HIDE_TECHNICAL_STATUS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP72.md
+docs/current/RDAP73_ADMIN_NOTES_HUMAN_READABLE_LIST.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP73.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
