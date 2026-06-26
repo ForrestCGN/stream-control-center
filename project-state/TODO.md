@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP57_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_PREPARED  
+Stand: RDAP57B_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -11,7 +11,7 @@ Datum: 2026-06-26
 - [x] RDAP49B Live-Bestaetigung Admin-User-Detail dokumentiert.
 - [x] RDAP50 Bruecke User-Detail zu Admin-Notizen geplant.
 - [x] RDAP51 Bruecke User-Detail zu Admin-Notizen Frontend-only umgesetzt.
-- [x] RDAP51 live bestaetigt.
+- [x] RDAP51 live bestaetigt: Kontext-Hinweis, Zieluser-Uebernahme, Ruecksprung und Hinweis ausblenden sichtbar.
 - [x] RDAP51B Live-Bestaetigung dokumentiert.
 - [x] RDAP52 Permission-/Rollen-Read-Details geplant.
 - [x] RDAP53 Permission-Read-Detail-Polish umgesetzt und live sichtbar.
@@ -20,15 +20,13 @@ Datum: 2026-06-26
 - [x] RDAP55 Empty-Targets-Polish umgesetzt und live sichtbar.
 - [x] RDAP55B Live-Bestaetigung dokumentiert.
 - [x] RDAP56 Permission-Detail naechster Scope geplant.
-- [x] RDAP57 Permission-Read-Detail Categories-Polish vorbereitet.
+- [x] RDAP57 Permission-Read-Detail Categories-Polish umgesetzt und live sichtbar.
+- [x] RDAP57B Live-Bestaetigung dokumentiert.
 
 ## Offen / Naechstes
 
-- [ ] RDAP57 lokal testen.
-- [ ] RDAP57 stepdone.
-- [ ] RDAP57 aus frischem GitHub/dev-Clone deployen.
-- [ ] RDAP57 live bestaetigen.
-- [ ] RDAP57B Live-Bestaetigung dokumentieren.
+- [ ] RDAP58 planen: Permission-Read-Detail-Strang abschliessen oder neuen Bereich waehlen.
+- [ ] Effektive Rechte weiterhin nur read-only darstellen.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.

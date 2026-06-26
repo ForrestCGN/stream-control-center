@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP57_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_PREPARED  
+Stand: RDAP57B_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -20,15 +20,19 @@ RDAP54 Empty-Targets-Polish wurde geplant.
 RDAP55 Empty-Targets-Polish ist vorbereitet, deployed und live sichtbar.
 RDAP55B dokumentiert die RDAP55 Live-Bestaetigung.
 RDAP56 Permission-Detail naechster Scope wurde geplant.
-RDAP57 Permission-Read-Detail Categories-Polish ist vorbereitet.
+RDAP57 Permission-Read-Detail Categories-Polish ist vorbereitet, deployed und live sichtbar.
+RDAP57B dokumentiert die RDAP57 Live-Bestaetigung.
 ```
 
-## RDAP57 vorbereiteter Stand
+## RDAP57 live bestaetigter Stand
 
 ```text
-Admin-User-Detail bleibt read-only.
-Effektive Rollen-Rechte werden nach Bereichen gruppiert.
-Admin-/Write-nahe Rechte werden als Modellanzeige erklaert.
+Admin-User-Detail funktioniert weiter.
+ForrestCGN @forrestcgn / tw:127709954 ist auswaehlbar.
+Effektive Rollen-Rechte bleiben sichtbar.
+8 Rollenrechte werden angezeigt.
+Rechte sind gruppiert: Admin / Agent-Status / Dashboard-Remote.
+Admin-/Write-nahe Rechte sind als Modellanzeige markiert.
 0-Targets-Erklaerung bleibt erhalten.
 Diagnose bleibt erhalten.
 Keine Schreibbuttons fuer Rollen/Gruppen/Permissions/Sessions sichtbar.
@@ -43,6 +47,26 @@ Live-Pfad: /opt/stream-control-center/remote-modboard
 DB: MariaDB 11.8.6 / c3stream_control
 DB-Client: /root/rdap29_mysql_client.cnf
 Branch: dev
+```
+
+## Live-Diagnose RDAP57
+
+```text
+rolePermissions gesamt: 21
+effektive Rollenrechte: 8
+modulePermissions gesamt: 0
+passende Module-/Targets: 0
+Gruppierung: Admin · Agent/Status · Dashboard/Remote
+Quelle: /api/remote/auth/model
+```
+
+## Auth-/Login aktueller Funktionsstand
+
+```text
+Twitch-Login ist aktiv/freigegeben.
+Live-Env: RDAP_TWITCH_OAUTH_START_RELEASED=true.
+GET /api/remote/auth/twitch/start liefert bei aktivem Login HTTP 302.
+GET /api/remote/auth/twitch/callback liefert ohne gueltigen OAuth-State HTTP 403.
 ```
 
 ## Weiterhin deaktiviert
@@ -62,6 +86,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP57 lokal testen, stepdone, Webserver-Deploy, Live bestaetigen.
-Danach RDAP57B_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_LIVE_CONFIRMED_DOCS.
+RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN
 ```
