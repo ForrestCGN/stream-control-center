@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN  
+Stand: RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -23,11 +23,21 @@ Datum: 2026-06-26
 - [x] RDAP57 Permission-Read-Detail Categories-Polish umgesetzt und live sichtbar.
 - [x] RDAP57B Live-Bestaetigung dokumentiert.
 - [x] RDAP58 Permission-Read-Detail-Strang bewertet / Wrapup geplant.
+- [x] RDAP59 Admin-Notizen Community-Read-Scope geplant.
 
 ## Offen / Naechstes
 
-- [ ] RDAP59 planen: Admin-Notizen Community-Read-Scope klaeren.
-- [ ] Klaeren, welche Admin-Notizen ausserhalb des Admin-Bereichs sichtbar werden duerfen.
+- [ ] RDAP60 planen: Admin-Note Update/Deactivate-Scope klaeren oder bewusst weiter read-only bleiben.
+- [ ] Klaeren, ob zuerst Update oder Deactivate geplant wird.
+- [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm/Readback.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen, bis ein separater Scope umgesetzt und bestaetigt ist.
-- [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
+
+## Weiterhin verboten / nicht versehentlich bauen
+
+- [ ] Keine Community-Read-Freigabe fuer Admin-Notizen ohne separaten Scope.
+- [ ] Keine bestehende Admin-Readroute fuer Public-/Community-/Profil-UI verwenden.
+- [ ] Kein physisches Delete.
+- [ ] Keine Rollen-/Gruppen-/Permission-Writes.
+- [ ] Keine Session-Revocation in der UI.
+- [ ] Keine Agent-/OBS-/Sound-/Overlay-/Command-/Channelpoints-Control.

@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP58_PERMISSION_READ_DETAIL_WRAPUP_OR_NEXT_AREA_PLAN  
+Stand: RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -23,6 +23,7 @@ RDAP56 Permission-Detail naechster Scope wurde geplant.
 RDAP57 Permission-Read-Detail Categories-Polish ist vorbereitet, deployed und live sichtbar.
 RDAP57B dokumentiert die RDAP57 Live-Bestaetigung.
 RDAP58 schliesst/ bewertet den Permission-Read-Detail-Strang und plant den naechsten Bereich.
+RDAP59 klaert den Admin-Notes Community-Read-Scope als Doku-only/Plan-only.
 ```
 
 ## RDAP57 live bestaetigter Stand
@@ -46,6 +47,35 @@ Permission-Read-Detail-Strang ist vorerst ausreichend rund.
 Keine weiteren Permission-Read-Polishes noetig.
 Keine Permission-Writes direkt danach bauen.
 Keine Rollen-/Gruppen-Schreibverwaltung direkt danach bauen.
+```
+
+## RDAP59 Entscheidung
+
+```text
+Admin-Notizen bleiben vorerst Admin-only.
+Community-Read wird nicht gebaut.
+Bestehende Admin-Readroute wird nicht fuer Community-/Profil-/Public-UI verwendet.
+Falls spaeter noetig, dann nur separater, stark begrenzter read-only Scope mit eigener Planung, eigener Permission, Datenminimierung und ohne Public-Leak.
+```
+
+## Admin-Notes aktueller Strukturstand
+
+```text
+Bestehende Admin-Notes-Routen liegen in:
+remote-modboard/backend/src/routes/admin-users.routes.js
+
+Nicht vorhanden unter GitHub/dev beim RDAP59-Startcheck:
+remote-modboard/backend/src/routes/admin-users-admin-notes.routes.js
+
+Bestehende Admin-Readroute:
+GET /api/remote/admin/users/admin-notes/read
+
+Bestehende Create-Route:
+POST /api/remote/admin/users/admin-notes/create
+
+Weiterhin deaktiviert:
+POST /api/remote/admin/users/admin-notes/update
+POST /api/remote/admin/users/admin-notes/deactivate
 ```
 
 ## Live-System
@@ -96,5 +126,11 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN
+RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN
+```
+
+Alternative, falls noch kein Write-Scope gewuenscht ist:
+
+```text
+RDAP60_ADMIN_NOTES_READ_ONLY_UI_STATUS_POLISH_PLAN
 ```
