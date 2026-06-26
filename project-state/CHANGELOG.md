@@ -1,12 +1,9 @@
 # CHANGELOG
 
-## RDAP64B_ADMIN_NOTE_UPDATE_UI_ROUTER_HOTFIX - 2026-06-26
+## 2026-06-26 - RDAP64C_ADMIN_NOTE_UPDATE_UI_EXISTING_NAV_BIND_HOTFIX
 
-```text
-- Hotfix fuer leere Admin-Seiten nach RDAP64 vorbereitet.
-- Admin-Notizen data-tab von read/create/update zurueck auf read/create gesetzt.
-- setRdap40Page-Aufrufe fuer Admin-Notizen wieder auf read/create gesetzt.
-- Safety-Render fuer bereits aktive Admin-Notizen/User-Detail-Seite ergaenzt.
-- Update-UI-Code bleibt erhalten.
-- Kein Backend/DB/Permission/Deactivate/Delete.
-```
+- Existing-Nav-Bind-Hotfix fuer Admin-Notizen und User-Detail gebaut.
+- Vorhandene statische Buttons mit `data-page="admin-notes"` und `data-page="admin-user-detail"` werden gebunden.
+- Delayed Panel-Set gegen Haupt-Router-Nachlauf ergaenzt.
+- Keine Backend-/DB-/Permission-Aenderung.
+- Deactivate/Delete/Community-Read bleiben aus.

@@ -1,48 +1,46 @@
 # CURRENT_STATUS
 
-Stand: RDAP64B_ADMIN_NOTE_UPDATE_UI_ROUTER_HOTFIX  
+Stand: RDAP64C_ADMIN_NOTE_UPDATE_UI_EXISTING_NAV_BIND_HOTFIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ## Aktuell
 
 ```text
-RDAP61: Admin-Note Update-Backend live aktiv.
-RDAP62: Status-Semantik live bereinigt.
-RDAP63: Update-UI-Scope geplant.
-RDAP64: Update-UI implementiert, aber Live-Browser zeigte leere Admin-Seiten.
-RDAP64B: Frontend-Router/Tab-Hotfix vorbereitet.
+RDAP64 implementierte die Admin-Note Update-UI in der bestehenden Admin-Notes-UI.
+RDAP64B korrigierte Tab-/Router-Semantik, reichte live aber nicht aus.
+RDAP64C bindet vorhandene statische Admin-Nav-Buttons explizit an die injizierten RDAP-Panels.
 ```
 
-## RDAP64B Zweck
-
-```text
-Nur UI-Router/Tab-Semantik korrigieren.
-Update-UI-Code bleibt erhalten.
-Keine Backend-/DB-/Permission-Aenderung.
-```
-
-## Geaenderte Datei
+## Geaendert in RDAP64C
 
 ```text
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ```
 
-## Weiterhin verboten
+## Weiterhin aktiv
 
 ```text
-Kein Deactivate.
-Kein Delete.
-Keine Backend-Route.
-Keine DB-Migration.
-Keine neue Permission.
-Keine Community-Read-Freigabe.
-Keine Rollen-/Gruppen-/Permission-Writes.
-Keine Agent-/OBS-/Sound-/Overlay-/Command-/Channelpoints-Steuerung.
+GET  /api/remote/admin/users/admin-notes/read
+POST /api/remote/admin/users/admin-notes/create
+POST /api/remote/admin/users/admin-notes/update
 ```
 
-## Naechster empfohlener Step
+## Weiterhin deaktiviert/verboten
 
 ```text
-RDAP64C_ADMIN_NOTE_UPDATE_UI_LIVE_VERIFY
+Admin-Note Deactivate
+Physisches Delete
+Community-Read fuer Admin-Notizen
+Permission-/Rollen-/Gruppen-Writes
+Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
+freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
+```
+
+## Naechster Schritt
+
+```text
+Live-Test RDAP64C.
+Bei Erfolg: RDAP64D_ADMIN_NOTE_UPDATE_UI_LIVE_CONFIRMED_DOCS.
+Bei Misserfolg: Browser-Konsole/Netzwerk/Asset-Auslieferung pruefen.
 ```

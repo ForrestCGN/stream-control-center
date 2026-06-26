@@ -125,9 +125,8 @@
 
   function injectNavigation() {
     const adminSub = document.getElementById("nav-admin");
-    if (!adminSub) return;
 
-    if (!adminSub.querySelector('[data-page="admin-user-detail"]')) {
+    if (adminSub && !adminSub.querySelector('[data-page="admin-user-detail"]')) {
       const detailButton = document.createElement("button");
       detailButton.className = "nav-link";
       detailButton.type = "button";
@@ -136,34 +135,59 @@
       detailButton.dataset.tab = "read-only";
       detailButton.dataset.page = "admin-user-detail";
       detailButton.textContent = "User-Detail";
-      detailButton.addEventListener("click", () => {
-        setRdap40Page("admin-user-detail", { section: "Admin", title: "User-Detail", tab: "read-only" });
-        document.body.classList.remove("nav-collapsed");
-        if (!targetUsersLoaded) void loadTargetUsers("detail-nav");
-        renderAdminUserDetail(latestAuthModelResult);
-      });
       adminSub.insertBefore(detailButton, adminSub.firstChild || null);
     }
 
-    if (adminSub.querySelector('[data-page="admin-notes"]')) return;
+    if (adminSub && !adminSub.querySelector('[data-page="admin-notes"]')) {
+      const button = document.createElement("button");
+      button.className = "nav-link";
+      button.type = "button";
+      button.dataset.section = "Admin";
+      button.dataset.title = "Admin-Notizen";
+      button.dataset.tab = "read/create";
+      button.dataset.page = "admin-notes";
+      button.textContent = "Admin-Notizen";
+      adminSub.insertBefore(button, adminSub.firstChild || null);
+    }
 
-    const button = document.createElement("button");
-    button.className = "nav-link";
-    button.type = "button";
-    button.dataset.section = "Admin";
-    button.dataset.title = "Admin-Notizen";
-    button.dataset.tab = "read/create";
-    button.dataset.page = "admin-notes";
-    button.textContent = "Admin-Notizen";
-    button.addEventListener("click", () => {
-      setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create" });
-      clearNotesBridgeContext();
-      document.body.classList.remove("nav-collapsed");
-      if (!targetUsersLoaded) void loadTargetUsers("nav");
-      loadAdminNotes("nav");
+    bindExistingAdminNavigationButtons();
+  }
+
+  function bindExistingAdminNavigationButtons() {
+    document.querySelectorAll('[data-page="admin-notes"]').forEach((button) => {
+      if (button.dataset.rdapAdminNotesBound === "1") return;
+      button.dataset.rdapAdminNotesBound = "1";
+      button.addEventListener("click", () => {
+        showAdminNotesPanelFromNavigation();
+      });
     });
 
-    adminSub.insertBefore(button, adminSub.firstChild || null);
+    document.querySelectorAll('[data-page="admin-user-detail"]').forEach((button) => {
+      if (button.dataset.rdapAdminUserDetailBound === "1") return;
+      button.dataset.rdapAdminUserDetailBound = "1";
+      button.addEventListener("click", () => {
+        showAdminUserDetailPanelFromNavigation();
+      });
+    });
+  }
+
+  function showAdminNotesPanelFromNavigation() {
+    setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create" });
+    clearNotesBridgeContext();
+    document.body.classList.remove("nav-collapsed");
+    if (!targetUsersLoaded) void loadTargetUsers("nav");
+    loadAdminNotes("nav");
+    window.setTimeout(() => setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create" }), 0);
+    window.setTimeout(() => setRdap40Page("admin-notes", { section: "Admin", title: "Admin-Notizen", tab: "read/create" }), 50);
+  }
+
+  function showAdminUserDetailPanelFromNavigation() {
+    setRdap40Page("admin-user-detail", { section: "Admin", title: "User-Detail", tab: "read-only" });
+    document.body.classList.remove("nav-collapsed");
+    if (!targetUsersLoaded) void loadTargetUsers("detail-nav");
+    renderAdminUserDetail(latestAuthModelResult);
+    window.setTimeout(() => setRdap40Page("admin-user-detail", { section: "Admin", title: "User-Detail", tab: "read-only" }), 0);
+    window.setTimeout(() => setRdap40Page("admin-user-detail", { section: "Admin", title: "User-Detail", tab: "read-only" }), 50);
   }
 
   function injectPanel() {
@@ -1065,7 +1089,7 @@
   }
 
   function restoreInjectedAdminPanelVisibility() {
-    const active = document.querySelector('.nav-link.active[data-page]');
+    const active = document.querySelector('.active[data-page]');
     const titleEl = document.querySelector('[data-rdap-page-title]') || document.getElementById('pageTitle');
     const title = titleEl ? String(titleEl.textContent || '').trim().toLowerCase() : '';
     const activePage = active && active.dataset ? active.dataset.page : '';
@@ -1090,7 +1114,7 @@
     document.querySelectorAll(".rdap-view").forEach((panel) => {
       panel.hidden = panel.dataset.pagePanel !== page;
     });
-    document.querySelectorAll(".nav-link").forEach((button) => {
+    document.querySelectorAll("[data-page]").forEach((button) => {
       if (button.dataset && button.dataset.page) button.classList.toggle("active", button.dataset.page === page);
     });
     if (meta) {
