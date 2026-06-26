@@ -28,12 +28,17 @@
       .rdap53-row strong{color:#fff;font-size:13px}
       .rdap53-row small{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.35}
       .rdap53-row--empty{border-style:dashed;border-color:rgba(27,216,255,.24);background:rgba(27,216,255,.055)}
+      .rdap53-category{display:grid;gap:8px;padding:10px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+      .rdap53-category-head{display:flex;justify-content:space-between;gap:10px;align-items:center;color:#fff;font-size:13px;font-weight:800}
+      .rdap53-category-head small{color:var(--muted);font-size:12px;font-weight:700;text-align:right}
+      .rdap53-row--admin{border-color:rgba(255,209,102,.22);background:rgba(255,209,102,.055)}
+      .rdap53-row--admin small em{color:#ffe4a3;font-style:normal;font-weight:700}
       .rdap53-note{padding:12px;border-radius:16px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.20);color:#dff8ff;line-height:1.45}
       .rdap53-note strong{color:#fff}
       .rdap53-diagnostic-list{display:grid;gap:6px;margin-top:8px}
       .rdap53-diagnostic-line{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
       .rdap53-diagnostic-line strong{color:#fff;text-align:right}
-      @media (max-width:1000px){.rdap53-permission-grid{grid-template-columns:1fr}.rdap53-diagnostic-line{display:block}.rdap53-diagnostic-line strong{text-align:left}}
+      @media (max-width:1000px){.rdap53-permission-grid{grid-template-columns:1fr}.rdap53-diagnostic-line,.rdap53-category-head{display:block}.rdap53-diagnostic-line strong,.rdap53-category-head small{text-align:left}}
     `;
     document.head.appendChild(style);
   }
@@ -152,7 +157,7 @@
 
     setChip('rdap53RolePermissionPill', latestResult && latestResult.ok, `${rolePermissions.length} Rechte`);
     setChip('rdap53ModulePermissionPill', latestResult && latestResult.ok, `${modulePermissions.length} Targets`);
-    setHtml('rdap53RolePermissions', renderRows(rolePermissions, renderRolePermissionRow, renderRolePermissionEmpty));
+    setHtml('rdap53RolePermissions', renderRolePermissionGroups(rolePermissions));
     setHtml('rdap53ModulePermissions', renderRows(modulePermissions, renderModulePermissionRow, () => renderModulePermissionEmpty(allRolePermissions, allModulePermissions, rolePermissions)));
 
     const userLabel = selectedUser ? formatUser(selectedUser) : (selectedUid || 'kein User ausgewählt');
@@ -218,11 +223,77 @@
     return `<div class="rdap53-row rdap53-row--empty"><strong>Keine Modul-/Targetrechte vorhanden.</strong><small>${escapeHtml(moduleText)} ${escapeHtml(roleText)} Das ist kein Fehler und keine fehlgeschlagene Berechtigungsprüfung.</small></div>`;
   }
 
+  function renderRolePermissionGroups(rows) {
+    const values = Array.isArray(rows) ? rows : [];
+    if (!values.length) return renderRolePermissionEmpty();
+
+    const groups = buildPermissionGroups(values);
+    return groups.map((group) => {
+      if (!group.rows.length) return '';
+      const rowsHtml = group.rows.map(renderRolePermissionRow).join('');
+      return `<div class="rdap53-category"><div class="rdap53-category-head"><span>${escapeHtml(group.label)}</span><small>${escapeHtml(group.rows.length)} Recht(e) · read-only Modellanzeige</small></div>${rowsHtml}</div>`;
+    }).join('');
+  }
+
+  function buildPermissionGroups(rows) {
+    const groups = [
+      { key: 'admin', label: 'Admin', rows: [] },
+      { key: 'agent', label: 'Agent / Status', rows: [] },
+      { key: 'dashboard', label: 'Dashboard / Remote', rows: [] },
+      { key: 'other', label: 'Sonstige Rechte', rows: [] }
+    ];
+    const map = new Map(groups.map(group => [group.key, group]));
+
+    rows.forEach((row) => {
+      const permissionKey = readKey(row, 'permission_key') || readKey(row, 'permissionKey');
+      const category = categorizePermission(permissionKey);
+      const group = map.get(category) || map.get('other');
+      group.rows.push(row);
+    });
+
+    groups.forEach(group => group.rows.sort(comparePermissionRows));
+    return groups;
+  }
+
+  function comparePermissionRows(a, b) {
+    return String(readKey(a, 'permission_key')).localeCompare(String(readKey(b, 'permission_key')), 'de');
+  }
+
+  function categorizePermission(permissionKey) {
+    const key = String(permissionKey || '').toLowerCase();
+    if (key.startsWith('admin.')) return 'admin';
+    if (key.startsWith('agent.')) return 'agent';
+    if (key.startsWith('dashboard.') || key.startsWith('remote.')) return 'dashboard';
+    return 'other';
+  }
+
+  function describePermission(permissionKey) {
+    const descriptions = {
+      'admin.audit.read': 'Audit-/Protokollansicht lesen.',
+      'admin.roles.manage': 'Modell zeigt ein Verwaltungsrecht; Rollen-/Gruppen-Schreibverwaltung ist in der UI weiterhin nicht gebaut.',
+      'admin.users.manage': 'Modell zeigt ein Verwaltungsrecht; User-Schreibverwaltung bleibt weiterhin deaktiviert.',
+      'admin.users.note.read': 'Interne Admin-Notizen lesen.',
+      'admin.users.note.write': 'Admin-Note Create ist bewusst vorbereitet/live; Update, Deactivate und Delete bleiben aus.',
+      'agent.status.read': 'Agent-/Statusdaten lesen; keine Agent-Actions.',
+      'dashboard.read': 'Dashboard anzeigen.',
+      'remote.view': 'Remote-Modboard anzeigen.'
+    };
+    return descriptions[permissionKey] || 'Read-only Anzeige aus dem Auth-Modell. Keine UI-Freigabe.';
+  }
+
+  function isAdminOrWriteLike(permissionKey) {
+    const key = String(permissionKey || '').toLowerCase();
+    return key.startsWith('admin.') || key.includes('.write') || key.includes('.manage') || key.includes('.delete') || key.includes('.deactivate') || key.includes('.revoke');
+  }
+
   function renderRolePermissionRow(row) {
     const roleKey = readKey(row, 'role_key') || 'role';
     const permissionKey = readKey(row, 'permission_key') || 'permission';
     const effect = readKey(row, 'effect') || '—';
-    return `<div class="rdap53-row"><strong>${escapeHtml(permissionKey)}</strong><small>via Rolle: ${escapeHtml(roleKey)} · Effekt: ${escapeHtml(effect)}</small></div>`;
+    const adminNote = isAdminOrWriteLike(permissionKey)
+      ? ' <em>Modellanzeige: keine UI-Schreibfreigabe.</em>'
+      : '';
+    return `<div class="rdap53-row${isAdminOrWriteLike(permissionKey) ? ' rdap53-row--admin' : ''}"><strong>${escapeHtml(permissionKey)}</strong><small>${escapeHtml(describePermission(permissionKey))}<br>via Rolle: ${escapeHtml(roleKey)} · Effekt: ${escapeHtml(effect)}${adminNote}</small></div>`;
   }
 
   function renderModulePermissionRow(row) {
@@ -245,6 +316,7 @@
       + `<div class="rdap53-diagnostic-line"><span>effektive Rollenrechte</span><strong>${escapeHtml(String(effectiveRolePermissionCount || 0))}</strong></div>`
       + `<div class="rdap53-diagnostic-line"><span>modulePermissions gesamt</span><strong>${escapeHtml(String(allModulePermissionCount || 0))}</strong></div>`
       + `<div class="rdap53-diagnostic-line"><span>passende Module-/Targets</span><strong>${escapeHtml(String(relevantModulePermissionCount || 0))}</strong></div>`
+      + '<div class="rdap53-diagnostic-line"><span>Gruppierung</span><strong>Admin · Agent/Status · Dashboard/Remote</strong></div>'
       + '<div class="rdap53-diagnostic-line"><span>Quelle</span><strong>/api/remote/auth/model</strong></div>'
       + '</div>';
   }

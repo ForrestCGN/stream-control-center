@@ -1,38 +1,34 @@
 # CHANGELOG
 
+## RDAP57_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_PREPARED - 2026-06-26
+
+- Permission-Read-Detail Categories-Polish vorbereitet.
+- Geaendert: `remote-modboard/backend/public/assets/rdap53-permission-read-detail.js`.
+- Effektive Rollen-Rechte werden read-only nach Bereichen gruppiert:
+  - Admin
+  - Agent / Status
+  - Dashboard / Remote
+  - Sonstige Rechte
+- Admin-/Write-nahe Rechte werden als Modellanzeige markiert.
+- Bekannte Permission-Keys erhalten kurze read-only Erklaerungen.
+- 0-Targets-Erklaerung bleibt erhalten.
+- Diagnose bleibt erhalten.
+- Keine neue Backend-Route.
+- Keine DB-Migration.
+- Keine Writes.
+- Kein Admin-Note Update/Deactivate/Delete.
+
 ## RDAP56_PERMISSION_DETAIL_NEXT_SCOPE_PLAN - 2026-06-26
 
-- Naechsten Permission-Detail-Scope nach RDAP55B geplant.
-- Bestaetigt:
-  - RDAP55 Empty-Targets-Polish ist live sichtbar.
-  - 0 Targets wird verstaendlich erklaert.
-  - Diagnose zeigt rolePermissions/modulePermissions-Zaehler.
-  - Keine Schreibbuttons sichtbar.
-- Bewertet:
-  - Permission-Read-Detail-Strang ist fachlich nutzbar.
-  - Direkte Permission-Writes werden nicht gebaut.
-  - Direkte Rollen-/Gruppenverwaltung wird nicht gebaut.
-- Empfohlener naechster Step:
-  - `RDAP57_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_PREPARED`
-- RDAP56 ist Doku-only.
+- Naechsten Permission-Detail-Scope geplant.
+- Empfehlung: kleiner Frontend-only Categories-Polish.
+- Doku-only.
 - Kein Webserver-Deploy noetig.
 
 ## RDAP55B_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_LIVE_CONFIRMED_DOCS - 2026-06-26
 
 - RDAP55 Live-Bestaetigung dokumentiert.
-- Bestaetigt:
-  - Admin-User-Detail funktioniert weiter.
-  - Effektive Rollen-Rechte bleiben sichtbar.
-  - 0 Targets wird jetzt verstaendlich erklaert.
-  - Diagnose zeigt rolePermissions/modulePermissions-Zaehler.
-  - Keine Schreibbuttons sichtbar.
+- 0 Targets wird live verstaendlich erklaert.
+- Diagnosewerte rolePermissions/modulePermissions dokumentiert.
 - Doku-only.
 - Kein Webserver-Deploy noetig.
-
-## RDAP55_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PREPARED - 2026-06-26
-
-- Frontend-only Empty-Targets-Polish umgesetzt.
-- `rdap53-permission-read-detail.js` erweitert.
-- Keine neue Backend-Route.
-- Keine DB-Migration.
-- Keine Writes.

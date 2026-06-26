@@ -1,13 +1,14 @@
 # FILES
 
-Stand: RDAP56_PERMISSION_DETAIL_NEXT_SCOPE_PLAN  
+Stand: RDAP57_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_PREPARED  
 Datum: 2026-06-26
 
-## Geaendert in RDAP56
+## Geaendert in RDAP57
 
 ```text
-docs/current/RDAP56_PERMISSION_DETAIL_NEXT_SCOPE_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP56.md
+remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
+docs/current/RDAP57_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_PREPARED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP57.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,51 +16,31 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Nicht geaendert in RDAP56
+## Nicht geaendert in RDAP57
 
 ```text
-Frontend-Code
+remote-modboard/backend/src/app.js
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+remote-modboard/backend/src/services/auth-db-read.service.js
 Backend-Routen
 Backend-Services
 DB-Schema
 Deploy-Script
-Permissions
+Permissions-Writes
 Auth/Login
 ```
 
-## Zuletzt geaendert in Code in RDAP55
-
-```text
-remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
-```
-
-Zweck:
-
-```text
-Frontend-only Erklaerung fuer 0 Targets bei leeren modulePermissions plus Diagnose-Zaehler.
-```
-
-## Aktuelle relevante Datenquelle
+## Relevante Datenquelle
 
 ```text
 GET /api/remote/auth/model
 ```
 
-## Aktuelle relevante Admin-Note-Routen
+## Zweck der Code-Aenderung
 
 ```text
-GET  /api/remote/admin/users/admin-notes/read
-POST /api/remote/admin/users/admin-notes/create
-POST /api/remote/admin/users/admin-notes/update      -> disabled
-POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
-```
-
-## Fuer RDAP57 relevant
-
-```text
-remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
-remote-modboard/backend/src/app.js
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/src/services/auth-db-read.service.js
-remote-modboard/backend/public/index.html
+Read-only Gruppierung effektiver Rollenrechte nach Bereichen.
+Admin-/Write-nahe Rechte als Modellanzeige erklaeren.
+0-Targets-Erklaerung und Diagnose erhalten.
 ```

@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP56_PERMISSION_DETAIL_NEXT_SCOPE_PLAN  
+Stand: RDAP57_PERMISSION_READ_DETAIL_CATEGORIES_POLISH_PREPARED  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -11,7 +11,7 @@ Datum: 2026-06-26
 - [x] RDAP49B Live-Bestaetigung Admin-User-Detail dokumentiert.
 - [x] RDAP50 Bruecke User-Detail zu Admin-Notizen geplant.
 - [x] RDAP51 Bruecke User-Detail zu Admin-Notizen Frontend-only umgesetzt.
-- [x] RDAP51 live bestaetigt: Kontext-Hinweis, Zieluser-Uebernahme, Ruecksprung und Hinweis ausblenden sichtbar.
+- [x] RDAP51 live bestaetigt.
 - [x] RDAP51B Live-Bestaetigung dokumentiert.
 - [x] RDAP52 Permission-/Rollen-Read-Details geplant.
 - [x] RDAP53 Permission-Read-Detail-Polish umgesetzt und live sichtbar.
@@ -19,14 +19,16 @@ Datum: 2026-06-26
 - [x] RDAP54 Empty-Targets-Polish geplant.
 - [x] RDAP55 Empty-Targets-Polish umgesetzt und live sichtbar.
 - [x] RDAP55B Live-Bestaetigung dokumentiert.
-- [x] RDAP56 naechsten Permission-Detail-Scope geplant.
+- [x] RDAP56 Permission-Detail naechster Scope geplant.
+- [x] RDAP57 Permission-Read-Detail Categories-Polish vorbereitet.
 
 ## Offen / Naechstes
 
-- [ ] RDAP57 planen/umsetzen: Effektive Rollenrechte read-only nach Bereichen gruppieren.
-- [ ] Admin-/Write-nahe Rechte klar als Modellanzeige markieren.
-- [ ] Bestehende 0-Targets-Erklaerung beibehalten.
-- [ ] Effektive Rechte weiterhin nur read-only darstellen.
+- [ ] RDAP57 lokal testen.
+- [ ] RDAP57 stepdone.
+- [ ] RDAP57 aus frischem GitHub/dev-Clone deployen.
+- [ ] RDAP57 live bestaetigen.
+- [ ] RDAP57B Live-Bestaetigung dokumentieren.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.
