@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN  
 Datum: 2026-06-26
 
-## Geaendert in RDAP49B
+## Geaendert in RDAP50
 
 ```text
-docs/current/RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP49B.md
+docs/current/RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP50.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,41 +15,30 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Code-Aenderung RDAP49B
+## Code-Aenderung RDAP50
 
 ```text
 Keine.
 ```
 
-## Zweck
+## Zweck RDAP50
 
 ```text
-Doku-only Live-Bestaetigung fuer RDAP49 Admin-User-Detail read-only.
+Plan-only fuer den Bruecken-Polish Admin-User-Detail -> Admin-Notizen.
 ```
 
-## Nicht geaendert in RDAP49B
+## Relevante vorhandene Dateien fuer RDAP51
 
 ```text
-Frontend-Code
-Backend-Routen
-Backend-Services
-DB-Schema
-Deploy-Script
-Permissions
-Auth/Login
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.js
 ```
 
 ## Aktuelle relevante Datenquelle
 
 ```text
 GET /api/remote/auth/model
-```
-
-## Aktuelle relevante UI-Bereiche
-
-```text
-Admin -> User-Detail
-Admin -> Admin-Notizen
 ```
 
 ## Aktuelle relevante Admin-Note-Routen

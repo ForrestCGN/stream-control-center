@@ -1,22 +1,31 @@
 # CHANGELOG
 
+## RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN - 2026-06-26
+
+- Naechsten kleinen sichtbaren UI-Polish geplant:
+  - `RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED`
+- Ziel:
+  - Bruecke `Admin -> User-Detail` zu `Admin -> Admin-Notizen` eindeutiger machen.
+  - Button `Admin-Notizen oeffnen` soll Zieluser sichtbar und nachvollziehbar uebernehmen.
+  - Kontext-Hinweis in Admin-Notizen planen.
+  - Optional Ruecksprung zu User-Detail planen.
+- Keine Code-Aenderung.
+- Keine Backend-Aenderung.
+- Keine DB-Migration.
+- Keine Permission-Verwaltung.
+- Kein Admin-Note Update/Deactivate/Delete.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS - 2026-06-26
 
 - RDAP49 Live-Bestaetigung dokumentiert.
 - Bestaetigt:
-  - `Admin -> User-Detail` ist sichtbar.
-  - User-Auswahl ist sichtbar.
-  - ForrestCGN / `tw:127709954` ist ausgewaehlt.
-  - Name/Login/UID/Status sind sichtbar.
-  - Rollen: 1.
-  - Gruppen: 0.
-  - Sessions: 4.
-  - Aktive Rolle `owner` ist sichtbar.
-  - Gruppen und Sessions werden read-only angezeigt.
-  - Sicherheitskarte `Keine Schreibverwaltung` ist sichtbar.
-  - Button `Admin-Notizen oeffnen` ist sichtbar.
+  - `Admin -> User-Detail` sichtbar.
+  - ForrestCGN / `tw:127709954` sichtbar.
+  - Rolle `owner` sichtbar.
+  - Gruppen/Sessions read-only sichtbar.
+  - Button `Admin-Notizen oeffnen` sichtbar.
 - Doku-only.
-- Kein Webserver-Deploy noetig.
 
 ## RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED - 2026-06-26
 
@@ -60,19 +69,3 @@
   - 3 Admin-Notizen geladen.
   - Create nutzt Zieluser `tw:127709954`.
 - Doku-only.
-
-## RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED - 2026-06-26
-
-- Admin-Notizen-Zieluser-Auswahl komfortabler gemacht.
-- `rdap28-admin-notes.js` erweitert:
-  - Suchfeld nach Name/Login/UID/Status/Rollen.
-  - Button `Suche leeren`.
-  - Trefferanzeige gefiltert/gesamt.
-  - Ausgewaehlter Zieluser bleibt sichtbar, auch wenn der Filter ihn nicht trifft.
-  - `window.RdapAdminNotes.setTargetSearch(term)` fuer Diagnose/Komfort ergaenzt.
-- Default ForrestCGN / `tw:127709954` bleibt erhalten.
-- Read/Create nutzen weiterhin den ausgewaehlten Zieluser.
-- Keine Backend-Aenderung.
-- Keine DB-Migration.
-- Keine Permission-Verwaltung.
-- Kein Admin-Note Update/Deactivate/Delete.

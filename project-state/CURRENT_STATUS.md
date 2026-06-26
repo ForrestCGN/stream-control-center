@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -18,6 +18,7 @@ RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist live bestaetigt und dokument
 RDAP48 Admin-User-Detail read-only wurde geplant.
 RDAP49 Admin-User-Detail read-only ist live bestaetigt.
 RDAP49B dokumentiert die RDAP49 Live-Bestaetigung.
+RDAP50 plant den Bruecken-Polish User-Detail -> Admin-Notizen.
 ```
 
 ## Live-System
@@ -61,12 +62,19 @@ Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
 
 ```text
 Admin -> User-Detail ist live sichtbar.
-Datenquelle ist GET /api/remote/auth/model.
-ForrestCGN / tw:127709954 ist sichtbar und ausgewaehlt.
+ForrestCGN / tw:127709954 ist sichtbar.
 Rolle owner ist sichtbar.
-Gruppen und Sessions werden read-only angezeigt.
+Gruppen/Sessions werden read-only angezeigt.
 Button Admin-Notizen oeffnen ist sichtbar.
-Keine Schreibverwaltung ist sichtbar.
+```
+
+## RDAP50 Planstand
+
+```text
+Naechster Code-Step soll RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED sein.
+Ziel: Bruecke User-Detail -> Admin-Notizen verbessern.
+Kontext-Hinweis und optional Ruecksprung planen/umsetzen.
+Frontend-only, keine Backend-/DB-/Permission-Aenderung.
 ```
 
 ## Weiterhin deaktiviert
@@ -86,5 +94,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN
+RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED
 ```

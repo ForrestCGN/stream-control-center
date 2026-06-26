@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -17,21 +17,20 @@ Datum: 2026-06-26
 - [x] RDAP45C Live-Bestaetigung Login/Deploy-Safety dokumentiert.
 - [x] RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen live bestaetigt.
 - [x] RDAP48 Admin-User-Detail read-only geplant.
-- [x] RDAP49 Admin-User-Detail read-only vorbereitet.
-- [x] RDAP49 Webserver-Deploy aus frischem GitHub/dev-Clone ausgefuehrt.
-- [x] RDAP49 live bestaetigt: Admin -> User-Detail sichtbar.
-- [x] RDAP49 live bestaetigt: ForrestCGN / `tw:127709954` sichtbar.
-- [x] RDAP49 live bestaetigt: Rolle owner sichtbar.
-- [x] RDAP49 live bestaetigt: Gruppen/Sessions read-only sichtbar.
-- [x] RDAP49 live bestaetigt: Button Admin-Notizen oeffnen sichtbar.
-- [x] RDAP49B Live-Bestaetigung dokumentiert.
+- [x] RDAP49 Admin-User-Detail read-only live bestaetigt.
+- [x] RDAP49B Live-Bestaetigung Admin-User-Detail dokumentiert.
+- [x] RDAP50 Bruecke User-Detail -> Admin-Notizen geplant.
 
 ## Offen / Naechstes
 
-- [ ] RDAP50 planen: Bruecke User-Detail -> Admin-Notizen pruefen/polieren.
-- [ ] Optional live pruefen: Button Admin-Notizen oeffnen setzt Zieluser korrekt.
-- [ ] Optional Ruecksprung/Statushinweis zwischen User-Detail und Admin-Notizen planen.
+- [ ] RDAP51 lokal per `installstep.cmd` einspielen.
+- [ ] RDAP51 `node --check` fuer `rdap28-admin-notes.js` ausfuehren.
+- [ ] RDAP51 per `stepdone.cmd` nach GitHub/dev bringen.
+- [ ] RDAP51 Webserver-Deploy aus frischem GitHub/dev-Clone ausfuehren.
+- [ ] Live bestaetigen: Button Admin-Notizen oeffnen setzt denselben Zieluser.
+- [ ] Live bestaetigen: Kontext-Hinweis in Admin-Notizen sichtbar.
+- [ ] Live bestaetigen: Ruecksprung zu User-Detail funktioniert, falls umgesetzt.
+- [ ] Danach RDAP51B Live-Bestaetigung dokumentieren.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.
-- [ ] Rollen-/Gruppen-Schreibverwaltung bleibt gesperrt bis eigener Write-Scope geplant ist.

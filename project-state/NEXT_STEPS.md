@@ -1,44 +1,34 @@
 # NEXT_STEPS
 
-Stand: RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN
+RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED
 ```
 
 ## Ziel
 
 ```text
-Den Uebergang zwischen Admin -> User-Detail und Admin -> Admin-Notizen sauber pruefen und planen.
+Den Uebergang von Admin -> User-Detail zu Admin -> Admin-Notizen eindeutiger und sichtbarer machen.
 ```
 
-## Warum
+## Scope
 
 ```text
-RDAP49 zeigt User-Details read-only.
-RDAP47 zeigt Admin-Notizen pro Zieluser.
-Die Bruecke "Admin-Notizen oeffnen" ist sichtbar.
-Vor weiteren grossen Funktionen sollte die Verbindung sauber dokumentiert/ggf. poliert werden.
+Frontend-only.
+Vorhandene RDAP44/RDAP47 Admin-Notizen-Zieluser-Auswahl weiterverwenden.
+Vorhandenen RDAP49 User-Detail-Zustand weiterverwenden.
+Kontext-Hinweis in Admin-Notizen anzeigen, wenn von User-Detail geoeffnet.
+Optional Ruecksprung zu User-Detail anzeigen.
 ```
 
-## Moeglicher Scope RDAP50
+## Nicht in diesem Step aendern
 
 ```text
-Plan-only oder kleiner Frontend-only Step, nach echter Dateipruefung.
-Pruefen:
-- Button Admin-Notizen oeffnen setzt denselben User.
-- Admin-Notizen-Zieluser bleibt korrekt.
-- Optional Hinweis/Ruecksprung zwischen Detail und Notizen.
-- Keine neue Admin-Notizen-Implementierung.
-```
-
-## Nicht in RDAP50 tun
-
-```text
-Keine Backend-Aenderung ohne echten Bedarf.
+Keine Backend-Aenderung.
 Keine DB-Migration.
 Keine Permission-Verwaltung.
 Kein Admin-Note Update.
@@ -46,11 +36,20 @@ Kein Admin-Note Deactivate.
 Kein Delete.
 Keine Community-Read-Anbindung.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-Keine Rollen-/Gruppen-Schreibverwaltung.
 ```
 
-## Danach moeglich
+## Akzeptanzkriterien
 
 ```text
-RDAP51_PERMISSION_READ_DETAIL_POLISH_PLAN
+Button Admin-Notizen oeffnen setzt den Zieluser korrekt.
+Admin-Notizen zeigen denselben User wie User-Detail.
+Ein Kontext-Hinweis macht den Uebergang sichtbar.
+Optional Ruecksprung zu User-Detail funktioniert.
+Read/Create bleiben unveraendert.
+```
+
+## Danach
+
+```text
+RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS
 ```
