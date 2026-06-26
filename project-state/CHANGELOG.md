@@ -1,26 +1,31 @@
 # CHANGELOG
 
+## RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS - 2026-06-26
+
+- RDAP53 Live-Bestaetigung dokumentiert.
+- Bestaetigt:
+  - Admin -> User-Detail zeigt neue RDAP53-read-only Karten.
+  - Effektive Rollen-Rechte werden angezeigt.
+  - ForrestCGN / owner zeigt 8 Rollenrechte.
+  - Modulbezogene Rechte zeigen 0 Targets.
+  - 0 Targets ist plausibel, weil `/api/remote/auth/model` aktuell 0 `modulePermissions` liefert.
+  - Keine Rollen-/Gruppen-/Permission-/Session-Schreibbuttons sichtbar.
+- Live-API-Befund dokumentiert:
+  - `/api/remote/status` ok.
+  - `/api/remote/auth/model` ok/readOnly/writeEnabled=false.
+  - `rolePermissions=21`.
+  - `modulePermissions=0`.
+- Doku-only.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED - 2026-06-26
 
-- Permission-/Rollen-/Module-Read-Detail-Polish vorbereitet.
+- Frontend-only Permission-Read-Detail-Polish vorbereitet.
 - `remote-modboard/backend/src/app.js` erweitert:
-  - bestehende RDAP28/RDAP51 UI-Injektion bleibt erhalten.
-  - `rdap53-permission-read-detail.js` wird zusaetzlich einmalig eingebunden.
-  - Rueckwaertskompatibler Export `injectRdap28AdminNotesUi` bleibt erhalten.
-- Neues Frontend-Asset `remote-modboard/backend/public/assets/rdap53-permission-read-detail.js` erstellt:
-  - liest nur `/api/remote/auth/model`.
-  - zeigt fuer den ausgewaehlten Admin-User read-only Rollen-Permissions.
-  - zeigt relevante Module-/Target-Permissions fuer Rollen/Gruppen/User.
-  - zeigt Diagnosehinweis, dass Frontend keine Sicherheitsentscheidung trifft.
+  - bestehendes `rdap28-admin-notes.js` bleibt erhalten.
+  - neues read-only Asset `rdap53-permission-read-detail.js` wird injiziert.
+- Neues Asset:
+  - `remote-modboard/backend/public/assets/rdap53-permission-read-detail.js`
 - Keine neue Backend-Route.
 - Keine DB-Migration.
-- Keine Permission-Writes.
-- Keine Rollen-/Gruppen-/Session-Schreibverwaltung.
-
-## RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN - 2026-06-26
-
-- Permission-/Rollen-Read-Detail-Polish geplant.
-- Ziel: bessere read-only Sicht auf User-Rollen, Gruppen, Permissions und Module/Targets.
-- Bestehende Datenquelle `/api/remote/auth/model` reicht fuer den vorbereiteten UI-Step.
-- Keine Code-Aenderung.
-- Kein Webserver-Deploy noetig.
+- Keine Writes.

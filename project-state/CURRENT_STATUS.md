@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED  
+Stand: RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -14,18 +14,19 @@ RDAP50 Bruecke User-Detail -> Admin-Notizen wurde geplant.
 RDAP51 Bruecke User-Detail -> Admin-Notizen ist live bestaetigt.
 RDAP51B dokumentiert die RDAP51 Live-Bestaetigung.
 RDAP52 Permission-Read-Detail-Polish wurde geplant.
-RDAP53 Permission-Read-Detail-Polish ist vorbereitet.
+RDAP53 Permission-Read-Detail-Polish ist vorbereitet, deployed und live sichtbar.
+RDAP53B dokumentiert die RDAP53 Live-Bestaetigung.
 ```
 
-## RDAP53 vorbereiteter Stand
+## RDAP53 live bestaetigter Stand
 
 ```text
-Admin-User-Detail bleibt read-only.
-Permission-/Module-/Target-Details werden aus /api/remote/auth/model gelesen.
-Es gibt keine neue Backend-Route.
-Es gibt keine DB-Migration.
-Es gibt keine Permission-Writes.
-Frontend-Anzeige ist Diagnose, keine Sicherheitsentscheidung.
+Admin-User-Detail zeigt zusaetzliche RDAP53-read-only Karten.
+Effektive Rollen-Rechte sind sichtbar.
+ForrestCGN / owner zeigt 8 Rollenrechte.
+Modulbezogene Rechte sind sichtbar.
+0 Targets ist plausibel, weil /api/remote/auth/model aktuell 0 modulePermissions liefert.
+Keine Schreibbuttons fuer Rollen/Gruppen/Permissions/Sessions sichtbar.
 ```
 
 ## Live-System
@@ -37,6 +38,22 @@ Live-Pfad: /opt/stream-control-center/remote-modboard
 DB: MariaDB 11.8.6 / c3stream_control
 DB-Client: /root/rdap29_mysql_client.cnf
 Branch: dev
+```
+
+## Live-API-Befund RDAP53
+
+```text
+GET /api/remote/status:
+ok=true
+service=remote-modboard
+moduleBuild=RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED
+
+GET /api/remote/auth/model:
+ok=true
+readOnly=true
+writeEnabled=false
+rolePermissions=21
+modulePermissions=0
 ```
 
 ## Auth-/Login aktueller Funktionsstand
@@ -65,6 +82,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP53 lokal testen, stepdone, Webserver-Deploy, Live bestaetigen.
-Danach RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS.
+RDAP54_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PLAN
 ```

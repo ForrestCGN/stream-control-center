@@ -1,15 +1,13 @@
 # FILES
 
-Stand: RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED  
+Stand: RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
-## Geaendert in RDAP53
+## Geaendert in RDAP53B
 
 ```text
-remote-modboard/backend/src/app.js
-remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
-docs/current/RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP53.md
+docs/current/RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP53B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -17,22 +15,31 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Zweck
+## Nicht geaendert in RDAP53B
 
 ```text
-Read-only Permission-/Module-/Target-Detail-Polish fuer Admin -> User-Detail.
+Frontend-Code
+Backend-Routen
+Backend-Services
+DB-Schema
+Deploy-Script
+Permissions
+Auth/Login
 ```
 
-## Nicht geaendert in RDAP53
+## Zuletzt geaendert in RDAP53
 
 ```text
-Backend-Routen
-Backend-Services fuer Auth-Modell
-DB-Schema
-Admin-Note Update/Deactivate/Delete
-Rollen-/Gruppen-/Permission-Schreibverwaltung
-Session-Revocation
-Community-Read fuer Admin-Notizen
+remote-modboard/backend/src/app.js
+remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
+```
+
+Zweck:
+
+```text
+Read-only Permission-Detail-Polish fuer Admin -> User-Detail.
+Bestehende HTML-Injection erweitert.
+Neues Zusatz-Asset fuer Rollen-/Permission-/Module-/Target-Anzeige.
 ```
 
 ## Aktuelle relevante Datenquelle
@@ -41,10 +48,11 @@ Community-Read fuer Admin-Notizen
 GET /api/remote/auth/model
 ```
 
-## Aktuelle relevante Frontend-Dateien
+## Aktuelle relevante Admin-Note-Routen
 
 ```text
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
-remote-modboard/backend/src/app.js
+GET  /api/remote/admin/users/admin-notes/read
+POST /api/remote/admin/users/admin-notes/create
+POST /api/remote/admin/users/admin-notes/update      -> disabled
+POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
