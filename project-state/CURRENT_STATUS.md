@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED  
+Stand: RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -17,33 +17,22 @@ RDAP86B: RDAP86 Live-Bestaetigung dokumentiert.
 RDAP87: Sicheres AGENT_ACCESS_KEY Env-Setup dokumentiert; Doku-only.
 RDAP87B: AGENT_ACCESS_KEY gesetzt und falscher-Bearer-Reject live bestaetigt; Doku-only.
 RDAP88: Correct-Bearer-Reject-Only-Test live bestaetigt; Doku-only.
+RDAP89: Runtime-Enable-Plan dokumentiert; Doku-only.
 ```
 
-## RDAP88 Stand
+## RDAP89 Stand
 
 ```text
-- AGENT_ACCESS_KEY ist auf dem Webserver gesetzt.
-- Der echte Key wurde nicht im Chat/Doku/Git/Status/UI/Logs ausgegeben.
-- Der Correct-Bearer-Test wurde nur lokal auf dem Webserver ausgefuehrt.
-- Bearer-Token wurde nicht ausgegeben.
-- Bearer-Token-Laenge wurde nicht ausgegeben.
-- Bearer-Token-Hash wurde nicht ausgegeben.
-- Correct Bearer liefert HTTP 503 / reason=runtime_not_effectively_enabled.
-- statusApiVersion: rdap_agent86.v1.
-- runtime.accessKeyConfigured: true.
-- runtime.acceptsAgentConnections: false.
-- runtime.effectiveEnabled: false.
-- lastRejectReason: runtime_not_effectively_enabled.
-- lastRejectAccessKeyConfigured: true.
-- lastRejectConnectionProofCompared: true.
-- secretsExposed: false.
-- bearerTokenLogged: false.
-- tokenLengthLogged: false.
-- tokenHashLogged: false.
-- Verbindung bleibt disabled/reject-only.
-- acceptsAgentConnections: false.
-- actionEnabled: false.
-- productiveAgentRuntime: false.
+- Runtime-Freigabe ist nur geplant.
+- Keine Runtime wurde aktiviert.
+- Keine Stream-PC Verbindung wurde akzeptiert.
+- Kein echter WebSocket-Handshake wurde gebaut.
+- Kein Heartbeat-Receiver wurde gebaut.
+- Kein Agent wurde online gesetzt.
+- Keine Agent-Actions wurden aktiviert.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Secret-Ausgabe.
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -61,6 +50,18 @@ Korrekter Bearer liefert runtime_not_effectively_enabled.
 Stream-PC soll spaeter aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
+```
+
+## Runtime-Enable-Grundsatz
+
+```text
+AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
+
+Spaetere Runtime braucht Zwei-Stufen-Freigabe:
+1. Betreiber-Wunsch per Env.
+2. expliziter Code-/Build-Schalter in separatem Step.
+
+Heartbeat, Online-Status und Actions bleiben getrennte Stufen.
 ```
 
 ## Sicherheit
@@ -126,5 +127,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
+RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN
 ```

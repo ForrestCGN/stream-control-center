@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
+
+```text
+- Runtime-Enable-Plan fuer Stream-PC Verbindung dokumentiert.
+- Zwei-Stufen-Freigabe festgelegt.
+- AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
+- Spaetere Accept-Bedingungen fuer /agent-ws dokumentiert.
+- Heartbeat/Online/Actions als getrennte Stufen dokumentiert.
+- Mindesttests fuer spaeteren Accept-Code-Step dokumentiert.
+- Keine Runtime aktiviert.
+- Keine Stream-PC Verbindung akzeptiert.
+- Kein echter WebSocket-Handshake.
+- Kein Heartbeat-Receiver.
+- Kein Agent online.
+- Keine Agent-Actions.
+- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Secret-Ausgabe.
+- Naechsten Step RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN vorbereitet.
+- Doku-only.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP88_STREAM_PC_CONNECTION_CORRECT_BEARER_REJECT_ONLY_TEST_CONFIRMED
 
 ```text
@@ -53,33 +77,4 @@
 - Naechsten Step RDAP88_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN vorbereitet.
 - Doku-only.
 - Kein Webserver-Deploy noetig.
-```
-
-## 2026-06-26 - RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS
-
-```text
-- Sicheres Setzen von AGENT_ACCESS_KEY in /etc/stream-control-center/remote-modboard.env dokumentiert.
-- Kein Key im Repo/Chat/Doku/Status/UI/Logs.
-- Pruefung ueber accessKeyConfigured true dokumentiert.
-- Falscher Bearer nach gesetztem Key soll invalid_connection_proof liefern.
-- Korrekter Bearer darf weiterhin nur runtime_not_effectively_enabled liefern, solange Runtime disabled bleibt.
-- Keine Runtime-Aktivierung.
-- Keine akzeptierte Verbindung.
-- Keine Agent-Actions.
-- Doku-only.
-```
-
-## 2026-06-26 - RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
-
-```text
-- RDAP86 live serverseitig bestaetigt dokumentiert.
-- /api/remote/agent/status mit statusApiVersion rdap_agent86.v1 bestaetigt.
-- /api/remote/status .agent bestaetigt.
-- /api/remote/routes .agentStatusFoundation bestaetigt.
-- Reject-Test falsches Auth-Schema bestaetigt.
-- Reject-Test Bearer bei nicht gesetztem AGENT_ACCESS_KEY bestaetigt.
-- rejectCount 2 bestaetigt.
-- Keine Verbindung, keine Actions, keine DB, keine Secrets bestaetigt.
-- Naechsten Step RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS vorbereitet.
-- Doku-only.
 ```
