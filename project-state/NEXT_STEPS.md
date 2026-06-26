@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE  
+Stand: RDAP94_FIX1_MODULE_BUILD_CONTEXT  
 Datum: 2026-06-26
 
 ## Naechster Step
@@ -12,8 +12,9 @@ RDAP94B_STREAM_PC_CONNECTION_HEARTBEAT_LIVE_CONFIRM
 ## Ziel
 
 ```text
-RDAP94 lokal und live bestaetigen.
+RDAP94/RDAP94_FIX1 lokal und live bestaetigen.
 Webserver-Deploy nach stepdone.
+Build-Kontext pruefen.
 Heartbeat read-only mit beiden Gates pruefen.
 Valid heartbeat pruefen.
 Forbidden heartbeat pruefen.

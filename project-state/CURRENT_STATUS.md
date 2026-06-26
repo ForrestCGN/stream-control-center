@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE  
+Stand: RDAP94_FIX1_MODULE_BUILD_CONTEXT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -8,19 +8,18 @@ Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ```text
 RDAP94: Heartbeat read-only in-memory Code vorbereitet.
+RDAP94_FIX1: server.js Build-Kontext auf RDAP94 gesetzt.
 ```
 
-## RDAP94 Stand
+## RDAP94 Fix1
 
 ```text
-- Bestehender agent-runtime.service.js erweitert.
-- Bestehender agent-status.service.js erweitert.
-- Keine neue /agent-ws Struktur.
-- Keine neue Route.
-- Heartbeat nur read-only.
-- Heartbeat nur in-memory.
-- Keine DB.
+- server.js MODULE_BUILD von RDAP92 auf RDAP94 korrigiert.
+- statusApiVersion und moduleBuild sollen nun konsistent RDAP94 anzeigen.
+- Keine Heartbeat-Logik geaendert.
+- Keine Runtime-Logik geaendert.
 - Keine Actions.
+- Keine DB.
 - Keine Secrets.
 ```
 
@@ -34,6 +33,7 @@ runtime.acceptsAgentConnections=false
 agent.connected=false
 actionsEnabled=false
 productiveAgentRuntime=false
+heartbeatReceiverEnabled=false
 ```
 
 ## Naechster empfohlener Step

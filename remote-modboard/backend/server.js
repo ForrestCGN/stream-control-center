@@ -4,7 +4,7 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const MODULE_BUILD = 'RDAP92_STREAM_PC_CONNECTION_TRANSPORT_ACCEPT_GUARDED_NO_ACTIONS';
+const MODULE_BUILD = 'RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE';
 
 async function main() {
   const config = loadConfig();

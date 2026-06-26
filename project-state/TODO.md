@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE  
+Stand: RDAP94_FIX1_MODULE_BUILD_CONTEXT  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
@@ -13,6 +13,9 @@ RDAP94:
 - Keine DB.
 - Keine Actions.
 - Keine Secrets.
+
+RDAP94_FIX1:
+- server.js Build-Kontext auf RDAP94 korrigiert.
 ```
 
 ## Naechster Schritt
