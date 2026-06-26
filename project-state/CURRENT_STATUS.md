@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -14,66 +14,22 @@ RDAP85: Handshake-Precheck im bestehenden disabled /agent-ws Guard vorbereitet u
 RDAP85B: RDAP85 Live-Bestaetigung dokumentiert.
 RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet und live bestaetigt.
 RDAP86B: RDAP86 Live-Bestaetigung dokumentiert.
+RDAP87: Sicheres AGENT_ACCESS_KEY Env-Setup dokumentiert; Doku-only.
 ```
 
-## RDAP86 live bestaetigter Stand
+## RDAP87 Stand
 
 ```text
-/api/remote/agent/status:
-- statusApiVersion: rdap_agent86.v1
-- runtime.acceptsAgentConnections: false
-- runtime.accessKeyComparePrepared: true
-- runtime.accessKeyCompareAcceptsConnections: false
-- rejectDiagnostic.accessKeyComparePrepared: true
-- rejectDiagnostic.accessKeyCompareAcceptsConnections: false
-- rejectDiagnostic.visibleRejectReasons enthaelt access_key_not_configured
-- rejectDiagnostic.secretsExposed: false
-- rejectDiagnostic.bearerTokenLogged: false
-- rejectDiagnostic.tokenLengthLogged: false
-- rejectDiagnostic.tokenHashLogged: false
-
-/api/remote/status .agent:
-- connectionState: offline
-- actionsEnabled: false
-- productiveAgentRuntime: false
-- runtimeEffectiveEnabled: false
-- heartbeatReceiverEnabled: false
-- accessKeyComparePrepared: true
-- accessKeyCompareAcceptsConnections: false
-- rejectSecretsExposed: false
-
-/api/remote/routes .agentStatusFoundation:
-- runtimeEffectiveEnabled: false
-- heartbeatReceiverEnabled: false
-- wssRuntimeEnabled: false
-- acceptsAgentConnections: false
-- accessKeyComparePrepared: true
-- accessKeyCompareAcceptsConnections: false
-- noAgentActions: true
-```
-
-## RDAP86 Reject-Tests bestaetigt
-
-```text
-Falsches Auth-Schema:
-- HTTP 503
-- reason=invalid_connection_proof
-
-Bearer bei nicht gesetztem AGENT_ACCESS_KEY:
-- HTTP 503
-- reason=access_key_not_configured
-
-Finale Reject-Diagnose:
-- rejectCount: 2
-- lastRejectReason: access_key_not_configured
-- lastRejectHasAuthorizationHeader: true
-- lastRejectHasAgentIdHeader: true
-- lastRejectHasProtocolHeader: true
-- lastRejectAccessKeyConfigured: false
-- lastRejectConnectionProofCompared: false
-- acceptsAgentConnections: false
-- actionEnabled: false
-- productiveAgentRuntime: false
+- AGENT_ACCESS_KEY wird weiterhin nicht im Repo gespeichert.
+- AGENT_ACCESS_KEY wird nicht im Chat/Doku/Status/UI/Logs ausgegeben.
+- Env-Datei fuer Webserver: /etc/stream-control-center/remote-modboard.env.
+- Sicherer Pruefwert nach Setup: runtime.accessKeyConfigured true.
+- Falscher Bearer nach gesetztem Key soll invalid_connection_proof liefern.
+- Korrekter Bearer darf weiterhin nur runtime_not_effectively_enabled liefern, solange Runtime disabled bleibt.
+- Keine Verbindung wird angenommen.
+- Keine Runtime-Aktivierung.
+- Keine Agent-Actions.
+- Keine DB-Migration.
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -91,10 +47,10 @@ Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## Sicherheit RDAP86B
+## Sicherheit
 
 ```text
-Keine akzeptierte Stream-PC Verbindung.
+Keine akzeptierte Agent-Verbindung.
 Kein echter WebSocket-Handshake.
 Kein Heartbeat-Receiver.
 Kein Agent online.
@@ -154,5 +110,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP87_STREAM_PC_CONNECTION_ACCESS_KEY_ENV_SETUP_DOCS
+RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 ```
