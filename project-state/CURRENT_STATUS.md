@@ -1,28 +1,29 @@
 # CURRENT_STATUS
 
-Stand: RDAP78C_ADMIN_NOTES_NOTICE_HUMANIZER_STALE_COUNT_FIX  
+Stand: RDAP79_DOCS_CURRENT_STATE_AND_NEXT_STREAMPC_CONNECTION_PROMPT  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
-## Aktuell bestaetigt / vorbereitet
+## Aktuell bestaetigt
 
 ```text
 RDAP77B: Module Registry / Admin-Unterseiten sichtbar exklusiv getestet.
-RDAP78: Selected-User Reload/Count-Kontext vorbereitet.
-RDAP78B: Read-Response-User-Scope Filter vorbereitet.
-RDAP78C: Stale Notice-Humanizer Count in remote-modboard.js korrigiert.
+RDAP78C: Admin-Notes Zieluser-/Notice-/Count-Kontext getestet.
+RDAP79: Doku-Abschluss und naechster Fokus Webserver <-> Stream-PC vorbereitet.
 ```
 
-## Strukturstand
+## Admin-Notes Status
 
 ```text
-remote-modboard.js fuehrt Haupt-Router und Frontend-Registry.
-Admin wird als Obermodul registriert.
-Admin-Notizen und User-Detail sind Admin-Pages.
-Inaktive Panels werden per hidden und is-active-view konsequent versteckt.
+Admin-Notizen sind fuer jetzt eingefroren.
+User-Detail und Admin-Notizen sind getrennte Admin-Pages.
+Header, Navigation und sichtbares Panel sind synchron.
+ForrestCGN zeigt eigene Notizen.
+EngelCGN zeigt keine falschen Forrest-Notizen mehr.
+Falscher stale Count wurde in remote-modboard.js korrigiert.
 ```
 
-## Admin-Notes aktueller Backend-Stand
+## Admin-Notes Backend-Stand
 
 ```text
 GET  /api/remote/admin/users/admin-notes/read
@@ -31,12 +32,13 @@ POST /api/remote/admin/users/admin-notes/update      -> Backend confirmed aktiv
 POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
 
-## Aktueller Frontend-Fix
+## Strukturstand Remote-Modboard
 
 ```text
-simplifyAdminNotesNotice nutzt keinen alten dataset.rdap73OriginalText mehr als Quelle.
-Count wird nur noch aus aktuellem Notice-Text humanisiert.
-Keine-Notizen-Texte werden nicht mehr durch alten Count ueberschrieben.
+remote-modboard.js fuehrt Haupt-Router und Frontend-Registry.
+Admin ist Obermodul.
+Admin-Notizen und User-Detail sind Admin-Pages.
+Inaktive Panels werden per hidden und is-active-view versteckt.
 ```
 
 ## Weiterhin deaktiviert/verboten
@@ -52,8 +54,14 @@ Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
+## Naechster Hauptfokus
+
+```text
+Webserver <-> Stream-PC Verbindung
+```
+
 ## Naechster empfohlener Step
 
 ```text
-RDAP79_ADMIN_NOTES_CONTEXT_FINAL_BROWSER_VERIFICATION_AND_DOCS
+RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION
 ```

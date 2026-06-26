@@ -1,37 +1,40 @@
 # TODO
 
-Stand: RDAP78C_ADMIN_NOTES_NOTICE_HUMANIZER_STALE_COUNT_FIX  
+Stand: RDAP79_DOCS_CURRENT_STATE_AND_NEXT_STREAMPC_CONNECTION_PROMPT  
 Datum: 2026-06-26
 
-## Jetzt testen
+## Jetzt
 
 ```text
-Admin -> Admin-Notizen
-ForrestCGN auswaehlen
-EngelCGN auswaehlen
-zurueck auf ForrestCGN
+RDAP79 Doku-only lokal einspielen.
+Keine Node-Checks noetig.
+stepdone.cmd wenn Doku sauber.
+Kein Webserver-Deploy.
 ```
 
-Erwartung:
+## Danach
 
 ```text
-Count/Notice/Liste/Titel muessen immer zum aktuell ausgewaehlten Zieluser passen.
-Alte Counts duerfen nicht wieder erscheinen.
+Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP79.md
+RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION starten.
 ```
 
-## Checks
+## RDAP80 Aufgaben
 
 ```text
-node --check remote-modboard/backend/public/assets/remote-modboard.js
-node --check remote-modboard/backend/public/assets/rdap28-admin-notes.js
-git status --short
+- Startdateien lesen.
+- Agent-/Remote-Dateien suchen.
+- Bestehende remote_agent-Struktur pruefen.
+- Status-/Heartbeat-Konzept fuer Agent planen.
+- Kein Code vor go.
 ```
 
 ## Nicht machen
 
 ```text
-Kein Delete/Deactivate.
-Keine DB-Migration.
-Keine neue Permission.
-Keine Write-Freigabe.
+- Keine weitere Admin-Notes-Politur.
+- Kein Delete/Deactivate.
+- Keine OBS-/Sound-/Overlay-/Command-Actions.
+- Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
+- Keine produktiven Writes.
 ```
