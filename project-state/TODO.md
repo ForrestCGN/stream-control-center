@@ -1,27 +1,37 @@
 # TODO
 
-Stand: RDAP74_ADMIN_NOTES_HEADER_ACTIONS_DEDUP  
+Stand: RDAP75_ADMIN_NOTES_PAGE_DESIGN_CONTRACT_AND_FINDINGS  
 Datum: 2026-06-26
 
 ## Als Naechstes
 
 ```text
-RDAP75_ADMIN_NOTES_HEADER_ACTIONS_LIVE_VERIFICATION_DOC
+RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
 ```
 
 Aufgaben:
 
 ```text
-- RDAP74 lokal installieren.
-- node --check fuer remote-modboard.js und rdap28-admin-notes.js ausfuehren.
+- Startdateien lesen.
+- Header/Router-State fuer Admin-Notes gezielt pruefen.
+- Frontend-only Fix planen.
+- ZIP erst nach go bauen.
+- Lokal node --check fuer remote-modboard.js und rdap28-admin-notes.js.
 - stepdone.cmd nur wenn sauber.
-- Danach Webserver-Deploy, weil Frontend-Code unter remote-modboard/ geaendert wurde.
+- Danach Webserver-Deploy, falls remote-modboard/ geaendert wurde.
 - Browser pruefen:
-  - Header-Aktionen sichtbar.
-  - separate Toolbar nicht mehr sichtbar.
-  - Liste bleibt sichtbar.
+  - Admin-Notes sichtbar.
+  - Haupt-Header zeigt Admin-Notizen.
+  - User-Detail bleibt nicht als Header stehen.
+  - Navigation stabil.
   - Create/Update weiterhin ok.
   - Delete/Deactivate nicht sichtbar.
+```
+
+## Danach
+
+```text
+RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
 ```
 
 ## Nicht machen
@@ -33,4 +43,5 @@ Aufgaben:
 - Keine neue Permission.
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
+- Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 ```

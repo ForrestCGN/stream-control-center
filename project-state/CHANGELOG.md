@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP75_ADMIN_NOTES_PAGE_DESIGN_CONTRACT_AND_FINDINGS
+
+```text
+- Admin-Notes Seitenaufbau verbindlich festgelegt.
+- Weitere kleine Layout-Patches ohne Konzept gestoppt.
+- Live-Findings nach RDAP74 dokumentiert:
+  - Notizen-Anzahl muss zum aktuell ausgewaehlten User gehoeren.
+  - Zieluser-Wechsel muss eindeutig die Notizen dieses Users laden/anzeigen.
+  - Header/Router-State ist falsch, wenn "User-Detail" stehen bleibt, obwohl Admin-Notes sichtbar ist.
+- Zielaufbau dokumentiert:
+  - Header: Admin-Notizen | Notizen neu laden | Neue Notiz.
+  - Zieluser-Auswahl als Kontext.
+  - Liste: Notizen fuer <DisplayName>, <n> Notizen geladen.
+  - Create nur nach Klick auf Neue Notiz.
+  - Diagnose/Technik nicht prominent in Hauptansicht.
+- RDAP76 als Header/Router-State-Fix festgelegt.
+- RDAP77 als Selected-User-Reload/Count-Fix festgelegt.
+- Doku-only.
+- Kein Code.
+- Keine Backend-Route.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Kein Delete/Deactivate.
+```
+
 ## 2026-06-26 - RDAP74_ADMIN_NOTES_HEADER_ACTIONS_DEDUP
 
 ```text

@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP74_ADMIN_NOTES_HEADER_ACTIONS_DEDUP  
+Stand: RDAP75_ADMIN_NOTES_PAGE_DESIGN_CONTRACT_AND_FINDINGS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -20,20 +20,38 @@ RDAP71: Admin-Notes Clean-Layout vorbereitet; Frontend-only.
 RDAP72: technische Statusbloecke in Normalansicht ausgeblendet; Frontend-only.
 RDAP73: Admin-Notes-Liste menschlicher lesbar gemacht; Frontend-only.
 RDAP74: Header/Toolbar-Doppelstand bereinigt; Frontend-only.
+RDAP75: Admin-Notes Design-Contract und Live-Findings dokumentiert; Doku-only.
 ```
 
-## RDAP74 Umsetzung
+## RDAP75 Befund
 
 ```text
-Geaendert:
-remote-modboard/backend/public/assets/remote-modboard.js
+Weitere kleine CSS-/Optik-Patches sollen gestoppt werden, bis Header/Router-State und User-Kontext sauber sind.
 
-Art:
-- idempotente Style-Injection rdap74AdminNotesHeaderActionsDedupStyle
-- initAdminNotesHeaderActionsDedup() ergaenzt
-- Buttons "Notizen neu laden" und "Neue Notiz" in oberen Admin-Notizen-Header verschoben
-- separate Toolbar "Admin-Notizen" ausgeblendet
-- bestehende Button-IDs/Eventhandler bleiben erhalten
+Live-Findings:
+- Notizen-Anzahl muss sich eindeutig auf den aktuell ausgewaehlten User beziehen.
+- Zieluser-Wechsel muss wirklich die Notizen dieses Users zeigen/laden.
+- User-Detail als Haupt-Header bei sichtbarer Admin-Notes-Seite ist falsch.
+```
+
+## Verbindlicher Admin-Notes Zielaufbau
+
+```text
+1. Seitenheader:
+   Admin-Notizen | Notizen neu laden | Neue Notiz
+
+2. Zieluser-Auswahl:
+   ausgewaehlter User ist Kontext fuer alles darunter.
+
+3. Liste:
+   Notizen fuer <DisplayName>
+   <n> Notizen geladen
+
+4. Create:
+   nur sichtbar nach Klick auf Neue Notiz.
+
+5. Diagnose/Technik:
+   nicht prominent in Hauptansicht, spaeter hoechstens einklappbar.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -61,5 +79,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP75_ADMIN_NOTES_HEADER_ACTIONS_LIVE_VERIFICATION_DOC
+RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
 ```
