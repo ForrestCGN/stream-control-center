@@ -1,8 +1,10 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const MODULE = 'remote_agent_runtime_disabled';
-const MODULE_BUILD = 'RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED';
-const STATUS_API_VERSION = 'rdap_agent85.v1';
+const MODULE_BUILD = 'RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED';
+const STATUS_API_VERSION = 'rdap_agent86.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 
 const REJECT_DIAGNOSTIC = {
@@ -12,6 +14,8 @@ const REJECT_DIAGNOSTIC = {
   persistsToDatabase: false,
   handshakePrecheckPrepared: true,
   handshakePrecheckAcceptsConnections: false,
+  accessKeyComparePrepared: true,
+  accessKeyCompareAcceptsConnections: false,
   expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
   rejectCount: 0,
   lastRejectAt: null,
@@ -26,6 +30,8 @@ const REJECT_DIAGNOSTIC = {
   lastRejectHasProtocolHeader: false,
   lastRejectAgentIdHint: null,
   lastRejectProtocolHint: null,
+  lastRejectAccessKeyConfigured: false,
+  lastRejectConnectionProofCompared: false,
   lastRejectUserAgentHint: null,
   secretsExposed: false,
   secretsLogged: false,
@@ -35,7 +41,10 @@ const REJECT_DIAGNOSTIC = {
   authorizationHeaderLogged: false,
   cookieHeaderLogged: false,
   agentIdHeaderValueLogged: false,
-  protocolHeaderValueLogged: false
+  protocolHeaderValueLogged: false,
+  bearerTokenLogged: false,
+  tokenLengthLogged: false,
+  tokenHashLogged: false
 };
 
 function registerAgentRuntimeDisabledSkeleton(server, config = {}, options = {}) {
@@ -62,7 +71,9 @@ function registerAgentRuntimeDisabledSkeleton(server, config = {}, options = {})
       reason: precheck.reason,
       wsPath,
       agentIdHint: precheck.agentIdHint,
-      protocolHint: precheck.protocolHint
+      protocolHint: precheck.protocolHint,
+      accessKeyConfigured: precheck.accessKeyConfigured,
+      connectionProofCompared: precheck.connectionProofCompared
     });
 
     rejectUpgrade(socket, {
@@ -72,7 +83,7 @@ function registerAgentRuntimeDisabledSkeleton(server, config = {}, options = {})
     });
   });
 
-  console.log(`[remote-agent-runtime] ${MODULE_BUILD} registered disabled upgrade guard for ${wsPath}. Runtime enabled=false, actions=false, handshakePrecheck=disabled-reject-only.`);
+  console.log(`[remote-agent-runtime] ${MODULE_BUILD} registered disabled upgrade guard for ${wsPath}. Runtime enabled=false, actions=false, accessKeyCompare=disabled-reject-only.`);
 
   return buildRegistrationSummary({
     registered: true,
@@ -118,6 +129,8 @@ function buildRegistrationSummary(input = {}) {
     writeEnabled: false,
     handshakePrecheckPrepared: true,
     handshakePrecheckAcceptsConnections: false,
+    accessKeyComparePrepared: true,
+    accessKeyCompareAcceptsConnections: false,
     rejectDiagnostic: buildRejectDiagnosticSummary()
   };
 }
@@ -136,11 +149,7 @@ function isAgentWsPath(req, wsPath, config = {}) {
 
 function evaluateHandshakePrecheck(req, agentRuntime = {}) {
   if (!req || typeof req.url !== 'string') {
-    return {
-      reason: 'malformed_upgrade_request',
-      agentIdHint: null,
-      protocolHint: null
-    };
+    return buildPrecheckResult('malformed_upgrade_request');
   }
 
   const expectedAgentId = agentRuntime.expectedAgentId || 'stream-pc-main';
@@ -148,51 +157,82 @@ function evaluateHandshakePrecheck(req, agentRuntime = {}) {
   const agentId = readHeaderValue(req, 'x-scc-agent-id');
   const authorization = readHeaderValue(req, 'authorization');
   const protocolVersion = readHeaderValue(req, 'x-scc-agent-protocol');
+  const accessKey = getConfiguredAccessKey();
+  const accessKeyConfigured = agentRuntime.accessKeyConfigured === true && Boolean(accessKey);
 
   if (!agentId) {
-    return {
-      reason: 'missing_agent_id',
-      agentIdHint: null,
-      protocolHint: safeProtocolHint(protocolVersion)
-    };
+    return buildPrecheckResult('missing_agent_id', {
+      protocolHint: safeProtocolHint(protocolVersion),
+      accessKeyConfigured
+    });
   }
 
   if (agentId !== expectedAgentId) {
-    return {
-      reason: 'unknown_agent_id',
+    return buildPrecheckResult('unknown_agent_id', {
       agentIdHint: safeAgentIdHint(agentId),
-      protocolHint: safeProtocolHint(protocolVersion)
-    };
+      protocolHint: safeProtocolHint(protocolVersion),
+      accessKeyConfigured
+    });
   }
 
   if (!authorization) {
-    return {
-      reason: 'missing_connection_proof',
+    return buildPrecheckResult('missing_connection_proof', {
       agentIdHint: safeAgentIdHint(agentId),
-      protocolHint: safeProtocolHint(protocolVersion)
-    };
+      protocolHint: safeProtocolHint(protocolVersion),
+      accessKeyConfigured
+    });
   }
 
-  if (!/^Bearer\s+\S+$/i.test(authorization)) {
-    return {
-      reason: 'invalid_connection_proof',
+  const bearerToken = extractBearerToken(authorization);
+  if (!bearerToken) {
+    return buildPrecheckResult('invalid_connection_proof', {
       agentIdHint: safeAgentIdHint(agentId),
-      protocolHint: safeProtocolHint(protocolVersion)
-    };
+      protocolHint: safeProtocolHint(protocolVersion),
+      accessKeyConfigured
+    });
   }
 
   if (protocolVersion !== expectedProtocolVersion) {
-    return {
-      reason: 'protocol_version_unsupported',
+    return buildPrecheckResult('protocol_version_unsupported', {
       agentIdHint: safeAgentIdHint(agentId),
-      protocolHint: safeProtocolHint(protocolVersion)
-    };
+      protocolHint: safeProtocolHint(protocolVersion),
+      accessKeyConfigured
+    });
   }
 
-  return {
-    reason: 'runtime_not_effectively_enabled',
+  if (!accessKeyConfigured) {
+    return buildPrecheckResult('access_key_not_configured', {
+      agentIdHint: safeAgentIdHint(agentId),
+      protocolHint: safeProtocolHint(protocolVersion),
+      accessKeyConfigured: false
+    });
+  }
+
+  const proofMatches = compareSecretSafely(bearerToken, accessKey);
+  if (!proofMatches) {
+    return buildPrecheckResult('invalid_connection_proof', {
+      agentIdHint: safeAgentIdHint(agentId),
+      protocolHint: safeProtocolHint(protocolVersion),
+      accessKeyConfigured: true,
+      connectionProofCompared: true
+    });
+  }
+
+  return buildPrecheckResult('runtime_not_effectively_enabled', {
     agentIdHint: safeAgentIdHint(agentId),
-    protocolHint: safeProtocolHint(protocolVersion)
+    protocolHint: safeProtocolHint(protocolVersion),
+    accessKeyConfigured: true,
+    connectionProofCompared: true
+  });
+}
+
+function buildPrecheckResult(reason, details = {}) {
+  return {
+    reason,
+    agentIdHint: details.agentIdHint || null,
+    protocolHint: details.protocolHint || null,
+    accessKeyConfigured: details.accessKeyConfigured === true,
+    connectionProofCompared: details.connectionProofCompared === true
   };
 }
 
@@ -212,6 +252,8 @@ function recordRejectDiagnostic(req, details = {}) {
   REJECT_DIAGNOSTIC.lastRejectHasProtocolHeader = hasHeader(req, 'x-scc-agent-protocol');
   REJECT_DIAGNOSTIC.lastRejectAgentIdHint = details.agentIdHint || null;
   REJECT_DIAGNOSTIC.lastRejectProtocolHint = details.protocolHint || null;
+  REJECT_DIAGNOSTIC.lastRejectAccessKeyConfigured = details.accessKeyConfigured === true;
+  REJECT_DIAGNOSTIC.lastRejectConnectionProofCompared = details.connectionProofCompared === true;
   REJECT_DIAGNOSTIC.lastRejectUserAgentHint = safeUserAgentHint(req);
 
   REJECT_DIAGNOSTIC.secretsExposed = false;
@@ -223,6 +265,9 @@ function recordRejectDiagnostic(req, details = {}) {
   REJECT_DIAGNOSTIC.cookieHeaderLogged = false;
   REJECT_DIAGNOSTIC.agentIdHeaderValueLogged = false;
   REJECT_DIAGNOSTIC.protocolHeaderValueLogged = false;
+  REJECT_DIAGNOSTIC.bearerTokenLogged = false;
+  REJECT_DIAGNOSTIC.tokenLengthLogged = false;
+  REJECT_DIAGNOSTIC.tokenHashLogged = false;
 }
 
 function buildRejectDiagnosticSummary() {
@@ -233,6 +278,8 @@ function buildRejectDiagnosticSummary() {
     persistsToDatabase: false,
     handshakePrecheckPrepared: true,
     handshakePrecheckAcceptsConnections: false,
+    accessKeyComparePrepared: true,
+    accessKeyCompareAcceptsConnections: false,
     expectedProtocolVersion: EXPECTED_PROTOCOL_VERSION,
     rejectCount: REJECT_DIAGNOSTIC.rejectCount,
     lastRejectAt: REJECT_DIAGNOSTIC.lastRejectAt,
@@ -247,6 +294,8 @@ function buildRejectDiagnosticSummary() {
     lastRejectHasProtocolHeader: REJECT_DIAGNOSTIC.lastRejectHasProtocolHeader,
     lastRejectAgentIdHint: REJECT_DIAGNOSTIC.lastRejectAgentIdHint,
     lastRejectProtocolHint: REJECT_DIAGNOSTIC.lastRejectProtocolHint,
+    lastRejectAccessKeyConfigured: REJECT_DIAGNOSTIC.lastRejectAccessKeyConfigured,
+    lastRejectConnectionProofCompared: REJECT_DIAGNOSTIC.lastRejectConnectionProofCompared,
     lastRejectUserAgentHint: REJECT_DIAGNOSTIC.lastRejectUserAgentHint,
     visibleRejectReasons: [
       'agent_runtime_disabled',
@@ -257,10 +306,14 @@ function buildRejectDiagnosticSummary() {
       'unknown_agent_id',
       'missing_connection_proof',
       'invalid_connection_proof',
-      'protocol_version_unsupported'
+      'protocol_version_unsupported',
+      'access_key_not_configured'
     ],
     neverLogged: [
       'authorization_header_value',
+      'bearer_token',
+      'bearer_token_length',
+      'bearer_token_hash',
       'agent_access_key',
       'cookies',
       'complete_headers',
@@ -278,6 +331,9 @@ function buildRejectDiagnosticSummary() {
     cookieHeaderLogged: false,
     agentIdHeaderValueLogged: false,
     protocolHeaderValueLogged: false,
+    bearerTokenLogged: false,
+    tokenLengthLogged: false,
+    tokenHashLogged: false,
     acceptsAgentConnections: false,
     actionEnabled: false,
     productiveAgentRuntime: false
@@ -314,6 +370,29 @@ function readHeaderValue(req, headerName) {
   if (Array.isArray(value)) return String(value[0] || '').trim();
   if (typeof value === 'string') return value.trim();
   return '';
+}
+
+function extractBearerToken(authorization) {
+  const match = String(authorization || '').match(/^Bearer\s+(\S+)$/i);
+  return match ? match[1] : '';
+}
+
+function getConfiguredAccessKey() {
+  const raw = process.env.AGENT_ACCESS_KEY;
+  if (typeof raw !== 'string') return '';
+  const trimmed = raw.trim();
+  return trimmed || '';
+}
+
+function compareSecretSafely(candidate, expected) {
+  const candidateValue = String(candidate || '');
+  const expectedValue = String(expected || '');
+  if (!candidateValue || !expectedValue) return false;
+
+  const candidateDigest = crypto.createHash('sha256').update(candidateValue, 'utf8').digest();
+  const expectedDigest = crypto.createHash('sha256').update(expectedValue, 'utf8').digest();
+
+  return crypto.timingSafeEqual(candidateDigest, expectedDigest) && candidateValue.length === expectedValue.length;
 }
 
 function extractSafePath(req, fallback) {

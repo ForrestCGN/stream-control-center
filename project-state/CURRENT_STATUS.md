@@ -1,102 +1,53 @@
 # CURRENT_STATUS
 
-Stand: RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ## Aktuell bestaetigt
 
 ```text
-RDAP77B: Module Registry / Admin-Unterseiten sichtbar exklusiv getestet.
-RDAP78C: Admin-Notes Zieluser-/Notice-/Count-Kontext getestet.
-RDAP79: Doku-Abschluss und naechster Fokus Webserver <-> Stream-PC vorbereitet.
-RDAP80: Agent-Status/Heartbeat-Foundation read-only vorbereitet und serverseitig live bestaetigt.
-RDAP80B: Sichtbare UI-Einordnung von Agent -> Agent-Status zu Admin -> Verbindungen korrigiert und serverseitig live bestaetigt.
-RDAP80C: Live-Abschluss dokumentiert und naechsten Step auf Stream-PC Verbindung statt sichtbares Agent-Modul ausgerichtet.
-RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WSS-Pfad und Heartbeat-Modell geplant; Doku-only.
-RDAP82: Runtime-disabled Skeleton fuer Stream-PC Verbindung vorbereitet; /agent-ws Upgrade-Guard lehnt disabled ab; keine Actions.
-RDAP82B: RDAP82 live serverseitig bestaetigt und naechsten Step RDAP83 vorbereitet.
-RDAP83: In-Memory Reject-Diagnose fuer abgelehnte /agent-ws Versuche vorbereitet; keine akzeptierte Verbindung.
-RDAP83B: RDAP83 live serverseitig bestaetigt.
+RDAP83: In-Memory Reject-Diagnose fuer abgelehnte /agent-ws Versuche live bestaetigt.
+RDAP83B: RDAP83 Live-Bestaetigung dokumentiert.
 RDAP84: Access-Key-Handshake-Plan dokumentiert; Doku-only.
-RDAP85: Handshake-Precheck disabled vorbereitet; Header-Ablehnungsgruende sicher diagnostiziert; keine akzeptierte Verbindung.
-RDAP85B: RDAP85 live serverseitig bestaetigt und naechsten Step RDAP86 vorbereitet; Doku-only.
+RDAP85: Handshake-Precheck im bestehenden disabled /agent-ws Guard vorbereitet und live bestaetigt.
+RDAP85B: RDAP85 Live-Bestaetigung dokumentiert.
+RDAP86: Access-Key-Compare im bestehenden disabled /agent-ws Guard vorbereitet; Live-Test steht nach Deploy an.
 ```
 
-## RDAP85 live bestaetigt
+## RDAP86 Stand
 
 ```text
 /api/remote/agent/status:
-- statusApiVersion: rdap_agent85.v1
+- statusApiVersion: rdap_agent86.v1
 - runtime.acceptsAgentConnections: false
-- runtime.handshakePrecheckPrepared: true
-- runtime.handshakePrecheckAcceptsConnections: false
-- rejectDiagnostic.prepared: true
-- rejectDiagnostic.inMemoryOnly: true
-- rejectDiagnostic.handshakePrecheckPrepared: true
-- rejectDiagnostic.handshakePrecheckAcceptsConnections: false
-- rejectDiagnostic.expectedProtocolVersion: rdap-agent-handshake.v1
+- runtime.accessKeyComparePrepared: true
+- runtime.accessKeyCompareAcceptsConnections: false
+- rejectDiagnostic.accessKeyComparePrepared: true
+- rejectDiagnostic.accessKeyCompareAcceptsConnections: false
 - rejectDiagnostic.secretsExposed: false
-- rejectDiagnostic.headersLogged: false
-- rejectDiagnostic.rawIpLogged: false
+- rejectDiagnostic.bearerTokenLogged: false
+- rejectDiagnostic.tokenLengthLogged: false
+- rejectDiagnostic.tokenHashLogged: false
 
 /api/remote/status .agent:
 - connectionState: offline
 - actionsEnabled: false
 - productiveAgentRuntime: false
-- runtimeSkeletonPrepared: true
 - runtimeEffectiveEnabled: false
 - heartbeatReceiverEnabled: false
-- plannedWsPath: /agent-ws
-- expectedAgentId: stream-pc-main
-- expectedAgentName: Forrest Stream-PC
-- expectedProtocolVersion: rdap-agent-handshake.v1
-- handshakePrecheckPrepared: true
-- handshakePrecheckAcceptsConnections: false
-- rejectDiagnosticPrepared: true
-- rejectDiagnosticInMemoryOnly: true
+- accessKeyComparePrepared: true
+- accessKeyCompareAcceptsConnections: false
 - rejectSecretsExposed: false
 
 /api/remote/routes .agentStatusFoundation:
-- runtimeSkeletonPrepared: true
 - runtimeEffectiveEnabled: false
 - heartbeatReceiverEnabled: false
 - wssRuntimeEnabled: false
-- upgradeGuardPrepared: true
-- handshakePrecheckPrepared: true
-- handshakePrecheckAcceptsConnections: false
 - acceptsAgentConnections: false
+- accessKeyComparePrepared: true
+- accessKeyCompareAcceptsConnections: false
 - noAgentActions: true
-- rejectDiagnosticPrepared: true
-- rejectDiagnosticInMemoryOnly: true
-- rejectSecretsExposed: false
-```
-
-## RDAP85 Reject-Tests bestaetigt
-
-```text
-Ohne Agent-ID/Auth:
-- HTTP/1.1 503 Service Unavailable
-- reason=missing_agent_id
-
-Mit falscher Agent-ID:
-- HTTP/1.1 503 Service Unavailable
-- reason=unknown_agent_id
-
-Mit richtiger Agent-ID + Protokoll, aber ohne Auth:
-- HTTP/1.1 503 Service Unavailable
-- reason=missing_connection_proof
-
-Danach:
-- rejectCount: 3
-- lastRejectReason: missing_connection_proof
-- lastRejectPath: /agent-ws
-- lastRejectStatusCode: 503
-- lastRejectHasAgentIdHeader: true
-- lastRejectHasProtocolHeader: true
-- lastRejectAgentIdHint: stream-pc-main
-- lastRejectProtocolHint: rdap-agent-handshake.v1
-- lastRejectHasAuthorizationHeader: false
 ```
 
 ## Stream-PC-Verbindungsstatus
@@ -106,21 +57,15 @@ GET /api/remote/agent/status existiert.
 Die Route ist read-only.
 Die Route schreibt nichts.
 Die Route fuehrt keine Aktionen aus.
-/api/remote/status enthaelt Agent-/Stream-PC-Summary.
-/api/remote/routes listet die Agent-Statusroute.
-Remote-Modboard UI zeigt Admin -> Verbindungen.
-Seite heisst Stream-PC Verbindung.
-Status ist read-only und aktuell disabled/offline.
-Heartbeat-Modell ist vorbereitet, aber Receiver/Runtime sind disabled.
-WSS-Pfad /agent-ws ist vorbereitet und guarded.
-Abgelehnte /agent-ws Versuche werden in-memory gezaehlt.
-Handshake-Precheck erkennt sichere Ablehnungsgruende.
+/agent-ws ist guarded.
+Handshake-Precheck ist vorbereitet.
+Access-Key-Compare ist vorbereitet, aber disabled/reject-only.
 Stream-PC soll spaeter aktiv zum Webserver verbinden.
 Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## Sicherheit RDAP85B
+## Sicherheit RDAP86
 
 ```text
 Keine akzeptierte Agent-Verbindung.
@@ -130,22 +75,15 @@ Kein Agent online.
 Keine Action-Queue.
 Keine DB-Persistenz.
 Keine Secret-Ausgabe.
+Keine Bearer-Token-Ausgabe.
+Keine Bearer-Token-Laengen-Ausgabe.
+Keine Bearer-Token-Hash-Ausgabe.
+Keine AGENT_ACCESS_KEY-Ausgabe.
 Keine Header-Wert-Ausgabe.
 Keine Cookie-Wert-Ausgabe.
 Keine Authorization-Wert-Ausgabe.
 Keine Query-Wert-Ausgabe.
 Keine rohe IP-Ausgabe.
-```
-
-## Admin-Notes Status
-
-```text
-Admin-Notizen sind fuer jetzt eingefroren.
-User-Detail und Admin-Notizen sind getrennte Admin-Pages.
-Header, Navigation und sichtbares Panel sind synchron.
-ForrestCGN zeigt eigene Notizen.
-EngelCGN zeigt keine falschen Forrest-Notizen mehr.
-Falscher stale Count wurde in remote-modboard.js korrigiert.
 ```
 
 ## Sprachregel
@@ -190,5 +128,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED
+RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 ```

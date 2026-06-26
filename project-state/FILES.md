@@ -1,13 +1,16 @@
 # FILES
 
-Stand: RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP85B
+## Geaendert/neu in RDAP86
 
 ```text
-docs/current/RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP85B.md
+remote-modboard/backend/server.js
+remote-modboard/backend/src/services/agent-runtime-disabled.service.js
+remote-modboard/backend/src/services/agent-status.service.js
+docs/current/RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP86.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,7 +18,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Fachlich relevant fuer naechsten Step RDAP86
+## Fachlich relevant fuer RDAP86
 
 ```text
 remote-modboard/backend/server.js
@@ -42,7 +45,8 @@ docs/current/RDAP83B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
 docs/current/RDAP84_STREAM_PC_CONNECTION_ACCESS_KEY_HANDSHAKE_PLAN.md
 docs/current/RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED.md
 docs/current/RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP85B.md
+docs/current/RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP86.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

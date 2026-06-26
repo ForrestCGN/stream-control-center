@@ -1,67 +1,53 @@
 # NEXT_STEPS
 
-Stand: RDAP85B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED
+RDAP86B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 ```
 
 ## Ziel
 
 ```text
-Access-Key-Vergleich gegen AGENT_ACCESS_KEY vorbereiten.
-Verbindungen weiterhin ablehnen.
+RDAP86 nach Webserver-Deploy live bestaetigen und dokumentieren.
+Access-Key-Compare-Reject-Tests dokumentieren.
+Keine Backend-Aenderung.
 Keine Runtime-Aktivierung.
 Keine akzeptierte Agent-Verbindung.
 Keine produktiven Remote-Actions.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP85B
+## Ausgangspunkt RDAP86
 
 ```text
-- Runtime-disabled Skeleton ist live.
-- /agent-ws Upgrade-Guard ist live.
-- Handshake-Precheck ist live.
-- Abgelehnte /agent-ws Versuche werden in-memory diagnostiziert.
-- missing_agent_id, unknown_agent_id und missing_connection_proof wurden live getestet.
-- rejectCount stieg nach drei Tests auf 3.
+- Runtime-disabled Skeleton ist vorbereitet.
+- /agent-ws Upgrade-Guard ist vorbereitet.
+- Handshake-Precheck ist vorbereitet.
+- Access-Key-Compare ist vorbereitet.
 - Runtime bleibt effective false.
 - WSS Runtime bleibt false.
 - Heartbeat Receiver bleibt false.
 - acceptsAgentConnections bleibt false.
 - Access-Key wird nicht ausgegeben.
+- Bearer-Token wird nicht ausgegeben.
 - Status bleibt offline/disabled.
 - Keine Agent-Actions.
 - Keine DB-Migration.
 ```
 
-## RDAP86 vorbereitend pruefen
+## RDAP86B pruefen
 
 ```text
-remote-modboard/backend/server.js
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/services/agent-status.service.js
-remote-modboard/backend/src/services/agent-runtime-disabled.service.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-docs/current/*
-project-state/*
-```
-
-## RDAP86 klaeren
-
-```text
-- Wie wird AGENT_ACCESS_KEY sicher aus der bestehenden Config/Env gelesen?
-- Wie wird Authorization: Bearer <wert> serverseitig verglichen, ohne den Wert zu speichern/loggen?
-- Wie wird falscher Bearer-Wert als invalid_connection_proof diagnostiziert?
-- Was passiert bei korrektem Bearer-Wert, solange Runtime disabled bleibt?
-- Bleibt die Antwort weiterhin HTTP 503?
-- Welche Boolean-/Hint-Felder duerfen sichtbar sein?
-- Wie wird verhindert, dass ein korrektes Secret schon eine Verbindung akzeptiert?
+/api/remote/agent/status
+/api/remote/status
+/api/remote/routes
+/agent-ws Reject-Test mit falschem Auth-Schema
+/agent-ws Reject-Test mit falschem Bearer-Wert
+optional /agent-ws Reject-Test mit korrekt gesetztem AGENT_ACCESS_KEY nur ohne Secret-Ausgabe
 ```
 
 ## Strikt nicht machen

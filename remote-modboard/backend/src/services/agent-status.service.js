@@ -4,8 +4,8 @@ const os = require('os');
 const { buildRejectDiagnosticSummary } = require('./agent-runtime-disabled.service');
 
 const MODULE = 'remote_agent_status';
-const MODULE_BUILD = 'RDAP85_STREAM_PC_CONNECTION_HANDSHAKE_PRECHECK_DISABLED';
-const STATUS_API_VERSION = 'rdap_agent85.v1';
+const MODULE_BUILD = 'RDAP86_STREAM_PC_CONNECTION_ACCESS_KEY_COMPARE_DISABLED';
+const STATUS_API_VERSION = 'rdap_agent86.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const LOADED_AT = new Date().toISOString();
 
@@ -79,6 +79,8 @@ function buildAgentStatusSummary(context = {}) {
     stale: false,
     handshakePrecheckPrepared: rejectDiagnostic.handshakePrecheckPrepared,
     handshakePrecheckAcceptsConnections: false,
+    accessKeyComparePrepared: rejectDiagnostic.accessKeyComparePrepared,
+    accessKeyCompareAcceptsConnections: false,
     rejectDiagnosticPrepared: rejectDiagnostic.prepared,
     rejectDiagnosticInMemoryOnly: rejectDiagnostic.inMemoryOnly,
     rejectCount: rejectDiagnostic.rejectCount,
@@ -88,6 +90,8 @@ function buildAgentStatusSummary(context = {}) {
     lastRejectHasProtocolHeader: rejectDiagnostic.lastRejectHasProtocolHeader,
     lastRejectAgentIdHint: rejectDiagnostic.lastRejectAgentIdHint,
     lastRejectProtocolHint: rejectDiagnostic.lastRejectProtocolHint,
+    lastRejectAccessKeyConfigured: rejectDiagnostic.lastRejectAccessKeyConfigured,
+    lastRejectConnectionProofCompared: rejectDiagnostic.lastRejectConnectionProofCompared,
     rejectSecretsExposed: false,
     statusApiVersion: STATUS_API_VERSION
   };
@@ -116,7 +120,7 @@ function buildAgentStatusResponse(context = {}) {
       enabled: false,
       connected: false,
       connectionState: 'offline',
-      reason: 'rdap85_handshake_precheck_disabled_reject_only',
+      reason: 'rdap86_access_key_compare_disabled_reject_only',
       lastHeartbeatAt: null,
       connectedSince: null,
       heartbeatAgeMs: null,
@@ -145,6 +149,8 @@ function buildAgentStatusResponse(context = {}) {
       upgradeGuardPrepared: true,
       handshakePrecheckPrepared: true,
       handshakePrecheckAcceptsConnections: false,
+      accessKeyComparePrepared: true,
+      accessKeyCompareAcceptsConnections: false,
       acceptsAgentConnections: false
     },
     rejectDiagnostic,
@@ -161,10 +167,10 @@ function buildAgentStatusResponse(context = {}) {
     },
     safety: { ...SAFETY },
     warnings: [
-      'RDAP85 liefert nur einen disabled Handshake-Precheck fuer abgelehnte /agent-ws Verbindungsversuche.',
+      'RDAP86 vergleicht einen vorhandenen Bearer-Proof nur serverseitig gegen AGENT_ACCESS_KEY und lehnt weiterhin ab.',
       'WSS/Upgrade-Guard nimmt weiterhin keine produktive Agent-Verbindung an.',
       'OBS, Sounds, Overlays, Commands, Shell, Datei-, Prozess- und URL-Ausfuehrung bleiben deaktiviert.',
-      'Geheime Zugangswerte, Header, Cookies, Query-Werte und rohe IP-Adressen werden nicht in Status, UI oder Logs ausgegeben.'
+      'Authorization-Werte, Bearer-Token, AGENT_ACCESS_KEY, Header, Cookies, Query-Werte und rohe IP-Adressen werden nicht in Status, UI oder Logs ausgegeben.'
     ],
     errors: []
   };
@@ -193,6 +199,8 @@ function buildAgentRoutesSummary(context = {}) {
     upgradeGuardPrepared: true,
     handshakePrecheckPrepared: true,
     handshakePrecheckAcceptsConnections: false,
+    accessKeyComparePrepared: true,
+    accessKeyCompareAcceptsConnections: false,
     acceptsAgentConnections: false,
     accessKeyConfigured: runtime.accessKeyConfigured,
     accessKeyExposed: false,
@@ -211,6 +219,8 @@ function buildAgentRoutesSummary(context = {}) {
     lastRejectHasProtocolHeader: rejectDiagnostic.lastRejectHasProtocolHeader,
     lastRejectAgentIdHint: rejectDiagnostic.lastRejectAgentIdHint,
     lastRejectProtocolHint: rejectDiagnostic.lastRejectProtocolHint,
+    lastRejectAccessKeyConfigured: rejectDiagnostic.lastRejectAccessKeyConfigured,
+    lastRejectConnectionProofCompared: rejectDiagnostic.lastRejectConnectionProofCompared,
     rejectSecretsExposed: false,
     noAgentActions: true,
     safety: { ...SAFETY }
