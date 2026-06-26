@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN
+
+```text
+- Stream-PC-Verbindungs-Handshake geplant.
+- Interne Agent-ID bestaetigt: stream-pc-main.
+- Agent-Name bestaetigt: Forrest Stream-PC.
+- Zugangsschluessel-Konzept dokumentiert.
+- WSS-Pfad /agent-ws als geplanter Pfad bestaetigt.
+- Heartbeat-Modell uebernommen: 30s Intervall, 90s stale, 120s offline.
+- Erste Runtime-Stufe als In-Memory only geplant.
+- Keine DB-Persistenz ohne separaten Plan.
+- Keine produktiven Actions.
+- Keine Backend-Aenderung.
+- Keine package.json-Aenderung.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Admin-Notes-Aenderung.
+- Doku-only.
+```
+
 ## 2026-06-26 - RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
 
 ```text
@@ -67,4 +87,3 @@
 - Keine DB-Migration.
 - Kein Webserver-Deploy.
 ```
-

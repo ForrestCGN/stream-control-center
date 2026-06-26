@@ -1,12 +1,12 @@
 # TODO
 
-Stand: RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN  
 Datum: 2026-06-26
 
 ## Jetzt
 
 ```text
-RDAP80C Doku-only lokal einspielen.
+RDAP81 Doku-only lokal einspielen.
 Keine Node-Checks noetig.
 git status und diff pruefen.
 Wenn sauber: stepdone.cmd.
@@ -16,19 +16,19 @@ Kein Webserver-Deploy, weil nur Doku/project-state geaendert wird.
 ## Danach
 
 ```text
-Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80C.md
-RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_TOKEN_PLAN vorbereiten.
+Neuer Chat mit docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP81.md
+RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON vorbereiten.
 ```
 
-## RDAP81 Aufgaben
+## RDAP82 Aufgaben
 
 ```text
-- Stream-PC-Verbindungs-Handshake planen.
-- Interne Agent-ID sauber definieren.
-- Agent-Secret-/Token-Konzept planen.
-- WSS-Pfad /agent-ws und Auth-Grenzen planen.
-- Heartbeat-Empfang planen.
-- In-Memory vs. DB-Persistenz entscheiden.
+- Server-/App-Struktur fuer moeglichen WSS-/Receiver-Skeleton pruefen.
+- Runtime default disabled planen.
+- Zugangsschluessel nur aus Umgebung planen/lesen, keinen Wert ins Repo.
+- In-Memory-Agent-Status vorbereiten.
+- Stale/offline-Berechnung planen.
+- Statusroute read-only halten.
 - Keine Actions bauen.
 ```
 
@@ -41,5 +41,6 @@ RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_TOKEN_PLAN vorbereiten.
 - Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
 - Keine produktiven Writes.
 - Kein sichtbares Hauptmodul Agent.
+- Keine DB-Migration.
+- Keine neue Permission.
 ```
-

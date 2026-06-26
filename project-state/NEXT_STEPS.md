@@ -1,22 +1,22 @@
 # NEXT_STEPS
 
-Stand: RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_TOKEN_PLAN
+RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON
 ```
 
 ## Ziel
 
 ```text
-Stream-PC-Verbindungs-Handshake, interne Agent-ID, Agent-Secret/Token und Heartbeat-Empfang konkret planen.
-Noch keine produktiven Remote-Actions.
+Einen technischen Skeleton fuer die spaetere Stream-PC Verbindung planen bzw. vorbereiten, aber Runtime default disabled lassen.
+Keine produktiven Remote-Actions.
 ```
 
-## Ausgangspunkt RDAP80C
+## Ausgangspunkt RDAP81
 
 ```text
 - GET /api/remote/agent/status vorhanden.
@@ -24,16 +24,24 @@ Noch keine produktiven Remote-Actions.
 - Kein eigenes Hauptmodul Agent in der Navigation.
 - Status ist disabled/offline.
 - Heartbeat-Modell ist read-only vorbereitet.
-- WSS-Pfad /agent-ws ist nur geplant.
-- RDAP80/RDAP80B sind serverseitig live bestaetigt.
+- WSS-Pfad /agent-ws ist geplant.
+- Agent-ID bleibt stream-pc-main.
+- Agent-Name bleibt Forrest Stream-PC.
+- Zugangsschluessel-Konzept ist dokumentiert.
+- Erste Runtime-Stufe soll In-Memory bleiben.
+- Keine DB-Migration in RDAP81.
 ```
 
-## RDAP81 vorbereitend pruefen
+## RDAP82 vorbereitend pruefen
 
 ```text
+remote-modboard/backend/server.js
+remote-modboard/backend/package.json
+remote-modboard/backend/src/app.js
 remote-modboard/backend/src/services/agent-status.service.js
 remote-modboard/backend/src/routes/agent-status.routes.js
-remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/assets/rdap80-agent-status.js
 backend/modules/remote_agent.js
 tools/*
@@ -41,17 +49,17 @@ docs/current/*
 project-state/*
 ```
 
-## RDAP81 klaeren
+## RDAP82 klaeren
 
 ```text
-- Wie authentifiziert sich der Stream-PC beim Webserver?
-- Wo liegt das Agent-Secret serverseitig?
-- Wie wird das Secret lokal auf dem Stream-PC gespeichert?
-- Wie wird ein Agent eindeutig benannt: agentId / streamPcName?
-- WSS-Handshake: Pfad, Header/Token, Version, Reject-Gruende.
-- Heartbeat-Modell: Intervall, stale/offline-Zeit, In-Memory vs. DB.
+- Gibt es bereits eine passende Server-Andockstelle fuer WSS?
+- Muss package.json spaeter um eine Dependency erweitert werden?
+- Bleibt Runtime per Config/Env default disabled?
+- Wie wird der Verbindungsnachweis serverseitig aus der Umgebung gelesen?
+- Wie wird verhindert, dass geheime Werte in Status/Logs/UI landen?
+- Wie wird ein verbundener Agent In-Memory verwaltet?
+- Wie werden stale/offline berechnet?
 - Welche Statusdaten duerfen im UI sichtbar sein?
-- Welche Daten duerfen niemals geloggt werden?
 ```
 
 ## Strikt nicht machen
@@ -75,4 +83,3 @@ Keine produktive Agent-Action-Queue.
 Admin-Notes eingefroren.
 Nur bei echtem Fehler wieder anfassen.
 ```
-

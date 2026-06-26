@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN  
 Datum: 2026-06-26
 
-## Geaendert/neu in RDAP80C
+## Geaendert/neu in RDAP81
 
 ```text
-docs/current/RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80C.md
+docs/current/RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP81.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -26,7 +26,8 @@ remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/assets/rdap80-agent-status.js
 docs/current/RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION.md
 docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80.md
+docs/current/RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80C.md
 ```
 
 ## Zentrale Startdateien fuer naechsten Chat
@@ -41,7 +42,8 @@ docs/current/RDAP79_DOCS_CURRENT_STATE_AND_NEXT_STREAMPC_CONNECTION_PROMPT.md
 docs/current/RDAP80_AGENT_CONNECTION_ARCHITECTURE_AND_STATUS_FOUNDATION.md
 docs/current/RDAP80B_AGENT_MENU_TO_ADMIN_CONNECTIONS.md
 docs/current/RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP80C.md
+docs/current/RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP81.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -49,11 +51,16 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Fachlich relevant fuer RDAP81
+## Fachlich relevant fuer RDAP82
 
 ```text
+remote-modboard/backend/server.js
+remote-modboard/backend/package.json
+remote-modboard/backend/src/app.js
 remote-modboard/backend/src/services/agent-status.service.js
 remote-modboard/backend/src/routes/agent-status.routes.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 remote-modboard/backend/public/assets/rdap80-agent-status.js
 backend/modules/remote_agent.js
 tools/*
@@ -64,4 +71,3 @@ tools/*
 ```text
 Admin-Notes nur bei echtem Fehler wieder anfassen.
 ```
-

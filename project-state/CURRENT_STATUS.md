@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP80C_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT  
+Stand: RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_ACCESS_KEY_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -13,6 +13,7 @@ RDAP79: Doku-Abschluss und naechster Fokus Webserver <-> Stream-PC vorbereitet.
 RDAP80: Agent-Status/Heartbeat-Foundation read-only vorbereitet und serverseitig live bestaetigt.
 RDAP80B: Sichtbare UI-Einordnung von Agent -> Agent-Status zu Admin -> Verbindungen korrigiert und serverseitig live bestaetigt.
 RDAP80C: Live-Abschluss dokumentiert und naechsten Step auf Stream-PC Verbindung statt sichtbares Agent-Modul ausgerichtet.
+RDAP81: Stream-PC-Verbindungs-Handshake, Agent-ID, Zugangsschluessel-Konzept, WSS-Pfad und Heartbeat-Modell geplant; Doku-only.
 ```
 
 ## Admin-Notes Status
@@ -39,8 +40,24 @@ Remote-Modboard UI zeigt Admin -> Verbindungen.
 Seite heisst Stream-PC Verbindung.
 Status ist read-only und aktuell disabled/offline.
 Heartbeat-Modell ist vorbereitet, aber Receiver/Runtime sind disabled.
-WSS-Pfad /agent-ws ist nur geplant.
+WSS-Pfad /agent-ws ist geplant.
+Stream-PC soll spaeter aktiv zum Webserver verbinden.
+Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
+```
+
+## RDAP81 Planung
+
+```text
+agentId bleibt: stream-pc-main
+agentName bleibt: Forrest Stream-PC
+Verbindungsnachweis erfolgt spaeter ueber geheimen Zugangsschluessel.
+Geheimer Zugangsschluessel kommt nicht ins Repo, nicht ins Frontend, nicht in URLs und nicht in Logs.
+Heartbeat spaeter alle 30 Sekunden.
+Stale nach 90 Sekunden.
+Offline nach 120 Sekunden.
+Erste Runtime-Stufe bleibt In-Memory.
+Keine DB-Persistenz ohne separaten Plan.
 ```
 
 ## Sprachregel
@@ -56,6 +73,7 @@ Intern / Code / Route:
 - agent-status
 - /api/remote/agent/status
 - stream-pc-agent
+- /agent-ws
 ```
 
 Nicht mehr sichtbar als Hauptmodul verwenden:
@@ -76,17 +94,18 @@ Session-Revocation in der UI
 Remote-/Agent-Actions/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 produktive Writes ausserhalb explizit freigegebener Admin-Notes Create/Update-Scope
+DB-Migrationen ohne separaten Plan
+neue Permissions ohne separaten Plan
 ```
 
 ## Naechster Hauptfokus
 
 ```text
-Webserver <-> Stream-PC Verbindung weiter konkretisieren.
+Runtime-disabled Skeleton fuer die Stream-PC Verbindung pruefen und planen.
 ```
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP81_STREAM_PC_CONNECTION_HANDSHAKE_AND_TOKEN_PLAN
+RDAP82_STREAM_PC_CONNECTION_RUNTIME_DISABLED_SKELETON
 ```
-
