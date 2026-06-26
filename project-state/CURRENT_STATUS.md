@@ -1,7 +1,7 @@
 # CURRENT_STATUS
 
-Stand: RDAP43_ADMIN_USER_DETAIL_NOTES_TARGET_SELECTION_PLAN  
-Datum: 2026-06-25  
+Stand: RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS  
+Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ## Aktuell bestaetigt
@@ -13,6 +13,8 @@ RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED ist live erfolgreich getestet.
 RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP ist live erfolgreich getestet.
 RDAP42B dokumentiert den RDAP42 Live-Stand.
 RDAP43 plant Zieluser-Auswahl/Admin-User-Detail fuer Admin-Notizen.
+RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED ist live funktional bestaetigt.
+RDAP44B dokumentiert die RDAP44 Live-Bestaetigung.
 ```
 
 ## Live-System
@@ -29,38 +31,52 @@ Branch: dev
 ## Admin-Notizen aktueller Funktionsstand
 
 ```text
-Admin -> Admin-Notizen zeigt aktuell Notizen fuer Zieluser tw:127709954.
+Admin -> Admin-Notizen zeigt eine Zieluser-Auswahl.
+Default ist ForrestCGN / tw:127709954.
+Ausgewaehlter User steuert die Read-Route per targetUserUid.
+Create nutzt denselben ausgewaehlten targetUserUid.
 Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
 Create nutzt bestehende RDAP39 Backend-Route.
 Nach erfolgreichem Create laedt die UI die Notizliste ueber RDAP39C-Readback neu.
-RDAP42 hat die Status-Semantik nach RDAP40 bereinigt.
 ```
 
-## RDAP43 Ergebnis
+## RDAP44 Live-Bestaetigung
 
 ```text
-Bestandsaufnahme/Plan fuer Zieluser-Auswahl erstellt.
-Keine Code-Aenderung.
-Keine DB-Migration.
-Kein Webserver-Deploy noetig.
+Zieluser-Auswahl sichtbar.
+Dropdown sichtbar.
+Default ForrestCGN @forrestcgn / tw:127709954.
+Name/Login/UID werden angezeigt.
+Read: true.
+Write: true.
+Notizen: 3.
+Tabelle: true.
+Create-Form zeigt Zieluser: tw:127709954.
 ```
 
-## Gepruefte Dateien fuer RDAP43
+Asset-Pruefung live:
 
 ```text
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
+DEFAULT_TARGET_USER vorhanden.
+adminNotesTargetSelect vorhanden.
+selectedTargetUser vorhanden.
+TARGET_USER_UID nicht mehr vorhanden.
 ```
 
-## Wichtiger Ist-Befund
+## Separater offener Befund
 
 ```text
-rdap28-admin-notes.js nutzt aktuell fest TARGET_USER_UID = tw:127709954.
-index.html enthaelt Admin -> Benutzerverwaltung.
-Die vorhandene Admin-/User-Struktur soll bevorzugt erweitert werden, statt eine Parallelstruktur zu bauen.
+OAuth-Safety-Befund beim Deploy-Script:
+twitch/start HTTP 302
+twitch/callback HTTP 403
+Erwartet war 403/403.
+```
+
+Wichtig:
+
+```text
+RDAP44 UI ist funktional live bestaetigt.
+Der OAuth-Safety-Befund ist separat zu behandeln und nicht Teil der Admin-Notizen-UI.
 ```
 
 ## Weiterhin deaktiviert
@@ -77,7 +93,11 @@ Permission-Vergabe in der UI
 ## Naechster empfohlener Step
 
 ```text
-RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED
+RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_OR_DECISION
 ```
 
-Ziel: Admin-Notizen von fixem Zieluser `tw:127709954` loesen und Zieluser-Auswahl bzw. Admin-User-Detail-Notizen als kleinen sichtbaren UI-Step vorbereiten.
+Ziel:
+
+```text
+OAuth-Safety-Befund pruefen: Warum liefert /api/remote/auth/twitch/start HTTP 302 statt erwartetem HTTP 403?
+```

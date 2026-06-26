@@ -1,7 +1,7 @@
 # TODO
 
-Stand: RDAP43_ADMIN_USER_DETAIL_NOTES_TARGET_SELECTION_PLAN  
-Datum: 2026-06-25
+Stand: RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS  
+Datum: 2026-06-26
 
 ## Erledigt
 
@@ -16,13 +16,15 @@ Datum: 2026-06-25
 - [x] RDAP42 Status-/Routes-Semantik bereinigt und live bestaetigt.
 - [x] RDAP42B Doku-only erstellt und nach GitHub/dev gebracht.
 - [x] RDAP43 Zieluser-Auswahl/Admin-User-Detail fuer Admin-Notizen geplant.
+- [x] RDAP44 Admin-Notizen-UI mit Zieluser-Auswahl umgesetzt.
+- [x] RDAP44 live funktional bestaetigt: Dropdown sichtbar, Default ForrestCGN / tw:127709954, Read/Create nutzen Zieluser.
+- [x] RDAP44B Live-Bestaetigung dokumentiert.
 
 ## Offen / Naechstes
 
-- [ ] RDAP43 lokal per `installstep.cmd` einspielen.
-- [ ] RDAP43 `git status` pruefen.
-- [ ] RDAP43 per `stepdone.cmd` nach GitHub/dev bringen.
-- [ ] Kein Webserver-Deploy fuer RDAP43 noetig, da Doku-only.
-- [ ] RDAP44 vorbereiten: Zieluser-Auswahl fuer Admin-Notizen oder kleine Admin-User-Detail-Anbindung.
-- [ ] Vor RDAP44 Code echte Admin-User-/Frontend-Dateien erneut pruefen.
-- [ ] Spaeter: Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
+- [ ] RDAP45 OAuth-Safety-Befund pruefen: `/api/remote/auth/twitch/start` liefert HTTP 302 statt erwartetem HTTP 403.
+- [ ] Entscheiden, ob der OAuth-Safety-Check angepasst werden muss oder die Twitch-Start-Route haerter blockiert werden soll.
+- [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
+- [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen-UI vermischen.
+- [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.
+- [ ] Spaeter echte Admin-User-Detailseite planen, falls mehr als die aktuelle Zieluser-Auswahl gebraucht wird.

@@ -1,75 +1,65 @@
 # NEXT_STEPS
 
-Stand: RDAP43_ADMIN_USER_DETAIL_NOTES_TARGET_SELECTION_PLAN  
-Datum: 2026-06-25
+Stand: RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS  
+Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED
+RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_OR_DECISION
 ```
 
-## Ziel RDAP44
+## Ziel RDAP45
 
 ```text
-Admin-Notizen sollen nicht dauerhaft nur am fixen Zieluser tw:127709954 haengen.
-RDAP44 soll die Zieluser-Auswahl oder eine kleine Admin-User-Detail-Anbindung umsetzen.
+Beim RDAP44 Webserver-Deploy/Deploy-Script wurde ein OAuth-Safety-Befund sichtbar:
+twitch/start HTTP 302
+twitch/callback HTTP 403
+Erwartet war 403/403.
 ```
 
-## Empfohlene kleine Umsetzung
+RDAP45 soll klaeren:
 
 ```text
-Admin-Notizen-Seite bekommt Zieluser-Auswahl aus vorhandener Benutzer-/Dashboard-Datenquelle.
-Der fest verdrahtete Zieluser tw:127709954 wird durch den ausgewaehlten Zieluser ersetzt.
-Read/Create bleiben dieselben Backend-Routen.
+1. Warum /api/remote/auth/twitch/start HTTP 302 liefert.
+2. Ob die Route absichtlich aktiv ist oder fuer den aktuellen Safety-Stand 403 liefern muss.
+3. Ob der Deploy-Safety-Check veraltet ist oder die Route korrigiert werden muss.
+4. Welche Aenderung noetig ist, ohne Admin-Notizen-UI, DB oder Permissions nebenbei anzufassen.
 ```
 
-## RDAP44 Grundregeln
-
-```text
-Keine Update-Funktion.
-Keine Deactivate-Funktion.
-Kein Delete.
-Keine Permission-Vergabe in diesem Step.
-Keine Community-Seiten-Anbindung.
-Keine DB-Migration ohne separaten Plan.
-Keine parallele User-/Notizen-Struktur bauen, wenn vorhandene Admin-Struktur erweitert werden kann.
-```
-
-## Vor RDAP44 zuerst echte Dateien pruefen
+## Vor RDAP45 zuerst echte Dateien pruefen
 
 ```text
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
-docs/current/RDAP43_ADMIN_USER_DETAIL_NOTES_TARGET_SELECTION_PLAN.md
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/public/index.html
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
-remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
+docs/current/RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS.md
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/routes/*auth*.js
+remote-modboard/backend/src/services/*auth*.service.js
+tools/remote-modboard-deploy.sh
 ```
 
-## Zu pruefen vor Code
+Falls die Auth-Dateien anders heissen, zuerst GitHub/dev durchsuchen und nicht raten.
+
+## Nicht in RDAP45 aendern
 
 ```text
-1. Gibt es bereits eine Admin-User-Liste/API, die fuer Auswahl genutzt werden kann?
-2. Welche Userdaten sind im Frontend bereits vorhanden?
-3. Kann rdap28-admin-notes.js dynamisch targetUserUid setzen?
-4. Soll die Auswahl zuerst in Admin-Notizen oder direkt in Benutzerverwaltung sitzen?
+Keine Admin-Notizen-UI-Aenderung.
+Keine Admin-Note Update-Funktion.
+Keine Admin-Note Deactivate-Funktion.
+Kein Delete.
+Keine Permission-Verwaltung.
+Keine DB-Migration.
+Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
+Keine neuen produktiven Writes.
 ```
 
-## Workflow
+## RDAP44 ist abgeschlossen
 
 ```text
-Plan nennen.
-Auf Forrests "go" warten.
-ZIP mit echten Zielpfaden bauen.
-Lokal installstep.
-Lokale Checks.
-stepdone.
-Bei Backend/UI-Aenderung danach Webserver-Deploy aus frischem GitHub/dev-Clone.
-Readiness abwarten.
-Tests ausgeben.
-Doku-only braucht keinen Webserver-Deploy.
+Admin-Notizen haben jetzt Zieluser-Auswahl.
+Default bleibt ForrestCGN / tw:127709954.
+Read/Create nutzen den ausgewaehlten Zieluser.
+RDAP44 ist live funktional bestaetigt.
 ```

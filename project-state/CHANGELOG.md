@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## RDAP44B_ADMIN_NOTE_TARGET_USER_SELECTION_LIVE_CONFIRMED_DOCS - 2026-06-26
+
+- RDAP44 Live-Bestaetigung dokumentiert.
+- Bestaetigt:
+  - Zieluser-Auswahl in Admin-Notizen sichtbar.
+  - Dropdown sichtbar.
+  - Default ForrestCGN @forrestcgn / `tw:127709954`.
+  - Name/Login/UID werden angezeigt.
+  - Read `true`.
+  - Write `true`.
+  - Notizen `3`.
+  - Tabelle `true`.
+  - Create-Form nutzt ausgewaehlten Zieluser.
+- Live-Asset-Befund dokumentiert:
+  - `DEFAULT_TARGET_USER` vorhanden.
+  - `adminNotesTargetSelect` vorhanden.
+  - `selectedTargetUser` vorhanden.
+  - `TARGET_USER_UID` nicht mehr vorhanden.
+- Separaten OAuth-Safety-Befund dokumentiert:
+  - `twitch/start HTTP 302`
+  - `twitch/callback HTTP 403`
+  - erwartet war `403/403`
+- Naechsten empfohlenen Step dokumentiert:
+  - `RDAP45_REMOTE_AUTH_TWITCH_START_SAFETY_FIX_OR_DECISION`
+- Keine Code-Aenderung.
+- Keine DB-Migration.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP43_ADMIN_USER_DETAIL_NOTES_TARGET_SELECTION_PLAN - 2026-06-25
 
 - Zieluser-Auswahl/Admin-User-Detail fuer Admin-Notizen geplant.
