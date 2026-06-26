@@ -1,14 +1,13 @@
 # FILES
 
-Stand: RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED  
+Stand: RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
-## Geaendert in RDAP47
+## Geaendert in RDAP47B
 
 ```text
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-docs/current/RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP47.md
+docs/current/RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP47B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -16,7 +15,16 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Code-Aenderung RDAP47
+## Doku-only RDAP47B
+
+```text
+Kein Backend-Code.
+Kein Frontend-Code.
+Keine DB-Migration.
+Kein Webserver-Deploy noetig.
+```
+
+## Zuletzt geaendert in RDAP47
 
 ```text
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
@@ -26,17 +34,6 @@ Zweck:
 
 ```text
 Frontend-only Zieluser-Suche/Filter in Admin -> Admin-Notizen.
-```
-
-## Nicht geaendert in RDAP47
-
-```text
-Backend-Routen
-Backend-Services
-DB-Schema
-Deploy-Script
-Permissions
-Auth/Login
 ```
 
 ## Aktuelle relevante Admin-Note-Routen
@@ -56,4 +53,16 @@ GET  /api/remote/auth/twitch/callback
 GET  /api/remote/auth/login/start
 GET  /api/remote/auth/login/plan
 POST /api/remote/auth/logout
+```
+
+## Fuer RDAP48 voraussichtlich zu pruefen
+
+```text
+remote-modboard/backend/src/routes/auth-model.routes.js
+remote-modboard/backend/src/services/auth-model.service.js
+remote-modboard/backend/src/services/auth-permission-read.service.js
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+remote-modboard/backend/src/routes/admin-user-admin-notes.routes.js
+remote-modboard/backend/src/services/admin-user-admin-note-read.service.js
 ```

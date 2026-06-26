@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED  
+Stand: RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -18,18 +18,15 @@ Datum: 2026-06-26
 - [x] RDAP45C Live-Bestaetigung Login/Deploy-Safety dokumentiert.
 - [x] RDAP46 naechsten kleinen Admin-Notizen-Step geplant.
 - [x] RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen vorbereitet.
+- [x] RDAP47 Webserver-Deploy ausgefuehrt und live im Browser bestaetigt.
+- [x] RDAP47B Live-Bestaetigung dokumentiert.
 
 ## Offen / Naechstes
 
-- [ ] RDAP47 lokal per `installstep.cmd` einspielen.
-- [ ] RDAP47 `node --check` fuer `rdap28-admin-notes.js` ausfuehren.
-- [ ] RDAP47 per `stepdone.cmd` nach GitHub/dev bringen.
-- [ ] RDAP47 Webserver-Deploy aus frischem GitHub/dev-Clone ausfuehren.
-- [ ] Live bestaetigen: Zieluser-Suche sichtbar.
-- [ ] Live bestaetigen: Suche nach `forrestcgn` findet ForrestCGN / `tw:127709954`.
-- [ ] Live bestaetigen: Read/Create nutzen weiterhin ausgewaehlten Zieluser.
-- [ ] Danach RDAP47B Live-Bestaetigung dokumentieren.
+- [ ] RDAP48 Admin-User-Detailseite read-only planen.
+- [ ] Bestehende Auth-/User-/Permission-/Admin-Note-Dateien fuer RDAP48 pruefen.
+- [ ] Entscheiden, ob RDAP49 eine read-only Admin-User-Detailseite bauen soll.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.
-- [ ] Spaeter echte Admin-User-Detailseite read-only planen.
+- [ ] Agent-/OBS-/Sound-/Overlay-/Command-Steuerung separat und mit Allowlist/Locks/Audit planen.

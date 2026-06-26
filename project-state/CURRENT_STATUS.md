@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED  
+Stand: RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -16,7 +16,8 @@ RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED ist live funktional bestaetigt.
 RDAP45B Deploy-Safety wurde an aktiv genutzten Login angepasst.
 RDAP45C dokumentiert die RDAP45B Live-Bestaetigung.
 RDAP46 plant den naechsten kleinen Admin-Notizen-Komfort-Step.
-RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist vorbereitet.
+RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist live bestaetigt.
+RDAP47B dokumentiert die RDAP47 Live-Bestaetigung.
 ```
 
 ## Live-System
@@ -57,14 +58,20 @@ Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
 RDAP47 ergaenzt ein Such-/Filterfeld fuer Zieluser.
 ```
 
-## RDAP47 vorbereiteter Komfort
+## RDAP47 Live-Bestaetigung
 
 ```text
-Suchfeld nach Name/Login/UID/Status/Rollen.
-Trefferanzeige gefiltert/gesamt.
-Button Suche leeren.
-Ausgewaehlter User bleibt sichtbar, auch wenn der Filter ihn nicht trifft.
-Keine Backend-/DB-/Permission-Aenderung.
+Suchfeld sichtbar.
+Suche nach "Forrest" funktioniert.
+Trefferanzeige: 1 / 2.
+Dropdown bleibt nutzbar.
+Button User neu laden sichtbar.
+Button Suche leeren sichtbar.
+Ausgewaehlter Zieluser: ForrestCGN / tw:127709954.
+Read true.
+Write true.
+3 Admin-Notizen geladen.
+Create-Form nutzt weiter Zieluser tw:127709954.
 ```
 
 ## Weiterhin deaktiviert
@@ -82,5 +89,12 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP47 Webserver-Deploy und Live-Bestaetigung
+RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN
+```
+
+Ziel:
+
+```text
+Echte Admin-User-Detailseite read-only bewusst planen.
+Nicht blind Update/Delete/Permission bauen.
 ```

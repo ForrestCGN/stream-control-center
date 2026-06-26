@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS - 2026-06-26
+
+- RDAP47 Live-Bestaetigung dokumentiert.
+- Bestaetigt:
+  - Suchfeld sichtbar.
+  - Suche nach `Forrest` funktioniert.
+  - Trefferanzeige `1 / 2`.
+  - Dropdown bleibt nutzbar.
+  - Button `User neu laden` sichtbar.
+  - Button `Suche leeren` sichtbar.
+  - Zieluser ForrestCGN / `tw:127709954` bleibt ausgewaehlt.
+  - Read `true`.
+  - Write `true`.
+  - 3 Admin-Notizen geladen.
+  - Create-Form nutzt weiterhin Zieluser `tw:127709954`.
+- Doku-only.
+- Kein Code.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED - 2026-06-26
 
 - Admin-Notizen-Zieluser-Auswahl komfortabler gemacht.
