@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -17,16 +17,22 @@ Datum: 2026-06-26
 - [x] RDAP45B Deploy-Safety fuer aktiv genutzten Login korrigiert.
 - [x] RDAP45C Live-Bestaetigung Login/Deploy-Safety dokumentiert.
 - [x] RDAP46 naechsten kleinen Admin-Notizen-Step geplant.
-- [x] RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen vorbereitet.
-- [x] RDAP47 Webserver-Deploy ausgefuehrt und live im Browser bestaetigt.
-- [x] RDAP47B Live-Bestaetigung dokumentiert.
+- [x] RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen umgesetzt und live bestaetigt.
+- [x] RDAP47B Live-Bestaetigung Zieluser-Suche dokumentiert.
+- [x] RDAP48 Admin-User-Detailseite read-only geplant.
 
 ## Offen / Naechstes
 
-- [ ] RDAP48 Admin-User-Detailseite read-only planen.
-- [ ] Bestehende Auth-/User-/Permission-/Admin-Note-Dateien fuer RDAP48 pruefen.
-- [ ] Entscheiden, ob RDAP49 eine read-only Admin-User-Detailseite bauen soll.
+- [ ] RDAP49 Admin-User-Detail read-only vorbereiten.
+- [ ] RDAP49 lokal per `installstep.cmd` einspielen.
+- [ ] RDAP49 `node --check` fuer geaenderte Frontend-JS-Datei ausfuehren.
+- [ ] RDAP49 per `stepdone.cmd` nach GitHub/dev bringen.
+- [ ] RDAP49 Webserver-Deploy aus frischem GitHub/dev-Clone ausfuehren.
+- [ ] Live bestaetigen: Admin-User-Detail read-only sichtbar.
+- [ ] Live bestaetigen: ForrestCGN / tw:127709954 korrekt angezeigt.
+- [ ] Live bestaetigen: Rollen/Gruppen/Sessions werden angezeigt, soweit vorhanden.
+- [ ] Live bestaetigen: Link/Button zu Admin-Notizen fuer denselben User nutzt vorhandene Zieluser-Auswahl.
+- [ ] Danach RDAP49B Live-Bestaetigung dokumentieren.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
-- [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
+- [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-User-Detail vermischen.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.
-- [ ] Agent-/OBS-/Sound-/Overlay-/Command-Steuerung separat und mit Allowlist/Locks/Audit planen.

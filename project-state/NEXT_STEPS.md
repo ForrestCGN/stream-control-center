@@ -1,74 +1,91 @@
 # NEXT_STEPS
 
-Stand: RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN
+RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
 ```
 
-## Ziel RDAP48
+## Ziel RDAP49
 
 ```text
-Eine echte Admin-User-Detailseite read-only planen.
-Admin-Notizen-Zieluser-Auswahl und Suche sind live.
-Jetzt soll geklaert werden, wie User-Details sauber und sichtbar angebunden werden.
+Eine sichtbare Admin-User-Detailseite/read-only Detailansicht vorbereiten.
 ```
 
-## Warum Plan-only
+## Scope
 
 ```text
-Eine Admin-User-Detailseite beruehrt spaeter Userdaten, Rollen, Permissions, Audit und Admin-Notizen.
-Deshalb zuerst klaeren, welche Daten bereits vorhanden sind und welche Routen/Services bestehend erweitert werden koennen.
+Frontend-only.
+Daten aus bestehendem /api/remote/auth/model nutzen.
+User-Auswahl/Suche nach Name/Login/UID.
+User-Kopf anzeigen: displayName, loginName, userUid, status, lastLoginAt.
+Rollen/Gruppen/Sessions fuer den User read-only anzeigen.
+Button/Link zu Admin-Notizen fuer diesen User ueber vorhandene RDAP44/RDAP47 API.
+Keine Backend-Aenderung.
+Keine DB-Migration.
+Keine Permission-Schreibfunktion.
 ```
 
-## Moeglicher Inhalt der spaeteren Detailseite
+## Vor RDAP49 zuerst pruefen
 
 ```text
-User-Identitaet:
-- userUid
-- displayName
-- loginName
-- Twitch-ID/Provider
-- Status
-
-Admin-Kontext:
-- Rollen/Gruppen
-- Permissions read-only
-- Dashboard-Zugriff read-only
-- letzter Login/Session-Hinweise, falls vorhanden
-- Admin-Notizen fuer diesen User
-- Audit-Auszug read-only, falls sinnvoll und bereits sicher verfuegbar
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+remote-modboard/backend/src/routes/auth-model.routes.js
+remote-modboard/backend/src/services/auth-db-read.service.js
 ```
 
-## RDAP48 soll klaeren
+## Bestehende Datenquelle
 
 ```text
-Welche bestehenden Dateien/Routen liefern Userdaten?
-Welche vorhandenen Module/Services werden erweitert statt neue Parallelstruktur zu bauen?
-Welche Rechte braucht die Detailseite?
-Welche Daten duerfen read-only angezeigt werden?
-Wie wird von Admin-Notizen zur Detailseite verlinkt?
-Was bleibt bewusst deaktiviert?
+GET /api/remote/auth/model
 ```
 
-## Nicht direkt als naechstes tun
+Liefert read-only:
 
 ```text
-Kein Admin-Note Update.
-Kein Admin-Note Deactivate.
-Kein physisches Delete.
-Keine Permission-Verwaltung nebenbei.
-Keine DB-Migration ohne separaten Plan.
+model.users
+model.userRoles
+model.userGroups
+model.roles
+model.groups
+model.permissions
+model.rolePermissions
+model.modulePermissions
+model.sessions
+```
+
+## Akzeptanzkriterien RDAP49
+
+```text
+Admin-User-Detail read-only sichtbar.
+Mindestens ForrestCGN / tw:127709954 wird korrekt angezeigt.
+Rollen/Gruppen/Sessions werden angezeigt, soweit im Auth-Modell vorhanden.
+Admin-Notizen fuer ausgewaehlten User koennen ueber vorhandene Zieluser-Auswahl geoeffnet werden.
+Keine Backend-Datei geaendert.
+Keine DB-Migration.
+Kein Admin-Note Update/Deactivate/Delete.
+Login-/OAuth-Safety bleibt unveraendert.
+```
+
+## Nicht in RDAP49 tun
+
+```text
+Keine Permission-Vergabe.
+Keine Rollen-/Gruppen-Aenderung.
+Keine Admin-Note Update/Deactivate/Delete-Funktion.
 Keine Community-Read-Anbindung fuer Admin-Notizen.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-Keine freien Shell-/Datei-/Prozess-/URL-Ausfuehrungen.
+Keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
+Keine neue Backend-Route, wenn /api/remote/auth/model ausreicht.
 ```
 
 ## Danach moeglich
 
 ```text
-RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
+RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS
 ```

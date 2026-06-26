@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN  
 Datum: 2026-06-26
 
-## Geaendert in RDAP47B
+## Geaendert in RDAP48
 
 ```text
-docs/current/RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP47B.md
+docs/current/RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP48.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,25 +15,38 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Doku-only RDAP47B
+## Code-Aenderung RDAP48
 
 ```text
-Kein Backend-Code.
-Kein Frontend-Code.
-Keine DB-Migration.
+Keine.
+```
+
+## Typ
+
+```text
+Doku-/Plan-only.
 Kein Webserver-Deploy noetig.
 ```
 
-## Zuletzt geaendert in RDAP47
+## Fuer RDAP49 relevante Frontend-Dateien
 
 ```text
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
 ```
 
-Zweck:
+## Fuer RDAP49 relevante Backend-Dateien / Datenquelle
 
 ```text
-Frontend-only Zieluser-Suche/Filter in Admin -> Admin-Notizen.
+remote-modboard/backend/src/routes/auth-model.routes.js
+remote-modboard/backend/src/services/auth-db-read.service.js
+```
+
+## Relevante Route
+
+```text
+GET /api/remote/auth/model
 ```
 
 ## Aktuelle relevante Admin-Note-Routen
@@ -45,24 +58,13 @@ POST /api/remote/admin/users/admin-notes/update      -> disabled
 POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
 
-## Aktuelle relevante Auth-Routen
+## Nicht aendern ohne separaten Plan
 
 ```text
-GET  /api/remote/auth/twitch/start
-GET  /api/remote/auth/twitch/callback
-GET  /api/remote/auth/login/start
-GET  /api/remote/auth/login/plan
-POST /api/remote/auth/logout
-```
-
-## Fuer RDAP48 voraussichtlich zu pruefen
-
-```text
-remote-modboard/backend/src/routes/auth-model.routes.js
-remote-modboard/backend/src/services/auth-model.service.js
-remote-modboard/backend/src/services/auth-permission-read.service.js
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-remote-modboard/backend/src/routes/admin-user-admin-notes.routes.js
-remote-modboard/backend/src/services/admin-user-admin-note-read.service.js
+Backend-Write-Routen
+DB-Schema
+Deploy-Script
+Permissions
+Auth/Login
+Agent/OBS/Sound/Overlay/Command/Channelpoints
 ```

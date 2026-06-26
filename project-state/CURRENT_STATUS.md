@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS  
+Stand: RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -18,6 +18,7 @@ RDAP45C dokumentiert die RDAP45B Live-Bestaetigung.
 RDAP46 plant den naechsten kleinen Admin-Notizen-Komfort-Step.
 RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist live bestaetigt.
 RDAP47B dokumentiert die RDAP47 Live-Bestaetigung.
+RDAP48 plant eine Admin-User-Detailseite read-only.
 ```
 
 ## Live-System
@@ -52,26 +53,39 @@ Das ist keine Freigabe fuer Remote-Writes, Agent-Actions, OBS, Sound, Overlay, C
 ```text
 Admin -> Admin-Notizen zeigt eine Zieluser-Auswahl.
 Default ist ForrestCGN / tw:127709954.
+Zieluser-Suche/Filter ist live.
 Ausgewaehlter User steuert die Read-Route per targetUserUid.
 Create nutzt denselben ausgewaehlten targetUserUid.
 Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
-RDAP47 ergaenzt ein Such-/Filterfeld fuer Zieluser.
 ```
 
-## RDAP47 Live-Bestaetigung
+## RDAP47B Live-Bestaetigung
 
 ```text
 Suchfeld sichtbar.
 Suche nach "Forrest" funktioniert.
 Trefferanzeige: 1 / 2.
-Dropdown bleibt nutzbar.
-Button User neu laden sichtbar.
-Button Suche leeren sichtbar.
-Ausgewaehlter Zieluser: ForrestCGN / tw:127709954.
+Zieluser ForrestCGN / tw:127709954 bleibt ausgewaehlt.
 Read true.
 Write true.
 3 Admin-Notizen geladen.
-Create-Form nutzt weiter Zieluser tw:127709954.
+Create-Form nutzt weiterhin Zieluser tw:127709954.
+```
+
+## RDAP48 Plan-Ergebnis
+
+```text
+Naechster sinnvoller Schritt:
+RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
+```
+
+Ziel:
+
+```text
+Admin-User-Detailseite/read-only Detailbereich.
+Daten aus vorhandenem /api/remote/auth/model nutzen.
+Rollen/Gruppen/Sessions fuer ausgewaehlten User anzeigen.
+Admin-Notizen fuer denselben User ueber vorhandene RDAP44/RDAP47 Struktur verlinken.
 ```
 
 ## Weiterhin deaktiviert
@@ -89,12 +103,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN
-```
-
-Ziel:
-
-```text
-Echte Admin-User-Detailseite read-only bewusst planen.
-Nicht blind Update/Delete/Permission bauen.
+RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
 ```

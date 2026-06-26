@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## RDAP48_ADMIN_USER_DETAIL_READONLY_PLAN - 2026-06-26
+
+- Naechsten sichtbaren Admin-User-Schritt geplant:
+  - `RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED`
+- Ziel:
+  - Admin-User-Detailseite/read-only Detailbereich.
+  - Daten aus vorhandenem `/api/remote/auth/model` nutzen.
+  - User-Kopf, Rollen, Gruppen und Sessions read-only anzeigen.
+  - Vorhandene RDAP44/RDAP47 Admin-Notizen-Zieluser-Auswahl wiederverwenden.
+- Gepruefte echte Strukturen:
+  - `remote-modboard/backend/src/routes/auth-model.routes.js`
+  - `remote-modboard/backend/src/services/auth-db-read.service.js`
+  - `remote-modboard/backend/public/assets/remote-modboard.js`
+  - `remote-modboard/backend/public/assets/rdap28-admin-notes.js`
+- Keine Code-Aenderung.
+- Keine Backend-Aenderung.
+- Keine DB-Migration.
+- Keine Permission-Verwaltung.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP47B_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_LIVE_CONFIRMED_DOCS - 2026-06-26
 
 - RDAP47 Live-Bestaetigung dokumentiert.
@@ -7,17 +27,11 @@
   - Suchfeld sichtbar.
   - Suche nach `Forrest` funktioniert.
   - Trefferanzeige `1 / 2`.
-  - Dropdown bleibt nutzbar.
-  - Button `User neu laden` sichtbar.
-  - Button `Suche leeren` sichtbar.
-  - Zieluser ForrestCGN / `tw:127709954` bleibt ausgewaehlt.
-  - Read `true`.
-  - Write `true`.
+  - Read true.
+  - Write true.
   - 3 Admin-Notizen geladen.
-  - Create-Form nutzt weiterhin Zieluser `tw:127709954`.
+  - Create nutzt Zieluser `tw:127709954`.
 - Doku-only.
-- Kein Code.
-- Kein Webserver-Deploy noetig.
 
 ## RDAP47_ADMIN_NOTE_TARGET_USER_SEARCH_COMFORT_PREPARED - 2026-06-26
 
