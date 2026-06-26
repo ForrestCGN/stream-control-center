@@ -38,6 +38,7 @@ window.addEventListener('scroll', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   exposeMainRouterApi();
+  injectAdminNotesPolishStyles();
   bindNavigation();
   bindDelegatedNavigation();
   bindOptional('refreshButton', 'click', () => loadDashboard('manual'));
@@ -57,6 +58,36 @@ document.addEventListener('DOMContentLoaded', () => {
   startAutoRefresh();
   loadDashboard('initial');
 });
+
+
+function injectAdminNotesPolishStyles() {
+  if (document.getElementById('rdap67AdminNotesPolishStyle')) return;
+  const style = document.createElement('style');
+  style.id = 'rdap67AdminNotesPolishStyle';
+  style.textContent = `
+    .admin-note-list{gap:14px!important}
+    .admin-note-item{position:relative!important;display:grid!important;gap:10px!important;padding:16px!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(27,216,255,.035))!important;border:1px solid rgba(27,216,255,.18)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 26px rgba(0,0,0,.16)!important}
+    .admin-note-item:before{content:""!important;position:absolute!important;left:0!important;top:14px!important;bottom:14px!important;width:3px!important;border-radius:999px!important;background:linear-gradient(180deg,var(--cyan),var(--purple))!important;opacity:.78!important}
+    .admin-note-item strong{font-size:15px!important;line-height:1.25!important;color:#fff!important;padding-left:2px!important}
+    .admin-note-item small{display:flex!important;gap:7px!important;flex-wrap:wrap!important;align-items:center!important;margin-top:0!important;color:var(--muted)!important;font-size:11px!important;line-height:1.35!important}
+    .admin-note-item small span,.admin-note-item small code{display:inline-flex!important;align-items:center!important;min-height:22px!important;padding:3px 8px!important;border-radius:999px!important;background:rgba(255,255,255,.055)!important;border:1px solid rgba(255,255,255,.07)!important;color:var(--muted)!important;font-family:inherit!important;font-size:11px!important}
+    .admin-note-text{margin-top:2px!important;padding:12px 13px!important;border-radius:14px!important;background:rgba(4,7,18,.42)!important;border:1px solid rgba(255,255,255,.075)!important;white-space:pre-wrap!important;line-height:1.55!important;color:var(--text)!important}
+    .admin-note-actions{padding-top:2px!important;border-top:1px solid rgba(255,255,255,.06)!important}
+    .admin-note-update-editor{display:grid!important;gap:9px!important;margin-top:2px!important;padding:12px!important;border-radius:15px!important;background:rgba(27,216,255,.07)!important;border:1px solid rgba(27,216,255,.18)!important}
+    .admin-note-update-editor textarea{min-height:120px!important;border-radius:14px!important;background:rgba(4,7,18,.64)!important;border:1px solid rgba(255,255,255,.12)!important;color:var(--text)!important;padding:11px 12px!important;line-height:1.5!important}
+    .admin-note-ok,.admin-note-error,.admin-note-info{border-radius:15px!important;padding:12px 13px!important;line-height:1.4!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important}
+    .admin-note-ok{background:rgba(69,245,167,.11)!important;border-color:rgba(69,245,167,.28)!important}
+    .admin-note-error{background:rgba(255,84,112,.13)!important;border-color:rgba(255,84,112,.32)!important}
+    .admin-note-info{background:rgba(27,216,255,.10)!important;border-color:rgba(27,216,255,.26)!important}
+    .admin-note-safety{gap:10px!important}
+    .admin-note-safety .kv-row{border-radius:13px!important;background:rgba(255,255,255,.04)!important}
+    .admin-note-panel-lock{border-radius:16px!important;line-height:1.4!important}
+    .admin-note-create-card{gap:12px!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(27,216,255,.07),rgba(155,77,255,.05))!important;border-color:rgba(27,216,255,.22)!important}
+    .admin-note-create-meta{align-items:center!important}
+    @media (max-width:640px){.admin-note-item{padding:14px!important}.admin-note-text{padding:11px!important}.admin-note-actions{gap:7px!important}}
+  `;
+  document.head.appendChild(style);
+}
 
 function bindNavigation() {
   document.querySelectorAll('.nav-group[data-target]').forEach((button) => {

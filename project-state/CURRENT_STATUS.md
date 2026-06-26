@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN  
+Stand: RDAP67_ADMIN_NOTES_UI_POLISH  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -19,6 +19,7 @@ RDAP64E: Doku-/Status-Step nach RDAP64D auf GitHub/dev abgeschlossen.
 RDAP65A: Bestaetigten Live-Stand und offene fachliche Browser-Pruefpunkte dokumentiert.
 RDAP65B: Admin-Notes fachlich im Browser bestaetigt; Create, Update, User-Detail und Navigation funktionieren.
 RDAP66: Naechsten sicheren Scope geplant; RDAP67 soll Admin-Notes UI-Polish werden.
+RDAP67: Admin-Notes UI-Polish vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
 ```
 
 ## Live-/Browser-Befund nach RDAP65B
@@ -29,40 +30,26 @@ Browser-Konsole sauber.
 Admin -> Admin-Notizen zeigt Inhalt.
 Liste laedt 4 Admin-Notiz(en).
 Create funktioniert sichtbar.
-Create erzeugte Notiz:
-admin_note_20260626095139_76c977525140
-Liste wird nach Create aktualisiert.
-Write-Kontext sichtbar: Read/Create/Update.
-confirmWrite-Kontext sichtbar.
-Aktive Notiz wird angezeigt.
-Bearbeiten-Button sichtbar.
 Update-Speichern funktioniert.
-Text wurde sichtbar aktualisiert auf:
-tedt1
-Zeitstempel wurde aktualisiert:
-2026-06-26T09:53:02.000Z
-Erfolgsmeldung sichtbar:
-Notiz gespeichert. Liste wird aktualisiert ...
 Admin -> User-Detail zeigt Inhalt.
-User-Daten ForrestCGN / @forrestcgn / UID sichtbar.
 Wechsel zu Sicherheit funktioniert.
 Sicherheit/Diagnose zeigt HTTP-200-Karten.
 Deactivate/Delete sind nicht sichtbar.
 ```
 
-## RDAP66 Entscheidung
+## RDAP67 Umsetzung
 
 ```text
-Naechster Code-Step:
-RDAP67_ADMIN_NOTES_UI_POLISH
+Geaendert:
+remote-modboard/backend/public/assets/remote-modboard.js
 
-Begruendung:
-- Erfolgsweg ist bestaetigt.
-- Kein Backend noetig.
-- Keine neue Permission noetig.
-- Kein Delete/Deactivate.
-- Geringes Risiko.
-- Direkter sichtbarer Nutzen.
+Art:
+- idempotente Style-Injection rdap67AdminNotesPolishStyle
+- Admin-Notes-Karten lesbarer
+- Metadaten/Notiztext besser getrennt
+- Erfolg/Fehler/Info-Hinweise klarer
+- Bearbeiten-Editor optisch kompakter
+- Create-Karte optisch klarer
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -90,5 +77,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP67_ADMIN_NOTES_UI_POLISH
+RDAP68_ADMIN_NOTES_UI_POLISH_LIVE_VERIFICATION_DOC
 ```

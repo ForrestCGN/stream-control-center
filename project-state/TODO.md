@@ -1,36 +1,27 @@
 # TODO
 
-Stand: RDAP66_ADMIN_NOTES_NEXT_SCOPE_PLAN  
+Stand: RDAP67_ADMIN_NOTES_UI_POLISH  
 Datum: 2026-06-26
 
-## Offen / als Naechstes
+## Als Naechstes
 
 ```text
-RDAP67_ADMIN_NOTES_UI_POLISH
+RDAP68_ADMIN_NOTES_UI_POLISH_LIVE_VERIFICATION_DOC
 ```
 
-Aufgaben fuer RDAP67:
+Aufgaben:
 
 ```text
-- rdap28-admin-notes.js auf UI-Struktur pruefen.
-- CSS/Markup fuer Admin-Notes-Karten verbessern.
-- Bearbeiten-Zustand kompakter machen.
-- Erfolg-/Fehlerhinweise klarer darstellen.
-- Bestehende Create-/Update-Funktion erhalten.
-- confirmWrite:true unveraendert lassen.
-- Keine neuen Schreibbuttons einfuehren.
-```
-
-## Erledigt / bestaetigt
-
-```text
-- Admin-Notes ist live sichtbar.
-- Create funktioniert.
-- Update-Speichern funktioniert.
-- User-Detail funktioniert.
-- Navigation bleibt stabil.
-- Delete/Deactivate sind nicht sichtbar.
-- RDAP66 hat RDAP67 als naechsten sicheren Code-Scope ausgewaehlt.
+- RDAP67 lokal installieren.
+- node --check fuer remote-modboard.js und rdap28-admin-notes.js ausfuehren.
+- stepdone.cmd nur wenn sauber.
+- Danach Webserver-Deploy, weil Frontend-Code unter remote-modboard/ geaendert wurde.
+- Browser pruefen:
+  - Admin-Notizen sichtbar.
+  - UI-Polish sichtbar und nicht stoerend.
+  - Create/Update weiterhin ok.
+  - User-Detail/Navigation weiterhin ok.
+  - Delete/Deactivate nicht sichtbar.
 ```
 
 ## Nicht machen
@@ -39,9 +30,7 @@ Aufgaben fuer RDAP67:
 - Kein Deactivate.
 - Kein Delete.
 - Keine DB-Migration.
-- Keine Backend-Route.
 - Keine neue Permission.
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
-- Kein Haupt-Router-Umbau ohne zwingenden Befund.
 ```
