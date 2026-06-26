@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP100B_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP101B_STREAM_PC_CONNECTION_AGENT_PUBLIC_WSS_HEARTBEAT_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
@@ -21,25 +21,25 @@ RDAP98/RDAP98B:
 - Public WSS /agent-ws 404 erkannt.
 - Runtime final disabled bestaetigt.
 
-RDAP99:
-- Nginx/ISPConfig Befund dokumentiert.
-- Separater /agent-ws WebSocket Location-Block geplant.
+RDAP99/RDAP100B:
+- Nginx/ISPConfig /agent-ws WebSocket Proxy geplant und live bestaetigt.
+- Public WebSocket-Upgrade erreicht Backend-Handler.
 
-RDAP100/RDAP100B:
-- Separater /agent-ws Block in ISPConfig/Nginx gesetzt.
-- Public WebSocket-Upgrade erreicht Backend-Upgrade-Handler.
-- Ablehnung ohne Secret missing_connection_proof bestaetigt.
+RDAP101/RDAP101B:
+- Agent lokal ueber public WSS verbunden.
+- Gueltiger Heartbeat live bestaetigt.
 - Runtime final disabled bestaetigt.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP101_STREAM_PC_CONNECTION_AGENT_CLIENT_PUBLIC_WSS_HEARTBEAT_LIVE
+RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN
 ```
 
 ## Danach
 
 ```text
-Nach erfolgreichem RDAP101 Live-Heartbeat: Ergebnis dokumentieren und weiterhin keine Actions aktivieren.
+Nach RDAP102-Plan: Statusanzeige im bestehenden Remote-Modboard/Dashboard gezielt vorbereiten.
+Weiterhin keine Agent-Actions und keine produktive Action-Queue.
 ```

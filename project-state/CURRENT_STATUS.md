@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP100B_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP101B_STREAM_PC_CONNECTION_AGENT_PUBLIC_WSS_HEARTBEAT_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -19,6 +19,7 @@ RDAP97: Manueller Agent-Testplan dokumentiert.
 RDAP98B: RDAP98 Teiltest dokumentiert; public /agent-ws lieferte 404.
 RDAP99: Nginx/ISPConfig Agent-WS Proxy Plan dokumentiert.
 RDAP100B: Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
+RDAP101B: Stream-PC Agent public WSS Heartbeat live bestaetigt.
 ```
 
 ## Live-Service
@@ -37,18 +38,27 @@ statusApiVersion=rdap_agent94.v1
 moduleBuild=RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
 ```
 
-## RDAP100B Ergebnis
+## RDAP101B Ergebnis
 
 ```text
-Nginx/ISPConfig separater /agent-ws Block: gesetzt
-Normaler HTTP-GET /agent-ws erreicht Node HTTP-Router: OK/erwartbar not_found
-Public WebSocket-Upgrade erreicht Backend-Upgrade-Handler: OK
-Backend-Ablehnung ohne Secret: missing_connection_proof erwartet
-X-SCC-Agent-Runtime: transport-guarded
-X-SCC-Agent-Actions: disabled
-Keine Secrets verwendet: OK
-Keine Actions: OK
+Vorab disabled Status: OK
+Runtime temporaer aktiviert: OK
+Stream-PC Agent lokal gestartet: OK
+Public WSS connected: OK
+Gueltiger Heartbeat ueber public WSS bestaetigt: OK
+heartbeatSeq=4
+heartbeatProtocolVersion=rdap-agent-heartbeat.v1
+stale=false
+lastHeartbeatPayloadStored=false
+actionEnabled=false
+productiveAgentRuntime=false
+heartbeatExecutesActions=false
+heartbeatAcceptsCommands=false
+heartbeatAcceptsCapabilities=false
+Agent lokal gestoppt: OK
 Runtime final disabled: OK
+Keine Secrets: OK
+Keine Actions: OK
 ```
 
 ## Final bestaetigter Sicherheitszustand
@@ -84,5 +94,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP101_STREAM_PC_CONNECTION_AGENT_CLIENT_PUBLIC_WSS_HEARTBEAT_LIVE
+RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN
 ```

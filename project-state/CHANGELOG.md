@@ -1,17 +1,22 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP100B_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_LIVE_CONFIRMED_DOCS
+## 2026-06-26 - RDAP101B_STREAM_PC_CONNECTION_AGENT_PUBLIC_WSS_HEARTBEAT_LIVE_CONFIRMED_DOCS
 
 ```text
-- RDAP100 Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
-- Bestaetigt: separater location /agent-ws Block wurde in ISPConfig/Nginx gesetzt.
-- Bestaetigt: normaler HTTP-GET /agent-ws erreicht Node HTTP-Router und liefert erwartbar not_found.
-- Bestaetigt: public WebSocket-Upgrade erreicht Backend-Upgrade-Handler.
-- Bestaetigt: Test ohne Secret wurde erwartbar mit missing_connection_proof abgelehnt.
-- Bestaetigt: X-SCC-Agent-Runtime transport-guarded.
-- Bestaetigt: X-SCC-Agent-Actions disabled.
-- Bestaetigt: Runtime final disabled.
-- Bestaetigt: Keine Secrets verwendet und keine Actions.
-- Naechster Step: RDAP101_STREAM_PC_CONNECTION_AGENT_CLIENT_PUBLIC_WSS_HEARTBEAT_LIVE.
-- Doku-only; kein Backend-Code, kein Agent-Code und kein Repo-Webserver-Deploy noetig.
+- RDAP101 public WSS Heartbeat Live-Test dokumentiert.
+- Bestaetigt: Vorab disabled Status OK.
+- Bestaetigt: Runtime wurde nur temporaer aktiviert.
+- Bestaetigt: Stream-PC Agent lokal gestartet.
+- Bestaetigt: Agent verband sich ueber wss://mods.forrestcgn.de/agent-ws.
+- Bestaetigt: Gueltiger Heartbeat ueber public WSS empfangen.
+- Bestaetigt: heartbeatSeq=4 und heartbeatProtocolVersion=rdap-agent-heartbeat.v1.
+- Bestaetigt: stale=false und lastHeartbeatPayloadStored=false.
+- Bestaetigt: actionEnabled=false und productiveAgentRuntime=false.
+- Bestaetigt: heartbeatExecutesActions=false, heartbeatAcceptsCommands=false, heartbeatAcceptsCapabilities=false.
+- Bestaetigt: Agent lokal gestoppt.
+- Bestaetigt: Runtime final wieder deaktiviert.
+- Bestaetigt: keine Secrets im Chat/Git/Doku.
+- Bestaetigt: keine Agent-Actions.
+- Naechster Step: RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN.
+- Doku-only; kein Code, keine Nginx-Aenderung, keine Runtime-Aenderung, kein Webserver-Deploy noetig.
 ```

@@ -1,39 +1,36 @@
 # NEXT_STEPS
 
-Stand: RDAP100B_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_LIVE_CONFIRMED_DOCS  
+Stand: RDAP101B_STREAM_PC_CONNECTION_AGENT_PUBLIC_WSS_HEARTBEAT_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP101_STREAM_PC_CONNECTION_AGENT_CLIENT_PUBLIC_WSS_HEARTBEAT_LIVE
+RDAP102_STREAM_PC_CONNECTION_DASHBOARD_STATUS_VISIBLE_PLAN
 ```
 
 ## Ziel
 
-RDAP101 soll den echten Heartbeat des lokalen Stream-PC Agent Clients ueber public WSS testen:
+RDAP102 soll planen, wie der jetzt live bestaetigte Stream-PC Verbindungsstatus sichtbar im Remote-Modboard/Dashboard angezeigt wird:
 
 ```text
-- Vorab disabled Status pruefen.
-- Runtime auf dem Webserver nur temporaer aktivieren.
-- Stream-PC Agent lokal gegen wss://mods.forrestcgn.de/agent-ws starten.
-- Lokales Secret nur lokal setzen, niemals in Chat/Git/Doku.
-- /api/remote/agent/status pruefen.
-- Gueltigen Heartbeat bestaetigen.
-- Agent stoppen.
-- Runtime final wieder deaktivieren.
-- Finalen disabled Status pruefen.
-- Keine Actions.
+- Bestehende Status-/Routes-/UI-Struktur pruefen.
+- Sichtbaren Status fuer Webserver <-> Stream-PC planen.
+- Anzeigen: verbunden/getrennt, letzter Heartbeat, heartbeatAge/stale, Actions disabled.
+- Nutzerfreundliche Bezeichnungen verwenden: Stream-PC Verbindung, Verbindungen, Webserver <-> Stream-PC.
+- Erst Plan/Doku, keine direkte Action-Funktion.
+- Keine Agent-Actions.
 ```
 
 ## Voraussetzung
 
 ```text
-RDAP100B abgeschlossen:
-- Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
-- Public WebSocket-Upgrade erreicht Backend-Upgrade-Handler.
-- Test ohne Secret wurde erwartbar mit missing_connection_proof abgelehnt.
+RDAP101B abgeschlossen:
+- Public WSS Heartbeat live bestaetigt.
+- Agent connected und heartbeatSeq=4 bestaetigt.
 - Runtime final disabled.
+- Keine Secrets.
+- Keine Actions.
 ```
 
 ## Strikt nicht machen
@@ -57,5 +54,4 @@ Keine produktive Agent-Action-Queue.
 Keine Secret-Ausgabe.
 Keine Rohpayload-Ausgabe.
 Keine Runtime dauerhaft aktivieren.
-Keine Nginx-Aenderung im RDAP101 Heartbeat-Test.
 ```
