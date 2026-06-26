@@ -1,0 +1,12 @@
+{
+  "name": "scc-stream-pc-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ForrestCGN Stream-PC Agent heartbeat-only client",
+  "main": "src/agent-client.js",
+  "scripts": {
+    "start": "node src/agent-client.js",
+    "check": "node --check src/agent-client.js && node --check src/config.js && node --check src/logger.js"
+  },
+  "dependencies": {}
+}

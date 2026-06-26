@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN  
+Stand: RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -13,6 +13,7 @@ RDAP94C: Live Default nach Deploy bestaetigt.
 RDAP94B: Heartbeat Live-Confirm erfolgreich durchgefuehrt.
 RDAP94D: Live-Confirm dokumentiert.
 RDAP95: Minimaler Stream-PC Agent Client geplant.
+RDAP96: Heartbeat-only Stream-PC Agent Client vorbereitet.
 ```
 
 ## Live-Service
@@ -58,18 +59,21 @@ actionEnabled=false
 productiveAgentRuntime=false
 ```
 
-## RDAP95 geplant
+## RDAP96 gebaut
 
 ```text
-Minimaler Stream-PC Agent Client.
+Minimaler Stream-PC Agent Client unter remote-modboard/stream-pc-agent/.
 Zunaechst nur Verbindung + Heartbeat.
-Geplanter spaeterer Repo-Ort: remote-modboard/stream-pc-agent/
+Node built-ins only: net/tls/crypto.
+Keine externe ws-Abhaengigkeit.
 Manueller Start zuerst.
 Kein Autostart/Service in erster Stufe.
 Config ohne Secrets im Git.
 Logging ohne Secrets/Header/Token/Rohpayloads.
 Reconnect mit Backoff.
 Keine Agent-Actions.
+Kein Backend-Code geaendert.
+Keine Runtime dauerhaft aktiviert.
 ```
 
 ## Sicherheitsgrenzen
@@ -80,6 +84,10 @@ Keine OBS-Steuerung.
 Keine Sound-/Overlay-/Command-/Channelpoints-Steuerung.
 Keine freie Shell.
 Keine freie Datei-/Prozess-/URL-Ausfuehrung.
+Keine Prozessliste.
+Keine Dateiliste.
+Keine Env-Dumps.
+Keine Pfad-Dumps.
 Keine DB-Migration.
 Keine neue Permission.
 Keine Secret-Ausgabe.
@@ -89,5 +97,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE
+RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS
 ```

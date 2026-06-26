@@ -1,40 +1,42 @@
 # NEXT_STEPS
 
-Stand: RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN  
+Stand: RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE
+RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS
 ```
 
 ## Ziel
 
-RDAP96 soll den in RDAP95 geplanten minimalen Stream-PC Agent Client vorbereiten:
+RDAP96B soll den RDAP96-Agent-Client lokal pruefen und dokumentieren:
 
 ```text
-- Eigene Agent-Komponente unter remote-modboard/stream-pc-agent/.
-- Nur Verbindung + Heartbeat.
-- Verbindung spaeter zu wss://mods.forrestcgn.de/agent-ws.
-- Lokaler/diagnostischer Test gegen ws://127.0.0.1:3010/agent-ws nur bewusst.
-- Heartbeat alle 30 Sekunden.
-- Reconnect mit Backoff.
-- Logging ohne Secrets/Header/Token/Rohpayloads.
+- node --check fuer Agent-Dateien bestaetigen.
+- npm --prefix remote-modboard/stream-pc-agent run check bestaetigen.
+- git status pruefen.
+- Kein Webserver-Deploy, wenn nur Agent-Client und Doku betroffen sind.
+- Noch kein Webserver-Live-Test ohne separaten Plan.
+```
+
+## Danach moeglich
+
+```text
+RDAP97_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PLAN
+```
+
+Nur als separater Plan:
+
+```text
+- Runtime temporaer aktivieren.
+- Agent manuell mit lokal gesetztem Secret starten.
+- /api/remote/agent/status pruefen.
+- Runtime final wieder deaktivieren.
+- Keine Secret-Ausgabe.
 - Keine Actions.
 ```
-
-## Voraussichtliche Dateien
-
-```text
-remote-modboard/stream-pc-agent/package.json
-remote-modboard/stream-pc-agent/src/agent-client.js
-remote-modboard/stream-pc-agent/src/config.js
-remote-modboard/stream-pc-agent/src/logger.js
-remote-modboard/stream-pc-agent/README.md
-```
-
-Nur wenn die echte Repo-Struktur beim Lesen nicht dagegen spricht.
 
 ## Strikt nicht machen
 

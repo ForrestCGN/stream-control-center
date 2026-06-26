@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP95_STREAM_PC_CONNECTION_AGENT_CLIENT_PLAN  
+Stand: RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
@@ -41,17 +41,25 @@ RDAP95:
 - Zunaechst nur Verbindung + Heartbeat.
 - Geplanter Ort remote-modboard/stream-pc-agent/ dokumentiert.
 - Secret-/Logging-/Reconnect-Grenzen dokumentiert.
+
+RDAP96:
+- remote-modboard/stream-pc-agent/ erstellt.
+- Heartbeat-only Agent Client vorbereitet.
+- Config/Logger/README erstellt.
+- Keine Agent-Actions.
+- Kein Backend-Code.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP96_STREAM_PC_CONNECTION_AGENT_CLIENT_HEARTBEAT_ONLY_CODE
+RDAP96B_STREAM_PC_CONNECTION_AGENT_CLIENT_LOCAL_CHECK_DOCS
 ```
 
 ## Danach
 
 ```text
-Nach RDAP96: lokalen Agent Client syntaktisch pruefen und nur bei separatem Plan live/gegen Webserver testen.
+Nach RDAP96B: separaten manuellen Agent-Testplan erstellen.
+Kein Live-Test ohne separaten Sicherheitsplan.
 Keine Actions ohne separaten Sicherheitsplan.
 ```
