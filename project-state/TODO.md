@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -13,12 +13,14 @@ Datum: 2026-06-26
 - [x] RDAP51 Bruecke User-Detail zu Admin-Notizen Frontend-only umgesetzt.
 - [x] RDAP51 live bestaetigt: Kontext-Hinweis, Zieluser-Uebernahme, Ruecksprung und Hinweis ausblenden sichtbar.
 - [x] RDAP51B Live-Bestaetigung dokumentiert.
+- [x] RDAP52 Permission-/Rollen-Read-Details geplant.
 
 ## Offen / Naechstes
 
-- [ ] RDAP52 Permission-/Rollen-Read-Details planen.
-- [ ] Pruefen, welche Detaildaten aus `/api/remote/auth/model` bereits reichen.
+- [ ] RDAP53 Permission-/Rollen-Read-Details frontend-only vorbereiten.
+- [ ] Pruefen, welche Detaildaten aus `/api/remote/auth/model` fuer die Umsetzung eindeutig reichen.
 - [ ] Effektive Rechte read-only darstellen, bevor irgendeine Permission-Schreibverwaltung geplant wird.
+- [ ] Bei fehlender Gruppierung/Quelle nicht raten, sondern Datenluecke dokumentieren.
 - [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm.
 - [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
 - [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen.

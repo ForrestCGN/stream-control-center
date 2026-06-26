@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -13,6 +13,7 @@ RDAP49 Admin-User-Detail read-only ist live bestaetigt und dokumentiert.
 RDAP50 Bruecke User-Detail -> Admin-Notizen wurde geplant.
 RDAP51 Bruecke User-Detail -> Admin-Notizen ist live bestaetigt.
 RDAP51B dokumentiert die RDAP51 Live-Bestaetigung.
+RDAP52 plant die Permission-/Rollen-Read-Detail-Politur.
 ```
 
 ## Live-System
@@ -46,6 +47,18 @@ Hinweis ausblenden ist sichtbar.
 Die bestehende Admin-Notizen-Implementierung bleibt erhalten.
 ```
 
+## RDAP52 geplanter Stand
+
+```text
+RDAP52 ist Plan-only / Doku-only.
+Geplant ist eine bessere read-only Permission-Detail-Ansicht fuer Admin-User.
+Bestehendes GET /api/remote/auth/model soll zuerst weiterverwendet werden.
+Keine neue Backend-Route, solange vorhandene Daten reichen.
+Keine Code-Aenderung.
+Keine DB-Migration.
+Kein Webserver-Deploy noetig.
+```
+
 ## Weiterhin deaktiviert
 
 ```text
@@ -63,5 +76,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN
+RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED
 ```

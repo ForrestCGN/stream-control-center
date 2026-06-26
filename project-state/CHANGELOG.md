@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## RDAP52_PERMISSION_READ_DETAIL_POLISH_PLAN - 2026-06-26
+
+- Permission-/Rollen-Read-Detail-Polish geplant.
+- Ziel:
+  - Ausgewaehlten Admin-User besser read-only erklaeren.
+  - Rollen, Gruppen, Permissions und Module/Targets sichtbarer machen.
+  - Bestehendes `/api/remote/auth/model` zuerst weiterverwenden.
+  - Keine neue Backend-Route, wenn vorhandene Daten reichen.
+- Geplant fuer spaeteren Umsetzungsstep:
+  - Frontend-only Erweiterung der bestehenden Admin-User-Detail-/Rollen-&-Rechte-Struktur.
+  - Effektive Rechte nur anzeigen/erklaeren.
+  - Safety-Hinweis: Frontend zeigt nur an, Backend entscheidet.
+- Doku-only.
+- Keine Code-Aenderung.
+- Keine Backend-Aenderung.
+- Keine DB-Migration.
+- Keine Permission-Verwaltung.
+- Keine Rollen-/Gruppen-Schreibverwaltung.
+- Keine Session-Revocation.
+- Kein Admin-Note Update/Deactivate/Delete.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP51B_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_LIVE_CONFIRMED_DOCS - 2026-06-26
 
 - RDAP51 Live-Bestaetigung dokumentiert.
