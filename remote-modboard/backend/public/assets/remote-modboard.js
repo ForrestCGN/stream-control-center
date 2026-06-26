@@ -37,7 +37,9 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 document.addEventListener('DOMContentLoaded', () => {
+  exposeMainRouterApi();
   bindNavigation();
+  bindDelegatedNavigation();
   bindOptional('refreshButton', 'click', () => loadDashboard('manual'));
   bindOptional('clearErrorsButton', 'click', hideErrors);
   bindOptional('logoutButton', 'click', logout);
@@ -58,6 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function bindNavigation() {
   document.querySelectorAll('.nav-group[data-target]').forEach((button) => {
+    if (button.dataset.mainRouterGroupBound === '1') return;
+    button.dataset.mainRouterGroupBound = '1';
     button.addEventListener('click', () => {
       const target = button.dataset.target;
       const sub = target ? byId(target) : null;
@@ -73,16 +77,37 @@ function bindNavigation() {
     });
   });
 
-  document.querySelectorAll('.nav-link[data-page]').forEach((button) => {
-    button.addEventListener('click', () => {
-      setPage(button.dataset.page, {
-        section: button.dataset.section || 'Remote Modboard',
-        title: button.dataset.title || button.textContent.trim(),
-        tab: button.dataset.tab || ''
-      });
-      document.body.classList.remove('nav-collapsed');
-    });
+  document.querySelectorAll('.nav-link[data-page]').forEach(bindNavLink);
+}
+
+function bindNavLink(button) {
+  if (!button || button.dataset.mainRouterPageBound === '1') return;
+  button.dataset.mainRouterPageBound = '1';
+  button.addEventListener('click', () => {
+    setPage(button.dataset.page, readNavMeta(button));
+    document.body.classList.remove('nav-collapsed');
   });
+}
+
+function bindDelegatedNavigation() {
+  if (document.documentElement.dataset.mainRouterDelegationBound === '1') return;
+  document.documentElement.dataset.mainRouterDelegationBound = '1';
+  document.addEventListener('click', (event) => {
+    const button = event.target && event.target.closest ? event.target.closest('.nav-link[data-page]') : null;
+    if (!button) return;
+    window.setTimeout(() => {
+      setPage(button.dataset.page, readNavMeta(button));
+      document.body.classList.remove('nav-collapsed');
+    }, 0);
+  });
+}
+
+function readNavMeta(button) {
+  return {
+    section: button.dataset.section || 'Remote Modboard',
+    title: button.dataset.title || button.textContent.trim(),
+    tab: button.dataset.tab || ''
+  };
 }
 
 function setPage(page, meta) {
@@ -99,12 +124,35 @@ function setPage(page, meta) {
   }
 
   document.querySelectorAll('.nav-link[data-page]').forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.page === currentPage);
+    const active = button.dataset.page === currentPage;
+    button.classList.toggle('is-active', active);
+    button.classList.toggle('active', active);
   });
 
   document.querySelectorAll('[data-page-panel]').forEach((panel) => {
+    panel.hidden = false;
     panel.classList.toggle('is-active-view', panel.dataset.pagePanel === currentPage);
   });
+
+  emitPageChange(currentPage, { section, title, tab });
+}
+
+function emitPageChange(page, meta) {
+  try {
+    window.dispatchEvent(new CustomEvent('rdap:main-router-page-change', { detail: { page, meta } }));
+  } catch (err) {}
+}
+
+function getCurrentPage() {
+  return currentPage;
+}
+
+function exposeMainRouterApi() {
+  window.RdapMainRouter = {
+    setPage,
+    loadDashboard,
+    getCurrentPage
+  };
 }
 
 function startAutoRefresh() {
@@ -215,7 +263,6 @@ async function postJson(url) {
     };
   }
 }
-
 
 async function syncSelfTwitchProfile() {
   const button = byId('selfProfileSyncButton');
@@ -387,7 +434,6 @@ function renderAuth(authMe, permission, status) {
   void status;
 }
 
-
 function toggleSelfProfilePanel() {
   const panel = byId('selfProfilePanel');
   if (!panel || panel.hidden) openSelfProfilePanel();
@@ -484,7 +530,6 @@ function buildInitial(value) {
   return text.replace(/^@+/, '').slice(0, 1).toUpperCase();
 }
 
-
 function renderAccessModel(authMe, permission, authModel) {
   const authBody = (authMe && authMe.body) || {};
   const permissionBody = (permission && permission.body) || {};
@@ -515,7 +560,6 @@ function renderAccessModel(authMe, permission, authModel) {
   renderModelList('accessGroupsModel', model.groups, row => `${row.group_key || 'group'}${row.label ? ` · ${row.label}` : ''}${row.group_type ? ` · ${row.group_type}` : ''}`);
   renderModelList('accessPermissionsModel', model.permissions, row => `${row.permission_key || 'permission'}${row.area ? ` · ${row.area}` : ''}`);
 }
-
 
 function renderAdminUsersModel(authModel) {
   const modelBody = (authModel && authModel.body) || {};
