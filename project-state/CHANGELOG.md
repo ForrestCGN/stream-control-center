@@ -1,5 +1,45 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP70_ADMIN_NOTES_COMPACT_LAYOUT_LIVE_VERIFICATION_DOC
+
+```text
+- RDAP69 Live-Deploy technisch bestaetigt dokumentiert.
+- Serverchecks dokumentiert:
+  - /api/remote/status ok.
+  - /api/remote/routes ok.
+  - Public UI HTTP 200.
+- Browser-/Layoutbefund dokumentiert:
+  - Admin-Notes sichtbar.
+  - Navigation stabil.
+  - Delete/Deactivate nicht sichtbar.
+  - Compact-Layout technisch ok, aber fachlich weiterhin zu technisch.
+  - "Neue Notiz" wirkt doppelt: oben Button und rechts dauerhafter Create-Bereich.
+  - Diagnose-/Safety-Karten sind fuer Normalbetrieb zu dominant.
+- RDAP71 Admin-Notes Clean-Layout als naechsten Frontend-only Step festgelegt.
+- Doku-only.
+- Kein Code.
+- Keine Backend-Route.
+- Keine DB-Migration.
+- Keine neue Permission.
+```
+
+## 2026-06-26 - RDAP69_ADMIN_NOTES_COMPACT_LAYOUT
+
+```text
+- Admin-Notes Compact-Layout vorbereitet.
+- Frontend-only Style-Injection rdap69AdminNotesCompactLayoutStyle ergaenzt.
+- RDAP67-Style wird beim Laden entfernt, falls vorhanden.
+- Obere Statuskarten kompakter gemacht.
+- Create-Bereich weniger dominant gemacht.
+- Liste hoeher und zentraler vorbereitet.
+- Notizkarten kompakter und weiterhin lesbar gestaltet.
+- Erfolg-/Fehler-/Info-Hinweise platzsparender gehalten.
+- Keine Backend-Route geaendert.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Kein Delete/Deactivate.
+```
+
 ## 2026-06-26 - RDAP68_ADMIN_NOTES_UI_POLISH_LIVE_VERIFICATION_DOC
 
 ```text
@@ -35,23 +75,6 @@
 - Erfolg-/Fehler-/Info-Hinweise klarer dargestellt.
 - Bearbeiten-Editor optisch kompakter gemacht.
 - Create-Karte optisch klarer markiert.
-- Keine Backend-Route geaendert.
-- Keine DB-Migration.
-- Keine neue Permission.
-- Kein Delete/Deactivate.
-```
-
-## 2026-06-26 - RDAP69_ADMIN_NOTES_COMPACT_LAYOUT
-
-```text
-- Admin-Notes Compact-Layout vorbereitet.
-- Frontend-only Style-Injection rdap69AdminNotesCompactLayoutStyle ergaenzt.
-- RDAP67-Style wird beim Laden entfernt, falls vorhanden.
-- Obere Statuskarten kompakter gemacht.
-- Create-Bereich weniger dominant gemacht.
-- Liste hoeher und zentraler vorbereitet.
-- Notizkarten kompakter und weiterhin lesbar gestaltet.
-- Erfolg-/Fehler-/Info-Hinweise platzsparender gehalten.
 - Keine Backend-Route geaendert.
 - Keine DB-Migration.
 - Keine neue Permission.

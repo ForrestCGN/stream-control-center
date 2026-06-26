@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP69_ADMIN_NOTES_COMPACT_LAYOUT  
+Stand: RDAP70_ADMIN_NOTES_COMPACT_LAYOUT_LIVE_VERIFICATION_DOC  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -22,37 +22,31 @@ RDAP66: Naechsten sicheren Scope geplant; RDAP67 soll Admin-Notes UI-Polish werd
 RDAP67: Admin-Notes UI-Polish vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
 RDAP68: RDAP67 live fachlich bestaetigt; Layout weiter verbesserungswuerdig.
 RDAP69: Admin-Notes Compact-Layout vorbereitet; Frontend-only, keine Backend-/DB-/Permission-Aenderung.
+RDAP70: RDAP69 live technisch bestaetigt; Layout fachlich weiterhin zu technisch und noch nicht Zielansicht.
 ```
 
-## Live-/Browser-Befund nach RDAP68
+## Live-/Browser-Befund nach RDAP70
 
 ```text
-RDAP67 ist live deployed.
+RDAP69 ist live deployed.
 /api/remote/status ok.
 /api/remote/routes ok.
 Public UI HTTP 200.
 Admin -> Admin-Notizen sichtbar.
-Liste zeigt 4 Admin-Notizen.
-Bearbeiten funktioniert.
-Speichern funktioniert.
 Navigation stabil.
 Delete/Deactivate nicht sichtbar.
 ```
 
-## RDAP69 Umsetzung
+## Layout-Befund
 
 ```text
-Geaendert:
-remote-modboard/backend/public/assets/remote-modboard.js
+RDAP69 ist technisch ok, aber noch nicht die gewuenschte Arbeitsoberflaeche.
 
-Art:
-- idempotente Style-Injection rdap69AdminNotesCompactLayoutStyle
-- RDAP67-Style wird beim Laden entfernt, falls vorhanden
-- Statuskarten kompakter
-- Create-Bereich weniger dominant
-- Liste hoeher
-- Notizkarten kompakter
-- Erfolg/Fehler/Info-Hinweise sichtbar, aber platzsparender
+Auffaellig:
+- "Neue Notiz" erscheint oben als Button und rechts als dauerhafter Create-Bereich.
+- Der Create-Bereich ist weiterhin zu gross.
+- Technische Karten wie Aktion/Grenzen/Read/Write sind fuer spaeteren Normalbetrieb zu dominant.
+- Die eigentliche Notizen-Liste sollte staerker im Fokus stehen.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -80,5 +74,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP70_ADMIN_NOTES_COMPACT_LAYOUT_LIVE_VERIFICATION_DOC
+RDAP71_ADMIN_NOTES_CLEAN_LAYOUT
 ```
