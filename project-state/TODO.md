@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP75_ADMIN_NOTES_PAGE_DESIGN_CONTRACT_AND_FINDINGS  
+Stand: RDAP75B_ADMIN_NOTES_DOCS_AND_NEXT_CHAT_PROMPT  
 Datum: 2026-06-26
 
 ## Als Naechstes
@@ -12,23 +12,17 @@ RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
 Aufgaben:
 
 ```text
-- Startdateien lesen.
-- Header/Router-State fuer Admin-Notes gezielt pruefen.
-- Frontend-only Fix planen.
-- ZIP erst nach go bauen.
-- Lokal node --check fuer remote-modboard.js und rdap28-admin-notes.js.
+- Startdateien aus GitHub/dev lesen.
+- Bestehenden Haupt-Router und Admin-Notes-Page-State pruefen.
+- Plan nennen.
+- Auf go warten.
+- Frontend-only ZIP bauen.
+- Lokale node --check fuer remote-modboard.js und rdap28-admin-notes.js.
 - stepdone.cmd nur wenn sauber.
-- Danach Webserver-Deploy, falls remote-modboard/ geaendert wurde.
-- Browser pruefen:
-  - Admin-Notes sichtbar.
-  - Haupt-Header zeigt Admin-Notizen.
-  - User-Detail bleibt nicht als Header stehen.
-  - Navigation stabil.
-  - Create/Update weiterhin ok.
-  - Delete/Deactivate nicht sichtbar.
+- Danach Webserver-Deploy, falls remote-modboard/ geaendert wird.
 ```
 
-## Danach
+## Direkt danach
 
 ```text
 RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
@@ -44,4 +38,5 @@ RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
+- Kein wildes weiteres CSS-Gefrickel vor State-Fixes.
 ```
