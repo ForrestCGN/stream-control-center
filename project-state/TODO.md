@@ -1,30 +1,34 @@
 # TODO
 
-Stand: RDAP76C_ADMIN_NOTES_INITIAL_RESTORE_STATE_FIX  
+Stand: RDAP76D_ADMIN_MODULE_REGISTRY_TARGET_PLAN  
 Datum: 2026-06-26
 
-## Jetzt testen
+## Als Naechstes
 
 ```text
-RDAP76C_ADMIN_NOTES_INITIAL_RESTORE_STATE_FIX
+RDAP77_ADMIN_MODULE_REGISTRY_FOUNDATION
 ```
 
 Aufgaben:
 
 ```text
-- ZIP lokal einspielen.
-- node --check fuer rdap28-admin-notes.js und remote-modboard.js ausfuehren.
-- Browser hart neu laden.
-- Initial-/Restore-State pruefen.
-- Navigation Admin-Notizen/User-Detail mehrfach pruefen.
-- Nur wenn sauber: stepdone.cmd.
-- Danach Webserver-Deploy aus frischem GitHub/dev, weil remote-modboard/ geaendert wurde.
+- Startdateien aus GitHub/dev lesen.
+- index.html, remote-modboard.js und rdap28-admin-notes.js wirklich pruefen.
+- Plan nennen.
+- Auf go warten.
+- Frontend-only Registry-Fundament bauen.
+- Admin als erstes Obermodul registrieren.
+- Admin-Notizen und User-Detail als echte Pages registrieren.
+- rdap28-admin-notes.js von eigener Nav/Header/Panel-Wahrheit entlasten.
+- Lokale node --check fuer betroffene JS-Dateien.
+- stepdone.cmd nur wenn sauber.
+- Danach Webserver-Deploy, falls remote-modboard/ geaendert wird.
 ```
 
 ## Direkt danach
 
 ```text
-RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
+RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
 ```
 
 ## Nicht machen
@@ -37,5 +41,6 @@ RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-- Kein wildes weiteres CSS-Gefrickel vor State-Fixes.
+- Kein wildes weiteres CSS-Gefrickel vor State-/Registry-Fix.
+- Keine parallele Zweitnavigation.
 ```

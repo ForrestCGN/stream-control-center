@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP76C_ADMIN_NOTES_INITIAL_RESTORE_STATE_FIX  
+Stand: RDAP76D_ADMIN_MODULE_REGISTRY_TARGET_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,37 +15,37 @@ RDAP67-RDAP74: Admin-Notes UI schrittweise enttechnisiert; Frontend-only.
 RDAP75: Design-Contract und Findings dokumentiert.
 RDAP75B: Doku-/Uebergabe-Stand und neuer Chat-Prompt aktualisiert.
 RDAP76B: Zentrale Projekt-/UI-/Roadmap-Dokumentation konsolidiert; Doku-only.
-RDAP76: Admin-Notes Klickpfad auf Haupt-Router synchronisiert; Browser zeigte aber noch Initial-/Restore-State-Split.
-RDAP76C: Initial-/Restore-State-Split gezielt korrigiert; Frontend-only.
+RDAP76D: Admin-Modul-/Page-Registry-Zielstruktur dokumentiert; Doku-only.
 ```
 
-## Zentrale Doku
+## Zentrale Doku ab jetzt
 
 ```text
 docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
 docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP76C.md
+docs/current/RDAP76D_ADMIN_MODULE_REGISTRY_TARGET_PLAN.md
+docs/current/ADMIN_MODULE_REGISTRY_DESIGN_CONTRACT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP76D.md
 ```
 
-## Aktueller Browser-/Design-Befund
+## Aktueller Struktur-Befund
 
 ```text
-Admin-Notes sind sichtbar.
-Create/Update funktionieren grundsaetzlich.
-Delete/Deactivate sind nicht sichtbar.
-Technische Statusbloecke wurden aus der Hauptansicht entfernt.
-Header-Aktionen stehen im oberen Admin-Notizen-Header.
-Notizkarten sind menschlicher lesbar.
+Die Haupt-App in remote-modboard.js besitzt bereits einen Router/Page-State.
+index.html enthaelt statische Hauptbereiche und Admin-Grundnavigation.
+Admin-Notizen und User-Detail werden aktuell historisch aus rdap28-admin-notes.js injiziert.
+Dadurch gibt es konkurrierende Page-State-/Header-/Nav-Verantwortung.
+```
 
-RDAP76C muss bestaetigen:
-- Nach Reload darf nicht mehr User-Detail oben/aktiv stehen, wenn Admin-Notizen sichtbar sind.
-- Admin-Notizen sichtbar => Header/Nav/Router Admin-Notizen.
-- User-Detail sichtbar => Header/Nav/Router User-Detail.
+## Ziel
 
-Noch offen danach:
-- Zieluser-/Count-Kontext muss geprueft/fixiert werden: Count muss zum ausgewaehlten User passen.
-- Weitere UI-Politur erst nach diesen State-Fixes.
+```text
+Modul-/Page-Registry einfuehren:
+- Module beschreiben sich selbst.
+- App-Shell ordnet Module und Pages automatisch ein.
+- Haupt-Router bleibt einzige Wahrheit.
+- Feature-Dateien rendern nur Inhalt und eigene Actions.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -70,8 +70,8 @@ Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
-## Naechster empfohlener Code-Step nach bestaetigtem RDAP76C
+## Naechster empfohlener Code-Step
 
 ```text
-RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
+RDAP77_ADMIN_MODULE_REGISTRY_FOUNDATION
 ```

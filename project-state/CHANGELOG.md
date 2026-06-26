@@ -1,17 +1,23 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP76C_ADMIN_NOTES_INITIAL_RESTORE_STATE_FIX
+## 2026-06-26 - RDAP76D_ADMIN_MODULE_REGISTRY_TARGET_PLAN
 
 ```text
-- Korrekturstep nach RDAP76 erstellt.
-- RDAP76 hatte den Klickpfad Admin-Notizen korrekt synchronisiert, aber beim Initial-/Restore-State konnte User-Detail im Haupt-Header/Navigation aktiv bleiben, obwohl Admin-Notizen sichtbar war.
-- restoreInjectedAdminPanelVisibility() bewertet jetzt sichtbare injizierte Panels vor alter aktiver Navigation.
-- Neuer verzögerter Restore-Repair prüft nach DOMContentLoaded, ob sichtbares Panel, Haupt-Header, aktive Navigation und Haupt-Router auseinanderlaufen.
-- Bei State-Split wird der bestehende Haupt-Router erneut auf admin-notes oder admin-user-detail gesetzt.
-- Frontend-only.
+- Admin-Modul-/Page-Registry-Zielstruktur dokumentiert.
+- Strukturproblem festgehalten:
+  - remote-modboard.js ist Haupt-Router/App-Shell.
+  - rdap28-admin-notes.js injiziert aktuell Admin-Notizen und User-Detail nachtraeglich.
+  - Dadurch konkurrieren Header-/Nav-/Panel-State.
+- Zielbild festgelegt:
+  - Module beschreiben sich selbst.
+  - App-Shell ordnet Module/Pages automatisch ein.
+  - Haupt-Router bleibt einzige Wahrheit.
+  - Feature-Dateien rendern nur eigene Inhalte/Actions.
+- Naechsten Code-Step RDAP77_ADMIN_MODULE_REGISTRY_FOUNDATION festgelegt.
+- Doku-only.
+- Kein Code.
 - Kein Backend.
 - Keine DB-Migration.
 - Keine neue Permission.
 - Kein Delete/Deactivate.
-- Keine neuen Schreibbuttons.
 ```
