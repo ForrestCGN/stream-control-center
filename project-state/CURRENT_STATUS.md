@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN  
+Stand: RDAP100B_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -16,8 +16,9 @@ RDAP95: Minimaler Stream-PC Agent Client geplant.
 RDAP96: Heartbeat-only Stream-PC Agent Client vorbereitet.
 RDAP96B: Lokale Agent-Checks dokumentiert.
 RDAP97: Manueller Agent-Testplan dokumentiert.
-RDAP98B: RDAP98 Teiltest dokumentiert; public /agent-ws liefert 404.
+RDAP98B: RDAP98 Teiltest dokumentiert; public /agent-ws lieferte 404.
 RDAP99: Nginx/ISPConfig Agent-WS Proxy Plan dokumentiert.
+RDAP100B: Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
 ```
 
 ## Live-Service
@@ -26,6 +27,7 @@ RDAP99: Nginx/ISPConfig Agent-WS Proxy Plan dokumentiert.
 Service: scc-remote-modboard.service
 WorkingDirectory: /opt/stream-control-center/remote-modboard/backend
 Interner Dienst: http://127.0.0.1:3010
+Public WSS: wss://mods.forrestcgn.de/agent-ws
 ```
 
 ## Live bestaetigter Build
@@ -35,27 +37,18 @@ statusApiVersion=rdap_agent94.v1
 moduleBuild=RDAP94_STREAM_PC_CONNECTION_HEARTBEAT_READ_ONLY_IN_MEMORY_CODE
 ```
 
-## RDAP98 Teiltest Ergebnis
+## RDAP100B Ergebnis
 
 ```text
-Vorab disabled Status: OK
-Runtime temporaer aktiviert: OK
-Agent lokal gestartet: OK
-Agent loggt ohne Secret: OK
-Public WSS /agent-ws: 404 Not Found
-Heartbeat live ueber public WSS: noch nicht bestaetigt
+Nginx/ISPConfig separater /agent-ws Block: gesetzt
+Normaler HTTP-GET /agent-ws erreicht Node HTTP-Router: OK/erwartbar not_found
+Public WebSocket-Upgrade erreicht Backend-Upgrade-Handler: OK
+Backend-Ablehnung ohne Secret: missing_connection_proof erwartet
+X-SCC-Agent-Runtime: transport-guarded
+X-SCC-Agent-Actions: disabled
+Keine Secrets verwendet: OK
+Keine Actions: OK
 Runtime final disabled: OK
-Actions: false
-productiveAgentRuntime: false
-```
-
-## RDAP99 Nginx/ISPConfig Befund
-
-```text
-ISPConfig hat fuer mods.forrestcgn.de bereits location / mit proxy_pass http://127.0.0.1:3010/.
-Fuer WebSocket /agent-ws fehlt ein eigener Location-Block.
-Fuer WebSocket fehlen Upgrade-/Connection-Header.
-Naechster Step: RDAP100 gezielter /agent-ws WebSocket Proxy Config/Test.
 ```
 
 ## Final bestaetigter Sicherheitszustand
@@ -86,11 +79,10 @@ Keine DB-Migration.
 Keine neue Permission.
 Keine Secret-Ausgabe.
 Keine Rohpayload-Ausgabe.
-Keine Runtime dauerhaft aktivieren.
 ```
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP100_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_CONFIG
+RDAP101_STREAM_PC_CONNECTION_AGENT_CLIENT_PUBLIC_WSS_HEARTBEAT_LIVE
 ```

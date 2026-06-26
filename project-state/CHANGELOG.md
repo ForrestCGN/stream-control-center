@@ -1,31 +1,17 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN
+## 2026-06-26 - RDAP100B_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_LIVE_CONFIRMED_DOCS
 
 ```text
-- RDAP99 Nginx/ISPConfig Agent-WS Proxy Plan dokumentiert.
-- Festgehalten: RDAP98B Teiltest hatte public /agent-ws 404 Not Found ergeben.
-- Festgehalten: ISPConfig hat bereits location / mit proxy_pass http://127.0.0.1:3010/.
-- Festgehalten: eigener location /agent-ws WebSocket-Block fehlt.
-- Festgehalten: Upgrade-/Connection-Header fuer WebSocket fehlen.
-- Geplanter naechster Step: RDAP100_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_CONFIG.
-- RDAP99 ist Doku/Plan-only; keine Nginx-Aenderung, keine Runtime-Aktivierung, kein Agent-Start, kein Webserver-Deploy.
-```
-
-## 2026-06-26 - RDAP98B_STREAM_PC_CONNECTION_AGENT_CLIENT_MANUAL_TEST_PARTIAL_DOCS
-
-```text
-- RDAP98 Teiltest dokumentiert.
-- Bestaetigt: Vorab disabled Status OK.
-- Bestaetigt: Runtime wurde temporaer aktiviert.
-- Bestaetigt: Agent lokal auf Stream-PC gestartet.
-- Bestaetigt: PowerShell npm.ps1 Execution Policy erkannt; npm.cmd als lokale Alternative verwendet.
-- Bestaetigt: Agent loggte sichere Events ohne Secret-Ausgabe.
-- Bestaetigt: keine Authorization-/Bearer-/Token-Laengen-/Token-Hash-Ausgabe im geposteten Log.
-- Festgestellt: wss://mods.forrestcgn.de/agent-ws antwortet mit 404 Not Found.
-- Nicht bestanden: Heartbeat live ueber public WSS noch nicht bestaetigt.
-- Bestaetigt: Runtime final wieder deaktiviert.
-- Bestaetigt: Actions false und productiveAgentRuntime false.
-- Naechster Step: RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN.
-- Doku-only; kein Code, keine Nginx-Aenderung, keine Runtime-Aenderung, kein Webserver-Deploy noetig.
+- RDAP100 Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
+- Bestaetigt: separater location /agent-ws Block wurde in ISPConfig/Nginx gesetzt.
+- Bestaetigt: normaler HTTP-GET /agent-ws erreicht Node HTTP-Router und liefert erwartbar not_found.
+- Bestaetigt: public WebSocket-Upgrade erreicht Backend-Upgrade-Handler.
+- Bestaetigt: Test ohne Secret wurde erwartbar mit missing_connection_proof abgelehnt.
+- Bestaetigt: X-SCC-Agent-Runtime transport-guarded.
+- Bestaetigt: X-SCC-Agent-Actions disabled.
+- Bestaetigt: Runtime final disabled.
+- Bestaetigt: Keine Secrets verwendet und keine Actions.
+- Naechster Step: RDAP101_STREAM_PC_CONNECTION_AGENT_CLIENT_PUBLIC_WSS_HEARTBEAT_LIVE.
+- Doku-only; kein Backend-Code, kein Agent-Code und kein Repo-Webserver-Deploy noetig.
 ```

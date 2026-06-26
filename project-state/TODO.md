@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN  
+Stand: RDAP100B_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Erledigt/vorbereitet
@@ -22,21 +22,24 @@ RDAP98/RDAP98B:
 - Runtime final disabled bestaetigt.
 
 RDAP99:
-- ISPConfig/Nginx Befund dokumentiert.
-- location / nach 127.0.0.1:3010 existiert.
-- Eigener /agent-ws WebSocket Location-Block fehlt.
-- Upgrade-/Connection-Header fuer WebSocket fehlen.
+- Nginx/ISPConfig Befund dokumentiert.
+- Separater /agent-ws WebSocket Location-Block geplant.
+
+RDAP100/RDAP100B:
+- Separater /agent-ws Block in ISPConfig/Nginx gesetzt.
+- Public WebSocket-Upgrade erreicht Backend-Upgrade-Handler.
+- Ablehnung ohne Secret missing_connection_proof bestaetigt.
+- Runtime final disabled bestaetigt.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP100_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_CONFIG
+RDAP101_STREAM_PC_CONNECTION_AGENT_CLIENT_PUBLIC_WSS_HEARTBEAT_LIVE
 ```
 
 ## Danach
 
 ```text
-Nach RDAP100: erneuter Agent-Heartbeat-Live-Test ueber public WSS.
-Runtime dabei nur temporaer aktivieren und final wieder deaktivieren.
+Nach erfolgreichem RDAP101 Live-Heartbeat: Ergebnis dokumentieren und weiterhin keine Actions aktivieren.
 ```

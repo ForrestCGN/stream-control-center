@@ -1,63 +1,39 @@
 # NEXT_STEPS
 
-Stand: RDAP99_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_PLAN  
+Stand: RDAP100B_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP100_STREAM_PC_CONNECTION_NGINX_AGENT_WS_PROXY_CONFIG
+RDAP101_STREAM_PC_CONNECTION_AGENT_CLIENT_PUBLIC_WSS_HEARTBEAT_LIVE
 ```
 
 ## Ziel
 
-RDAP100 soll den fehlenden public WebSocket-Proxy fuer `/agent-ws` gezielt ergaenzen und testen:
+RDAP101 soll den echten Heartbeat des lokalen Stream-PC Agent Clients ueber public WSS testen:
 
 ```text
-- In ISPConfig/Nginx einen separaten location /agent-ws Block ergaenzen.
-- Bestehenden location / Block unveraendert lassen.
-- WebSocket Upgrade/Connection Header setzen.
-- nginx -t ausfuehren.
-- Nginx reloaden.
-- Public /agent-ws erneut testen.
-- Runtime fuer echten Heartbeat-Test nur temporaer aktivieren.
-- Agent lokal starten.
+- Vorab disabled Status pruefen.
+- Runtime auf dem Webserver nur temporaer aktivieren.
+- Stream-PC Agent lokal gegen wss://mods.forrestcgn.de/agent-ws starten.
+- Lokales Secret nur lokal setzen, niemals in Chat/Git/Doku.
 - /api/remote/agent/status pruefen.
+- Gueltigen Heartbeat bestaetigen.
 - Agent stoppen.
 - Runtime final wieder deaktivieren.
-- Final disabled Status pruefen.
+- Finalen disabled Status pruefen.
+- Keine Actions.
 ```
 
 ## Voraussetzung
 
 ```text
-RDAP99 abgeschlossen:
-- RDAP98 Teiltest war bis public WSS 404 erfolgreich.
-- ISPConfig hat bereits location / nach 127.0.0.1:3010.
-- Fuer /agent-ws fehlt eigener WebSocket Location-Block.
-- Upgrade-/Connection-Header fehlen.
-```
-
-## Geplanter Nginx Block
-
-```nginx
-location /agent-ws {
-    proxy_pass http://127.0.0.1:3010/agent-ws;
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Host $host;
-
-    proxy_read_timeout 75s;
-    proxy_connect_timeout 5s;
-    proxy_send_timeout 75s;
-}
+RDAP100B abgeschlossen:
+- Nginx/ISPConfig /agent-ws WebSocket Proxy live bestaetigt.
+- Public WebSocket-Upgrade erreicht Backend-Upgrade-Handler.
+- Test ohne Secret wurde erwartbar mit missing_connection_proof abgelehnt.
+- Runtime final disabled.
 ```
 
 ## Strikt nicht machen
@@ -81,4 +57,5 @@ Keine produktive Agent-Action-Queue.
 Keine Secret-Ausgabe.
 Keine Rohpayload-Ausgabe.
 Keine Runtime dauerhaft aktivieren.
+Keine Nginx-Aenderung im RDAP101 Heartbeat-Test.
 ```
