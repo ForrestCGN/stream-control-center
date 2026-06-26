@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN  
+Stand: RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -18,12 +18,14 @@ RDAP87: Sicheres AGENT_ACCESS_KEY Env-Setup dokumentiert; Doku-only.
 RDAP87B: AGENT_ACCESS_KEY gesetzt und falscher-Bearer-Reject live bestaetigt; Doku-only.
 RDAP88: Correct-Bearer-Reject-Only-Test live bestaetigt; Doku-only.
 RDAP89: Runtime-Enable-Plan dokumentiert; Doku-only.
+RDAP90: Runtime-Accept disabled Build-Plan dokumentiert; Doku-only.
 ```
 
-## RDAP89 Stand
+## RDAP90 Stand
 
 ```text
-- Runtime-Freigabe ist nur geplant.
+- Minimaler Runtime-Accept-Code-Step ist nur geplant.
+- Keine Code-Aenderung.
 - Keine Runtime wurde aktiviert.
 - Keine Stream-PC Verbindung wurde akzeptiert.
 - Kein echter WebSocket-Handshake wurde gebaut.
@@ -52,7 +54,7 @@ Keine Portfreigabe am Stream-PC.
 Keine Remote-/Agent-Actions aktiv.
 ```
 
-## Runtime-Enable-Grundsatz
+## Runtime-Accept-Grundsatz
 
 ```text
 AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
@@ -61,7 +63,11 @@ Spaetere Runtime braucht Zwei-Stufen-Freigabe:
 1. Betreiber-Wunsch per Env.
 2. expliziter Code-/Build-Schalter in separatem Step.
 
-Heartbeat, Online-Status und Actions bleiben getrennte Stufen.
+Der erste spaetere Accept-Code-Step darf maximal Transport akzeptieren.
+Actions bleiben false.
+productiveAgentRuntime bleibt false.
+Heartbeat moeglichst separat planen.
+Keine zweite parallele /agent-ws Registrierung.
 ```
 
 ## Sicherheit
@@ -127,5 +133,5 @@ Secret-Ausgabe in Status/UI/Logs
 ## Naechster empfohlener Step
 
 ```text
-RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN
+RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN
 ```

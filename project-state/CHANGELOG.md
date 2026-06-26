@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2026-06-26 - RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN
+
+```text
+- Runtime-Accept disabled Build-Plan fuer Stream-PC Verbindung dokumentiert.
+- Spaeterer Code-Step darf maximal Transport akzeptieren.
+- Agent-Actions bleiben false.
+- productiveAgentRuntime bleibt false.
+- Zweiter Code-/Build-Schalter als Pflicht dokumentiert.
+- AGENT_RUNTIME_ENABLED=true allein bleibt wirkungslos.
+- Keine zweite parallele /agent-ws Registrierung.
+- Bestehende Module/Services bevorzugen.
+- Heartbeat moeglichst separat nach Transport-Accept planen.
+- Testmatrix fuer spaeteren Accept-Code-Step dokumentiert.
+- Rueckfall-/Deaktivierungsstrategie dokumentiert.
+- Keine Code-Aenderung.
+- Keine Runtime aktiviert.
+- Keine Stream-PC Verbindung akzeptiert.
+- Kein echter WebSocket-Handshake.
+- Kein Heartbeat-Receiver.
+- Kein Agent online.
+- Keine Agent-Actions.
+- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+- Keine DB-Migration.
+- Keine neue Permission.
+- Keine Secret-Ausgabe.
+- Naechsten Step RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN vorbereitet.
+- Doku-only.
+- Kein Webserver-Deploy noetig.
+```
+
 ## 2026-06-26 - RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN
 
 ```text
@@ -53,28 +83,6 @@
 - Keine DB-Migration.
 - Keine neue Permission.
 - Naechsten Step RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN vorbereitet.
-- Doku-only.
-- Kein Webserver-Deploy noetig.
-```
-
-## 2026-06-26 - RDAP87B_DOCS_LIVE_CONFIRM_AND_NEXT_PROMPT
-
-```text
-- AGENT_ACCESS_KEY-Konfiguration auf dem Webserver live bestaetigt.
-- /api/remote/agent/status mit runtime.accessKeyConfigured true bestaetigt.
-- Falscher Bearer nach gesetztem Key bestaetigt: HTTP 503 / reason=invalid_connection_proof.
-- rejectCount 1 nach falschem Bearer bestaetigt.
-- lastRejectAccessKeyConfigured true bestaetigt.
-- lastRejectConnectionProofCompared true bestaetigt.
-- acceptsAgentConnections false bestaetigt.
-- actionEnabled false bestaetigt.
-- productiveAgentRuntime false bestaetigt.
-- secretsExposed false bestaetigt.
-- bearerTokenLogged false bestaetigt.
-- tokenLengthLogged false bestaetigt.
-- tokenHashLogged false bestaetigt.
-- Kein echter Key in Chat/Doku/Git/Status/UI/Logs dokumentiert.
-- Naechsten Step RDAP88_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN vorbereitet.
 - Doku-only.
 - Kein Webserver-Deploy noetig.
 ```

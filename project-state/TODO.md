@@ -1,36 +1,37 @@
 # TODO
 
-Stand: RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN  
+Stand: RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN  
 Datum: 2026-06-26
 
 ## Jetzt erledigt
 
 ```text
-RDAP89 Runtime-Enable-Plan dokumentiert:
+RDAP90 Runtime-Accept disabled Build-Plan dokumentiert:
+- Keine Code-Aenderung.
 - Keine Runtime aktiviert.
 - Keine Verbindung akzeptiert.
 - Keine Actions.
 - Keine DB.
 - Keine neue Permission.
 - Keine Secrets.
-- Zwei-Stufen-Freigabe festgelegt.
-- AGENT_RUNTIME_ENABLED=true allein darf keine Verbindung akzeptieren.
-- Heartbeat/Online/Actions getrennt.
+- Zweiter Code-/Build-Schalter fuer spaeteren Accept geplant.
+- AGENT_RUNTIME_ENABLED=true allein bleibt wirkungslos.
+- Heartbeat moeglichst separat geplant.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN
+RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN
 ```
 
-## RDAP90 Aufgaben
+## RDAP91 Aufgaben
 
 ```text
-- Minimalen Runtime-Accept-Code-Step planen.
-- Exakten zweiten Freigabeschalter definieren.
+- Minimalen Runtime-Accept-Transport-Code-Step planen.
+- Echte Dateien erneut lesen.
 - Bestehende Module/Services bevorzugen.
-- Keine parallelen Strukturen bauen.
+- Keine parallele /agent-ws Registrierung.
 - Heartbeat/Online/Actions getrennt halten.
 - Keine Secret-Ausgabe.
 ```

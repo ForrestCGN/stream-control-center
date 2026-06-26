@@ -1,50 +1,55 @@
 # NEXT_STEPS
 
-Stand: RDAP89_STREAM_PC_CONNECTION_RUNTIME_ENABLE_PLAN  
+Stand: RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP90_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_DISABLED_BUILD_PLAN
+RDAP91_STREAM_PC_CONNECTION_RUNTIME_ACCEPT_TRANSPORT_DISABLED_CODE_PLAN
 ```
 
 ## Ziel
 
 ```text
-Minimalen Runtime-Accept-Code-Step planen.
+Minimalen Runtime-Accept-Transport-Code-Step planen.
 Noch keine Actions.
-Noch keine OBS-/Sound-/Overlay-/Command-Steuerung.
+Heartbeat moeglichst separat halten.
+Keine OBS-/Sound-/Overlay-/Command-Steuerung.
 Keine Secret-Ausgabe.
 ```
 
-## Ausgangspunkt RDAP89
+## Ausgangspunkt RDAP90
 
 ```text
-- RDAP88 hat korrekten Bearer sicher getestet.
-- Korrekter Bearer liefert runtime_not_effectively_enabled.
-- RDAP89 hat Runtime-Enable-Plan dokumentiert.
+- RDAP90 hat Runtime-Accept disabled Build-Plan dokumentiert.
+- Zwei-Stufen-Freigabe bleibt Pflicht.
 - AGENT_RUNTIME_ENABLED=true allein darf nicht reichen.
-- Zwei-Stufen-Freigabe ist als Pflicht festgelegt.
-- Heartbeat/Online/Actions bleiben getrennte Stufen.
+- Der erste spaetere Accept-Code-Step darf maximal Transport akzeptieren.
+- Actions bleiben false.
+- productiveAgentRuntime bleibt false.
+- Heartbeat moeglichst separat planen.
+- Keine zweite parallele /agent-ws Registrierung.
 ```
 
-## RDAP90 planen
+## RDAP91 planen
 
 ```text
-- Exakten zweiten Freigabeschalter definieren.
-- Bestehenden disabled Guard erweitern oder fachlich sauber separieren.
-- Keine parallele Struktur erfinden, wenn Erweiterung passt.
-- Entscheiden, ob der erste Accept-Step nur WebSocket annimmt oder weiter reject-only bleibt.
-- Tests fuer alle Ablehnungsgruende definieren.
-- Tests fuer Secret-Safety definieren.
-- Klare Rueckfall-/Deaktivierungsstrategie definieren.
+- Relevante Runtime-Dateien erneut lesen.
+- Bestehende Module/Services bevorzugen.
+- Entscheiden, ob agent-runtime-disabled.service.js erweitert oder fachlich getrennt wird.
+- Keinen parallelen /agent-ws Handler bauen.
+- Exakten MODULE_BUILD definieren.
+- Exakte Statusfelder definieren.
+- Exakte Tests definieren.
+- Keine Actions.
+- Keine Secrets.
 ```
 
 ## Strikt nicht machen
 
 ```text
-Keine Agent-Actions in RDAP90.
+Keine Agent-Actions in RDAP91.
 Keine OBS-Steuerung.
 Keine Sound-Ausloesung.
 Keine Overlay-Schaltung.
