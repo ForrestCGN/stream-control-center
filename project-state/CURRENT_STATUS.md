@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED  
+Stand: RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -16,7 +16,8 @@ RDAP45B Deploy-Safety wurde an aktiv genutzten Login angepasst.
 RDAP45C dokumentiert die RDAP45B Live-Bestaetigung.
 RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist live bestaetigt und dokumentiert.
 RDAP48 Admin-User-Detail read-only wurde geplant.
-RDAP49 Admin-User-Detail read-only ist vorbereitet.
+RDAP49 Admin-User-Detail read-only ist live bestaetigt.
+RDAP49B dokumentiert die RDAP49 Live-Bestaetigung.
 ```
 
 ## Live-System
@@ -56,13 +57,16 @@ Read/Create nutzen weiterhin den ausgewaehlten targetUserUid.
 Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
 ```
 
-## RDAP49 vorbereiteter User-Detail-Stand
+## Admin-User-Detail aktueller Funktionsstand
 
 ```text
-Admin -> User-Detail wird frontend-only ergaenzt.
+Admin -> User-Detail ist live sichtbar.
 Datenquelle ist GET /api/remote/auth/model.
-User-Kopf, Rollen, Gruppen und Sessions werden read-only angezeigt.
-Button Admin-Notizen oeffnen nutzt vorhandene Zieluser-Auswahl.
+ForrestCGN / tw:127709954 ist sichtbar und ausgewaehlt.
+Rolle owner ist sichtbar.
+Gruppen und Sessions werden read-only angezeigt.
+Button Admin-Notizen oeffnen ist sichtbar.
+Keine Schreibverwaltung ist sichtbar.
 ```
 
 ## Weiterhin deaktiviert
@@ -74,11 +78,13 @@ Physisches Delete
 Community-Read fuer Admin-Notizen
 Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 Permission-Vergabe in der UI
+Rollen-/Gruppen-Schreibverwaltung
+Session-Revocation in der UI
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP49 Webserver-Deploy und Live-Bestaetigung
+RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN
 ```

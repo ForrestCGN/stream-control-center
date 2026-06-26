@@ -1,54 +1,44 @@
 # NEXT_STEPS
 
-Stand: RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED  
+Stand: RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP49 Webserver-Deploy und Live-Bestaetigung
+RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN
 ```
 
 ## Ziel
 
 ```text
-Die vorbereitete Admin-User-Detailseite read-only live bestaetigen.
+Den Uebergang zwischen Admin -> User-Detail und Admin -> Admin-Notizen sauber pruefen und planen.
 ```
 
-## Deploy-Standard
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
-cd RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED
-sudo bash tools/remote-modboard-deploy.sh RDAP49_ADMIN_USER_DETAIL_READONLY_PREPARED dev
-```
-
-## Tests nach Deploy
-
-```bash
-curl -fsS http://127.0.0.1:3010/assets/rdap28-admin-notes.js | grep -n "admin-user-detail\|Admin-User-Detail\|openUserDetail"
-curl -s -o /dev/null -w "twitch/start HTTP %{http_code}
-" https://mods.forrestcgn.de/api/remote/auth/twitch/start
-curl -s -o /dev/null -w "twitch/callback HTTP %{http_code}
-" https://mods.forrestcgn.de/api/remote/auth/twitch/callback
-```
-
-## Browser-Test
+## Warum
 
 ```text
-Admin -> User-Detail sichtbar.
-ForrestCGN / tw:127709954 sichtbar.
-Rollen/Gruppen/Sessions read-only sichtbar, soweit Daten vorhanden.
-Button Admin-Notizen oeffnen setzt denselben User in Admin-Notizen.
-Admin-Notizen Read/Create bleiben unveraendert.
+RDAP49 zeigt User-Details read-only.
+RDAP47 zeigt Admin-Notizen pro Zieluser.
+Die Bruecke "Admin-Notizen oeffnen" ist sichtbar.
+Vor weiteren grossen Funktionen sollte die Verbindung sauber dokumentiert/ggf. poliert werden.
 ```
 
-## Nicht in diesem Step aendern
+## Moeglicher Scope RDAP50
 
 ```text
-Keine Backend-Aenderung.
+Plan-only oder kleiner Frontend-only Step, nach echter Dateipruefung.
+Pruefen:
+- Button Admin-Notizen oeffnen setzt denselben User.
+- Admin-Notizen-Zieluser bleibt korrekt.
+- Optional Hinweis/Ruecksprung zwischen Detail und Notizen.
+- Keine neue Admin-Notizen-Implementierung.
+```
+
+## Nicht in RDAP50 tun
+
+```text
+Keine Backend-Aenderung ohne echten Bedarf.
 Keine DB-Migration.
 Keine Permission-Verwaltung.
 Kein Admin-Note Update.
@@ -56,10 +46,11 @@ Kein Admin-Note Deactivate.
 Kein Delete.
 Keine Community-Read-Anbindung.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
+Keine Rollen-/Gruppen-Schreibverwaltung.
 ```
 
-## Danach
+## Danach moeglich
 
 ```text
-RDAP49B_ADMIN_USER_DETAIL_READONLY_LIVE_CONFIRMED_DOCS
+RDAP51_PERMISSION_READ_DETAIL_POLISH_PLAN
 ```
