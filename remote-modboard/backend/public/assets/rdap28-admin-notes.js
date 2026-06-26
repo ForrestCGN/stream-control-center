@@ -24,6 +24,7 @@
   let latestAuthModelResult = null;
   let adminDetailSearchTerm = '';
   let selectedAdminDetailUser = { ...DEFAULT_TARGET_USER };
+  let notesBridgeContext = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     injectStyles();
@@ -73,6 +74,11 @@
       .admin-note-error{padding:12px;border-radius:15px;background:rgba(255,84,112,.10);border:1px solid rgba(255,84,112,.24);color:#ffdce3}
       .admin-note-ok{padding:12px;border-radius:15px;background:rgba(69,245,167,.08);border:1px solid rgba(69,245,167,.20);color:#d9ffed}
       .admin-note-info{padding:12px;border-radius:15px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.20);color:#dff8ff}
+      .admin-note-bridge-context{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px;border-radius:16px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.22);color:#dff8ff}
+      .admin-note-bridge-context[hidden]{display:none!important}
+      .admin-note-bridge-context strong,.admin-note-bridge-context span{display:block}
+      .admin-note-bridge-context span{color:var(--muted);font-size:12px;margin-top:3px}
+      .admin-note-bridge-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
       .admin-note-panel-lock{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:16px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.24);color:var(--muted)}
       .admin-note-panel-lock i{width:28px;height:28px;display:grid;place-items:center;border-radius:999px;background:rgba(255,209,102,.18);color:var(--yellow);font-style:normal;font-weight:900;flex:0 0 auto}
       .admin-note-create-card{display:grid;gap:10px;margin-top:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(27,216,255,.18)}
@@ -147,6 +153,7 @@
         title: 'Admin-Notizen',
         tab: 'read/create'
       });
+      clearNotesBridgeContext();
       document.body.classList.remove('nav-collapsed');
       if (!targetUsersLoaded) void loadTargetUsers('nav');
       loadAdminNotes('nav');
@@ -168,6 +175,17 @@
         <p class="cgn-eyebrow">Admin / kontrollierter Create</p>
         <h1>Admin-Notizen</h1>
         <p>Anzeige und kontrolliertes Erstellen interner Admin-Notizen. Lesen braucht <strong>admin.users.note.read</strong>, Erstellen braucht <strong>admin.users.note.write</strong> und serverseitiges <strong>confirmWrite</strong>.</p>
+      </section>
+
+      <section class="admin-note-bridge-context cgn-card" id="adminNotesBridgeContext" hidden>
+        <div>
+          <strong id="adminNotesBridgeTitle">Aus User-Detail geöffnet</strong>
+          <span id="adminNotesBridgeText">—</span>
+        </div>
+        <div class="admin-note-bridge-actions">
+          <button class="secondaryButton small" type="button" id="adminNotesBridgeBackButton">Zurück zum User-Detail</button>
+          <button class="secondaryButton small" type="button" id="adminNotesBridgeClearButton">Hinweis ausblenden</button>
+        </div>
       </section>
 
       <section class="admin-note-target-card cgn-card">
@@ -355,6 +373,8 @@
     bindClick('adminNotesCreateCancelButton', () => closeCreateDialog());
     bindClick('adminNotesTargetReloadButton', () => loadTargetUsers('manual'));
     bindClick('adminNotesTargetClearSearchButton', () => clearTargetSearch());
+    bindClick('adminNotesBridgeBackButton', () => returnToAdminUserDetailFromNotes());
+    bindClick('adminNotesBridgeClearButton', () => clearNotesBridgeContext());
 
     const search = document.getElementById('adminNotesTargetSearch');
     if (search) {
@@ -412,6 +432,7 @@
     window.RdapAdminNotes.reload = () => loadAdminNotes('api');
     window.RdapAdminNotes.setTargetSearch = (term) => setTargetSearch(term || '');
     window.RdapAdminNotes.openUserDetail = (user) => { selectAdminDetailUser(user); setRdap40Page('admin-user-detail', { section: 'Admin', title: 'User-Detail', tab: 'read-only' }); };
+    window.RdapAdminNotes.openNotesForUser = (user) => openAdminNotesForUser(user || selectedAdminDetailUser, { source: 'api' });
   }
 
   async function loadTargetUsers(reason) {
@@ -495,6 +516,7 @@
     setTextSafe('adminNotesTargetUserUid', user.userUid || '—');
     setTextSafe('adminNotesCreateTargetUid', user.userUid || '—');
     setTextSafe('adminNotesListTitle', formatTargetUserTitle(user));
+    renderNotesBridgeContext();
     renderTargetSelect();
   }
 
@@ -506,6 +528,9 @@
     }
     const changed = normalized.userUid !== selectedTargetUser.userUid;
     selectedTargetUser = normalized;
+    if (options && options.source && options.source !== 'user-detail' && notesBridgeContext && notesBridgeContext.userUid !== normalized.userUid) {
+      notesBridgeContext = null;
+    }
     closeCreateDialog({ keepNotice: true });
     renderSelectedTargetUser();
     if (changed || !(options && options.skipLoad)) loadAdminNotes(options && options.source ? `target-${options.source}` : 'target-change');
@@ -706,10 +731,48 @@
   }
 
   function openAdminNotesForDetailUser() {
-    const user = selectedAdminDetailUser || DEFAULT_TARGET_USER;
-    if (!selectTargetUser(user, { source: 'user-detail', skipLoad: true })) return;
+    openAdminNotesForUser(selectedAdminDetailUser || DEFAULT_TARGET_USER, { source: 'user-detail' });
+  }
+
+  function openAdminNotesForUser(user, options) {
+    const normalized = normalizeUser(user || DEFAULT_TARGET_USER);
+    if (!normalized || !normalized.userUid) return false;
+    notesBridgeContext = {
+      userUid: normalized.userUid,
+      displayName: normalized.displayName || normalized.userUid,
+      loginName: normalized.loginName || '',
+      source: options && options.source ? options.source : 'user-detail'
+    };
+    if (!selectTargetUser(normalized, { source: 'user-detail', skipLoad: true })) return false;
     setRdap40Page('admin-notes', { section: 'Admin', title: 'Admin-Notizen', tab: 'read/create' });
+    renderNotesBridgeContext();
     loadAdminNotes('user-detail');
+    return true;
+  }
+
+  function renderNotesBridgeContext() {
+    const context = notesBridgeContext;
+    const box = document.getElementById('adminNotesBridgeContext');
+    if (!box) return;
+    if (!context || context.userUid !== (selectedTargetUser && selectedTargetUser.userUid)) {
+      box.hidden = true;
+      return;
+    }
+    const label = formatTargetUserLabel(context);
+    setTextSafe('adminNotesBridgeTitle', 'Aus User-Detail geöffnet');
+    setTextSafe('adminNotesBridgeText', `${label} wurde aus Admin -> User-Detail übernommen. Read/Create verwenden weiterhin exakt diesen Zieluser.`);
+    box.hidden = false;
+  }
+
+  function clearNotesBridgeContext() {
+    notesBridgeContext = null;
+    renderNotesBridgeContext();
+  }
+
+  function returnToAdminUserDetailFromNotes() {
+    const user = notesBridgeContext ? (findTargetUser(notesBridgeContext.userUid) || notesBridgeContext) : selectedTargetUser;
+    selectAdminDetailUser(user || DEFAULT_TARGET_USER);
+    setRdap40Page('admin-user-detail', { section: 'Admin', title: 'User-Detail', tab: 'read-only' });
   }
 
   function findUserRows(rows, userUid, keyField) {

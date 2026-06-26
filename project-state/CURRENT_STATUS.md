@@ -1,24 +1,17 @@
 # CURRENT_STATUS
 
-Stand: RDAP50_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PLAN  
+Stand: RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ## Aktuell bestaetigt
 
 ```text
-RDAP39_ADMIN_NOTE_WRITE_BACKEND_CONFIRMED ist live erfolgreich getestet.
-RDAP39C_ADMIN_NOTE_READ_ROUTE_RESTORE_OR_SYNC ist live erfolgreich getestet.
-RDAP40_ADMIN_NOTE_CREATE_UI_PREPARED ist live erfolgreich getestet.
-RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP ist live erfolgreich getestet.
-RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED ist live funktional bestaetigt.
-RDAP45B Deploy-Safety wurde an aktiv genutzten Login angepasst.
-RDAP45C dokumentiert die RDAP45B Live-Bestaetigung.
 RDAP47 Zieluser-Suche/Filter fuer Admin-Notizen ist live bestaetigt und dokumentiert.
 RDAP48 Admin-User-Detail read-only wurde geplant.
-RDAP49 Admin-User-Detail read-only ist live bestaetigt.
-RDAP49B dokumentiert die RDAP49 Live-Bestaetigung.
-RDAP50 plant den Bruecken-Polish User-Detail -> Admin-Notizen.
+RDAP49 Admin-User-Detail read-only ist live bestaetigt und dokumentiert.
+RDAP50 Bruecke User-Detail -> Admin-Notizen wurde geplant.
+RDAP51 Bruecke User-Detail -> Admin-Notizen ist vorbereitet.
 ```
 
 ## Live-System
@@ -41,40 +34,13 @@ GET /api/remote/auth/twitch/start liefert bei aktivem Login HTTP 302.
 GET /api/remote/auth/twitch/callback liefert ohne gueltigen OAuth-State HTTP 403.
 ```
 
-Einordnung:
+## RDAP51 vorbereiteter Stand
 
 ```text
-Aktiver Login bedeutet Auth-/Session-Scope.
-Das ist keine Freigabe fuer Remote-Writes, Agent-Actions, OBS, Sound, Overlay, Commands, Channelpoints oder freie Ausfuehrung.
-```
-
-## Admin-Notizen aktueller Funktionsstand
-
-```text
-Admin -> Admin-Notizen zeigt eine Zieluser-Auswahl.
-Default ist ForrestCGN / tw:127709954.
-Zieluser-Suche/Filter ist live bestaetigt.
-Read/Create nutzen weiterhin den ausgewaehlten targetUserUid.
-Create-Button "Neue Notiz" ist fuer write-berechtigte Admins sichtbar.
-```
-
-## Admin-User-Detail aktueller Funktionsstand
-
-```text
-Admin -> User-Detail ist live sichtbar.
-ForrestCGN / tw:127709954 ist sichtbar.
-Rolle owner ist sichtbar.
-Gruppen/Sessions werden read-only angezeigt.
-Button Admin-Notizen oeffnen ist sichtbar.
-```
-
-## RDAP50 Planstand
-
-```text
-Naechster Code-Step soll RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED sein.
-Ziel: Bruecke User-Detail -> Admin-Notizen verbessern.
-Kontext-Hinweis und optional Ruecksprung planen/umsetzen.
-Frontend-only, keine Backend-/DB-/Permission-Aenderung.
+Admin-Notizen zeigen beim Oeffnen aus dem User-Detail einen Kontext-Hinweis.
+Der Zieluser wird sichtbar als aus User-Detail uebernommen markiert.
+Ein Ruecksprung zum User-Detail ist vorbereitet.
+Die bestehende Admin-Notizen-Implementierung bleibt erhalten.
 ```
 
 ## Weiterhin deaktiviert
@@ -84,15 +50,15 @@ Admin-Note Update
 Admin-Note Deactivate
 Physisches Delete
 Community-Read fuer Admin-Notizen
-Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
-Permission-Vergabe in der UI
+Permission-Verwaltung in der UI
 Rollen-/Gruppen-Schreibverwaltung
 Session-Revocation in der UI
+Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP51_ADMIN_USER_DETAIL_NOTES_BRIDGE_POLISH_PREPARED
+RDAP51 Webserver-Deploy und Live-Bestaetigung
 ```
