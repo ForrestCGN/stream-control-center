@@ -1,6 +1,6 @@
 MASTER-PROMPT – ForrestCGN / stream-control-center
 
-Stand: 2026-06-25 (Basis 2026-06-21, aktualisiert nach RDAP33B / Server-Deploy-Workflow)
+Stand: 2026-06-26 (Basis 2026-06-21, aktualisiert nach RDAP104 / Server-Deploy-Wrapper und Backup-Cleanup)
 Zweck: Verbindlicher Arbeitsstandard für neue Chats, Modul-Arbeiten, Dashboard, Communication/EventBus, Live-Status, Dokumentation, Cleanup, Versionierung, Security und Abschlussroutinen.
 
 Du arbeitest mit ForrestCGN am Projekt `stream-control-center`.
@@ -282,26 +282,31 @@ cd /opt/stream-control-center
 git pull
 ```
 
-Verbindlicher Forrest-Standard für RDAP-Webserver-Deploys:
+Verbindlicher Forrest-Standard ab RDAP104:
 
 ```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
 ```
 
+Wichtig:
+- auf dem Webserver als `root` ausfuehren
+- kein `sudo` verwenden
+- keine Copy/Paste-Ketten aus `cd`, `git clone`, `cd`, `bash ...` mehr als Standard
+- Wrapper klont selbst frisch aus GitHub/dev nach `_deploy_tmp`
+- Wrapper startet danach die bestehende Deploy-Engine
+- Wrapper ruft danach Backup-/Deploy-Cleanup auf
+- maximal 6 Remote-Modboard-Backups und 6 RDAP-Deploy-Clones bleiben erhalten
+
 Warum genau so:
-- kurzer relativer Clone-Zielordner unter `_deploy_tmp`
-- keine langen absoluten Clone-Zielpfade
-- robuster in Forrests Web-/SSH-Konsole
-- verhindert, dass ein angeklebter Shell-Prompt den kompletten Zielpfad kaputt macht
-- entspricht dem bisher zuverlässig funktionierenden Deploy-Muster
+- ein einzelner stabiler Befehl statt fehleranfaelliger Shell-Ketten
+- kurzer interner Clone-Zielordner unter `_deploy_tmp`
+- keine langen absoluten Clone-Zielpfade in Forrests Konsole
+- verhindert angeklebte Prompt-Fehler wie `_deploy_tmproot` oder `devroot`
+- nutzt weiter die bestehende Deploy-Engine `tools/remote-modboard-deploy.sh`
 
 Nicht mehr als Standard verwenden:
 ```bash
-sudo git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git /opt/stream-control-center/_deploy_tmp/STEP_NAME
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git /opt/stream-control-center/_deploy_tmp/STEP_NAME
 ```
 
 Das ist zwar technisch möglich, ist für Forrests Konsole aber fehleranfälliger und soll bei RDAP nicht mehr als Standard ausgegeben werden.
@@ -321,7 +326,7 @@ public API/UI Tests
 
 Deshalb nach dem Deploy-Script im Standard NICHT zusätzlich direkt ausführen:
 ```bash
-sudo systemctl restart scc-remote-modboard.service
+systemctl restart scc-remote-modboard.service
 ```
 
 Ein zusätzlicher manueller Restart ist nur sinnvoll, wenn:
@@ -1257,7 +1262,7 @@ Dauerhafte Systementscheidungen gelten, bis Forrest sie ausdrücklich ändert:
 - Remote-Modboard/RDAP live liegt auf dem Webserver unter `/opt/stream-control-center/remote-modboard`.
 - `/opt/stream-control-center` ist kein Git-Repo; Remote-Modboard Deploys laufen über `_deploy_tmp`, `_runtime_tmp` und `rsync`.
 - Remote-Modboard Deploys kopieren nur `remote-modboard/` in den Live-Ordner. Repo-Root-Dateien wie `docs/`, `project-state/` und `tools/` bleiben im GitHub-/Deploy-Clone.
-- Aktueller RDAP-Stand nach RDAP33B:
+- Aktueller RDAP-Stand nach RDAP104:
   - RDAP25 Login/OAuth/Session funktioniert.
   - RDAP26 Option B DB-Rollen/Permissions funktioniert.
   - RDAP27 echte read-only Admin-Notiztext-Route ist live.

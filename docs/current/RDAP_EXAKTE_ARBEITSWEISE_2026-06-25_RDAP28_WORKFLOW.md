@@ -1,6 +1,6 @@
 # RDAP / stream-control-center – exakte Arbeitsweise
 
-Stand: 2026-06-25 – aktualisiert nach RDAP33B / Server-Deploy-Workflow  
+Stand: 2026-06-26 – aktualisiert nach RDAP104 / Server-Deploy-Wrapper und Backup-Cleanup  
 Projekt: `stream-control-center` / `remote-modboard`  
 Branch: `dev`
 
@@ -194,43 +194,35 @@ Dann knapp auswerten und den nächsten echten Schritt liefern.
 
 Dort niemals `git pull` empfehlen oder ausführen.
 
-Richtig ist immer ein frischer Clone aus GitHub/dev unter `_deploy_tmp`.
-
-Verbindlicher Forrest-Standard:
+Ab RDAP104 gilt als Standard ein einzelner Server-Wrapper-Befehl:
 
 ```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
 ```
 
 Wichtig:
 
-- kurze relative Zielordner unter `_deploy_tmp` verwenden
-- keine langen absoluten Clone-Zielpfade als Standard ausgeben
+- auf dem Webserver als `root` ausführen
+- kein `sudo` verwenden
+- keine langen Copy/Paste-Ketten mehr als Standard
 - keine Deploy-Arbeitsordner in `/root`
 - kein `git pull` unter `/opt/stream-control-center`
 - kein zusätzlicher manueller Restart direkt nach `tools/remote-modboard-deploy.sh`
 
-Nicht mehr als Standard verwenden:
-
-```bash
-sudo git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git /opt/stream-control-center/_deploy_tmp/STEP_NAME
-```
-
-Grund:
+Der Wrapper macht selbst:
 
 ```text
-Der kurze relative _deploy_tmp-Stil funktioniert in Forrests Web-/SSH-Konsole zuverlässiger.
-Bei langen absoluten Clone-Zielpfaden kann ein angeklebter Shell-Prompt den Zielpfad kaputt machen.
+1. STEP/Branch prüfen.
+2. Frischen Clone unter /opt/stream-control-center/_deploy_tmp/STEP_NAME erstellen.
+3. Aus diesem Clone die bestehende Deploy-Engine tools/remote-modboard-deploy.sh starten.
+4. Readiness/API/UI-Checks laufen über die Deploy-Engine.
+5. Danach Backup-/Deploy-Cleanup starten.
 ```
 
 Das Deploy-Script startet den Service selbst neu und wartet auf Readiness. Deshalb danach **nicht** standardmäßig nochmal ausführen:
 
 ```bash
-sudo systemctl restart scc-remote-modboard.service
+systemctl restart scc-remote-modboard.service
 ```
 
 Ein zusätzlicher manueller Restart ist nur erlaubt, wenn er als separater Diagnose-/Fix-Schritt begründet ist. Danach muss wieder ein Readiness-Wait folgen.
@@ -246,6 +238,18 @@ Oder step-spezifisch kompakt:
 ```bash
 curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.statusApiVersion'
 ```
+
+Fallback nur falls der Wrapper noch nicht installiert ist:
+
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf STEP_NAME
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
+cd STEP_NAME
+bash tools/remote-modboard-deploy.sh STEP_NAME dev
+```
+
+Dieser Fallback ist nur für Übergang/Recovery gedacht.
 
 ---
 
@@ -628,19 +632,26 @@ Keine produktiven Writes bauen.
 
 ---
 
-## 17. Verbindlicher Server-Deploy-Standard ab RDAP33B
+## 17. Verbindlicher Server-Deploy-Standard ab RDAP104
 
 Für weitere RDAP-Webserver-Deploys immer diesen Stil verwenden:
 
 ```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf STEP_NAME
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git STEP_NAME
-cd STEP_NAME
-sudo bash tools/remote-modboard-deploy.sh STEP_NAME dev
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
 ```
 
-Nicht mit langem absolutem Zielpfad clonen.
+Regeln:
+
+```text
+- als root ausführen
+- kein sudo verwenden
+- keine langen manuellen cd/git-clone/cd/bash-Ketten als Standard
+- Wrapper klont GitHub/dev selbst unter _deploy_tmp
+- bestehende Deploy-Engine bleibt tools/remote-modboard-deploy.sh
+- Wrapper startet nach Erfolg Cleanup
+- Backup-Cleanup behaelt maximal 6 Backups
+- Deploy-Cleanup behaelt maximal 6 RDAP-Deploy-Clones
+```
 
 Nicht direkt nach dem Deploy-Script nochmal manuell restarten.
 

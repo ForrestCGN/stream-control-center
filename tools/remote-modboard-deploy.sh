@@ -10,13 +10,13 @@ SERVICE="scc-remote-modboard.service"
 REPO_URL="https://github.com/ForrestCGN/stream-control-center.git"
 
 if [ -z "$STEP" ]; then
-  echo "[fehler] Usage: sudo bash tools/remote-modboard-deploy.sh <STEP_NAME> [branch]"
-  echo "[beispiel] sudo bash tools/remote-modboard-deploy.sh RDAP_UI2_READONLY_COMFORT dev"
+  echo "[fehler] Usage: bash tools/remote-modboard-deploy.sh <STEP_NAME> [branch]"
+  echo "[beispiel] bash tools/remote-modboard-deploy.sh RDAP_UI2_READONLY_COMFORT dev"
   exit 2
 fi
 
 if [ "$(id -u)" -ne 0 ]; then
-  echo "[fehler] Dieses Script muss als root laufen, weil Service-Restart, Rechte und /opt-Deploy benoetigt werden."
+  echo "[fehler] Dieses Script muss als root laufen. Kein sudo verwenden; als root ausfuehren."
   exit 2
 fi
 
@@ -37,6 +37,8 @@ esac
 TS="$(date +%Y%m%d_%H%M%S)"
 DEPLOY_TMP="$BASE/_deploy_tmp/${STEP}_${TS}"
 BACKUP="$BASE/_runtime_tmp/backup_remote_modboard_${STEP}_${TS}"
+SERVER_TOOLS_SRC="$DEPLOY_TMP/tools/server"
+SERVER_TOOLS_LIVE="$BASE/tools/server"
 
 echo "============================================================"
 echo "[remote-modboard-deploy] Start"
@@ -47,6 +49,7 @@ echo "BASE=$BASE"
 echo "LIVE=$LIVE"
 echo "DEPLOY_TMP=$DEPLOY_TMP"
 echo "BACKUP=$BACKUP"
+echo "SERVER_TOOLS_LIVE=$SERVER_TOOLS_LIVE"
 echo "SERVICE=$SERVICE"
 
 echo
@@ -93,11 +96,22 @@ rsync -a --delete \
   "$DEPLOY_TMP/remote-modboard/" "$LIVE/"
 
 echo
-echo "=== 5) Rechte setzen ==="
+echo "=== 5) Server-Hilfsscripte installieren ==="
+if [ -d "$SERVER_TOOLS_SRC" ]; then
+  mkdir -p "$SERVER_TOOLS_LIVE"
+  rsync -a --delete "$SERVER_TOOLS_SRC/" "$SERVER_TOOLS_LIVE/"
+  find "$SERVER_TOOLS_LIVE" -type f -name "*.sh" -exec chmod 0755 {} \;
+  echo "[ok] Server-Hilfsscripte installiert: $SERVER_TOOLS_LIVE"
+else
+  echo "[info] Keine Server-Hilfsscripte im Repo gefunden: $SERVER_TOOLS_SRC"
+fi
+
+echo
+echo "=== 6) Rechte setzen ==="
 chown -R sccremote:sccremote "$LIVE"
 
 echo
-echo "=== 6) JS-Syntaxcheck ==="
+echo "=== 7) JS-Syntaxcheck ==="
 cd "$LIVE/backend"
 node --check server.js
 node --check src/app.js
@@ -107,11 +121,11 @@ if [ -f package.json ]; then
 fi
 
 echo
-echo "=== 7) Service neu starten ==="
+echo "=== 8) Service neu starten ==="
 systemctl restart "$SERVICE"
 
 echo
-echo "=== 8) Readiness warten ==="
+echo "=== 9) Readiness warten ==="
 READY=0
 for i in $(seq 1 30); do
   if curl -fsS http://127.0.0.1:3010/api/remote/status >/dev/null; then
@@ -130,24 +144,24 @@ if [ "$READY" -ne 1 ]; then
 fi
 
 echo
-echo "=== 9) Lokale API testen ==="
+echo "=== 10) Lokale API testen ==="
 curl -fsS http://127.0.0.1:3010/api/remote/status | head -c 500
 echo
 curl -fsS http://127.0.0.1:3010/api/remote/routes | head -c 500
 echo
 
 echo
-echo "=== 10) Lokale UI testen ==="
+echo "=== 11) Lokale UI testen ==="
 curl -fsSI http://127.0.0.1:3010/ | head
 
 echo
-echo "=== 11) Public UI/API testen ==="
+echo "=== 12) Public UI/API testen ==="
 curl -fsSI https://mods.forrestcgn.de/ | head
 curl -fsS https://mods.forrestcgn.de/api/remote/status | head -c 500
 echo
 
 echo
-echo "=== 12) OAuth/Login Safety testen ==="
+echo "=== 13) OAuth/Login Safety testen ==="
 START_CODE="$(curl -s -o /dev/null -w "%{http_code}" https://mods.forrestcgn.de/api/remote/auth/twitch/start)"
 CALLBACK_CODE="$(curl -s -o /dev/null -w "%{http_code}" https://mods.forrestcgn.de/api/remote/auth/twitch/callback)"
 echo "twitch/start HTTP $START_CODE"
@@ -179,3 +193,4 @@ echo "[ok] Remote-Modboard Deploy fertig"
 echo "============================================================"
 echo "Backup liegt hier: $BACKUP"
 echo "Deploy-Clone liegt hier: $DEPLOY_TMP"
+echo "Server-Hilfsscripte liegen hier: $SERVER_TOOLS_LIVE"

@@ -1,37 +1,30 @@
 # NEXT_STEPS
 
-Stand: RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD  
+Stand: RDAP104_REMOTE_MODBOARD_SERVER_DEPLOY_WRAPPER_AND_BACKUP_CLEANUP  
 Datum: 2026-06-26
 
 ## Naechster Step
 
 ```text
-RDAP103B_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD_LIVE_CONFIRM
+RDAP104B_REMOTE_MODBOARD_SERVER_DEPLOY_WRAPPER_LIVE_CONFIRM
 ```
 
 ## Ziel
 
-RDAP103B soll die RDAP103 UI-Aenderung live bestaetigen:
-
 ```text
-- Nach stepdone Webserver-Deploy aus GitHub/dev durchfuehren.
-- Readiness pruefen.
-- /api/remote/agent/status read-only pruefen.
-- Admin / Verbindungen UI visuell pruefen.
-- Aktualisierte Texte und Status-Semantik bestaetigen.
-- Runtime final disabled pruefen.
-- Keine Runtime-Aktivierung.
-- Keine Agent-Actions.
+- RDAP104 nach GitHub/dev deployen.
+- Einmalig Fallback-Deploy nutzen, weil der neue Wrapper vor RDAP104 noch nicht auf dem Webserver liegt.
+- Pruefen, dass /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh installiert wurde.
+- Pruefen, dass /opt/stream-control-center/tools/server/remote-modboard-cleanup-backups.sh installiert wurde.
+- Bash-Syntax beider Server-Scripte pruefen.
+- Cleanup pruefen: maximal 6 Backups und 6 RDAP-Deploy-Clones.
+- Danach kuenftige RDAP-Deploys nur noch mit einem Wrapper-Befehl.
 ```
 
-## Voraussetzung
+## Kuenftiger Standardbefehl
 
-```text
-RDAP103 abgeschlossen:
-- Read-only UI-Datei vorbereitet.
-- Keine Backend-Action.
-- Keine neue Runtime-Logik.
-- Keine Secrets.
+```bash
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
 ```
 
 ## Strikt nicht machen
@@ -42,18 +35,9 @@ Keine OBS-Steuerung.
 Keine Sound-Ausloesung.
 Keine Overlay-Schaltung.
 Keine Command-/Channelpoints-Steuerung.
-Keine freie Shell.
-Keine freie Datei-/Prozess-/URL-Ausfuehrung.
-Keine Prozessliste.
-Keine Dateiliste.
-Keine Env-Dumps.
-Keine Pfad-Dumps.
-Keine produktiven Writes.
 Keine DB-Migration.
-Keine neue Permission.
-Keine produktive Agent-Action-Queue.
-Keine Secret-Ausgabe.
-Keine Rohpayload-Ausgabe.
-Keine Runtime dauerhaft aktivieren.
-Keine Runtime-Aktivierung im UI-Live-Confirm.
+Keine produktiven Writes.
+Keine Runtime-Aktivierung.
+Keine Secrets.
+Keine Rohpayloads.
 ```
