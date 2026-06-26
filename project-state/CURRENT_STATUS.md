@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX  
+Stand: RDAP76C_ADMIN_NOTES_INITIAL_RESTORE_STATE_FIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,20 +15,20 @@ RDAP67-RDAP74: Admin-Notes UI schrittweise enttechnisiert; Frontend-only.
 RDAP75: Design-Contract und Findings dokumentiert.
 RDAP75B: Doku-/Uebergabe-Stand und neuer Chat-Prompt aktualisiert.
 RDAP76B: Zentrale Projekt-/UI-/Roadmap-Dokumentation konsolidiert; Doku-only.
-RDAP76: Admin-Notes Router-/Header-State-Fix vorbereitet; Frontend-only.
+RDAP76: Admin-Notes Klickpfad auf Haupt-Router synchronisiert; Browser zeigte aber noch Initial-/Restore-State-Split.
+RDAP76C: Initial-/Restore-State-Split gezielt korrigiert; Frontend-only.
 ```
 
-## Zentrale Doku ab jetzt
+## Zentrale Doku
 
 ```text
 docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
 docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP76.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP76C.md
 ```
 
-## Aktueller Browser-/Design-Stand
+## Aktueller Browser-/Design-Befund
 
 ```text
 Admin-Notes sind sichtbar.
@@ -38,9 +38,14 @@ Technische Statusbloecke wurden aus der Hauptansicht entfernt.
 Header-Aktionen stehen im oberen Admin-Notizen-Header.
 Notizkarten sind menschlicher lesbar.
 
-RDAP76-Fix:
-- Admin-Notes/User-Detail Page-State nutzt bevorzugt den bestehenden Haupt-Router.
-- Header, aktive Navigation und sichtbares Panel sollen dadurch zusammenpassen.
+RDAP76C muss bestaetigen:
+- Nach Reload darf nicht mehr User-Detail oben/aktiv stehen, wenn Admin-Notizen sichtbar sind.
+- Admin-Notizen sichtbar => Header/Nav/Router Admin-Notizen.
+- User-Detail sichtbar => Header/Nav/Router User-Detail.
+
+Noch offen danach:
+- Zieluser-/Count-Kontext muss geprueft/fixiert werden: Count muss zum ausgewaehlten User passen.
+- Weitere UI-Politur erst nach diesen State-Fixes.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -65,7 +70,7 @@ Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
-## Naechster empfohlener Code-Step
+## Naechster empfohlener Code-Step nach bestaetigtem RDAP76C
 
 ```text
 RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX

@@ -44,6 +44,7 @@
     bindAdminUserDetailActions();
     exposeTargetSelectionApi();
     restoreInjectedAdminPanelVisibility();
+    scheduleRdap40RestoreStateRepair();
     void loadTargetUsers("initial");
     loadAdminNotes("initial");
   });
@@ -1089,17 +1090,16 @@
   }
 
   function restoreInjectedAdminPanelVisibility() {
-    const active = document.querySelector('.active[data-page]');
-    const titleEl = document.querySelector('[data-rdap-page-title]') || document.getElementById('pageTitle');
-    const title = titleEl ? String(titleEl.textContent || '').trim().toLowerCase() : '';
-    const activePage = active && active.dataset ? active.dataset.page : '';
+    const visibleInjectedPage = getRdap40VisibleInjectedPage();
+    const activePage = getRdap40ActiveNavigationPage();
+    const title = getRdap40HeaderTitle();
 
-    if (activePage === 'admin-notes' || title === 'admin-notizen') {
+    if (visibleInjectedPage === 'admin-notes' || activePage === 'admin-notes' || title === 'admin-notizen') {
       setRdap40Page('admin-notes', { section: 'Admin', title: 'Admin-Notizen', tab: 'read/create' });
       return;
     }
 
-    if (activePage === 'admin-user-detail' || title === 'user-detail' || title === 'admin-user-detail') {
+    if (visibleInjectedPage === 'admin-user-detail' || activePage === 'admin-user-detail' || title === 'user-detail' || title === 'admin-user-detail') {
       setRdap40Page('admin-user-detail', { section: 'Admin', title: 'User-Detail', tab: 'read-only' });
       return;
     }
@@ -1108,6 +1108,78 @@
     const adminUserDetailPanel = document.querySelector('[data-page-panel="admin-user-detail"]');
     if (adminNotesPanel) adminNotesPanel.hidden = true;
     if (adminUserDetailPanel) adminUserDetailPanel.hidden = true;
+  }
+
+  function scheduleRdap40RestoreStateRepair() {
+    [0, 80, 250].forEach((delay) => {
+      window.setTimeout(repairRdap40VisibleRouterState, delay);
+    });
+  }
+
+  function repairRdap40VisibleRouterState() {
+    const visibleInjectedPage = getRdap40VisibleInjectedPage();
+    if (visibleInjectedPage === 'admin-notes') {
+      enforceRdap40PageIfSplit('admin-notes', { section: 'Admin', title: 'Admin-Notizen', tab: 'read/create' });
+      return;
+    }
+    if (visibleInjectedPage === 'admin-user-detail') {
+      enforceRdap40PageIfSplit('admin-user-detail', { section: 'Admin', title: 'User-Detail', tab: 'read-only' });
+    }
+  }
+
+  function enforceRdap40PageIfSplit(page, meta) {
+    const activePage = getRdap40ActiveNavigationPage();
+    const headerTitle = getRdap40HeaderTitle();
+    const routerPage = getRdap40MainRouterPage();
+    const expectedTitle = page === 'admin-user-detail' ? 'user-detail' : 'admin-notizen';
+
+    if (activePage !== page || routerPage !== page || headerTitle !== expectedTitle) {
+      setRdap40Page(page, meta);
+    }
+  }
+
+  function getRdap40VisibleInjectedPage() {
+    const pages = ['admin-notes', 'admin-user-detail'];
+    for (const page of pages) {
+      const panel = document.querySelector(`[data-page-panel="${page}"]`);
+      if (isRdap40PanelVisible(panel)) return page;
+    }
+    return '';
+  }
+
+  function isRdap40PanelVisible(panel) {
+    if (!panel || panel.hidden) return false;
+    try {
+      const style = window.getComputedStyle(panel);
+      if (!style || style.display === 'none' || style.visibility === 'hidden') return false;
+      const rect = panel.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    } catch (err) {
+      return !panel.hidden;
+    }
+  }
+
+  function getRdap40ActiveNavigationPage() {
+    const active = document.querySelector('.nav-link[data-page].is-active, .nav-link[data-page].active, [data-page].is-active, [data-page].active');
+    return active && active.dataset ? (active.dataset.page || '') : '';
+  }
+
+  function getRdap40HeaderTitle() {
+    const titleEl = document.querySelector('[data-rdap-page-title]') || document.getElementById('pageTitle');
+    if (!titleEl) return '';
+    const clone = titleEl.cloneNode(true);
+    clone.querySelectorAll('.tab-part').forEach((node) => node.remove());
+    return String(clone.textContent || '').trim().toLowerCase();
+  }
+
+  function getRdap40MainRouterPage() {
+    const router = window.RdapMainRouter;
+    if (!router || typeof router.getCurrentPage !== 'function') return '';
+    try {
+      return router.getCurrentPage() || '';
+    } catch (err) {
+      return '';
+    }
   }
 
   function setRdap40Page(page, meta) {

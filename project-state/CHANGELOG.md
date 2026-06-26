@@ -1,28 +1,17 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
+## 2026-06-26 - RDAP76C_ADMIN_NOTES_INITIAL_RESTORE_STATE_FIX
 
 ```text
-- Admin-Notes/User-Detail Page-State in `rdap28-admin-notes.js` bereinigt.
-- `setRdap40Page(...)` nutzt bevorzugt den bestehenden Haupt-Router `window.RdapMainRouter.setPage`.
-- Header, aktive Navigation und sichtbares Panel werden fuer Admin-Notizen/User-Detail synchronisiert.
-- Fallback fuer Header/Titel bleibt nur fuer den Fall, dass der Haupt-Router nicht verfuegbar ist.
+- Korrekturstep nach RDAP76 erstellt.
+- RDAP76 hatte den Klickpfad Admin-Notizen korrekt synchronisiert, aber beim Initial-/Restore-State konnte User-Detail im Haupt-Header/Navigation aktiv bleiben, obwohl Admin-Notizen sichtbar war.
+- restoreInjectedAdminPanelVisibility() bewertet jetzt sichtbare injizierte Panels vor alter aktiver Navigation.
+- Neuer verzögerter Restore-Repair prüft nach DOMContentLoaded, ob sichtbares Panel, Haupt-Header, aktive Navigation und Haupt-Router auseinanderlaufen.
+- Bei State-Split wird der bestehende Haupt-Router erneut auf admin-notes oder admin-user-detail gesetzt.
 - Frontend-only.
 - Kein Backend.
 - Keine DB-Migration.
-- Keine neue Route.
 - Keine neue Permission.
 - Kein Delete/Deactivate.
 - Keine neuen Schreibbuttons.
-```
-
-## 2026-06-26 - RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD
-
-```text
-- Zentrale Projekt-/UI-/Roadmap-Dokumentation konsolidiert.
-- Doku-only.
-- Kein Code.
-- Kein Backend.
-- Keine DB-Migration.
-- Kein Webserver-Deploy.
 ```

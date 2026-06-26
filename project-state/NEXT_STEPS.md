@@ -1,46 +1,48 @@
 # NEXT_STEPS
 
-Stand: RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX  
+Stand: RDAP76C_ADMIN_NOTES_INITIAL_RESTORE_STATE_FIX  
 Datum: 2026-06-26
 
-## Naechster Step
+## Naechster Test
 
 ```text
-RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
+RDAP76C_ADMIN_NOTES_INITIAL_RESTORE_STATE_FIX bestaetigen
 ```
 
 ## Ziel
 
 ```text
-Zieluser-Wechsel, Listeninhalt und Count eindeutig synchronisieren.
-Wenn EngelCGN ausgewaehlt ist, duerfen nicht ForrestCGNs Count oder alte Notizen stehen bleiben.
+Header, aktive Navigation, Haupt-Router und sichtbares Admin-Notes/User-Detail-Panel muessen auch nach Reload/Restore sauber zusammenpassen.
 ```
 
-## Ausgangslage
+## Testfokus
 
 ```text
-RDAP76 setzt Admin-Notes/User-Detail Page-State ueber den bestehenden Haupt-Router.
-Damit sollen Header, aktive Navigation und sichtbares Panel zusammenpassen.
-
-Offen bleibt der zweite Browser-Befund:
-- Zieluser-/Notizen-Kontext muss eindeutig sein.
-- Count/Hinweis muss zum ausgewaehlten User passen.
+- Seite hart neu laden.
+- Admin-Notizen sichtbar => Header Admin-Notizen, Nav Admin-Notizen aktiv.
+- User-Detail sichtbar => Header User-Detail, Nav User-Detail aktiv.
+- Wechsel Admin-Notizen -> User-Detail -> Admin-Notizen mehrfach testen.
 ```
 
-## RDAP77 Scope
+## Danach
 
 ```text
-- Bestehende Admin-Notes-Target-Selection pruefen.
-- Zieluser-Wechsel muss Liste/Notice/Count sichtbar neu setzen.
-- Ladezustand darf keine alten Daten als aktuelle Daten anzeigen.
-- Keine neue Route, solange vorhandene Readroute `targetUserUid` korrekt unterstuetzt.
+RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
+```
+
+Ziel:
+
+```text
+- Zieluser-Wechsel laedt/zeigt eindeutig Notizen fuer diesen User.
+- Count/Hinweis passt zum ausgewaehlten User.
+- Keine alten User-Daten in Titel, Count oder Liste stehen lassen.
 ```
 
 ## Nicht aendern
 
 ```text
 Keine DB-Migration.
-Keine Backend-Route, solange nicht zwingend belegt.
+Keine Backend-Route.
 Keine neue Permission.
 Kein Deactivate.
 Kein Delete.
