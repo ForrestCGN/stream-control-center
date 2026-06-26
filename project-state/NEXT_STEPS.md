@@ -1,69 +1,74 @@
 # NEXT_STEPS
 
-Stand: RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED  
+Stand: RDAP45C_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP45B Webserver-Deploy und Live-Bestaetigung
+RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN
 ```
 
-## Ziel
+## Ziel RDAP46
 
 ```text
-Der vorbereitete RDAP45B-Deploy-Safety-Fix muss live bestaetigt werden.
+Nach RDAP44/RDAP45C den naechsten kleinen Schritt bewusst planen.
+Admin-Notizen-Zieluser-Auswahl ist live.
+Login/Deploy-Safety ist wieder konsistent.
 ```
 
-## Erwartung nach Deploy
+## Moegliche Richtungen
 
 ```text
-/api/remote/auth/twitch/start    -> 302, wenn Login bewusst aktiv/freigegeben ist
-/api/remote/auth/twitch/start    -> 403, wenn Login gesperrt ist
-/api/remote/auth/twitch/callback -> 403 ohne gueltigen OAuth-State
-remote-modboard-deploy.sh laeuft in beiden legitimen Start-Zustaenden ohne OAuth-Safety-Fehler durch.
+1. Admin-Notizen Zieluser-Auswahl komfortabler machen.
+2. Echte Admin-User-Detailseite planen.
+3. Admin-Note Update separat planen.
+4. Admin-Note Deactivate separat planen.
+5. Permission-Verwaltung separat planen, nicht mit Admin-Notizen vermischen.
 ```
 
-## Deploy-Standard
-
-```bash
-cd /opt/stream-control-center/_deploy_tmp
-rm -rf RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED
-git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED
-cd RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED
-sudo bash tools/remote-modboard-deploy.sh RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED dev
-```
-
-## Tests nach Deploy
-
-```bash
-curl -s -o /dev/null -w "twitch/start HTTP %{http_code}\n" https://mods.forrestcgn.de/api/remote/auth/twitch/start
-curl -s -o /dev/null -w "twitch/callback HTTP %{http_code}\n" https://mods.forrestcgn.de/api/remote/auth/twitch/callback
-curl -fsS http://127.0.0.1:3010/assets/rdap28-admin-notes.js | grep -n "adminNotesTargetSelect\|DEFAULT_TARGET_USER" | head
-```
-
-## Browser-Test
+## Empfehlung
 
 ```text
-https://mods.forrestcgn.de/
-Login-Button funktioniert weiter.
-Admin -> Admin-Notizen zeigt Zieluser-Auswahl weiter an.
+Zuerst ein kleiner Plan-/Doku-Step:
+RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN
 ```
 
-## Nicht in diesem Step aendern
+Darin klaeren:
 
 ```text
-Keine Admin-Notizen-UI-Aenderung.
-Keine DB-Migration.
-Keine Permission-Verwaltung.
-Keine neuen produktiven Admin-Writes.
+Welche Funktion bringt sichtbaren Nutzen?
+Welche bestehende Struktur wird erweitert?
+Welche Rechte braucht der Step?
+Welche Writes waeren betroffen?
+Welche Safety-Gates bleiben aus?
+```
+
+## Nicht direkt als naechstes tun
+
+```text
+Kein physisches Delete.
+Keine Permission-Verwaltung nebenbei.
+Keine Community-Read-Anbindung fuer Admin-Notizen.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
+Keine freien Shell-/Datei-/Prozess-/URL-Ausfuehrungen.
+Keine DB-Migration ohne separaten Plan.
 ```
 
-## Danach
-
-Wenn live bestaetigt:
+## Aktueller Login-/Safety-Stand
 
 ```text
-RDAP45C_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_LIVE_CONFIRMED_DOCS
+Twitch-Login aktiv/freigegeben.
+twitch/start HTTP 302 ist korrekt.
+twitch/callback ohne gueltigen OAuth-State HTTP 403 ist Pflicht.
+Deploy-Safety akzeptiert diesen Zustand seit RDAP45B.
+```
+
+## RDAP44 bleibt abgeschlossen
+
+```text
+Admin-Notizen haben Zieluser-Auswahl.
+Default bleibt ForrestCGN / tw:127709954.
+Read/Create nutzen den ausgewaehlten Zieluser.
+RDAP44 ist live funktional bestaetigt.
 ```

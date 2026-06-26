@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP45B_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_FIX_PREPARED  
+Stand: RDAP45C_REMOTE_AUTH_DEPLOY_SAFETY_LOGIN_ACTIVE_LIVE_CONFIRMED_DOCS  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -15,8 +15,9 @@ RDAP42B dokumentiert den RDAP42 Live-Stand.
 RDAP43 plant Zieluser-Auswahl/Admin-User-Detail fuer Admin-Notizen.
 RDAP44_ADMIN_NOTE_TARGET_USER_SELECTION_PREPARED ist live funktional bestaetigt.
 RDAP44B dokumentiert die RDAP44 Live-Bestaetigung.
-RDAP45 OAuth-Start-Safety-Fix wurde vorbereitet, hat aber gezeigt: Login wird live bereits produktiv genutzt.
-RDAP45B korrigiert die Deploy-Safety-Semantik fuer aktiven Login.
+RDAP45 OAuth-Start-Gate wurde vorbereitet.
+RDAP45B Deploy-Safety wurde an aktiv genutzten Login angepasst.
+RDAP45C dokumentiert die RDAP45B Live-Bestaetigung.
 ```
 
 ## Live-System
@@ -28,6 +29,23 @@ Live-Pfad: /opt/stream-control-center/remote-modboard
 DB: MariaDB 11.8.6 / c3stream_control
 DB-Client: /root/rdap29_mysql_client.cnf
 Branch: dev
+```
+
+## Auth-/Login aktueller Funktionsstand
+
+```text
+Twitch-Login ist aktiv/freigegeben.
+Live-Env: RDAP_TWITCH_OAUTH_START_RELEASED=true.
+GET /api/remote/auth/twitch/start liefert bei aktivem Login HTTP 302.
+GET /api/remote/auth/twitch/callback liefert ohne gueltigen OAuth-State HTTP 403.
+Login funktioniert wieder.
+```
+
+Einordnung:
+
+```text
+Aktiver Login bedeutet Auth-/Session-Scope.
+Das ist keine Freigabe fuer Remote-Writes, Agent-Actions, OBS, Sound, Overlay, Commands, Channelpoints oder freie Ausfuehrung.
 ```
 
 ## Admin-Notizen aktueller Funktionsstand
@@ -42,7 +60,7 @@ Create nutzt bestehende RDAP39 Backend-Route.
 Nach erfolgreichem Create laedt die UI die Notizliste ueber RDAP39C-Readback neu.
 ```
 
-## RDAP44 Live-Bestaetigung
+## RDAP44 Live-Bestaetigung bleibt gueltig
 
 ```text
 Zieluser-Auswahl sichtbar.
@@ -56,34 +74,20 @@ Tabelle: true.
 Create-Form zeigt Zieluser: tw:127709954.
 ```
 
-## RDAP45/RDAP45B Auth-Befund
+Asset-Pruefung live:
 
 ```text
-RDAP45 hatte Twitch-Start wieder hart Richtung 403 abgesichert.
-Live zeigte direkt danach: Der Login-Button braucht den Twitch-Start und nutzt ihn bereits produktiv.
-Auf dem Server wurde RDAP_TWITCH_OAUTH_START_RELEASED=true gesetzt, damit Login wieder funktioniert.
-Danach live gemessen:
+DEFAULT_TARGET_USER vorhanden.
+adminNotesTargetSelect vorhanden.
+TARGET_USER_UID nicht mehr vorhanden.
+```
+
+## RDAP45B Live-Bestaetigung
+
+```text
 twitch/start HTTP 302
 twitch/callback HTTP 403
-```
-
-Einordnung:
-
-```text
-twitch/start HTTP 302 ist korrekt, wenn Login bewusst aktiv/freigegeben ist.
-twitch/callback HTTP 403 ohne gueltigen OAuth-State bleibt korrekt.
-OAuth/Login-Session-Scope ist nicht gleich Remote-Writes.
-Remote-Writes/Agent/OBS/Sound/Overlay/Commands bleiben weiterhin gesperrt.
-```
-
-## RDAP45B vorbereiteter Fix
-
-```text
-tools/remote-modboard-deploy.sh erwartet nicht mehr hart 403/403.
-Erlaubt fuer twitch/start:
-- 302 bei bewusst aktivem Login/OAuth-Start
-- 403 bei gesperrtem Login/OAuth-Start
-Callback ohne State muss weiterhin 403 bleiben.
+Login ok
 ```
 
 ## Weiterhin deaktiviert
@@ -101,14 +105,12 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP45B Webserver-Deploy und Live-Bestaetigung
+RDAP46_ADMIN_NOTE_NEXT_SMALL_STEP_PLAN
 ```
 
 Ziel:
 
 ```text
-Deploy-Script soll bei aktivem Login mit twitch/start HTTP 302 nicht mehr fehlschlagen.
-Callback ohne gueltigen OAuth-State muss HTTP 403 bleiben.
-Dashboard-Login muss weiter funktionieren.
-RDAP44 Admin-Notizen-Zieluser-Auswahl muss unveraendert sichtbar bleiben.
+Naechsten kleinen Admin-Notizen-/Admin-User-Schritt bewusst planen.
+Nicht blind Update/Delete/Permission bauen.
 ```
