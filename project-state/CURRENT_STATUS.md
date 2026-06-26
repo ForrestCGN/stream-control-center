@@ -1,31 +1,24 @@
 # CURRENT_STATUS
 
-Stand: RDAP77_ADMIN_MODULE_REGISTRY_FOUNDATION  
+Stand: RDAP77B_MODULE_REGISTRY_PANEL_MOUNT_AND_VISIBILITY_FIX  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ## Aktuell bestaetigt
 
 ```text
-RDAP61: Admin-Note Update-Backend live aktiv.
-RDAP62: Status-Semantik live bereinigt.
-RDAP64D: Admin-Notes ueber Haupt-Router sichtbar gemacht, live bestaetigt.
-RDAP65B: Admin-Notes fachlich im Browser bestaetigt; Create, Update, User-Detail und Navigation funktionieren.
-RDAP67-RDAP74: Admin-Notes UI schrittweise enttechnisiert; Frontend-only.
-RDAP75: Design-Contract und Findings dokumentiert.
-RDAP75B: Doku-/Uebergabe-Stand und neuer Chat-Prompt aktualisiert.
-RDAP76B: Zentrale Projekt-/UI-/Roadmap-Dokumentation konsolidiert; Doku-only.
 RDAP76D: Admin-Modul-/Page-Registry-Zielstruktur dokumentiert; Doku-only.
-RDAP77: Frontend-only Modul-/Page-Registry-Fundament eingefuehrt.
+RDAP77: Frontend-Registry-Fundament fuer Module/Pages begonnen.
+RDAP77B: Panel-Mount-/Sichtbarkeitsfix fuer Registry/Admin-Unterseiten vorbereitet.
 ```
 
-## Registry-Stand
+## Strukturstand
 
 ```text
-window.RemoteModboardModules ist vorbereitet.
-Admin ist als Obermodul registriert.
-Admin-Notizen und User-Detail werden als Admin-Pages registriert.
-rdap28-admin-notes.js nutzt die Registry fuer Navigation, wenn vorhanden.
+remote-modboard.js fuehrt Haupt-Router und Frontend-Registry.
+Admin wird als Obermodul registriert.
+Admin-Notizen und User-Detail sind Admin-Pages.
+Inaktive Panels werden jetzt per hidden und is-active-view konsequent versteckt.
 ```
 
 ## Admin-Notes aktueller Backend-Stand
@@ -50,7 +43,7 @@ Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
 freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ```
 
-## Naechster empfohlener Step
+## Naechster empfohlener Code-Step
 
 ```text
 RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX

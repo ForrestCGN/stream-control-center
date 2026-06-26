@@ -1,26 +1,25 @@
 # TODO
 
-Stand: RDAP77_ADMIN_MODULE_REGISTRY_FOUNDATION  
+Stand: RDAP77B_MODULE_REGISTRY_PANEL_MOUNT_AND_VISIBILITY_FIX  
 Datum: 2026-06-26
 
-## Als Naechstes
+## Jetzt testen
+
+```text
+Admin -> Admin-Notizen:
+- Nur Admin-Notizen sichtbar.
+- Header/Nav passen.
+
+Admin -> User-Detail:
+- Nur User-Detail sichtbar.
+- Admin-Notizen bleibt nicht oberhalb stehen.
+- Header/Nav passen.
+```
+
+## Danach
 
 ```text
 RDAP78_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
-```
-
-Aufgaben:
-
-```text
-- Startdateien aus GitHub/dev lesen.
-- Admin-Notes User-Auswahl/Reload/Count pruefen.
-- Plan nennen.
-- Auf go warten.
-- Count und Liste eindeutig an selectedTargetUser binden.
-- Keine alten User-Daten stehen lassen.
-- Lokale node --check fuer betroffene JS-Dateien.
-- stepdone.cmd nur wenn sauber.
-- Danach Webserver-Deploy, falls remote-modboard/ geaendert wird.
 ```
 
 ## Nicht machen
@@ -33,5 +32,5 @@ Aufgaben:
 - Keine Community-Read-Freigabe.
 - Keine Rollen-/Gruppen-/Permission-Writes.
 - Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
-- Keine Write-Freigabe nebenbei.
+- Kein wildes weiteres CSS-Gefrickel vor State-/Registry-Fix.
 ```

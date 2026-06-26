@@ -59,6 +59,9 @@
     const style = document.createElement("style");
     style.id = "rdap40AdminNotesStyle";
     style.textContent = `
+      [data-page-panel][hidden]{display:none!important}
+      .rdap-view:not(.is-active-view){display:none!important}
+      [data-page-panel="admin-notes"].is-active-view{display:grid!important}
       .admin-note-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--gap);margin-bottom:var(--gap)}
       .admin-note-status-card{min-height:92px}
       .admin-note-target-card{display:grid;gap:12px;margin-bottom:var(--gap)}
@@ -216,6 +219,7 @@
     const section = document.createElement("section");
     section.className = "rdap-view";
     section.dataset.pagePanel = "admin-notes";
+    section.hidden = true;
     section.innerHTML = `
       <section class="page-header module-page-header cgn-card">
         <p class="cgn-eyebrow">Admin / kontrollierter Read, Create und Update</p>
@@ -358,6 +362,7 @@
     const section = document.createElement("section");
     section.className = "rdap-view";
     section.dataset.pagePanel = "admin-user-detail";
+    section.hidden = true;
     section.innerHTML = `
       <section class="page-header module-page-header cgn-card">
         <p class="cgn-eyebrow">Admin / User-Detail / read-only</p>
@@ -1237,11 +1242,9 @@
   }
 
   function syncRdap40InjectedPanels(page) {
-    document.querySelectorAll(".rdap-view").forEach((panel) => {
+    document.querySelectorAll("[data-page-panel]").forEach((panel) => {
       const active = panel.dataset.pagePanel === page;
-      if (panel.dataset.pagePanel === "admin-notes" || panel.dataset.pagePanel === "admin-user-detail") {
-        panel.hidden = !active;
-      }
+      panel.hidden = !active;
       panel.classList.toggle("is-active-view", active);
     });
   }

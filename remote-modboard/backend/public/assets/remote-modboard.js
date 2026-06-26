@@ -288,7 +288,10 @@ function injectAdminNotesPolishStyles() {
   const style = document.createElement('style');
   style.id = 'rdap74AdminNotesHeaderActionsDedupStyle';
   style.textContent = `
-    [data-page-panel="admin-notes"]{display:grid!important;gap:12px!important}
+    [data-page-panel][hidden]{display:none!important}
+    .rdap-view:not(.is-active-view){display:none!important}
+    [data-page-panel="admin-notes"].is-active-view{display:grid!important;gap:12px!important}
+    [data-page-panel="admin-notes"]{gap:12px!important}
     [data-page-panel="admin-notes"] .module-page-header{padding:14px 16px!important;margin-bottom:0!important;border-radius:18px!important}
     [data-page-panel="admin-notes"] .module-page-header .cgn-eyebrow{font-size:10px!important;margin-bottom:4px!important}
     [data-page-panel="admin-notes"] .module-page-header h1{font-size:22px!important;margin:0!important;line-height:1.12!important}
@@ -588,8 +591,9 @@ function setPage(page, meta) {
   });
 
   document.querySelectorAll('[data-page-panel]').forEach((panel) => {
-    panel.hidden = false;
-    panel.classList.toggle('is-active-view', panel.dataset.pagePanel === currentPage);
+    const active = panel.dataset.pagePanel === currentPage;
+    panel.hidden = !active;
+    panel.classList.toggle('is-active-view', active);
   });
 
   emitPageChange(currentPage, { section, title, tab });

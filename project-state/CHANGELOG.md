@@ -1,17 +1,17 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP77_ADMIN_MODULE_REGISTRY_FOUNDATION
+## 2026-06-26 - RDAP77B_MODULE_REGISTRY_PANEL_MOUNT_AND_VISIBILITY_FIX
 
 ```text
-- Frontend-only Modul-/Page-Registry-Fundament eingefuehrt.
-- window.RemoteModboardModules vorbereitet.
-- Admin als Obermodul registriert.
-- Admin-Notizen und User-Detail als Admin-Pages registriert.
-- rdap28-admin-notes.js nutzt die Registry fuer Navigation, wenn vorhanden.
-- Fallback fuer bisherige direkte Navigation bleibt nur fuer den Fall ohne Registry.
+- Korrektur auf RDAP77 aufgebaut.
+- Haupt-Router versteckt inaktive data-page-panel jetzt konsequent.
+- Hidden-/inactive-CSS-Regeln ergaenzt, damit Admin-Notes-Grid-Regeln hidden nicht ueberstimmen.
+- In rdap28-admin-notes.js starten injizierte Panels hidden.
+- Lokaler Panel-Sync versteckt alle data-page-panel und aktiviert genau die gewaehlte Page.
+- Ziel: Admin-Notizen und User-Detail sind nicht gleichzeitig sichtbar.
+- Frontend-only.
 - Kein Backend.
-- Keine DB-Migration.
-- Keine neue Permission.
+- Keine DB.
+- Keine Permission.
 - Kein Delete/Deactivate.
-- Keine Write-Freigabe.
 ```
