@@ -1,31 +1,60 @@
 # CHANGELOG
 
-## 2026-06-26 - RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN
+## 2026-06-26 - RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN
 
-RDAP59 klaert als Doku-only/Plan-only den Admin-Notes Community-Read-Scope.
+RDAP60 klaert als Doku-only/Plan-only den Admin-Note Update/Deactivate-Scope.
 
 Ergebnis:
 
 ```text
-Admin-Notizen bleiben vorerst Admin-only.
-Community-Read wird nicht gebaut.
-Bestehende Admin-Readroute wird nicht fuer Community-/Profil-/Public-UI verwendet.
-Falls spaeter noetig, dann nur separater, stark begrenzter read-only Scope mit eigener Planung, eigener Permission, Datenminimierung und ohne Public-Leak.
+Update und Deactivate werden nicht gemeinsam gebaut.
+Zuerst soll nur Admin-Note Update als kleinster sinnvoller Write-Scope vorbereitet werden.
+Deactivate bleibt danach ein separater Scope.
+RDAP60 selbst bleibt Doku-only/Plan-only.
 ```
 
 Begruendung:
 
 ```text
-Admin-Notizen koennen interne Moderations-, Sicherheits- oder Verwaltungsinformationen enthalten.
-Die bestehende Admin-Readroute gibt fuer berechtigte Admins echte Notiztexte aus.
-Ein Community-/Nicht-Admin-Scope braucht eigene Datenminimierung und darf keine internen note_text-Werte leaken.
+Update veraendert bestehenden Notiztext und updated_by/updated_at.
+Deactivate veraendert Status/Sichtbarkeit.
+Beides hat unterschiedliche Risiken, Audit-Anforderungen und UI-Folgen.
+Ein Misch-Step waere unnoetig riskant.
+```
+
+Geplanter Update-Scope fuer spaeter:
+
+```text
+targetUserUid
+noteUid
+noteText
+confirmWrite: true
+
+Server setzt:
+note_text
+updated_by_user_uid
+updated_at
+```
+
+Pflichtschutz spaeter:
+
+```text
+Session
+DashboardAccess
+remote.view
+admin.users.note.write
+Body-confirmWrite
+Lock
+Audit ohne raw note_text
+Readback
+DB-Backup vor produktivem Test
 ```
 
 Geaendert:
 
 ```text
-docs/current/RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP59.md
+docs/current/RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP60.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -46,29 +75,22 @@ Keine UI-Schreibbuttons.
 Kein Webserver-Deploy noetig.
 ```
 
-Struktur-Befund:
+Weiterhin deaktiviert/verboten:
 
 ```text
-Die im Startprompt genannte Datei remote-modboard/backend/src/routes/admin-users-admin-notes.routes.js existierte in GitHub/dev nicht.
-Die echten Admin-Notes-Routen liegen aktuell in remote-modboard/backend/src/routes/admin-users.routes.js.
-```
-
-Weiterhin deaktiviert:
-
-```text
-Admin-Note Update
-Admin-Note Deactivate
-Physisches Delete
-Community-Read fuer Admin-Notizen
-Permission-Verwaltung in der UI
-Rollen-/Gruppen-Schreibverwaltung
-Session-Revocation in der UI
-Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
-freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
+Admin-Note Update ist noch nicht gebaut.
+Admin-Note Deactivate bleibt deaktiviert.
+Physisches Delete bleibt verboten.
+Community-Read fuer Admin-Notizen bleibt verboten.
+Permission-Verwaltung in der UI bleibt aus.
+Rollen-/Gruppen-Schreibverwaltung bleibt aus.
+Session-Revocation in der UI bleibt aus.
+Agent/OBS/Sound/Overlay/Command/Channelpoints-Control bleibt aus.
+freie Shell-/Datei-/Prozess-/URL-Ausfuehrung bleibt verboten.
 ```
 
 Naechster empfohlener Step:
 
 ```text
-RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN
+RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
 ```

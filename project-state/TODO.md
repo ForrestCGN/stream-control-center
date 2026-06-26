@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN  
+Stand: RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN  
 Datum: 2026-06-26
 
 ## Erledigt
@@ -24,20 +24,23 @@ Datum: 2026-06-26
 - [x] RDAP57B Live-Bestaetigung dokumentiert.
 - [x] RDAP58 Permission-Read-Detail-Strang bewertet / Wrapup geplant.
 - [x] RDAP59 Admin-Notizen Community-Read-Scope geplant.
+- [x] RDAP60 Admin-Note Update/Deactivate-Scope geplant.
 
 ## Offen / Naechstes
 
-- [ ] RDAP60 planen: Admin-Note Update/Deactivate-Scope klaeren oder bewusst weiter read-only bleiben.
-- [ ] Klaeren, ob zuerst Update oder Deactivate geplant wird.
-- [ ] Admin-Note Update/Deactivate nur als separater geplanter Step mit Audit/Lock/Backup/Confirm/Readback.
-- [ ] Community-Seiten duerfen Admin-Notizen weiterhin nicht lesen, bis ein separater Scope umgesetzt und bestaetigt ist.
-- [ ] Permission-Verwaltung in der UI separat planen, nicht mit Admin-Notizen vermischen.
+- [ ] RDAP61 planen/umsetzen: kleinsten Admin-Note Update-Backend-Scope.
+- [ ] Vor RDAP61 echte Dateien aus GitHub/dev lesen.
+- [ ] Pruefen, ob bestehender disabled Service sinnvoll erweitert/umgebaut wird oder ob sauberer eigener Update-Service besser passt.
+- [ ] Update nur fuer aktive Notizen erlauben.
+- [ ] Update mit Session, DashboardAccess, remote.view, admin.users.note.write, Body-confirmWrite, Lock, Audit ohne raw note_text und Readback absichern.
+- [ ] Deactivate weiterhin separat planen.
 
 ## Weiterhin verboten / nicht versehentlich bauen
 
+- [ ] Kein Admin-Note Deactivate im Update-Step.
+- [ ] Kein physisches Delete.
 - [ ] Keine Community-Read-Freigabe fuer Admin-Notizen ohne separaten Scope.
 - [ ] Keine bestehende Admin-Readroute fuer Public-/Community-/Profil-UI verwenden.
-- [ ] Kein physisches Delete.
 - [ ] Keine Rollen-/Gruppen-/Permission-Writes.
 - [ ] Keine Session-Revocation in der UI.
 - [ ] Keine Agent-/OBS-/Sound-/Overlay-/Command-/Channelpoints-Control.

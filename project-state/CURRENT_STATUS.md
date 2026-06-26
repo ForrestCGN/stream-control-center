@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN  
+Stand: RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -24,29 +24,7 @@ RDAP57 Permission-Read-Detail Categories-Polish ist vorbereitet, deployed und li
 RDAP57B dokumentiert die RDAP57 Live-Bestaetigung.
 RDAP58 schliesst/ bewertet den Permission-Read-Detail-Strang und plant den naechsten Bereich.
 RDAP59 klaert den Admin-Notes Community-Read-Scope als Doku-only/Plan-only.
-```
-
-## RDAP57 live bestaetigter Stand
-
-```text
-Admin-User-Detail funktioniert weiter.
-ForrestCGN @forrestcgn / tw:127709954 ist auswaehlbar.
-Effektive Rollen-Rechte bleiben sichtbar.
-8 Rollenrechte werden angezeigt.
-Rechte sind gruppiert: Admin / Agent-Status / Dashboard-Remote.
-Admin-/Write-nahe Rechte sind als Modellanzeige markiert.
-0-Targets-Erklaerung bleibt erhalten.
-Diagnose bleibt erhalten.
-Keine Schreibbuttons fuer Rollen/Gruppen/Permissions/Sessions sichtbar.
-```
-
-## RDAP58 Bewertung
-
-```text
-Permission-Read-Detail-Strang ist vorerst ausreichend rund.
-Keine weiteren Permission-Read-Polishes noetig.
-Keine Permission-Writes direkt danach bauen.
-Keine Rollen-/Gruppen-Schreibverwaltung direkt danach bauen.
+RDAP60 klaert Admin-Note Update/Deactivate-Scope als Doku-only/Plan-only.
 ```
 
 ## RDAP59 Entscheidung
@@ -56,6 +34,15 @@ Admin-Notizen bleiben vorerst Admin-only.
 Community-Read wird nicht gebaut.
 Bestehende Admin-Readroute wird nicht fuer Community-/Profil-/Public-UI verwendet.
 Falls spaeter noetig, dann nur separater, stark begrenzter read-only Scope mit eigener Planung, eigener Permission, Datenminimierung und ohne Public-Leak.
+```
+
+## RDAP60 Entscheidung
+
+```text
+Update und Deactivate werden nicht gemeinsam gebaut.
+Zuerst soll nur Admin-Note Update als kleinster sinnvoller Write-Scope vorbereitet werden.
+Deactivate bleibt danach ein separater Scope.
+RDAP60 selbst ist Doku-only/Plan-only.
 ```
 
 ## Admin-Notes aktueller Strukturstand
@@ -78,6 +65,43 @@ POST /api/remote/admin/users/admin-notes/update
 POST /api/remote/admin/users/admin-notes/deactivate
 ```
 
+## Geplanter kleinster Update-Scope fuer spaeter
+
+```text
+targetUserUid
+noteUid
+noteText
+confirmWrite: true
+```
+
+Serverseitig spaeter erlaubt:
+
+```text
+note_text = validierter noteText
+updated_by_user_uid = actor.userUid
+updated_at = now
+```
+
+Nur fuer:
+
+```text
+existierende aktive Notizen, die zu targetUserUid gehoeren.
+```
+
+Nicht erlaubt:
+
+```text
+Deactivate im selben Step
+Delete
+status aus Body
+created_by/created_at Aenderung
+target_user_uid Aenderung
+note_uid Aenderung
+inactive/deactivated Notizen editieren
+Community-Read
+Permission-/Rollen-/Gruppen-Writes
+```
+
 ## Live-System
 
 ```text
@@ -87,17 +111,6 @@ Live-Pfad: /opt/stream-control-center/remote-modboard
 DB: MariaDB 11.8.6 / c3stream_control
 DB-Client: /root/rdap29_mysql_client.cnf
 Branch: dev
-```
-
-## Live-Diagnose RDAP57
-
-```text
-rolePermissions gesamt: 21
-effektive Rollenrechte: 8
-modulePermissions gesamt: 0
-passende Module-/Targets: 0
-Gruppierung: Admin · Agent/Status · Dashboard/Remote
-Quelle: /api/remote/auth/model
 ```
 
 ## Auth-/Login aktueller Funktionsstand
@@ -112,25 +125,21 @@ GET /api/remote/auth/twitch/callback liefert ohne gueltigen OAuth-State HTTP 403
 ## Weiterhin deaktiviert
 
 ```text
-Admin-Note Update
-Admin-Note Deactivate
-Physisches Delete
-Community-Read fuer Admin-Notizen
-Permission-Verwaltung in der UI
-Rollen-/Gruppen-Schreibverwaltung
-Session-Revocation in der UI
-Agent/OBS/Sound/Overlay/Command/Channelpoints-Control
-freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
+Admin-Note Update ist noch nicht gebaut.
+Admin-Note Deactivate bleibt deaktiviert.
+Physisches Delete bleibt verboten.
+Community-Read fuer Admin-Notizen bleibt verboten.
+Permission-Verwaltung in der UI bleibt aus.
+Rollen-/Gruppen-Schreibverwaltung bleibt aus.
+Session-Revocation in der UI bleibt aus.
+Agent/OBS/Sound/Overlay/Command/Channelpoints-Control bleibt aus.
+freie Shell-/Datei-/Prozess-/URL-Ausfuehrung bleibt verboten.
 ```
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN
+RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION
 ```
 
-Alternative, falls noch kein Write-Scope gewuenscht ist:
-
-```text
-RDAP60_ADMIN_NOTES_READ_ONLY_UI_STATUS_POLISH_PLAN
-```
+Nur nach erneutem Startcheck, Datei-Lesen, Plan und Forrests ausdruecklichem `go`.

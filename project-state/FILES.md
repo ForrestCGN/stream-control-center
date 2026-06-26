@@ -1,13 +1,13 @@
 # FILES
 
-Stand: RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN  
+Stand: RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN  
 Datum: 2026-06-26
 
-## In RDAP59 geaendert
+## In RDAP60 geaendert
 
 ```text
-docs/current/RDAP59_ADMIN_NOTES_COMMUNITY_READ_SCOPE_PLAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP59.md
+docs/current/RDAP60_ADMIN_NOTES_UPDATE_DEACTIVATE_SCOPE_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP60.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -15,7 +15,7 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Nicht geaendert in RDAP59
+## Nicht geaendert in RDAP60
 
 ```text
 remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
@@ -25,11 +25,13 @@ remote-modboard/backend/src/services/auth-db-read.service.js
 remote-modboard/backend/public/index.html
 remote-modboard/backend/src/routes/admin-users.routes.js
 remote-modboard/backend/src/services/admin-user-admin-note-real-read-authed.service.js
+remote-modboard/backend/src/services/admin-user-admin-note-write-confirmed.service.js
+remote-modboard/backend/src/services/admin-user-admin-note-write-disabled.service.js
 remote-modboard/backend/src/routes/auth-model.routes.js
 remote-modboard/backend/src/routes/routes.routes.js
 ```
 
-## Wichtiger Pfadbefund
+## Struktur-Befund bleibt
 
 ```text
 remote-modboard/backend/src/routes/admin-users-admin-notes.routes.js
@@ -45,14 +47,15 @@ remote-modboard/backend/src/routes/admin-users.routes.js
 
 ## Hinweis
 
-RDAP59 ist Doku-only / Plan-only.
+RDAP60 ist Doku-only / Plan-only.
 
 ```text
 Kein Node-Check noetig.
 Kein Webserver-Deploy noetig.
-Keine Backend-Route.
-Keine Frontend-UI.
+Keine Backend-Route geaendert.
+Keine Frontend-UI geaendert.
 Keine DB-Migration.
 Keine Writes.
-Keine Community-Read-Freigabe.
+Kein Admin-Note Update gebaut.
+Kein Admin-Note Deactivate gebaut.
 ```
