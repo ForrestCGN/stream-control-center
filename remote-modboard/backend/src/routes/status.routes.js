@@ -5,8 +5,8 @@ const { buildPublicConfigSummary } = require('../services/config.service');
 const { checkDatabaseHealth } = require('../services/db-health.service');
 const { ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY } = require('../services/admin-user-admin-note-write-confirmed.service');
 
-const RDAP42_STATUS_API_VERSION = 'rdap_admin_note_ui_status42.v1';
-const RDAP42_BUILD = 'RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP';
+const RDAP62_STATUS_API_VERSION = 'rdap_admin_note_update_status62.v1';
+const RDAP62_BUILD = 'RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP';
 
 function registerStatusRoutes(app, context) {
   app.get('/api/remote/status', async (req, res) => {
@@ -21,7 +21,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: RDAP42_STATUS_API_VERSION,
+      statusApiVersion: RDAP62_STATUS_API_VERSION,
       readOnly: false,
       writeEnabled: false,
       actionEnabled: false,
@@ -99,11 +99,12 @@ function registerStatusRoutes(app, context) {
           writesRequirePermissionLockAudit: true
         },
         notes: [
-          'RDAP39 aktiviert nur den kontrollierten Backend-Create-Write fuer Admin-Notizen.',
+          'RDAP39 aktiviert den kontrollierten Backend-Create-Write fuer Admin-Notizen.',
           'RDAP40 hat die Create-UI bewusst fuer write-berechtigte Admins vorbereitet.',
-          'RDAP42 bereinigt nur Status-Semantik; keine neue Schreibfunktion.',
+          'RDAP61 aktiviert den kontrollierten Backend-Update-Write fuer aktive Admin-Notizen.',
+          'RDAP62 bereinigt nur Status-Semantik; keine neue UI-Funktion.',
           'Twitch Login und Session-Handling bleiben aktiv und unveraendert.',
-          'Admin-Notiz Update/Deactivate/Delete bleiben deaktiviert.',
+          'Admin-Notiz Update-UI, Deactivate und Delete bleiben deaktiviert.',
           'Remote-Writes, Agent-Actions, OBS/Sound/Overlay/Command-Steuerung bleiben deaktiviert.'
         ]
       },
@@ -145,10 +146,12 @@ function registerStatusRoutes(app, context) {
         lockReleaseEnabled: true,
         lockForceTakeoverEnabled: false,
         productiveWritesEnabled: false,
-        writesStillBlockedForNonCreateActions: true,
+        writesStillBlockedForNonCreateActions: false,
         auditRequiredForFutureWrites: true,
         lockingRequiredForFutureWrites: true,
-        backupRequiredBeforeFutureWrites: true
+        backupRequiredBeforeFutureWrites: true,
+        statusSemanticsCleanupBuild: RDAP62_BUILD,
+        note: 'Create und Update sind als Admin-Note Backend-Writes aktiviert; Deactivate/Delete bleiben deaktiviert.'
       },
       database: db,
       agent: {
@@ -188,50 +191,63 @@ function registerStatusRoutes(app, context) {
 function buildAdminNoteWriteConfirmedUiSemantics() {
   return {
     ...ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY,
-    statusApiVersion: RDAP42_STATUS_API_VERSION,
-    routeStatusCleanupBuild: RDAP42_BUILD,
+    statusApiVersion: RDAP62_STATUS_API_VERSION,
+    routeStatusCleanupBuild: RDAP62_BUILD,
     backendAutoUiWriteButtonsEnabled: false,
+    createBackendEnabled: true,
+    updateBackendEnabled: true,
+    deactivateBackendEnabled: false,
+    deleteBackendEnabled: false,
     uiWriteButtonsEnabled: true,
-    uiWriteButtonsEnabledMeaning: 'RDAP40 hat bewusst einen Create-Button fuer write-berechtigte Admins vorbereitet; Backend aktiviert keine UI automatisch.',
+    uiWriteButtonsEnabledMeaning: 'Nur die RDAP40-Create-UI ist vorbereitet; RDAP62 aktiviert keine UI automatisch.',
     adminNoteCreateUiPrepared: true,
     adminNoteCreateButtonVisibleForWritePermission: true,
+    adminNoteUpdateBackendEnabled: true,
     adminNoteUpdateUiPrepared: false,
     adminNoteDeactivateUiPrepared: false,
     adminNoteDeleteUiPrepared: false,
     adminNoteCreateButtonUsesExistingRoute: '/api/remote/admin/users/admin-notes/create',
+    adminNoteUpdateBackendRoute: '/api/remote/admin/users/admin-notes/update',
     adminNoteCreateUiRequiresServerPermission: 'admin.users.note.write',
+    adminNoteUpdateBackendRequiresServerPermission: 'admin.users.note.write',
     adminNoteCreateUiRequiresBodyConfirmWrite: true,
+    adminNoteUpdateBackendRequiresBodyConfirmWrite: true,
     adminNoteUiReadbackRoute: '/api/remote/admin/users/admin-notes/read',
-    noNewWriteFunctionInRdap42: true
+    noNewUiFunctionInRdap62: true
   };
 }
 
 function buildAdminNoteUiStatusSemantics() {
   return {
     prepared: true,
-    statusApiVersion: RDAP42_STATUS_API_VERSION,
-    routeStatusCleanupBuild: RDAP42_BUILD,
-    purpose: 'RDAP42 bereinigt nur die Status-Semantik nach RDAP40; keine neue Funktion.',
+    statusApiVersion: RDAP62_STATUS_API_VERSION,
+    routeStatusCleanupBuild: RDAP62_BUILD,
+    purpose: 'RDAP62 bereinigt Status-Semantik nach RDAP61; keine neue UI-Funktion.',
     backendAutoUiWriteButtonsEnabled: false,
+    adminNoteCreateBackendEnabled: true,
     adminNoteCreateUiPrepared: true,
     adminNoteCreateButtonVisibleForWritePermission: true,
     adminNoteCreateRoutePrepared: true,
     adminNoteCreateRoute: '/api/remote/admin/users/admin-notes/create',
-    adminNoteReadbackRoute: '/api/remote/admin/users/admin-notes/read',
+    adminNoteUpdateBackendEnabled: true,
+    adminNoteUpdateRoutePrepared: true,
+    adminNoteUpdateRoute: '/api/remote/admin/users/admin-notes/update',
     adminNoteUpdateUiPrepared: false,
+    adminNoteReadbackRoute: '/api/remote/admin/users/admin-notes/read',
+    adminNoteDeactivateEnabled: false,
     adminNoteDeactivateUiPrepared: false,
     adminNoteDeleteUiPrepared: false,
-    adminNoteUpdateEnabled: false,
-    adminNoteDeactivateEnabled: false,
     physicalDeleteEnabled: false,
     communityPagesMayReadAdminNotes: false,
     databaseMigrationExecuted: false,
     permissionChangesExecuted: false,
-    newWriteFunctionEnabled: false,
+    newUiFunctionEnabled: false,
     notes: [
       'RDAP40 hat die Create-UI bewusst freigegeben, aber nur fuer write-berechtigte Admins.',
-      'RDAP42 aendert keine Backend-Write-Logik.',
-      'Update, Deactivate und Delete bleiben deaktiviert.'
+      'RDAP61 hat das Admin-Note Update-Backend aktiviert.',
+      'RDAP62 trennt Status-Semantik: Update-Backend aktiv, Update-UI nicht gebaut.',
+      'Deactivate und Delete bleiben deaktiviert.',
+      'Community-Read bleibt verboten.'
     ]
   };
 }

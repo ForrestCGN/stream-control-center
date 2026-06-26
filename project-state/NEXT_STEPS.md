@@ -1,48 +1,49 @@
 # NEXT_STEPS
 
-Stand: RDAP61B_ADMIN_NOTE_UPDATE_BACKEND_LIVE_CONFIRMED_DOCS  
+Stand: RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP
+RDAP62B_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_LIVE_CONFIRMED_DOCS
 ```
 
 ## Ziel
 
 ```text
-Status-/Routen-Semantik nach RDAP61 bereinigen.
+RDAP62 nach Webserver-Deploy live bestaetigen und dokumentieren.
 ```
 
-## Warum
+## Nach lokalem Stepdone deployen
 
-RDAP61 ist live bestaetigt:
+```bash
+cd /opt/stream-control-center/_deploy_tmp
+rm -rf RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP
+git clone --branch dev --single-branch https://github.com/ForrestCGN/stream-control-center.git RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP
+cd RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP
+sudo bash tools/remote-modboard-deploy.sh RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP dev
+```
+
+## Live-Checks
+
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/status | jq '.statusApiVersion, .auth.notes, .adminNoteUiStatusSemantics'
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.adminNoteUpdateConfirmed, .adminUsersAdminNoteWriteDisabled'
+```
+
+## Danach sinnvoll
 
 ```text
-Admin-Note Update Backend ist aktiv.
-Update-UI ist nicht gebaut.
-Deactivate bleibt disabled.
-Delete bleibt verboten.
+RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN
 ```
 
-Im Live-Status existieren aber noch aeltere RDAP42-Hinweise, die pauschal sagen, Update sei deaktiviert.
-
-## Richtung RDAP62
-
-```text
-- /api/remote/status bereinigen.
-- /api/remote/routes Semantik falls noetig angleichen.
-- Create-UI und Update-Backend getrennt anzeigen.
-- Update-Backend als aktiv anzeigen.
-- Update-UI weiter als nicht gebaut anzeigen.
-- Deactivate/Delete weiter deaktiviert anzeigen.
-```
+Aber erst nach RDAP62B Live-Bestaetigung.
 
 ## Nicht direkt aendern
 
 ```text
-Keine Update-UI.
+Keine Update-UI ohne separaten Plan.
 Kein Deactivate.
 Kein Delete.
 Keine DB-Migration.
@@ -51,11 +52,3 @@ Keine Community-Read-Freigabe.
 Keine Rollen-/Gruppen-/Permission-Writes.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Steuerung.
 ```
-
-## Danach moeglich
-
-```text
-RDAP63_ADMIN_NOTE_UPDATE_UI_SCOPE_PLAN
-```
-
-Aber erst nach sauberer Status-Semantik.
