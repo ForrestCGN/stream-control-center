@@ -1,41 +1,43 @@
 # NEXT_STEPS
 
-Stand: RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP54_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PLAN  
 Datum: 2026-06-26
 
 ## Naechster empfohlener Step
 
 ```text
-RDAP54_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PLAN
+RDAP55_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PREPARED
 ```
 
 ## Ziel
 
 ```text
-Pruefen/planen, ob die RDAP53-Anzeige `0 Targets` fuer modulbezogene Rechte verstaendlicher erklaert werden soll.
+Kleiner Frontend-only Polish: Die Anzeige `0 Targets` bei modulbezogenen Rechten klarer erklaeren.
 ```
 
 ## Richtung
 
 ```text
 - Bestehendes /api/remote/auth/model weiterverwenden.
+- Bestehende Datei `remote-modboard/backend/public/assets/rdap53-permission-read-detail.js` erweitern.
+- Keine neue Datei, wenn bestehende RDAP53-Datei fachlich passt.
+- Bei leeren modulePermissions besser erklaeren:
+  - rolePermissions sind vorhanden.
+  - modulePermissions sind aktuell leer.
+  - 0 Targets ist deshalb plausibel und kein UI-Fehler.
 - Keine neue Backend-Route.
 - Keine DB-Migration.
 - Keine Writes.
-- Optional nur UI-Text/Diagnose verbessern:
-  - rolePermissions vorhanden
-  - modulePermissions aktuell leer
-  - deshalb 0 Targets plausibel
 ```
 
 ## Vorher pruefen
 
 ```text
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP53B.md
-docs/current/RDAP53_PERMISSION_READ_DETAIL_POLISH_PREPARED.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP54.md
+docs/current/RDAP54_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PLAN.md
 docs/current/RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS.md
-remote-modboard/backend/src/app.js
 remote-modboard/backend/public/assets/rdap53-permission-read-detail.js
+remote-modboard/backend/src/app.js
 remote-modboard/backend/src/services/auth-db-read.service.js
 ```
 

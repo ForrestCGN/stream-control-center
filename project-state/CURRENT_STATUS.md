@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP53B_PERMISSION_READ_DETAIL_POLISH_LIVE_CONFIRMED_DOCS  
+Stand: RDAP54_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PLAN  
 Datum: 2026-06-26  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -16,6 +16,7 @@ RDAP51B dokumentiert die RDAP51 Live-Bestaetigung.
 RDAP52 Permission-Read-Detail-Polish wurde geplant.
 RDAP53 Permission-Read-Detail-Polish ist vorbereitet, deployed und live sichtbar.
 RDAP53B dokumentiert die RDAP53 Live-Bestaetigung.
+RDAP54 plant die bessere Erklaerung fuer leere Module-/Target-Permissions.
 ```
 
 ## RDAP53 live bestaetigter Stand
@@ -27,6 +28,17 @@ ForrestCGN / owner zeigt 8 Rollenrechte.
 Modulbezogene Rechte sind sichtbar.
 0 Targets ist plausibel, weil /api/remote/auth/model aktuell 0 modulePermissions liefert.
 Keine Schreibbuttons fuer Rollen/Gruppen/Permissions/Sessions sichtbar.
+```
+
+## RDAP54 Plan
+
+```text
+0 Targets ist technisch korrekt, wirkt aber eventuell wie ein Fehler.
+RDAP54 dokumentiert einen moeglichen kleinen Frontend-only Polish.
+Naechster Code-Step sollte nur die bestehende RDAP53-Datei erweitern.
+Keine neue Backend-Route.
+Keine DB-Migration.
+Keine Writes.
 ```
 
 ## Live-System
@@ -82,5 +94,5 @@ freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
 ## Naechster empfohlener Step
 
 ```text
-RDAP54_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PLAN
+RDAP55_PERMISSION_READ_DETAIL_EMPTY_TARGETS_POLISH_PREPARED
 ```
