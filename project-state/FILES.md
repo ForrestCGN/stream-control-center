@@ -2,26 +2,27 @@
 
 Stand: 2026-06-27
 
-## RDAP TODO Rescue 1
+## TODO Rescue 2
 
 ```text
-project-state/TODO.md
-project-state/PARKED_TODOS.md
+docs/current/TODO_RESCUE_2_ARCHIVE_SOURCE_DEEP_SCAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_TODO_RESCUE_2_VERIFY_OR_CONTINUE.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/PARKED_TODOS.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-docs/current/TODO_RESCUE_1_SPLIT_ACTIVE_AND_PARKED_TODOS.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_TODO_RESCUE_2.md
 ```
 
-## Rollen
+## Art des Steps
+
+Doku-only:
 
 ```text
-project-state/TODO.md          Aktive Kurzfrist-TODO / naechster Fokus
-project-state/PARKED_TODOS.md  Zentrale Langzeit-Merkstelle fuer zurueckgestellte Arbeit
+keine Codeaenderung
+keine DB-Aenderung
+keine Remote-Modboard-Writes
+kein Webserver-Deploy
+keine harten Deletes
 ```
-
-## Doku-only
-
-Keine Code-, DB- oder Webserver-Aenderungen.

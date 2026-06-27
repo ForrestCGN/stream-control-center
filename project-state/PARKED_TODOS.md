@@ -1,7 +1,7 @@
 # PARKED_TODOS - zentrale Merkstelle fuer zurueckgestellte Arbeit
 
 Stand: 2026-06-27  
-Step: `RDAP_TODO_RESCUE_1_SPLIT_ACTIVE_AND_PARKED_TODOS`
+Step: `RDAP_TODO_RESCUE_2_ARCHIVE_SOURCE_DEEP_SCAN`
 
 ## Zweck
 
@@ -13,10 +13,11 @@ Regel:
 - Nichts aus dieser Datei loeschen, nur weil es gerade nicht im aktuellen Step bearbeitet wird.
 - Erledigte Punkte abhaken oder mit Datum in einen erledigt-Abschnitt verschieben.
 - Bei Unsicherheit Quelle stehen lassen und Punkt als `zu pruefen` markieren.
+- `project-state/TODO.md` bleibt kurz und aktiv; Langzeitpunkte bleiben hier.
 
 ## Quellen dieser Rekonstruktion
 
-Diese erste Wiederherstellung basiert auf belegten alten Quellen:
+Rescue 1 basiert auf:
 
 ```text
 docs/system-inspection/2026-05-03/SYSTEM_INSPEKTION_MASTER_TODO_v1_1_FINAL_GITHUB_2026-05-03.txt
@@ -30,7 +31,26 @@ project-state/TODO.md @ RDAP43 commit 16da32a84a3559d1b147030582530548079c503f
 project-state/TODO.md @ RDAP_META1 commit 84586b9da1cd3eedce2da9c7190b42f744e517d1
 ```
 
-Diese Liste ist eine Rescue-1-Rekonstruktion, nicht zwingend vollstaendig. Weitere alte TODO-/Handoff-Dateien duerfen spaeter in einem Rescue-2 gezielt nachgetragen werden.
+Rescue 2 hat zusaetzlich gezielt ausgewertet:
+
+```text
+docs/archive/docs-current-cleanup-7/CAN-43.7_todo_diagnostics_review.md
+docs/archive/docs-current-cleanup-7/TODO_INTEGRATION_MAPPING_CAN42_4D.md
+docs/archive/docs-current-cleanup-7/TODO_DETAIL_VALUES_MAPPING_CAN42_5B.md
+docs/archive/docs-current-cleanup-7/TODO_INTEGRATION_RAW_COUNTS_CAN42_5C.md
+docs/archive/docs-current-cleanup-7/TODO_DIAGNOSTICS_TAB_DISABLED_CAN42_5.md
+docs/archive/docs-current-cleanup-7/TODO_DIAGNOSTICS_CENTRALIZATION_CAN42_4.md
+docs/archive/docs-current-cleanup-7/TODO_STATUS_DIAGNOSTICS_STANDARD_CAN42_6.md
+docs/archive/docs-current-cleanup-7/ADMIN_DIAGNOSTICS_TODO_STANDARD_BLOCK_CAN42_7.md
+docs/archive/docs-current-cleanup-7/DIAGNOSTICS_STANDARD_ALL_MODULES_TODO_CAN42_6B.md
+docs/archive/docs-current-cleanup-7/TODO_SOUND_DASHBOARD_RECENT_PLAYBACK.md
+docs/archive/docs-current-cleanup-7/CURRENT_CHAT_HANDOFF_EVS_5C_TEXT_GAME_BACKEND_TODO_DOCS.md
+docs/archive/docs-current-cleanup-7/CURRENT_CHAT_HANDOFF_EVS_8B_EVENTBUS_HEARTBEAT_TODO_DOCS.md
+project-state/archive/step261-project-state-cleanup/old-step-docs/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md
+project-state/archive/step261-project-state-cleanup/old-step-docs/STEP201_3C_TODO_ROUTES_INTEGRATION_CHECK_2026-05-08.md
+```
+
+Rescue 2 hat viele alte CAN-/STEP-Install-/Deploy-Todos bewusst nicht wiederbelebt, wenn sie nachweislich reine Schritt-Reste oder bereits bestaetigte Diagnose-/Doku-Zwischenstaende waren.
 
 ---
 
@@ -91,6 +111,9 @@ Diese Liste ist eine Rescue-1-Rekonstruktion, nicht zwingend vollstaendig. Weite
 - [ ] Keine produktiven Fallback-Configs als heimliche zweite Wahrheit verwenden.
 - [ ] Viele alte Test-/STEP-Skripte unter `tools/` spaeter pruefen/archivieren, nicht blind loeschen.
 - [ ] Admin/Diagnose-Statusrouten weiter standardisieren; unklare Module als `unknown/statusroute fehlt` nur dann anzeigen, wenn wirklich korrekt.
+- [ ] Zentrale Admin-Diagnose bleibt Wahrheit fuer Diagnosewerte; alte Modul-Diagnosekarten/-Extensions erst deaktivieren/entfernen, wenn zentrale Diagnose die Werte ausreichend abbildet und Sichttest positiv ist.
+- [ ] Fuer weitere Module nach Todo-Referenz vorgehen: Statusroute pruefen, bestehende Statusfelder behalten, `diagnostics` ergaenzen, Admin > Diagnose bevorzugt `diagnostics` lesen lassen, alte Modul-Diagnosekarte deaktivieren, Sichttest, dokumentieren.
+- [ ] Kandidaten fuer Diagnose-Standardisierung aus CAN-42.6b nachziehen: `tagebuch`, `commands`, `hug`, `message_rotator`, `overlay_monitor`, `bus_diagnostics`, `vip`, `alerts`, `sound_system`, `media`.
 
 ## G. Overlay / EventBus / WebSocket-Standardisierung
 
@@ -115,6 +138,8 @@ Diese Liste ist eine Rescue-1-Rekonstruktion, nicht zwingend vollstaendig. Weite
 - [ ] EventSound/Runtime-Overlay darf Sound nicht direkt starten; Sound-System bleibt Owner fuer Playback, Queue, Gating, Pause und Ausgabe.
 - [ ] Reveal-Video nach korrekter Loesung ueber vorhandenes Media-System planen.
 - [ ] SoundBus/Consumer/Dashboard-Monitoring aus Rescue-Report weiter pruefen.
+- [ ] Dashboard-Verlauf fuer zuletzt gespielte Sounds streamer-/modfreundlich ausbauen: Alerts, UserSounds, EventSound/Snippets, Fehler, uebersprungene/gestoppte Sounds, Dauer und Gap sichtbar machen.
+- [ ] `GET /api/sound/recent-playback` als API-Basis fuer Verlauf/Filter nutzen und nach Status, Source, Kategorie, Sound-ID filterbar machen.
 
 ## I. StreamEvents / Satz-System / Runtime-Overlay
 
@@ -143,6 +168,16 @@ Diese Liste ist eine Rescue-1-Rekonstruktion, nicht zwingend vollstaendig. Weite
 - [ ] Dashboard-Testbereich fuer Satz-System erweitern.
 - [ ] Ergebnis/Report streamerfreundlich anzeigen; keine technischen Rohdaten als Hauptansicht.
 - [ ] Modul-Doku Text-/Satz-System aktualisieren, Testablaeufe/Routen/Grenzen dokumentieren.
+- [ ] Backend-Regeln fuer Text-Spiel V1 beachten: erster kompletter Loeser bekommt Punkte; danach Satz im Event erledigt/aus Rotation; keine weiteren Loeser/Zeitfenster; Teiltreffer geben keine Punkte.
+- [ ] Pro Event/Satz/User/Wort spaeter speichern, ob ein Teiltreffer-Wort bereits erkannt wurde; Unique-Regel: ein Wort pro User/Satz nur einmal melden/zaehlen.
+- [ ] Punktebuchung fuer geloeste Saetze ins vorhandene Punkte-Ledger integrieren.
+- [ ] Chat-Auswertung ueber vorhandenes `twitch.chat.message` / Twitch Events / Communication Bus bauen, keine Streamer.bot- oder Parallel-Chatquelle.
+- [ ] Textmeldungen ueber `helper_texts` / `module_text_variants` fuehren.
+- [ ] Event-Text-Config im Dashboard ausbauen: mehrere Saetze, Teiltreffer-Hinweise, Cooldown, Meldeverhalten, Textvarianten.
+- [ ] `stream_events` spaeter sauber am vorhandenen `communication_bus` / `helper_communication` anmelden; keinen eigenen neuen Bus bauen.
+- [ ] `stream_events` Heartbeats senden und Status fuer Modul, Config, Runtime, aktives Event und Fehlerzustand publizieren.
+- [ ] Runtime-Events fuer Eventstart/-ende, Sound/Text-Runden, Treffer, Punkte und Ranking ueber vorhandenen Bus publizieren.
+- [ ] Dashboard-/Diagnoseanzeige fuer letzten `stream_events`-Heartbeat, Sound/Text/Chat-Bereitschaft, aktives Event und Fehler ueber Bus/Diagnose planen.
 
 ## J. VIP / Statusrouten
 
@@ -173,6 +208,8 @@ Diese Liste ist eine Rescue-1-Rekonstruktion, nicht zwingend vollstaendig. Weite
 - [ ] Alerts erst nach Stabilisierung in Teilmodule splitten.
 - [ ] Allgemeines Upload-System fuer Sound- und Video-Dateien bauen, nicht nur SoundAlerts-spezifisch; spaeter fuer VIP, Alerts, Sound-System und andere Module nutzbar machen.
 - [ ] Loeschen in Medien-/Sound-Verwaltung spaeter nur mit Sicherheitsabfrage.
+- [ ] Tagebuch/Todo Dashboard-Module fuer Settings/Texte ueber vorhandene Admin-Routen weiterpruefen bzw. modernisieren; JSON bleibt Seed/Fallback, Dashboard greift nur ueber Backend-APIs zu.
+- [ ] Community-Bereich um Tagebuch/Todo-Ansichten pflegen/modernisieren, ohne bestehende Chat-/Discord-/Stats-/Reload-Routen zu entfernen.
 
 ## M. Sicherheit / Rechte / Audit
 
@@ -192,25 +229,12 @@ Diese Liste ist eine Rescue-1-Rekonstruktion, nicht zwingend vollstaendig. Weite
 - [ ] Bei jedem erledigten Step pruefen, ob Punkte aus `PARKED_TODOS.md` erledigt/teilweise erledigt wurden.
 - [ ] `_handoff`-Reports bewusst committen oder lokal loeschen, nicht untracked liegen lassen.
 
-## O. Noch gezielt nachzurettende Quellen fuer Rescue-2
+## O. Rescue-Status / noch offene Nachsuche
 
-Diese Quellen wurden in Rescue 1 erkannt, aber noch nicht vollstaendig einzeln ausgewertet:
+Rescue 2 hat die in Rescue 1 markierten Quellen gezielt gelesen. Dabei wurden neue Langzeitpunkte uebernommen und erledigte/abgeloeste reine CAN-/STEP-Reste bewusst nicht reaktiviert.
 
-```text
-docs/archive/docs-current-cleanup-7/CAN-43.7_todo_diagnostics_review.md
-docs/archive/docs-current-cleanup-7/TODO_INTEGRATION_MAPPING_CAN42_4D.md
-docs/archive/docs-current-cleanup-7/TODO_DETAIL_VALUES_MAPPING_CAN42_5B.md
-docs/archive/docs-current-cleanup-7/TODO_INTEGRATION_RAW_COUNTS_CAN42_5C.md
-docs/archive/docs-current-cleanup-7/TODO_DIAGNOSTICS_TAB_DISABLED_CAN42_5.md
-docs/archive/docs-current-cleanup-7/TODO_DIAGNOSTICS_CENTRALIZATION_CAN42_4.md
-docs/archive/docs-current-cleanup-7/TODO_STATUS_DIAGNOSTICS_STANDARD_CAN42_6.md
-docs/archive/docs-current-cleanup-7/ADMIN_DIAGNOSTICS_TODO_STANDARD_BLOCK_CAN42_7.md
-docs/archive/docs-current-cleanup-7/DIAGNOSTICS_STANDARD_ALL_MODULES_TODO_CAN42_6B.md
-docs/archive/docs-current-cleanup-7/TODO_SOUND_DASHBOARD_RECENT_PLAYBACK.md
-docs/archive/docs-current-cleanup-7/CURRENT_CHAT_HANDOFF_EVS_5C_TEXT_GAME_BACKEND_TODO_DOCS.md
-docs/archive/docs-current-cleanup-7/CURRENT_CHAT_HANDOFF_EVS_8B_EVENTBUS_HEARTBEAT_TODO_DOCS.md
-project-state/archive/step261-project-state-cleanup/old-step-docs/STEP177_TAGEBUCH_TODO_DB_ADMIN_BACKEND_2026-05-05.md
-project-state/archive/step261-project-state-cleanup/old-step-docs/STEP201_3C_TODO_ROUTES_INTEGRATION_CHECK_2026-05-08.md
-```
+Weiterhin moeglich, aber nicht blockierend:
 
-Rescue-2 sollte diese Dateien gezielt lesen und nur belegte, noch relevante offene Punkte nachtragen.
+- [ ] Bei konkretem Feature-Fokus alte Modul-Dokus erneut themenspezifisch durchsuchen, bevor geplant wird.
+- [ ] Bei jedem neuen geparkten Punkt diese Datei direkt aktualisieren.
+- [ ] Wenn Forrest sich an weitere alte Planungen erinnert, diese als neue Quelle aufnehmen und mit Datum/Quelle eintragen.

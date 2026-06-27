@@ -4,7 +4,7 @@ Stand: 2026-06-27
 
 ## Zweck
 
-Diese Datei ist ab jetzt wieder die kurze aktive TODO-Liste fuer den direkten naechsten Arbeitsfokus.
+Diese Datei ist die kurze aktive TODO-Liste fuer den direkten naechsten Arbeitsfokus.
 
 Langzeit-/Parkpunkte, fruehe Planungen und bewusst nach hinten geschobene Themen stehen zentral in:
 
@@ -15,6 +15,7 @@ project-state/PARKED_TODOS.md
 ## Aktuell / naechster Fokus
 
 - [ ] `project-state/PARKED_TODOS.md` als zentrale Langzeit-Merkstelle behalten und bei jedem neuen geparkten Punkt aktualisieren.
+- [ ] Rescue 2 lokal einspielen und pruefen.
 - [ ] Naechsten RDAP-/Remote-Modboard-Step anhand `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` planen.
 - [ ] Vor jedem Code-Step echte Dateien aus GitHub/dev lesen.
 - [ ] Bestehende Module/Services/Routes bevorzugen; keine parallelen Strukturen bauen.
