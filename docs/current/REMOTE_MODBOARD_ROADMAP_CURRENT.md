@@ -1,22 +1,23 @@
-# Remote-Modboard Roadmap — ab RDAP120
+# Remote-Modboard Roadmap – aktuell nach RDAP121
 
 ## Erledigt
 
-- RDAP119: Streaming-PC-Verbindung Client MVP geprüft.
-- RDAP120: Verbindung im Dashboard sichtbar und sprachlich auf Streaming-PC statt Agent ausgerichtet.
+- RDAP119: Streaming-PC-Verbindung Client MVP.
+- RDAP120: Verbindung sichtbar und verständlich im Dashboard.
+- RDAP121: Komponentenstatus read-only über Heartbeat sichtbar.
 
-## Nächste sinnvolle Schritte
+## Nächster sinnvoller Schritt
 
-1. RDAP121: Verbindung stabilisieren/autostart prüfen
-   - lokaler Start beim Streaming-PC-Boot
-   - Reconnect sichtbar prüfen
-   - Verbindungsstatus nach Neustart Webserver/Streaming-PC validieren
+`RDAP122_FIRST_SAFE_MODULE_ACTION_PLAN`
 
-2. RDAP122: erste sichere Modul-Anbindung planen
-   - keine freie Shell
-   - nur feste Allowlist-Aktion
-   - Confirm/Audit/Permission erst wenn echte Aktion gebaut wird
+Ziel:
+- erste echte Modul-Anbindung auswählen
+- nur feste Allowlist-Aktion
+- keine freie Shell
+- keine freien Dateipfade
+- Permission + Confirm + Audit + Lock/Readback planen, bevor produktive Steuerung gebaut wird
 
-3. Rollen/Rechte bedienbar machen
-   - minimal für Forrest, EngelCGN, Mods, Sound-Profi
-   - keine UI-Fantasie ohne Serverprüfung
+Mögliche erste sichere Richtung:
+- Status erweitern: OBS verbunden ja/nein wirklich auslesen
+- danach Sound-/Media-Status lesen
+- erst später Aktionen

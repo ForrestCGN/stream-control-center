@@ -1,29 +1,28 @@
-# Current Remote-Modboard State — RDAP120
+# Current Remote-Modboard State – RDAP121
 
-## Verbindungsstand
+## Verbindung Streaming-PC ↔ Webserver
 
-RDAP119 wurde erfolgreich geprüft:
-- Streaming-PC sendet Heartbeats zum Webserver.
-- Webserver `/api/remote/agent/status` zeigt `connected=true` und steigende `heartbeatSeq`.
-- `actionsEnabled=false` bleibt korrekt.
+Der Webserver akzeptiert die gesicherte ausgehende Verbindung vom Streaming-PC über `/agent-ws`.
+Der Streaming-PC sendet Heartbeats und ab RDAP121 einen sicheren Komponentenstatus.
 
-RDAP120 verbessert die Anzeige im Remote-Modboard:
-- Admin -> Verbindungen zeigt Streaming-PC online/offline.
-- Anzeige nutzt verständliche Sprache: Streaming-PC, letzter Kontakt, Lebenszeichen.
-- Technische Details bleiben im Diagnose-Bereich, ohne Secrets.
+Sichtbar im Dashboard:
+- Streaming-PC online/offline
+- letzter Kontakt
+- Lebenszeichen-Nummer
+- lokales Dashboard
+- lokaler Dashboard-Server
+- OBS: noch nicht aktiv ausgelesen
+- Streamer.bot: noch nicht aktiv ausgelesen
 
-## Sicherheitsgrenzen
+## Sicherheit
 
-Weiterhin nicht aktiv:
+Weiterhin deaktiviert:
 - OBS-Steuerung
 - Sound-Steuerung
 - Overlay-Steuerung
 - Commands/Kanalpunkte
 - Shell/Prozessaktionen
-- Dateioperationen
+- freie Dateioperationen
 - Datenbank-Writes
-- produktive Remote-Aktionen
 
-## Nicht weiter ausbauen
-
-Admin-Notizen sind nicht Fokus. Keine weiteren Notiz-/Navi-/Kosmetik-Steps vor funktionalem Fortschritt der Streaming-PC-Anbindung und Modul-Integration.
+Der Komponentenstatus ist read-only und enthält keine Secrets, Pfade, Prozesslisten oder Rohpayloads.

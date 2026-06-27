@@ -74,6 +74,43 @@
         <article class="metric-card cgn-card"><span>Webserver-Annahme</span><strong id="agentRuntimeGateState">—</strong><small id="agentRuntimeGateDetail">wartet auf Status</small></article>
       </section>
 
+
+
+      <section class="page-grid rdap121-components-grid">
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Streaming-PC</p><h2>Lokales Dashboard</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+          <div class="kv-grid">
+            <div class="kv-row"><span>Status</span><strong id="componentLocalDashboardStatus">—</strong></div>
+            <div class="kv-row"><span>Adresse</span><strong id="componentLocalDashboardUrl">—</strong></div>
+            <div class="kv-row"><span>Geprüft</span><strong id="componentLocalDashboardCheckedAt">—</strong></div>
+          </div>
+        </article>
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Streaming-PC</p><h2>Lokaler Server</h2></div><span class="cgn-chip cgn-chip--ok">Status</span></div>
+          <div class="kv-grid">
+            <div class="kv-row"><span>Status</span><strong id="componentLocalServerStatus">—</strong></div>
+            <div class="kv-row"><span>Port</span><strong id="componentLocalServerPort">—</strong></div>
+            <div class="kv-row"><span>Geprüft</span><strong id="componentLocalServerCheckedAt">—</strong></div>
+          </div>
+        </article>
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Streaming-PC</p><h2>OBS</h2></div><span class="cgn-chip cgn-chip--warn">später</span></div>
+          <div class="kv-grid">
+            <div class="kv-row"><span>Status</span><strong id="componentObsStatus">—</strong></div>
+            <div class="kv-row"><span>Erreichbar</span><strong id="componentObsReachable">—</strong></div>
+            <div class="kv-row"><span>Hinweis</span><strong id="componentObsDetail">—</strong></div>
+          </div>
+        </article>
+        <article class="cgn-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Streaming-PC</p><h2>Streamer.bot</h2></div><span class="cgn-chip cgn-chip--warn">später</span></div>
+          <div class="kv-grid">
+            <div class="kv-row"><span>Status</span><strong id="componentStreamerbotStatus">—</strong></div>
+            <div class="kv-row"><span>Erreichbar</span><strong id="componentStreamerbotReachable">—</strong></div>
+            <div class="kv-row"><span>Hinweis</span><strong id="componentStreamerbotDetail">—</strong></div>
+          </div>
+        </article>
+      </section>
+
       <section class="page-grid rdap120-connection-grid">
         <article class="cgn-card">
           <div class="card-head"><div><p class="cgn-eyebrow">Verbindungsweg</p><h2>Ausgehend vom Streaming-PC</h2></div><span class="cgn-chip cgn-chip--info">WSS</span></div>
@@ -184,6 +221,7 @@
     const transport = (body && body.transport) || {};
     const safety = (body && body.safety) || {};
     const rejectDiagnostic = (body && body.rejectDiagnostic) || {};
+    const componentStatus = (body && body.connection && body.connection.componentStatus) || {};
 
     const connected = agent.connected === true;
     const stale = agent.stale === true;
@@ -225,6 +263,7 @@
 
     renderRuntimeGates(runtime, body);
     renderDiagnostics(body, rejectDiagnostic);
+    renderComponentStatus(componentStatus);
     renderSafety(safety);
 
     setProgressState('agentConnectionProgress', viewState.ok ? 'ok' : 'warn', viewState.ok ? 82 : 8);
@@ -253,6 +292,43 @@
     if (agent.heartbeatSeq !== undefined && agent.heartbeatSeq !== null) parts.push(`Nr. ${agent.heartbeatSeq}`);
     if (agent.heartbeatProtocolVersion) parts.push(agent.heartbeatProtocolVersion);
     return parts.length ? parts.join(' · ') : 'Lebenszeichen empfangen';
+  }
+
+
+  function renderComponentStatus(componentStatus) {
+    const localDashboard = componentStatus.localDashboard || {};
+    const localServer = componentStatus.localServer || {};
+    const obs = componentStatus.obs || {};
+    const streamerbot = componentStatus.streamerbot || {};
+
+    setText('componentLocalDashboardStatus', formatComponentState(localDashboard));
+    setText('componentLocalDashboardUrl', localDashboard.url || '—');
+    setText('componentLocalDashboardCheckedAt', localDashboard.checkedAt ? formatDate(localDashboard.checkedAt) : componentStatus.collectedAt ? formatDate(componentStatus.collectedAt) : '—');
+
+    setText('componentLocalServerStatus', formatComponentState(localServer));
+    setText('componentLocalServerPort', localServer.port ? String(localServer.port) : '—');
+    setText('componentLocalServerCheckedAt', localServer.checkedAt ? formatDate(localServer.checkedAt) : componentStatus.collectedAt ? formatDate(componentStatus.collectedAt) : '—');
+
+    setText('componentObsStatus', obs.status || 'noch nicht geprüft');
+    setText('componentObsReachable', formatReachable(obs.reachable));
+    setText('componentObsDetail', obs.detail || 'RDAP121 liest OBS noch nicht aktiv aus');
+
+    setText('componentStreamerbotStatus', streamerbot.status || 'noch nicht geprüft');
+    setText('componentStreamerbotReachable', formatReachable(streamerbot.reachable));
+    setText('componentStreamerbotDetail', streamerbot.detail || 'RDAP121 liest Streamer.bot noch nicht aktiv aus');
+  }
+
+  function formatComponentState(component) {
+    if (!component || component.available !== true) return 'nicht gemeldet';
+    if (component.reachable === true) return 'erreichbar';
+    if (component.reachable === false) return 'nicht erreichbar';
+    return component.status || 'gemeldet';
+  }
+
+  function formatReachable(value) {
+    if (value === true) return 'ja';
+    if (value === false) return 'nein';
+    return 'noch nicht geprüft';
   }
 
   function renderSafety(safety) {
@@ -344,6 +420,7 @@
       .rdap120-connection-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
       .rdap120-connection-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
       .rdap120-connection-grid .span2{grid-column:1/-1}
+      .rdap121-components-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
       .rdap120-connection-notice{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.18);color:var(--muted);font-size:13px;line-height:1.35}
       .rdap120-diagnostics summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none}
       .rdap120-diagnostics summary::-webkit-details-marker{display:none}
@@ -351,7 +428,7 @@
       .rdap120-diagnostics summary strong{font-size:12px;color:var(--muted);font-weight:700}
       .rdap120-diagnostics[open] summary{margin-bottom:14px}
       .rdap120-warning-list{margin-top:12px}
-      @media (max-width:900px){.rdap120-connection-header{flex-direction:column}.rdap120-connection-header-actions{justify-content:flex-start}.rdap120-connection-grid .span2{grid-column:auto}.rdap120-diagnostics summary{align-items:flex-start;flex-direction:column}}
+      @media (max-width:900px){.rdap121-components-grid{grid-template-columns:1fr}.rdap120-connection-header{flex-direction:column}.rdap120-connection-header-actions{justify-content:flex-start}.rdap120-connection-grid .span2{grid-column:auto}.rdap120-diagnostics summary{align-items:flex-start;flex-direction:column}}
     `;
     document.head.appendChild(style);
   }

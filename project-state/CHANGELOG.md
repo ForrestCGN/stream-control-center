@@ -1,10 +1,8 @@
-# CHANGELOG — RDAP120
+# CHANGELOG
 
-## RDAP120_STREAMING_PC_CONNECTION_VISIBLE_AND_STABLE
+## RDAP121_STREAMING_PC_COMPONENT_STATUS_READONLY
 
-- Remote-Modboard Verbindungsseite sprachlich und visuell auf Streaming-PC-Verbindung ausgerichtet.
-- Sichtbare Werte: online/offline, letzter Kontakt, Lebenszeichen-Nummer, Verbindungsannahme, Sicherheitsgrenzen.
-- Auto-Refresh alle 15 Sekunden ergänzt.
-- Technische Details bleiben in einem read-only Diagnosebereich.
-- Keine Aktionen aktiviert.
-- Keine Writes, keine DB-Migration, keine Shell-/Datei-/Prozesssteuerung.
+- Streaming-PC Heartbeat erweitert um sicheren Komponentenstatus.
+- Webserver speichert Komponentenstatus nur in-memory/read-only.
+- Dashboard zeigt lokale Komponenten sichtbar.
+- Keine Aktionen, keine Writes, keine Secrets, keine Prozess-/Dateilisten.

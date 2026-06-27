@@ -1,18 +1,18 @@
-# START HERE FOR NEW CHAT — RDAP120
+# START HERE – RDAP nach RDAP121
 
-Aktueller Stand: `RDAP120_STREAMING_PC_CONNECTION_VISIBLE_AND_STABLE` vorbereitet.
+Stand: `RDAP121_STREAMING_PC_COMPONENT_STATUS_READONLY`.
 
-Wichtig:
-- RDAP119 ist erfolgreich geprüft: Streaming-PC verbindet ausgehend zum Webserver, Webserver sieht Heartbeats, `actionsEnabled=false`.
-- RDAP120 macht diese Verbindung im Remote-Modboard sichtbar und verständlicher.
-- UI-Sprache: Streaming-PC Verbindung, online/offline, letzter Kontakt, Lebenszeichen. Keine neue Admin-Notizen-Arbeit.
-- Keine produktiven Writes, keine DB-Migration, keine OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Aktionen.
+Erreicht:
+- RDAP119: Streaming-PC verbindet ausgehend zum Webserver `/agent-ws` und sendet Heartbeats.
+- RDAP120: Dashboard zeigt unter Admin -> Verbindungen den Streaming-PC verständlich als online/offline mit letztem Kontakt.
+- RDAP121: Streaming-PC sendet zusätzlich einen sicheren read-only Komponentenstatus im Heartbeat.
 
-Workflow:
-1. GitHub/dev und diese Datei lesen.
-2. Plan nennen.
-3. Auf `go` warten.
-4. ZIP mit echten Zielpfaden bauen.
-5. Lokal installieren, Checks, `stepdone.cmd`.
-6. Bei Änderung unter `remote-modboard/`: Webserver-Deploy über Wrapper:
-   `bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP120_STREAMING_PC_CONNECTION_VISIBLE_AND_STABLE dev`
+Aktuelle Leitlinie:
+- Online- und lokales Dashboard immer parallel denken.
+- Menschen melden sich per Twitch an; Rechte bleiben eigenes Dashboard-Modell.
+- Streaming-PC nutzt Verbindungsschlüssel, kein Twitch-User.
+- Keine Admin-Notizen weiter ausbauen, außer ausdrücklich verlangt.
+- Keine Steuerung, keine Shell, keine Datei-/Prozessaktionen, keine DB-Migration ohne separaten Scope.
+
+Nach RDAP121 sinnvoll:
+`RDAP122_FIRST_SAFE_MODULE_ACTION_PLAN` – erste echte Modul-Anbindung planen, aber nur über Allowlist und weiterhin ohne freie Befehle.

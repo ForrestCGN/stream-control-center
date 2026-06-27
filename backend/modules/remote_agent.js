@@ -15,11 +15,12 @@ try {
 }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.0';
-const MODULE_BUILD = 'RDAP119_STREAMING_PC_CONNECTION_CLIENT_MVP';
-const STATUS_API_VERSION = 'rdap119_streaming_pc_connection.v1';
+const MODULE_VERSION = '0.1.1';
+const MODULE_BUILD = 'RDAP121_STREAMING_PC_COMPONENT_STATUS_READONLY';
+const STATUS_API_VERSION = 'rdap121_streaming_pc_component_status.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
+const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
 const DEFAULT_REMOTE_WS_URL = 'wss://mods.forrestcgn.de/agent-ws';
 const LOADED_AT = new Date().toISOString();
 
@@ -29,7 +30,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'remote-dashboard',
-  description: 'Streaming-PC connection client MVP. Connects outbound to the webserver and sends read-only heartbeats. No productive actions.',
+  description: 'Streaming-PC connection client with read-only local component status. Sends safe heartbeat summaries only. No productive actions.',
   routesPrefix: ['/api/remote-agent', '/api/streaming-pc-connection'],
   bus: {
     registered: false,
@@ -49,6 +50,7 @@ const CAPABILITIES = Object.freeze({
   auditModel: true,
   streamingPcConnectionClient: true,
   heartbeatSender: true,
+  componentStatusSender: true,
   obsControl: false,
   soundControl: false,
   overlayControl: false,
@@ -243,6 +245,8 @@ const CONNECTION_STATE = {
   lastSeenAt: null,
   lastHeartbeatAt: null,
   heartbeatSeq: 0,
+  componentStatus: null,
+  componentStatusUpdatedAt: null,
   heartbeatIntervalMs: 30000,
   reconnectDelayMs: 5000,
   reconnectCount: 0,
@@ -301,7 +305,7 @@ function init(ctx) {
 
   startStreamingPcConnectionClient();
 
-  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client MVP registered. actions=false.`);
+  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client with component status registered. actions=false.`);
 }
 
 function registerGet(app, routePath, handler) {
@@ -463,12 +467,14 @@ function sendHeartbeat(config) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
   CONNECTION_STATE.heartbeatSeq += 1;
+  const componentStatus = buildComponentStatus(config);
   const payload = {
     type: 'heartbeat',
     protocolVersion: HEARTBEAT_PROTOCOL_VERSION,
     agentId: config.agentId,
     seq: CONNECTION_STATE.heartbeatSeq,
-    agentVersion: MODULE_VERSION
+    agentVersion: MODULE_VERSION,
+    componentStatus
   };
 
   try {
@@ -478,11 +484,65 @@ function sendHeartbeat(config) {
     CONNECTION_STATE.lastSeenAt = now;
     CONNECTION_STATE.connectionState = 'connected';
     CONNECTION_STATE.reason = 'heartbeat_sent';
+    CONNECTION_STATE.componentStatus = componentStatus;
+    CONNECTION_STATE.componentStatusUpdatedAt = now;
     CONNECTION_STATE.actionsEnabled = false;
     CONNECTION_STATE.productiveActionsEnabled = false;
   } catch (err) {
     handleError(config, err);
   }
+}
+
+
+function buildComponentStatus(config) {
+  const now = new Date().toISOString();
+  const localDashboardUrl = readString('STREAMING_PC_LOCAL_DASHBOARD_URL', 'http://192.168.16.200:8080/dashboard');
+
+  return {
+    protocolVersion: COMPONENT_STATUS_PROTOCOL_VERSION,
+    collectedAt: now,
+    localDashboard: {
+      available: true,
+      name: 'Lokales Dashboard',
+      reachable: true,
+      status: 'available',
+      url: sanitizeLocalUrl(localDashboardUrl),
+      checkedAt: now,
+      detail: 'lokale Dashboard-Adresse hinterlegt'
+    },
+    localServer: {
+      available: true,
+      name: 'Lokaler Dashboard-Server',
+      reachable: true,
+      status: 'running',
+      port: 8080,
+      checkedAt: now,
+      detail: 'dieser Node-Server liefert den Heartbeat'
+    },
+    obs: {
+      available: false,
+      name: 'OBS',
+      reachable: null,
+      status: 'not_checked',
+      checkedAt: now,
+      detail: 'RDAP121 liest OBS noch nicht aktiv aus'
+    },
+    streamerbot: {
+      available: false,
+      name: 'Streamer.bot',
+      reachable: null,
+      status: 'not_checked',
+      checkedAt: now,
+      detail: 'RDAP121 liest Streamer.bot noch nicht aktiv aus'
+    },
+    actionsEnabled: false,
+    productiveActionsEnabled: false,
+    noCommands: true,
+    noShellOrProcessActions: true,
+    noFileWrite: true,
+    noDatabaseWrite: true,
+    rawPayloadStored: false
+  };
 }
 
 function buildBaseResponse(extra = {}) {
@@ -549,10 +609,10 @@ function buildStatusResponse() {
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
     warnings: [
-      'RDAP119 sendet nur Heartbeats vom Streaming-PC zum Webserver.',
+      'RDAP121 sendet Heartbeats plus sicheren Komponentenstatus vom Streaming-PC zum Webserver.',
       'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.',
       'OBS, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.',
-      'Verbindungsschluessel wird nie in Status, UI oder Logs ausgegeben.'
+      'Verbindungsschluessel wird nie in Status, UI oder Logs ausgegeben. Komponentenstatus ist read-only und enthaelt keine Secrets, Pfade oder Prozesslisten.'
     ],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
@@ -577,6 +637,8 @@ function buildConnectionStatus() {
     lastSeenAt: CONNECTION_STATE.lastSeenAt,
     lastHeartbeatAt: CONNECTION_STATE.lastHeartbeatAt,
     heartbeatSeq: CONNECTION_STATE.heartbeatSeq,
+    componentStatus: CONNECTION_STATE.componentStatus || buildComponentStatus({}),
+    componentStatusUpdatedAt: CONNECTION_STATE.componentStatusUpdatedAt,
     heartbeatIntervalMs: CONNECTION_STATE.heartbeatIntervalMs,
     reconnectDelayMs: CONNECTION_STATE.reconnectDelayMs,
     reconnectCount: CONNECTION_STATE.reconnectCount,
@@ -755,6 +817,18 @@ function readInt(name, fallback, min, max) {
   if (Number.isFinite(min) && parsed < min) return fallback;
   if (Number.isFinite(max) && parsed > max) return fallback;
   return parsed;
+}
+
+function sanitizeLocalUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return 'http://192.168.16.200:8080/dashboard';
+  try {
+    const url = new URL(value.trim());
+    if (!['http:', 'https:'].includes(url.protocol)) return 'http://192.168.16.200:8080/dashboard';
+    if (!['127.0.0.1', 'localhost', '192.168.16.200'].includes(url.hostname)) return 'http://192.168.16.200:8080/dashboard';
+    return url.toString().slice(0, 180);
+  } catch (err) {
+    return 'http://192.168.16.200:8080/dashboard';
+  }
 }
 
 function sanitizeRemoteWsUrl(value) {

@@ -1,10 +1,5 @@
-# CURRENT_STATUS — RDAP120
+# CURRENT STATUS – RDAP121
 
-RDAP119 wurde erfolgreich geprüft:
-- Streaming-PC lokal: `connected=true`, `heartbeatSeq>=1`.
-- Webserver: `connected=true`, `lastHeartbeatAt` gesetzt, `heartbeatSeq>=2`, `actionsEnabled=false`.
+Streaming-PC Verbindung steht. Heartbeat läuft. Dashboard zeigt Verbindung. RDAP121 ergänzt sicheren read-only Komponentenstatus über den Heartbeat.
 
-RDAP120 vorbereitet:
-- Remote-Modboard Anzeige Admin -> Verbindungen wird verständlicher.
-- Sprache: Streaming-PC Verbindung, online/offline, letzter Kontakt, Lebenszeichen.
-- Keine neuen Aktionen.
+Keine Steuerung aktiv. Keine Writes. Keine DB-Migration.

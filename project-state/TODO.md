@@ -1,14 +1,6 @@
-# TODO — RDAP120
+# TODO
 
-- [ ] ZIP lokal installieren
-- [ ] `node --check` auf geänderter JS-Datei
-- [ ] Browser lokal/remote prüfen
-- [ ] stepdone
-- [ ] Webserver-Deploy über Wrapper
-- [ ] `/api/remote/agent/status` prüfen
-- [ ] Admin -> Verbindungen im Browser prüfen
-
-Nicht tun:
-- Admin-Notizen erweitern
-- neue Navi-Kosmetik
-- produktive Aktionen aktivieren
+- RDAP121 installieren, Syntaxchecks, Browser-Test.
+- Prüfen: Streaming-PC bleibt verbunden.
+- Prüfen: Dashboard zeigt lokale Komponenten.
+- Danach erst nächste Modul-Anbindung.
