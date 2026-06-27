@@ -3,10 +3,13 @@
 (function publishRemoteModboardModuleManifest() {
   const manifest = {
     locale: 'de',
-    version: '0.2.1',
+    version: '0.2.2',
+    languagesPrepared: true,
     modules: [
       {
         id: 'system',
+        labelKey: 'module.system.label',
+        descriptionKey: 'module.system.description',
         label: { de: 'System', en: 'System' },
         description: { de: 'Status, Diagnose und technische Übersicht.', en: 'Status, diagnostics and technical overview.' },
         icon: '◆',
@@ -17,6 +20,8 @@
       },
       {
         id: 'modules',
+        labelKey: 'module.modules.label',
+        descriptionKey: 'module.modules.description',
         label: { de: 'Module', en: 'Modules' },
         description: { de: 'Übersicht der verfügbaren und geplanten Arbeitsbereiche.', en: 'Overview of available and planned work areas.' },
         icon: '◇',
@@ -27,6 +32,8 @@
       },
       {
         id: 'admin',
+        labelKey: 'module.admin.label',
+        descriptionKey: 'module.admin.description',
         label: { de: 'Admin', en: 'Admin' },
         description: { de: 'Benutzer, Notizen, Verbindungen und Diagnose-Details.', en: 'Users, notes, connections and diagnostic details.' },
         icon: '⚙',
@@ -37,6 +44,8 @@
       },
       {
         id: 'account',
+        labelKey: 'module.account.label',
+        descriptionKey: 'module.account.description',
         label: { de: 'Mein Konto', en: 'My Account' },
         description: { de: 'Eigener Login- und Rechte-Status.', en: 'Own login and permission status.' },
         icon: '◉',
@@ -51,6 +60,10 @@
       {
         moduleId: 'system',
         pageId: 'overview',
+        labelKey: 'page.system.overview.label',
+        titleKey: 'page.system.overview.title',
+        descriptionKey: 'page.system.overview.description',
+        tabKey: 'page.system.overview.tab',
         label: { de: 'Übersicht', en: 'Overview' },
         title: { de: 'Übersicht', en: 'Overview' },
         description: { de: 'Schneller Systemstatus des Remote Modboards.', en: 'Quick system status of the remote modboard.' },
@@ -63,6 +76,10 @@
       {
         moduleId: 'system',
         pageId: 'diagnostics',
+        labelKey: 'page.system.diagnostics.label',
+        titleKey: 'page.system.diagnostics.title',
+        descriptionKey: 'page.system.diagnostics.description',
+        tabKey: 'page.system.diagnostics.tab',
         label: { de: 'Diagnose', en: 'Diagnostics' },
         title: { de: 'Diagnose', en: 'Diagnostics' },
         description: { de: 'Read-only Diagnose für Status, Login und Sicherheit.', en: 'Read-only diagnostics for status, login and security.' },
@@ -75,6 +92,10 @@
       {
         moduleId: 'modules',
         pageId: 'modules',
+        labelKey: 'page.modules.catalog.label',
+        titleKey: 'page.modules.catalog.title',
+        descriptionKey: 'page.modules.catalog.description',
+        tabKey: 'page.modules.catalog.tab',
         label: { de: 'Modulübersicht', en: 'Module Overview' },
         title: { de: 'Modulübersicht', en: 'Module Overview' },
         description: { de: 'Module mit Sprache, Rechten und Online/Lokal-Gültigkeit.', en: 'Modules with locale, permissions and online/local scope.' },
@@ -87,6 +108,10 @@
       {
         moduleId: 'admin',
         pageId: 'admin-users',
+        labelKey: 'page.admin.users.label',
+        titleKey: 'page.admin.users.title',
+        descriptionKey: 'page.admin.users.description',
+        tabKey: 'page.admin.users.tab',
         label: { de: 'Benutzerverwaltung', en: 'User Management' },
         title: { de: 'Benutzerverwaltung', en: 'User Management' },
         description: { de: 'Benutzer, Rollen und Sitzungen im Überblick.', en: 'Overview of users, roles and sessions.' },
@@ -99,6 +124,10 @@
       {
         moduleId: 'admin',
         pageId: 'admin-notes',
+        labelKey: 'page.admin.notes.label',
+        titleKey: 'page.admin.notes.title',
+        descriptionKey: 'page.admin.notes.description',
+        tabKey: 'page.admin.notes.tab',
         label: { de: 'Admin-Notizen', en: 'Admin Notes' },
         title: { de: 'Admin-Notizen', en: 'Admin Notes' },
         description: { de: 'Admin-Notizen lesen und kontrolliert bearbeiten, wenn das Backend es erlaubt.', en: 'Read and controlled editing of admin notes when the backend allows it.' },
@@ -112,6 +141,10 @@
       {
         moduleId: 'admin',
         pageId: 'connections',
+        labelKey: 'page.admin.connections.label',
+        titleKey: 'page.admin.connections.title',
+        descriptionKey: 'page.admin.connections.description',
+        tabKey: 'page.admin.connections.tab',
         label: { de: 'Verbindungen', en: 'Connections' },
         title: { de: 'Verbindungen', en: 'Connections' },
         description: { de: 'Stream-PC-/Agent-Verbindungsstatus read-only.', en: 'Stream PC / agent connection status read-only.' },
@@ -124,6 +157,10 @@
       {
         moduleId: 'admin',
         pageId: 'routes',
+        labelKey: 'page.admin.details.label',
+        titleKey: 'page.admin.details.title',
+        descriptionKey: 'page.admin.details.description',
+        tabKey: 'page.admin.details.tab',
         label: { de: 'Doku / Details', en: 'Docs / Details' },
         title: { de: 'Doku / Details', en: 'Docs / Details' },
         description: { de: 'Technische Details und Routenübersicht.', en: 'Technical details and route overview.' },
@@ -136,6 +173,10 @@
       {
         moduleId: 'account',
         pageId: 'account',
+        labelKey: 'page.account.status.label',
+        titleKey: 'page.account.status.title',
+        descriptionKey: 'page.account.status.description',
+        tabKey: 'page.account.status.tab',
         label: { de: 'Status', en: 'Status' },
         title: { de: 'Mein Login', en: 'My Login' },
         description: { de: 'Aktuelle Session und Login-Status.', en: 'Current session and login status.' },
@@ -149,6 +190,10 @@
       {
         moduleId: 'account',
         pageId: 'permissions',
+        labelKey: 'page.account.permissions.label',
+        titleKey: 'page.account.permissions.title',
+        descriptionKey: 'page.account.permissions.description',
+        tabKey: 'page.account.permissions.tab',
         label: { de: 'Meine Rechte', en: 'My Permissions' },
         title: { de: 'Meine Rechte', en: 'My Permissions' },
         description: { de: 'Persönliche Berechtigungsanzeige.', en: 'Personal permission display.' },

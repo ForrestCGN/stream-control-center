@@ -8,8 +8,8 @@ const { buildAgentStatusSummary } = require('../services/agent-status.service');
 
 const RDAP62_STATUS_API_VERSION = 'rdap_admin_note_update_status62.v1';
 const RDAP62_BUILD = 'RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP';
-const APP_VERSION_FALLBACK = '0.2.1';
-const BUILD_NAME_FALLBACK = 'Modul-Metadaten und Rechte';
+const APP_VERSION_FALLBACK = '0.2.2';
+const BUILD_NAME_FALLBACK = 'Zentrale Sprachdateien';
 
 function registerStatusRoutes(app, context) {
   app.get('/api/remote/status', async (req, res) => {
@@ -39,7 +39,9 @@ function registerStatusRoutes(app, context) {
         version: context.appVersion || APP_VERSION_FALLBACK,
         buildName: context.buildName || context.moduleBuild || BUILD_NAME_FALLBACK,
         stepRef: context.stepRef || '',
-        locale: 'de'
+        locale: 'de',
+        languagesPrepared: true,
+        availableLocales: ['de', 'en']
       },
       publicHost: 'mods.forrestcgn.de',
       webserver: 'web.cgn.community',
@@ -207,7 +209,12 @@ function buildModuleMetadataSummary() {
   return {
     prepared: true,
     locale: 'de',
+    languagesPrepared: true,
+    languageFilesPrepared: true,
+    availableLocales: ['de', 'en'],
+    languageRegistry: 'RemoteModboardLanguages',
     localizationPrepared: true,
+    languageKeysPrepared: true,
     permissionsPrepared: true,
     runtimeScopePrepared: true,
     frontendOnlyPermissionHints: true,
@@ -230,7 +237,7 @@ function buildModuleMetadataSummary() {
       { pageId: 'account', label: 'Status', moduleId: 'account', runtime: 'both', permission: 'remote.view', hiddenInMainNav: true },
       { pageId: 'permissions', label: 'Meine Rechte', moduleId: 'account', runtime: 'both', permission: 'remote.permissions.self.read', hiddenInMainNav: true }
     ],
-    note: 'Frontend-Metadaten steuern Navigation, Lokalisierung und Sichtbarkeit. Sicherheit bleibt serverseitig.'
+    note: 'Frontend-Metadaten steuern Navigation, zentrale Sprachtexte und Sichtbarkeit. Sicherheit bleibt serverseitig.'
   };
 }
 

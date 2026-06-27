@@ -1,0 +1,78 @@
+'use strict';
+
+(function registerRemoteModboardEnglish() {
+  const languages = window.RemoteModboardLanguages;
+  if (!languages || typeof languages.register !== 'function') return;
+
+  languages.register('en', {
+    'app.name': 'Remote Modboard',
+    'app.buildName': 'Central Language Files',
+
+    'module.system.label': 'System',
+    'module.system.description': 'Status, diagnostics and technical overview.',
+    'module.modules.label': 'Modules',
+    'module.modules.description': 'Overview of available and planned work areas.',
+    'module.admin.label': 'Admin',
+    'module.admin.description': 'Users, notes, connections and diagnostic details.',
+    'module.account.label': 'My Account',
+    'module.account.description': 'Own login and permission status.',
+
+    'page.system.overview.label': 'Overview',
+    'page.system.overview.title': 'Overview',
+    'page.system.overview.description': 'Quick system status of the remote modboard.',
+    'page.system.overview.tab': 'Status',
+    'page.system.diagnostics.label': 'Diagnostics',
+    'page.system.diagnostics.title': 'Diagnostics',
+    'page.system.diagnostics.description': 'Read-only diagnostics for status, login and security.',
+    'page.system.diagnostics.tab': 'Status',
+
+    'page.modules.catalog.label': 'Module Overview',
+    'page.modules.catalog.title': 'Module Overview',
+    'page.modules.catalog.description': 'Modules with locale, permissions and online/local scope.',
+    'page.modules.catalog.tab': 'read-only',
+
+    'page.admin.users.label': 'User Management',
+    'page.admin.users.title': 'User Management',
+    'page.admin.users.description': 'Overview of users, roles and sessions.',
+    'page.admin.users.tab': 'read-only',
+    'page.admin.notes.label': 'Admin Notes',
+    'page.admin.notes.title': 'Admin Notes',
+    'page.admin.notes.description': 'Read and controlled editing of admin notes when the backend allows it.',
+    'page.admin.notes.tab': 'read/create',
+    'page.admin.connections.label': 'Connections',
+    'page.admin.connections.title': 'Connections',
+    'page.admin.connections.description': 'Stream PC / agent connection status read-only.',
+    'page.admin.connections.tab': 'read-only',
+    'page.admin.details.label': 'Docs / Details',
+    'page.admin.details.title': 'Docs / Details',
+    'page.admin.details.description': 'Technical details and route overview.',
+    'page.admin.details.tab': 'read-only',
+
+    'page.account.status.label': 'Status',
+    'page.account.status.title': 'My Login',
+    'page.account.status.description': 'Current session and login status.',
+    'page.account.status.tab': 'Account',
+    'page.account.permissions.label': 'My Permissions',
+    'page.account.permissions.title': 'My Permissions',
+    'page.account.permissions.description': 'Personal permission display.',
+    'page.account.permissions.tab': 'Permissions',
+
+    'catalog.header.eyebrow': 'Modules',
+    'catalog.header.title': 'Module Overview',
+    'catalog.header.description': 'All visible modules with central language texts, permissions and online/local scope.',
+    'catalog.metadata.eyebrow': 'Metadata',
+    'catalog.metadata.title': 'Active Module Structure',
+    'catalog.metadata.emptyTitle': 'Module Manifest',
+    'catalog.metadata.emptyDescription': 'No metadata loaded yet.',
+    'catalog.row.scope': 'Area: {module} · Permission: {permission} · Mode: {runtime}',
+    'catalog.rule.eyebrow': 'Rule',
+    'catalog.rule.title': 'Permissions remain a backend responsibility',
+    'catalog.rule.badge': 'Security',
+    'catalog.rule.strong': 'Frontend metadata is only display and navigation.',
+    'catalog.rule.text': 'Every backend route still decides whether a user may really read or write.',
+    'catalog.locale.eyebrow': 'Language',
+    'catalog.locale.title': 'Central Language Files',
+    'catalog.locale.text': 'German is the default. English is prepared. Module texts will use language keys instead of scattered hard-coded labels.',
+    'ui.readOnly': 'read-only'
+  });
+})();

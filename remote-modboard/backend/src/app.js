@@ -28,7 +28,7 @@ function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
     next();
   });
 
-  const context = { config, moduleBuild, appVersion: appVersion || '0.2.1', buildName: buildName || moduleBuild, stepRef: stepRef || '', safety: buildSafetyBlock() };
+  const context = { config, moduleBuild, appVersion: appVersion || '0.2.2', buildName: buildName || moduleBuild, stepRef: stepRef || '', safety: buildSafetyBlock() };
   const publicDir = path.join(__dirname, '..', 'public');
 
   registerHealthRoutes(app, context);

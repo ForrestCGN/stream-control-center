@@ -1,0 +1,79 @@
+'use strict';
+
+(function registerRemoteModboardGerman() {
+  const languages = window.RemoteModboardLanguages;
+  if (!languages || typeof languages.register !== 'function') return;
+
+  languages.register('de', {
+    'app.name': 'Remote Modboard',
+    'app.buildName': 'Zentrale Sprachdateien',
+
+    'module.system.label': 'System',
+    'module.system.description': 'Status, Diagnose und technische Übersicht.',
+    'module.modules.label': 'Module',
+    'module.modules.description': 'Übersicht der verfügbaren und geplanten Arbeitsbereiche.',
+    'module.admin.label': 'Admin',
+    'module.admin.description': 'Benutzer, Notizen, Verbindungen und Diagnose-Details.',
+    'module.account.label': 'Mein Konto',
+    'module.account.description': 'Eigener Login- und Rechte-Status.',
+
+    'page.system.overview.label': 'Übersicht',
+    'page.system.overview.title': 'Übersicht',
+    'page.system.overview.description': 'Schneller Systemstatus des Remote Modboards.',
+    'page.system.overview.tab': 'Status',
+    'page.system.diagnostics.label': 'Diagnose',
+    'page.system.diagnostics.title': 'Diagnose',
+    'page.system.diagnostics.description': 'Read-only Diagnose für Status, Login und Sicherheit.',
+    'page.system.diagnostics.tab': 'Status',
+
+    'page.modules.catalog.label': 'Modulübersicht',
+    'page.modules.catalog.title': 'Modulübersicht',
+    'page.modules.catalog.description': 'Module mit Sprache, Rechten und Online/Lokal-Gültigkeit.',
+    'page.modules.catalog.tab': 'read-only',
+
+    'page.admin.users.label': 'Benutzerverwaltung',
+    'page.admin.users.title': 'Benutzerverwaltung',
+    'page.admin.users.description': 'Benutzer, Rollen und Sitzungen im Überblick.',
+    'page.admin.users.tab': 'read-only',
+    'page.admin.notes.label': 'Admin-Notizen',
+    'page.admin.notes.title': 'Admin-Notizen',
+    'page.admin.notes.description': 'Admin-Notizen lesen und kontrolliert bearbeiten, wenn das Backend es erlaubt.',
+    'page.admin.notes.tab': 'read/create',
+    'page.admin.connections.label': 'Verbindungen',
+    'page.admin.connections.title': 'Verbindungen',
+    'page.admin.connections.description': 'Stream-PC-/Agent-Verbindungsstatus read-only.',
+    'page.admin.connections.tab': 'read-only',
+    'page.admin.details.label': 'Doku / Details',
+    'page.admin.details.title': 'Doku / Details',
+    'page.admin.details.description': 'Technische Details und Routenübersicht.',
+    'page.admin.details.tab': 'read-only',
+
+    'page.account.status.label': 'Status',
+    'page.account.status.title': 'Mein Login',
+    'page.account.status.description': 'Aktuelle Session und Login-Status.',
+    'page.account.status.tab': 'Konto',
+    'page.account.permissions.label': 'Meine Rechte',
+    'page.account.permissions.title': 'Meine Rechte',
+    'page.account.permissions.description': 'Persönliche Berechtigungsanzeige.',
+    'page.account.permissions.tab': 'Berechtigungen',
+
+    'catalog.header.eyebrow': 'Module',
+    'catalog.header.title': 'Modulübersicht',
+    'catalog.header.description': 'Alle sichtbaren Module mit zentralen Sprachtexten, Rechten und Online/Lokal-Gültigkeit.',
+    'catalog.metadata.eyebrow': 'Metadaten',
+    'catalog.metadata.title': 'Aktive Modulstruktur',
+    'catalog.metadata.emptyTitle': 'Modulmanifest',
+    'catalog.metadata.emptyDescription': 'Noch keine Metadaten geladen.',
+    'catalog.row.scope': 'Bereich: {module} · Recht: {permission} · Modus: {runtime}',
+    'catalog.rule.eyebrow': 'Regel',
+    'catalog.rule.title': 'Rechte bleiben Backend-Sache',
+    'catalog.rule.badge': 'Sicherheit',
+    'catalog.rule.strong': 'Frontend-Metadaten sind nur Anzeige und Navigation.',
+    'catalog.rule.text': 'Ob ein Benutzer wirklich lesen oder schreiben darf, entscheidet weiterhin jede Backend-Route separat.',
+    'catalog.locale.eyebrow': 'Sprache',
+    'catalog.locale.title': 'Zentrale Sprachdateien',
+    'catalog.locale.text': 'Deutsch ist Standard. Englisch ist vorbereitet. Modultexte kommen künftig über Sprachschluessel statt verstreute Einzeltexte.',
+    'ui.readOnly': 'read-only'
+  });
+  languages.setLocale('de');
+})();

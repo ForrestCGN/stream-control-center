@@ -33,7 +33,7 @@ let latestAuthBody = null;
 let latestPermissionBody = null;
 let latestDashboardResults = null;
 
-const CURRENT_LOCALE = 'de';
+const CURRENT_LOCALE = window.RemoteModboardLanguages && typeof window.RemoteModboardLanguages.getLocale === 'function' ? window.RemoteModboardLanguages.getLocale() : 'de';
 const rdapModuleManifest = normalizeModuleManifest(window.RemoteModboardModuleManifest || {});
 const rdapPageModuleScripts = createPageScriptMap(rdapModuleManifest);
 const rdapLoadedModuleScripts = new Map();
@@ -106,24 +106,40 @@ function createPageScriptMap(manifest) {
   return map;
 }
 
+function translate(key, fallback, params) {
+  if (window.RemoteModboardLanguages && typeof window.RemoteModboardLanguages.t === 'function') {
+    return window.RemoteModboardLanguages.t(key, fallback, params);
+  }
+  return fallback || key || '';
+}
+
 function localized(value, fallback) {
+  if (window.RemoteModboardLanguages && typeof window.RemoteModboardLanguages.resolve === 'function') {
+    return window.RemoteModboardLanguages.resolve(value, fallback);
+  }
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value[CURRENT_LOCALE] || value.de || value.en || Object.values(value).find(Boolean) || fallback || '';
   }
   return value !== undefined && value !== null && String(value) !== '' ? String(value) : (fallback || '');
 }
 
+function localizedWithKey(key, value, fallback) {
+  const translated = key ? translate(key, '') : '';
+  if (translated) return translated;
+  return localized(value, fallback);
+}
+
 function localizedPageConfig(page, moduleConfig) {
-  const moduleLabel = moduleConfig ? localized(moduleConfig.label, moduleConfig.id) : '';
+  const moduleLabel = moduleConfig ? localizedWithKey(moduleConfig.labelKey, moduleConfig.label, moduleConfig.id) : '';
   return {
     ...page,
     moduleId: page.moduleId || page.module || 'modules',
     pageId: page.pageId || page.id || page.page,
-    label: localized(page.label, page.pageId || page.id || page.page),
-    title: localized(page.title, page.label || page.pageId || page.id || page.page),
-    tab: localized(page.tab, ''),
-    section: localized(page.section, moduleLabel),
-    description: localized(page.description, ''),
+    label: localizedWithKey(page.labelKey, page.label, page.pageId || page.id || page.page),
+    title: localizedWithKey(page.titleKey, page.title, localizedWithKey(page.labelKey, page.label, page.pageId || page.id || page.page)),
+    tab: localizedWithKey(page.tabKey, page.tab, ''),
+    section: localizedWithKey(page.sectionKey, page.section, moduleLabel),
+    description: localizedWithKey(page.descriptionKey, page.description, ''),
     runtime: page.runtime || 'both',
     permission: page.permission || '',
     writePermission: page.writePermission || '',
@@ -134,8 +150,8 @@ function localizedPageConfig(page, moduleConfig) {
 function localizedModuleConfig(moduleConfig) {
   return {
     ...moduleConfig,
-    label: localized(moduleConfig.label, moduleConfig.id),
-    description: localized(moduleConfig.description, ''),
+    label: localizedWithKey(moduleConfig.labelKey, moduleConfig.label, moduleConfig.id),
+    description: localizedWithKey(moduleConfig.descriptionKey, moduleConfig.description, ''),
     runtime: moduleConfig.runtime || 'both',
     permission: moduleConfig.permission || '',
     hiddenInMainNav: moduleConfig.hiddenInMainNav === true
@@ -169,8 +185,10 @@ function createRemoteModboardModuleRegistry() {
       ...existing,
       ...source,
       id,
-      label: localized(source.label !== undefined ? source.label : existing.label, id),
-      description: localized(source.description !== undefined ? source.description : existing.description, ''),
+      label: localizedWithKey(source.labelKey || existing.labelKey, source.label !== undefined ? source.label : existing.label, id),
+      labelKey: source.labelKey || existing.labelKey || '',
+      description: localizedWithKey(source.descriptionKey || existing.descriptionKey, source.description !== undefined ? source.description : existing.description, ''),
+      descriptionKey: source.descriptionKey || existing.descriptionKey || '',
       icon: source.icon || existing.icon || '◇',
       order: Number.isFinite(Number(source.order)) ? Number(source.order) : (Number.isFinite(Number(existing.order)) ? Number(existing.order) : 100),
       navSubId: source.navSubId || existing.navSubId || `nav-${id}`,
@@ -193,16 +211,21 @@ function createRemoteModboardModuleRegistry() {
       key,
       pageId,
       moduleId,
-      label: localized(source.label !== undefined ? source.label : existing.label, localized(source.title !== undefined ? source.title : existing.title, pageId)),
-      title: localized(source.title !== undefined ? source.title : existing.title, localized(source.label !== undefined ? source.label : existing.label, pageId)),
-      tab: localized(source.tab !== undefined ? source.tab : (existing.tab !== undefined ? existing.tab : ''), ''),
-      section: localized(source.section || existing.section || source.moduleLabel || existing.moduleLabel || '', ''),
+      label: localizedWithKey(source.labelKey || existing.labelKey, source.label !== undefined ? source.label : existing.label, localizedWithKey(source.titleKey || existing.titleKey, source.title !== undefined ? source.title : existing.title, pageId)),
+      labelKey: source.labelKey || existing.labelKey || '',
+      title: localizedWithKey(source.titleKey || existing.titleKey, source.title !== undefined ? source.title : existing.title, localizedWithKey(source.labelKey || existing.labelKey, source.label !== undefined ? source.label : existing.label, pageId)),
+      titleKey: source.titleKey || existing.titleKey || '',
+      tab: localizedWithKey(source.tabKey || existing.tabKey, source.tab !== undefined ? source.tab : (existing.tab !== undefined ? existing.tab : ''), ''),
+      tabKey: source.tabKey || existing.tabKey || '',
+      section: localizedWithKey(source.sectionKey || existing.sectionKey, source.section || existing.section || source.moduleLabel || existing.moduleLabel || '', ''),
+      sectionKey: source.sectionKey || existing.sectionKey || '',
       order: Number.isFinite(Number(source.order)) ? Number(source.order) : (Number.isFinite(Number(existing.order)) ? Number(existing.order) : 100),
       status: source.status || existing.status || 'active',
       permission: source.permission || existing.permission || '',
       writePermission: source.writePermission || existing.writePermission || '',
       runtime: source.runtime || existing.runtime || 'both',
-      description: localized(source.description !== undefined ? source.description : existing.description, ''),
+      description: localizedWithKey(source.descriptionKey || existing.descriptionKey, source.description !== undefined ? source.description : existing.description, ''),
+      descriptionKey: source.descriptionKey || existing.descriptionKey || '',
       hiddenInMainNav: source.hiddenInMainNav === true || existing.hiddenInMainNav === true,
       script: source.script || existing.script || rdapPageModuleScripts.get(pageId) || ''
     };
@@ -1040,7 +1063,7 @@ function renderQuickStatus(results) {
   const oauth = auth.twitchOAuth || {};
   const agent = statusBody.agent || {};
 
-  setChip('quickService', results.status && results.status.ok, results.status && results.status.ok ? `v${statusBody.version || '0.2.1'} online` : 'Service prüfen');
+  setChip('quickService', results.status && results.status.ok, results.status && results.status.ok ? `v${statusBody.version || '0.2.2'} online` : 'Service prüfen');
   setChip('quickLogin', authMe.dashboardAccess === true, authMe.dashboardAccess ? 'Login freigegeben' : (authMe.loggedIn ? 'Login gesperrt' : 'Login nötig'));
   setChip('quickOAuth', oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'OAuth aktiv' : 'OAuth gated');
   setChip('quickAgent', agent.connected === true, agent.connected ? 'Stream-PC online' : 'Stream-PC offline');

@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.1';
-const BUILD_NAME = 'Modul-Metadaten und Rechte';
-const STEP_REF = 'RDAP120_MODULE_METADATA_VERSION_RUNTIME_AND_PERMISSIONS';
+const APP_VERSION = '0.2.2';
+const BUILD_NAME = 'Zentrale Sprachdateien';
+const STEP_REF = 'RDAP121_CENTRAL_LANGUAGE_FILES';
 const MODULE_BUILD = BUILD_NAME;
 
 async function main() {
