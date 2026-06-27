@@ -2,13 +2,13 @@
 
 Stand: 2026-06-27
 
-## Geaendert in diesem Doku-/Handoff-Step
+## Geaendert in RDAP125
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
 docs/current/DOCS_CURRENT_FINAL_INDEX.md
 project-state/CURRENT_STATUS.md
@@ -18,24 +18,13 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Zuletzt geaendert in RDAP123
+## Relevante bestehende Dateien fuer naechsten Step
 
 ```text
-remote-modboard/backend/server.js
-remote-modboard/backend/src/routes/routes.routes.js
-docs/current/RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP123.md
-```
-
-## Zuletzt geaendert in RDAP122
-
-```text
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/runtime-profile.js
+docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
 remote-modboard/backend/public/assets/modules/module-manifest.js
 remote-modboard/backend/public/assets/languages/de.js
 remote-modboard/backend/public/assets/languages/en.js
-docs/current/RDAP122_LOCAL_DASHBOARD_RUNTIME_PROFILE.md
+remote-modboard/backend/public/assets/runtime-profile.js
+remote-modboard/backend/public/assets/remote-modboard.js
 ```

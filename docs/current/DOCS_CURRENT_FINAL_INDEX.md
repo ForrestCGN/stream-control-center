@@ -2,40 +2,39 @@
 
 Stand: 2026-06-27
 
-Diese Datei beschreibt den aktuellen Sollbestand von `docs/current/` nach RDAP123 und dem Handoff-/Modulregistrierungs-Doku-Step.
+Diese Datei beschreibt den aktuellen Sollbestand von `docs/current/` nach RDAP124/RDAP125.
 
 ## Zweck von docs/current
 
 `docs/current/` soll nur aktuelle Arbeits-, Start-, Status-, Architektur- und Weiterarbeits-Dokumente enthalten. Historische Handoffs, alte Cleanup-Audits, alte Next-Chat-Prompts und abgeloeste Step-Dokumente gehoeren in `docs/archive/`.
 
-## Aktueller Orientierungssatz
+## Erwarteter aktueller Bestand
 
 ```text
-docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
-docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
+docs/current/ADMIN_MODULE_REGISTRY_DESIGN_CONTRACT.md
+docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
-docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
-docs/current/DOCS_CURRENT_FINAL_INDEX.md
+docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
+docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md
+docs/current/DOCS_STRUCTURE_AND_ARCHIVE_RULES.md
+docs/current/EVENT_BUS_DASHBOARD_AND_CONFIG.md
+docs/current/EVENT_BUS_OVERLAY_CLIENTS_STATUS.md
+docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
-docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
+docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
 docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
+docs/current/PROJECT_WORKING_RULES.md
+docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
+docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
+docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
+docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/DOCS_CURRENT_FINAL_INDEX.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
 ```
 
-Weitere aktuelle Architektur-/Arbeitsdokus bleiben in `docs/current/`, wenn sie nicht historisch abgeloest sind.
-
-## Live-Stand, der in neuen Chats als aktueller Fokus gilt
-
-```text
-Version: 0.2.4
-Buildname: Routes-Status angeglichen
-Step: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP
-Runtime: online
-Local-Dashboard-Profil: vorbereitet
-Modulregistrierungsregeln: docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
-```
+Step-Dokumente wie `RDAP122_...`, `RDAP123_...` und `RDAP124_...` koennen im Current-Bereich liegen, wenn sie als unmittelbare Handoff-/Nachweisdateien noch aktiv gebraucht werden. Bei spaeterem Cleanup gehoeren sie ins Archiv.
 
 ## Arbeitsregel
 
@@ -48,6 +47,7 @@ docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
 docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

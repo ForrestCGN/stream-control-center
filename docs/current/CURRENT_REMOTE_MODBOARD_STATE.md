@@ -1,14 +1,17 @@
 # Aktueller Remote-Modboard-Stand
 
-Stand: 2026-06-27  
-Version: `0.2.4`  
-Sichtbarer Buildname: `Routes-Status angeglichen`
+Stand: 2026-06-27
 
-## Live bestaetigt
-
-`/api/remote/status` meldet:
+Aktueller sichtbarer Stand:
 
 ```text
+Version 0.2.4 - Routes-Status angeglichen
+```
+
+Live bestaetigt:
+
+```text
+/api/remote/status
 version: 0.2.4
 buildName: Routes-Status angeglichen
 moduleBuild: Routes-Status angeglichen
@@ -17,43 +20,34 @@ localDashboardProfile.visibleLabel: Onlinemodus
 localDashboardProfile.actionsEnabled: false
 localDashboardProfile.productiveWritesEnabled: false
 localDashboardProfile.agentActionsEnabled: false
-```
 
-`/api/remote/routes` meldet:
-
-```text
+/api/remote/routes
 routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP
 localDashboardProfile.routeStatusAligned: true
 localLanMode.routeStatusAligned: true
 ```
 
-## Aktuelle technische Basis
+Aktueller Funktionsstand:
 
-- RDAP119: Remote-Modboard-Oberflaeche wurde modularisiert.
-- RDAP120: Modul-Metadaten, Permission-Metadaten und Runtime-Scope wurden eingefuehrt.
-- RDAP121: Zentrale Frontend-Sprachdateien wurden eingefuehrt.
-- RDAP122: Lokales Dashboard-Profil wurde vorbereitet; Online/Lokal-Modus wird in der UI sichtbar.
-- RDAP123: `/api/remote/routes` wurde an den RDAP122-Status angeglichen.
-
-## Laufender Onlinebetrieb
-
-- Webserver-Service laeuft intern auf `127.0.0.1:3010`.
-- Public UI laeuft ueber `https://mods.forrestcgn.de/`.
-- `runtimeMode` ist im Webserverbetrieb `online`.
-- `localDashboardProfile.visibleLabel` ist `Onlinemodus`.
-- Local/LAN-Betrieb ist vorbereitet, aber auf dem Webserver nicht aktiv.
-
-## Sicherheitsstand
+- Remote-Modboard-Webseite laeuft ueber `mods.forrestcgn.de`.
+- Backend-Service laeuft intern auf Port `3010`.
+- Twitch-/Session-/Auth-Basis ist vorhanden.
+- Admin-User-/Admin-Notes-/Status-/Routes-/Agent-Status-Basis ist vorhanden.
+- Admin-Notes Create/Update sind kontrollierte Backend-Writes mit Permission, Confirm-Write, Audit, Lock und Readback.
+- Admin-Notes Deactivate/Delete bleiben deaktiviert.
+- Online/Lokal-Runtime-Profil ist vorbereitet.
+- UI zeigt `Onlinemodus` bzw. spaeter `Lokalmodus`.
+- Modul-Runtime-Scope `online`, `local`, `both` ist vorbereitet.
+- Modulregistrierungsregeln sind dokumentiert.
+- Stream-PC-/LAN-Env- und Startprofil ist dokumentiert.
 
 Weiterhin gesperrt:
 
-- keine DB-Migration,
-- keine neuen produktiven Writes,
+- keine DB-Migration ohne separaten Plan,
+- keine neuen produktiven Writes ohne separaten Sicherheits-Scope,
 - keine Agent-Actions,
 - keine OBS-Steuerung,
 - keine Sound-Steuerung,
 - keine Overlay-Steuerung,
 - keine Command-/Channelpoints-Steuerung,
-- keine Shell-/Datei-/Prozess-Actions.
-
-Frontend-Metadaten sind nur Anzeige und Navigation. Backend-Routen bleiben fuer echte Sicherheit und Berechtigungen massgeblich.
+- keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.

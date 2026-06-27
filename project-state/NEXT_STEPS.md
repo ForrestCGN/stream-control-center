@@ -2,34 +2,36 @@
 
 Stand: 2026-06-27
 
-Naechster sinnvoller technischer Step:
+Naechster sinnvoller technischer Schritt:
 
 ```text
-RDAP124_LOCAL_STREAM_PC_LAN_START_DOCS_AND_MODULE_REGISTRATION_RULES
+RDAP126_LOCAL_DASHBOARD_MODULE_SHELL_PLAN
 ```
 
 Ziel:
 
-1. Lokalen Stream-PC/LAN-Startbetrieb konkretisieren.
-2. Lokale Env-/Start-Konfiguration sauber dokumentieren.
-3. Forrest-/Engel-LAN-Nutzung vorbereiten.
-4. Neue lokale Dashboard-Seiten nur nach Modulregistrierungsregeln planen oder read-only vorbereiten.
-5. Keine Agent-Actions aktivieren.
-6. Keine OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Actions aktivieren.
+1. Echte Dateien aus GitHub/dev lesen.
+2. Bestehende Modulregistrierungsregeln anwenden.
+3. Lokalen Dashboard-Hauptbereich im Modulmanifest planen.
+4. Erste lokale read-only Seiten definieren, z. B.:
+   - lokaler Stream-PC Status,
+   - lokale Verbindungsuebersicht,
+   - lokale Betriebs-/Env-Hinweise.
+5. Runtime-Scope `local`/`both` sauber verwenden.
+6. Keine Actions aktivieren.
+7. Keine DB-Migration.
+8. Keine neuen produktiven Writes.
 
-Bei neuen Modulen vorher lesen:
+Vor Umsetzung relevante Dateien lesen:
 
 ```text
 docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
 remote-modboard/backend/public/assets/modules/module-manifest.js
 remote-modboard/backend/public/assets/languages/de.js
 remote-modboard/backend/public/assets/languages/en.js
+remote-modboard/backend/public/assets/runtime-profile.js
+remote-modboard/backend/public/assets/remote-modboard.js
 ```
 
-Wichtige Regel:
-
-```text
-Neue Hauptmenues entstehen ueber manifest.modules.
-Neue Seiten entstehen ueber manifest.pages.
-Seiten geben mit moduleId an, wo sie hingehoeren.
-```
+Danach Plan nennen und auf `go` warten.

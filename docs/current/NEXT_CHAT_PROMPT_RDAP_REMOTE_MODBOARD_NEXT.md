@@ -1,4 +1,4 @@
-# NEXT CHAT PROMPT - RDAP / Remote-Modboard nach RDAP123
+# NEXT CHAT PROMPT - RDAP / Remote-Modboard nach RDAP125
 
 Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer ForrestCGN.
 
@@ -26,6 +26,7 @@ docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
 docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
 docs/current/DOCS_CURRENT_FINAL_INDEX.md
 docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
 docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
@@ -39,45 +40,48 @@ project-state/CHANGELOG.md
 
 Falls eine Datei fehlt: nicht improvisieren, exakt diese Datei aus `D:\Git\stream-control-center` anfordern.
 
-## Aktueller Live-Stand
+## Aktueller Stand
 
-RDAP123 ist live bestaetigt:
+Live bestaetigt:
 
 ```text
-version: 0.2.4
-buildName: Routes-Status angeglichen
-moduleBuild: Routes-Status angeglichen
+Version: 0.2.4
+Buildname: Routes-Status angeglichen
 runtimeMode: online
-routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP
 localDashboardProfile.visibleLabel: Onlinemodus
-localDashboardProfile.actionsEnabled: false
-localDashboardProfile.productiveWritesEnabled: false
-localDashboardProfile.agentActionsEnabled: false
-localLanMode.routeStatusAligned: true
+routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP
 ```
 
-RDAP119 bis RDAP123 sind fachlich abgeschlossen:
+RDAP124 ist abgeschlossen:
 
-- modulare UI/Foundation,
-- Modulmanifest mit Metadaten, Rechten und Runtime-Scope,
-- zentrale Sprachdateien `languages`,
-- lokales Dashboard-Profil vorbereitet,
-- `/status` und `/routes` konsistent.
+- Doku-Handoff aktualisiert.
+- Modulregistrierungsregeln dokumentiert.
+- Module/Seiten gehoeren ins zentrale Manifest.
+- Neue Hauptmenuepunkte nur ueber `manifest.modules` und nur bei fachlich eigenem Modulbereich.
 
-## Modulregistrierung
+RDAP125 ist abgeschlossen:
 
-Neue Module/Seiten muessen nach `docs/current/MODULE_REGISTRATION_RULES_CURRENT.md` registriert werden.
+- Lokales Stream-PC-/LAN-Env- und Startprofil dokumentiert.
+- Backend-Env fuer `REMOTE_MODBOARD_MODE=online|local|lan` dokumentiert.
+- Stream-PC-Agent-Env fuer `SCC_AGENT_*` dokumentiert.
+- Forrest/Engel-LAN-Zielbild dokumentiert.
+- Doku-only, keine Codeaenderung, kein Webserver-Deploy noetig.
 
-Kurzregel:
+## Naechster sinnvoller technischer Step
 
 ```text
-Neue Hauptmenues entstehen ueber manifest.modules.
-Neue Seiten entstehen ueber manifest.pages.
-Seiten geben mit moduleId an, wo sie hingehoeren.
-Runtime-Scope online/local/both und permission sind Pflicht.
-Sprachtexte gehoeren in languages.
-Backend entscheidet Sicherheit.
+RDAP126_LOCAL_DASHBOARD_MODULE_SHELL_PLAN
 ```
+
+Ziel:
+
+- lokalen Dashboard-Hauptbereich im Modulmanifest planen,
+- erste lokale read-only Seiten definieren,
+- Runtime-Scope `local`/`both` sauber anwenden,
+- keine Agent-Actions,
+- keine OBS-/Sound-/Overlay-/Command-Steuerung,
+- keine DB-Migration,
+- keine neuen produktiven Writes.
 
 ## Was NICHT gemacht werden darf
 
@@ -87,18 +91,8 @@ Backend entscheidet Sicherheit.
 - Keine Remote-Modboard-Writes ohne Confirm-Write, Permission, Audit, Lock, Backup, Rollback und Read-Back-Pruefung.
 - Keine aktiven Module entfernen.
 - Keine Funktionen entfernen.
-- Keine OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Actions ohne separaten Sicherheits-Scope.
 - Kein Webserver-Deploy bei Doku-only.
-
-## Naechster sinnvoller technischer Fokus
-
-Lokalen Stream-PC/LAN-Startbetrieb konkretisieren:
-
-- lokale Env-/Start-Konfiguration dokumentieren,
-- LAN-Zugriff fuer Forrest/Engel vorbereiten,
-- weiterhin keine Agent-Actions,
-- lokale Dashboard-Seiten nur planen oder read-only vorbereiten,
-- bestehende modulare UI und Modulregistrierungsregeln nutzen.
+- Keine Agent-/OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Actions ohne separaten Sicherheits-Scope.
 
 ## Aufgabe im neuen Chat
 

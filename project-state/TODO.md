@@ -2,9 +2,12 @@
 
 Stand: 2026-06-27
 
-- [ ] Doku-/Handoff-Step lokal einspielen.
-- [ ] `git status --short` und `git diff --stat` pruefen.
-- [ ] Bei sauberem Stand `stepdone.cmd` ausfuehren.
-- [ ] Kein Webserver-Deploy fuer Doku-only.
-- [ ] Danach lokalen Stream-PC/LAN-Startbetrieb konkretisieren.
-- [ ] Bei neuen Modulen `MODULE_REGISTRATION_RULES_CURRENT.md` anwenden.
+- [ ] RDAP126 planen: Local-Dashboard-Modul-Shell.
+- [ ] Bestehende Modulregistrierungsregeln anwenden.
+- [ ] Keine neuen Hauptmenues ohne fachlich eigenen Modulbereich.
+- [ ] Erste lokale Seiten nur read-only planen.
+- [ ] Runtime-Scope `local`/`both` sauber verwenden.
+- [ ] Keine Agent-Actions aktivieren.
+- [ ] Keine OBS-/Sound-/Overlay-/Command-Steuerung aktivieren.
+- [ ] Keine DB-Migration.
+- [ ] Keine neuen produktiven Writes.

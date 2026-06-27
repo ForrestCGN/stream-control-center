@@ -1,15 +1,25 @@
 # Changelog
 
-## Doku-/Handoff-Step nach RDAP123
+## RDAP125 - Lokales Stream-PC-/LAN-Env- und Startprofil
 
-- `START_HERE_FOR_NEW_CHAT.md` auf Live-Stand `0.2.4 - Routes-Status angeglichen` aktualisiert.
-- `CURRENT_REMOTE_MODBOARD_STATE.md` auf RDAP123-Live-Bestaetigung aktualisiert.
-- `REMOTE_MODBOARD_ROADMAP_CURRENT.md` auf RDAP119 bis RDAP123 nachgezogen.
-- `NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` neu auf RDAP123 ausgerichtet.
-- `DOCS_CURRENT_FINAL_INDEX.md` aktualisiert.
-- Neue Current-Doku `MODULE_REGISTRATION_RULES_CURRENT.md` erstellt.
-- Modulregel dokumentiert: Hauptmenues ueber `manifest.modules`, Seiten ueber `manifest.pages`, Zuordnung ueber `moduleId`.
-- Keine Code-Aenderung, keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
+- Doku fuer lokales Stream-PC-/LAN-Env- und Startprofil erstellt.
+- Backend-Env fuer `REMOTE_MODBOARD_MODE=online|local|lan` dokumentiert.
+- Webserver-Onlineprofil und spaeteres LAN-Profil getrennt beschrieben.
+- Stream-PC-Agent-Env `SCC_AGENT_*` anhand echter Agent-Konfiguration dokumentiert.
+- Manuelles Webserver-Agent-Startprofil dokumentiert.
+- Manuelles lokales Diagnoseprofil dokumentiert.
+- Forrest-/Engel-LAN-Zielbild dokumentiert.
+- Naechster Schritt `RDAP126_LOCAL_DASHBOARD_MODULE_SHELL_PLAN` vorbereitet.
+- Doku-only: keine Codeaenderung, kein Webserver-Deploy noetig.
+- Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
+
+## RDAP124 - Doku-Handoff und Modulregistrierungsregeln
+
+- Start-/Current-/Next-Chat-Doku auf RDAP123-Live-Stand aktualisiert.
+- Modulregistrierungsregeln dokumentiert.
+- Geklaert: Module/Seiten geben ueber `moduleId`/`pageId` an, wo sie hingehoeren.
+- Geklaert: neue Hauptmenuepunkte sind ueber `manifest.modules` erlaubt, aber nur bei fachlich eigenem Modulbereich.
+- Doku-only: kein Webserver-Deploy noetig.
 
 ## RDAP123 - Routes-Status angeglichen
 

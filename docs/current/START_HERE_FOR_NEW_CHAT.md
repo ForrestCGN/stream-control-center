@@ -21,6 +21,21 @@ localDashboardProfile.routeStatusAligned: true
 localLanMode.routeStatusAligned: true
 ```
 
+RDAP124 ist abgeschlossen:
+
+```text
+Doku-Handoff und Modulregistrierungsregeln ergaenzt.
+Neue Module/Seiten registrieren sich ueber das zentrale Modulmanifest.
+Neue Hauptmenuepunkte sind erlaubt, aber nur ueber manifest.modules und nur bei fachlich eigenem Modulbereich.
+```
+
+RDAP125 vorbereitet:
+
+```text
+Lokale Stream-PC-/LAN-Env- und Startprofile dokumentieren.
+Doku-only, keine Codeaenderung, kein Webserver-Deploy noetig.
+```
+
 Arbeitsweise:
 
 - Erst Doku/Stand lesen.
@@ -37,7 +52,8 @@ Sicherheitsstand:
 - Modul-Runtime-Scope `online`, `local`, `both` ist vorbereitet.
 - Frontend-Metadaten steuern Anzeige und Navigation, nicht Sicherheit.
 - Backend bleibt fuer Rechte, Scope, Confirm-Write, Audit, Lock, Backup/Rollback und Readback massgeblich.
-- Keine neuen produktiven Writes in RDAP122/RDAP123.
+- Stream-PC-Agent bleibt heartbeat/status-only.
+- Keine neuen produktiven Writes in RDAP122/RDAP123/RDAP125.
 - Keine Agent-Actions.
 - Keine OBS-Steuerung, keine Szenen-/Quellen-/Sound-/Overlay-/Command-Aktionen.
 - Keine Shell-, Datei- oder Prozessaktionen.
