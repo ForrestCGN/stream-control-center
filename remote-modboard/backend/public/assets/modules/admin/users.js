@@ -46,6 +46,66 @@
     { page: 'diagnostics', label: 'Diagnose', title: 'Diagnose', tab: 'read-only', order: 20 }
   ];
 
+
+
+  function createAdminUsersPanel() {
+    const content = document.getElementById('remoteModboardContent') || document.querySelector('.cgn-content');
+    if (!content) return null;
+    let panel = document.querySelector('[data-page-panel="admin-users"]');
+    if (panel && !panel.dataset.modulePlaceholder) return panel;
+    const holder = document.createElement('div');
+    holder.innerHTML = `        <section class="rdap-view" data-page-panel="admin-users">
+          <section class="page-header module-page-header cgn-card">
+            <p class="cgn-eyebrow">Admin</p>
+            <h1>Benutzerverwaltung</h1>
+            <p>Benutzer, Rollen und Sitzungen im Überblick. Technische Daten bleiben in Details.</p>
+          </section>
+
+          <section class="metric-grid">
+            <article class="metric-card cgn-card"><span>Benutzer</span><strong id="adminCountUsers">—</strong><small>Konten</small><div class="cgn-progress"><i style="width:62%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Sitzungen</span><strong id="adminCountSessions">—</strong><small>angemeldet</small><div class="cgn-progress"><i style="width:46%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Rollen</span><strong id="adminCountRoles">—</strong><small>sichtbar</small><div class="cgn-progress"><i style="width:58%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Permissions</span><strong id="adminCountPermissions">—</strong><small>nur ansehen</small><div class="cgn-progress"><i style="width:54%"></i></div></article>
+          </section>
+
+          <section class="page-grid">
+            <article class="cgn-card span2">
+              <div class="card-head"><div><p class="cgn-eyebrow">Benutzer</p><h2>Bekannte Modboard-Benutzer</h2></div><span class="cgn-chip" id="adminUsersPill">lädt</span></div>
+              <div class="admin-user-table" id="adminUsersList">—</div>
+            </article>
+
+            <article class="cgn-card">
+              <div class="card-head"><div><p class="cgn-eyebrow">Rollen</p><h2>Rollenmodell</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+              <div class="model-list" id="adminRolesModel">—</div>
+            </article>
+
+            <article class="cgn-card">
+              <div class="card-head"><div><p class="cgn-eyebrow">Gruppen</p><h2>Gruppenmodell</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
+              <div class="model-list" id="adminGroupsModel">—</div>
+            </article>
+
+            <article class="cgn-card span2">
+              <div class="card-head"><div><p class="cgn-eyebrow">Info</p><h2>Bearbeiten kommt in den passenden Bereichen</h2></div><span class="cgn-chip cgn-chip--info">Hinweis</span></div>
+              <div class="admin-lock-note">
+                <i>!</i>
+                <div>
+                  <strong>Nur Übersicht</strong>
+                  <span>Diese Ansicht ist zum Überblick gedacht. Änderungen werden später dort eingebaut, wo sie wirklich gebraucht werden.</span>
+                </div>
+              </div>
+            </article>
+          </section>
+        </section>`.trim();
+    const nextPanel = holder.firstElementChild;
+    if (!nextPanel) return panel;
+    if (panel && panel.parentNode) panel.replaceWith(nextPanel);
+    else {
+      const footer = content.querySelector('.footer');
+      if (footer) content.insertBefore(nextPanel, footer);
+      else content.appendChild(nextPanel);
+    }
+    return nextPanel;
+  }
   function registerAdminPage() {
     if (!window.RemoteModboardModules || typeof window.RemoteModboardModules.registerPage !== 'function') return;
 
@@ -56,7 +116,8 @@
       title: 'Benutzerverwaltung',
       tab: 'read-only',
       section: 'Admin',
-      order: 10
+      order: 10,
+      script: '/assets/modules/admin/users.js'
     });
   }
 
@@ -276,11 +337,10 @@
 
   function installAdminUsersModule() {
     registerAdminPage();
+    createAdminUsersPanel();
     cleanupAllNavigation();
     polishAdminUsersPanel();
     installAdminNavObserver();
-    loadAdminNotesModuleScript();
-    loadAdminConnectionsModuleScript();
   }
 
   installAdminUsersModule();

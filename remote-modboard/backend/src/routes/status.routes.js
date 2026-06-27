@@ -174,10 +174,14 @@ function registerStatusRoutes(app, context) {
       },
       localLanMode: {
         planned: true,
-        implemented: false,
+        foundationPrepared: true,
+        implemented: publicConfig.runtimeMode === 'local',
+        runtimeMode: publicConfig.runtimeMode || 'online',
+        bindHost: publicConfig.localLan && publicConfig.localLan.bindHost,
+        allowedCidrs: publicConfig.localLan && publicConfig.localLan.allowedCidrs,
         twitchLoginPlanned: true,
         engelCgnLanAccessPlanned: true,
-        todoParkedUntilWebDashboardStable: true
+        safetyNote: 'Lokaler Modus oeffnet nur die Weboberflaeche im LAN. Produktive Aktionen bleiben weiter durch Backend-Scope, Permission, Confirm-Write, Audit, Lock und Readback begrenzt.'
       },
       safety: context.safety
     });

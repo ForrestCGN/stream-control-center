@@ -107,10 +107,7 @@ function createApp({ config, moduleBuild }) {
 
 function injectRdapAdminUi(html) {
   if (typeof html !== 'string') return html;
-  let result = injectScriptOnce(html, '/assets/rdap28-admin-notes.js');
-  result = injectScriptOnce(result, '/assets/rdap53-permission-read-detail.js');
-  result = injectScriptOnce(result, '/assets/rdap80-agent-status.js');
-  return result;
+  return html;
 }
 
 function injectScriptOnce(html, src) {

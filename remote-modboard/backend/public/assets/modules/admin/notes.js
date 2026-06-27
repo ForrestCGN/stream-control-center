@@ -72,7 +72,22 @@
 
   function installAdminNotesModule() {
     registerAdminNotesPage();
-    polishAdminNotesPanel();
+    loadLegacyAdminNotesPanel().then(polishAdminNotesPanel).catch(() => polishAdminNotesPanel());
+  }
+
+  function loadLegacyAdminNotesPanel() {
+    if (document.querySelector('[data-page-panel="admin-notes"]')) return Promise.resolve(true);
+    if (document.querySelector('script[src="/assets/rdap28-admin-notes.js"]')) return Promise.resolve(true);
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '/assets/rdap28-admin-notes.js';
+      script.defer = true;
+      script.dataset.rdapAdminNotesCore = '1';
+      script.addEventListener('load', () => resolve(true), { once: true });
+      script.addEventListener('error', () => reject(new Error('admin_notes_core_load_failed')), { once: true });
+      document.head.appendChild(script);
+    });
   }
 
   installAdminNotesModule();

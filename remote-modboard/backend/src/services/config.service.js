@@ -16,6 +16,8 @@ function loadConfig() {
 
   const host = readString('REMOTE_MODBOARD_HOST', '127.0.0.1');
   const port = readPort('REMOTE_MODBOARD_PORT', 3010);
+  const runtimeMode = normalizeRuntimeMode(readString('REMOTE_MODBOARD_MODE', 'online'));
+  const localLanAllowedCidrs = readList('REMOTE_MODBOARD_LOCAL_ALLOWED_CIDRS', ['127.0.0.1/32']);
   const publicBaseUrl = readString('REMOTE_PUBLIC_BASE_URL', 'https://mods.forrestcgn.de');
   const centralAuthBaseUrl = readString('CENTRAL_AUTH_BASE_URL', 'https://forrestcgn.de');
   const centralAuthLoginPath = readString('CENTRAL_AUTH_LOGIN_PATH', '/login');
@@ -85,6 +87,15 @@ function loadConfig() {
     envPath,
     envFileExists,
     publicBaseUrl,
+    runtimeMode,
+    localLan: {
+      prepared: true,
+      mode: runtimeMode === 'local' ? 'local' : 'online',
+      bindHost: host,
+      allowedCidrs: localLanAllowedCidrs,
+      lanUseAllowed: runtimeMode === 'local',
+      securityBoundary: 'LAN access is only a serving mode. Productive actions still require explicit backend permissions and scoped write flows.'
+    },
     centralAuth: {
       prepared: true,
       mode: centralAuthMode,
@@ -178,6 +189,13 @@ function loadConfig() {
       appRoot: path.resolve(__dirname, '..', '..')
     }
   };
+}
+
+
+function normalizeRuntimeMode(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'local' || normalized === 'lan') return 'local';
+  return 'online';
 }
 
 function buildPublicConfigSummary(config = {}) {

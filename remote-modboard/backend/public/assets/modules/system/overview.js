@@ -5,7 +5,8 @@
   const PAGE_ID = 'overview';
 
   function createOverviewPanel() {
-    if (document.querySelector('[data-page-panel="overview"]')) return;
+    const existingPanel = document.querySelector('[data-page-panel="overview"]');
+    if (existingPanel && !existingPanel.dataset.modulePlaceholder) return;
 
     const content = document.getElementById('remoteModboardContent') || document.querySelector('.cgn-content');
     if (!content) return;
@@ -48,7 +49,9 @@
       </section>
     `;
 
-    if (errorBox && errorBox.parentNode === content) {
+    if (existingPanel && existingPanel.parentNode) {
+      existingPanel.replaceWith(panel);
+    } else if (errorBox && errorBox.parentNode === content) {
       errorBox.insertAdjacentElement('afterend', panel);
     } else {
       content.insertBefore(panel, content.firstElementChild);

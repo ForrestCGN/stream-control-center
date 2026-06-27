@@ -4,7 +4,7 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const MODULE_BUILD = 'VERSION_0_1_3_STREAMING_PC_OBS_STATUS_READONLY';
+const MODULE_BUILD = 'RDAP119_MODULAR_UI_AND_LOCAL_DASHBOARD_FOUNDATION';
 
 async function main() {
   const config = loadConfig();

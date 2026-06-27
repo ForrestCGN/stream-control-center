@@ -36,7 +36,7 @@
   let notesBridgeContext = null;
   let adminNotesLoadSeq = 0;
 
-  document.addEventListener("DOMContentLoaded", () => {
+  function initAdminNotesModule() {
     injectStyles();
     injectNavigation();
     injectPanel();
@@ -48,7 +48,13 @@
     scheduleRdap40RestoreStateRepair();
     void loadTargetUsers("initial");
     loadAdminNotes("initial");
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAdminNotesModule);
+  } else {
+    initAdminNotesModule();
+  }
 
   window.addEventListener("rdap44:select-admin-note-target", (event) => {
     const detail = event && event.detail ? event.detail : {};

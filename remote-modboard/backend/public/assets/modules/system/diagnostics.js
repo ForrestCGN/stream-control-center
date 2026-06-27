@@ -255,14 +255,10 @@
   createDiagnosticsPanel();
   registerPage();
   installRoutesDecision();
-  loadAdminUsersModuleScript();
-  loadRefreshBehaviorModuleScript();
 
   document.addEventListener('DOMContentLoaded', () => {
     createDiagnosticsPanel();
     registerPage();
     installRoutesDecision();
-    loadAdminUsersModuleScript();
-    loadRefreshBehaviorModuleScript();
   });
 })();

@@ -2,25 +2,33 @@
 
 Stand: 2026-06-27
 
-## Geaendert in RDAP Admin Notes UI Loop Fix 1
+## Geaendert / neu in RDAP119
 
 ```text
+remote-modboard/backend/server.js
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/.env.example
+remote-modboard/deploy/env/remote-modboard.env.example
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.js
 remote-modboard/backend/public/assets/rdap28-admin-notes.js
-docs/current/RDAP_ADMIN_NOTES_UI_LOOP_FIX_1_PRELOGIN_STACK_OVERFLOW.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_ADMIN_NOTES_UI_LOOP_FIX_1_VERIFY_DEPLOY.md
+remote-modboard/backend/public/assets/modules/system/overview.js
+remote-modboard/backend/public/assets/modules/system/diagnostics.js
+remote-modboard/backend/public/assets/modules/admin/users.js
+remote-modboard/backend/public/assets/modules/admin/notes.js
+remote-modboard/backend/public/assets/modules/admin/connections.js
+remote-modboard/backend/public/assets/modules/admin/details.js
+remote-modboard/backend/public/assets/modules/admin/access.js
+remote-modboard/backend/public/assets/modules/modules/catalog.js
+remote-modboard/backend/public/assets/modules/account/status.js
+remote-modboard/backend/public/assets/modules/account/permissions.js
+docs/current/RDAP119_MODULAR_UI_AND_LOCAL_DASHBOARD_FOUNDATION.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP119.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
-project-state/CHANGELOG.md
 project-state/FILES.md
+project-state/CHANGELOG.md
 ```
-
-## Naechster normaler RDAP-Startprompt
-
-```text
-docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
-```
-
-## Regel
-
-`project-state/TODO.md` bleibt kurz und aktiv. Langzeitpunkte, alte Planungen und bewusst geparkte Themen gehoeren nach `project-state/PARKED_TODOS.md`.

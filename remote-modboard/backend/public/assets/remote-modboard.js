@@ -31,6 +31,21 @@ let isLoading = false;
 let currentPage = 'overview';
 let latestAuthBody = null;
 let latestPermissionBody = null;
+let latestDashboardResults = null;
+
+const rdapPageModuleScripts = new Map([
+  ['overview', '/assets/modules/system/overview.js'],
+  ['diagnostics', '/assets/modules/system/diagnostics.js'],
+  ['routes', '/assets/modules/admin/details.js'],
+  ['modules', '/assets/modules/modules/catalog.js'],
+  ['account', '/assets/modules/account/status.js'],
+  ['permissions', '/assets/modules/account/permissions.js'],
+  ['access', '/assets/modules/admin/access.js'],
+  ['admin-users', '/assets/modules/admin/users.js'],
+  ['connections', '/assets/modules/admin/connections.js'],
+  ['admin-notes', '/assets/modules/admin/notes.js']
+]);
+const rdapLoadedModuleScripts = new Map();
 
 const remoteModboardModules = createRemoteModboardModuleRegistry();
 window.RemoteModboardModules = remoteModboardModules;
@@ -42,6 +57,7 @@ window.addEventListener('scroll', () => {
 document.addEventListener('DOMContentLoaded', () => {
   exposeMainRouterApi();
   initializeRemoteModboardModules();
+  loadScriptOnce('/assets/modules/ui/refresh-behavior.js');
   injectAdminNotesPolishStyles();
   initAdminNotesHeaderActionsDedup();
   installAdminNotesHumanReadableList();
@@ -62,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindOptional('navToggle', 'click', () => document.body.classList.toggle('nav-collapsed'));
   bindOptional('scrim', 'click', () => document.body.classList.remove('nav-collapsed'));
   startAutoRefresh();
+  setPage('overview', { section: 'System', title: 'Übersicht', tab: 'Status' });
   loadDashboard('initial');
 });
 
@@ -110,7 +127,8 @@ function createRemoteModboardModuleRegistry() {
       section: source.section || existing.section || source.moduleLabel || existing.moduleLabel || '',
       order: Number.isFinite(Number(source.order)) ? Number(source.order) : (Number.isFinite(Number(existing.order)) ? Number(existing.order) : 100),
       status: source.status || existing.status || 'active',
-      permission: source.permission || existing.permission || ''
+      permission: source.permission || existing.permission || '',
+      script: source.script || existing.script || rdapPageModuleScripts.get(pageId) || ''
     };
   }
 
@@ -135,19 +153,18 @@ function createRemoteModboardModuleRegistry() {
 
   function registerDefaultShell() {
     registerModule({ id: 'system', label: 'System', icon: '◆', order: 10, navSubId: 'nav-system' });
-    registerPage({ moduleId: 'system', pageId: 'overview', label: 'Übersicht', title: 'Übersicht', tab: 'Status', section: 'System', order: 10 });
-    registerPage({ moduleId: 'system', pageId: 'diagnostics', label: 'Diagnose', title: 'Diagnose', tab: 'Endpoints', section: 'System', order: 20 });
-    registerPage({ moduleId: 'system', pageId: 'routes', label: 'Routen', title: 'Routen', tab: 'Read-only', section: 'System', order: 30 });
+    registerPage({ moduleId: 'system', pageId: 'overview', label: 'Übersicht', title: 'Übersicht', tab: 'Status', section: 'System', order: 10, script: '/assets/modules/system/overview.js' });
+    registerPage({ moduleId: 'system', pageId: 'diagnostics', label: 'Diagnose', title: 'Diagnose', tab: 'Status', section: 'System', order: 20, script: '/assets/modules/system/diagnostics.js' });
 
     registerModule({ id: 'modules', label: 'Module', icon: '◇', order: 20, navSubId: 'nav-modules' });
-    registerPage({ moduleId: 'modules', pageId: 'modules', label: 'Module', title: 'Module', tab: 'read-only', section: 'Module', order: 10 });
+    registerPage({ moduleId: 'modules', pageId: 'modules', label: 'Module', title: 'Module', tab: 'read-only', section: 'Module', order: 10, script: '/assets/modules/modules/catalog.js' });
 
     registerModule({ id: 'admin', label: 'Admin', icon: '⚙', order: 30, navSubId: 'nav-admin' });
-    registerPage({ moduleId: 'admin', pageId: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', section: 'Admin', order: 10 });
-    registerPage({ moduleId: 'admin', pageId: 'admin-user-detail', label: 'User-Detail', title: 'User-Detail', tab: 'read-only', section: 'Admin', order: 20 });
-    registerPage({ moduleId: 'admin', pageId: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read/create', section: 'Admin', order: 30, permission: 'admin.users.note.read' });
-    registerPage({ moduleId: 'admin', pageId: 'access', label: 'Rollen & Rechte', title: 'Rollen & Rechte', tab: 'read-only', section: 'Admin', order: 40 });
-    registerPage({ moduleId: 'admin', pageId: 'diagnostics', label: 'Sicherheit', title: 'Sicherheit', tab: 'Diagnose', section: 'Admin', order: 50 });
+    registerPage({ moduleId: 'admin', pageId: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', section: 'Admin', order: 10, script: '/assets/modules/admin/users.js' });
+    registerPage({ moduleId: 'admin', pageId: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read-only', section: 'Admin', order: 20, permission: 'admin.users.note.read', script: '/assets/modules/admin/notes.js' });
+    registerPage({ moduleId: 'admin', pageId: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', section: 'Admin', order: 30, script: '/assets/modules/admin/connections.js' });
+    registerPage({ moduleId: 'admin', pageId: 'routes', label: 'Doku / Details', title: 'Doku / Details', tab: 'read-only', section: 'Admin', order: 90, script: '/assets/modules/admin/details.js' });
+
   }
 
   function initialize() {
@@ -594,6 +611,23 @@ function readNavMeta(button) {
 }
 
 function setPage(page, meta) {
+  const requestedPage = normalizePageId(page || 'overview') || 'overview';
+  setModuleLoading(requestedPage, true);
+
+  ensurePageModuleLoaded(requestedPage)
+    .then(() => {
+      const resolvedPage = document.querySelector(`[data-page-panel="${cssEscape(requestedPage)}"]`) ? requestedPage : 'overview';
+      activatePage(resolvedPage, meta);
+      if (latestDashboardResults) renderDashboardResults(latestDashboardResults);
+    })
+    .catch((err) => {
+      showErrors(`Modul konnte nicht geladen werden: ${requestedPage} (${err && err.message ? err.message : err})`);
+      activatePage('overview', { section: 'System', title: 'Übersicht', tab: 'Status' });
+    })
+    .finally(() => setModuleLoading(requestedPage, false));
+}
+
+function activatePage(page, meta) {
   currentPage = document.querySelector(`[data-page-panel="${cssEscape(page)}"]`) ? page : 'overview';
   const activeLink = document.querySelector(`.nav-link[data-page="${cssEscape(currentPage)}"]`);
   const section = meta && meta.section ? meta.section : (activeLink ? activeLink.dataset.section : 'System');
@@ -619,6 +653,69 @@ function setPage(page, meta) {
   });
 
   emitPageChange(currentPage, { section, title, tab });
+}
+
+function normalizePageId(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function getPageModuleScript(page) {
+  const pageId = normalizePageId(page);
+  if (!pageId) return '';
+  if (window.RemoteModboardModules && typeof window.RemoteModboardModules.getPage === 'function') {
+    const registered = window.RemoteModboardModules.getPage(pageId);
+    if (registered && registered.script) return registered.script;
+  }
+  return rdapPageModuleScripts.get(pageId) || '';
+}
+
+function ensurePageModuleLoaded(page) {
+  const pageId = normalizePageId(page);
+  if (!pageId) return Promise.resolve(false);
+  if (document.querySelector(`[data-page-panel="${cssEscape(pageId)}"]`) && !document.querySelector(`[data-module-placeholder="${cssEscape(pageId)}"]`)) return Promise.resolve(true);
+
+  const src = getPageModuleScript(pageId);
+  if (!src) return Promise.resolve(false);
+
+  return loadScriptOnce(src).then(() => {
+    const placeholder = document.querySelector(`[data-module-placeholder="${cssEscape(pageId)}"]`);
+    if (placeholder && placeholder.parentNode && document.querySelectorAll(`[data-page-panel="${cssEscape(pageId)}"]`).length > 1) placeholder.remove();
+    return true;
+  });
+}
+
+function loadScriptOnce(src) {
+  const cleanSrc = String(src || '').trim();
+  if (!cleanSrc) return Promise.resolve(false);
+  if (rdapLoadedModuleScripts.has(cleanSrc)) return rdapLoadedModuleScripts.get(cleanSrc);
+
+  const existing = document.querySelector(`script[src="${cssEscape(cleanSrc)}"]`);
+  if (existing && existing.dataset.rdapLoaded === '1') {
+    const ready = Promise.resolve(true);
+    rdapLoadedModuleScripts.set(cleanSrc, ready);
+    return ready;
+  }
+
+  const promise = new Promise((resolve, reject) => {
+    const script = existing || document.createElement('script');
+    script.src = cleanSrc;
+    script.defer = true;
+    script.dataset.rdapModuleScript = '1';
+    script.addEventListener('load', () => {
+      script.dataset.rdapLoaded = '1';
+      resolve(true);
+    }, { once: true });
+    script.addEventListener('error', () => reject(new Error(`script_load_failed:${cleanSrc}`)), { once: true });
+    if (!existing) document.head.appendChild(script);
+  });
+
+  rdapLoadedModuleScripts.set(cleanSrc, promise);
+  return promise;
+}
+
+function setModuleLoading(page, loading) {
+  const button = document.querySelector(`.nav-link[data-page="${cssEscape(normalizePageId(page))}"]`);
+  if (button) button.classList.toggle('is-loading', loading === true);
 }
 
 function emitPageChange(page, meta) {
@@ -676,6 +773,19 @@ async function loadDashboard(reason) {
 
   const results = Object.fromEntries(entries);
 
+  latestDashboardResults = results;
+  renderDashboardResults(results);
+
+  setText('lastUpdatedText', `Aktualisiert: ${new Date().toLocaleString('de-DE')}`);
+
+  isLoading = false;
+  if (refreshButton) refreshButton.disabled = false;
+  updateAutoRefreshText(reason ? `Auto-Refresh in ${refreshCountdown}s · ${reason}` : undefined);
+}
+
+
+function renderDashboardResults(results) {
+  if (!results) return;
   renderScenes(results.authMe, results.status, results.loginPlan);
   renderStatus(results.status);
   renderSecurity(results.status, results.lockAudit, results.loginPlan);
@@ -687,12 +797,6 @@ async function loadDashboard(reason) {
   renderEndpoints(results);
   renderQuickStatus(results);
   renderErrors(results);
-
-  setText('lastUpdatedText', `Aktualisiert: ${new Date().toLocaleString('de-DE')}`);
-
-  isLoading = false;
-  if (refreshButton) refreshButton.disabled = false;
-  updateAutoRefreshText(reason ? `Auto-Refresh in ${refreshCountdown}s · ${reason}` : undefined);
 }
 
 async function getJson(url) {
@@ -1133,6 +1237,11 @@ function renderErrors(results) {
     const detail = result.error || (result.body && result.body.error) || `HTTP ${result.httpStatus || 0}`;
     return `${label}: Problem seit letzter Prüfung. Details: ${detail}`;
   }).join(' · '));
+  setHidden('errorBox', false);
+}
+
+function showErrors(message) {
+  setText('errorText', message || 'Unbekannter Fehler');
   setHidden('errorBox', false);
 }
 
