@@ -1,7 +1,8 @@
 # TODO
 
-- Cleanup 3 lokal sauber abschliessen, falls noch nicht erledigt.
-- Cleanup 4 Modul-/Route-/Service-Doku einspielen.
-- Cleanup-4-Scan gegen lokales dev ausfuehren.
-- Danach alte `docs/current` Dateien paketweise mit exakter Liste loeschen oder archivieren.
-- Keine Codeaenderungen im Doku-Cleanup ohne separaten Scope.
+Stand: 2026-06-27
+
+- Cleanup 5 lokal ausfuehren und historischen RDAP-/Prompt-Bestand aus `docs/current` archivieren.
+- Danach `docs/current` erneut pruefen.
+- Cleanup 6 vorbereiten: CAN/EVS/LC/Diagnostics/Tagebuch-Dateien thematisch zusammenfuehren oder archivieren.
+- Technischer Basisstand 0.1.3 bleibt unveraendert: read-only, keine Writes.

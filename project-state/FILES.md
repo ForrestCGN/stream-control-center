@@ -1,19 +1,21 @@
 # Files
 
-## RDAP_DOCS_CLEANUP_4_MODULE_DOCS_CONSOLIDATION
+Stand: 2026-06-27
 
-Neu/geaendert:
+## Cleanup 5 vorbereitet
 
-- docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
-- docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
-- docs/current/DOCS_CURRENT_CONSOLIDATION_AUDIT.md
-- docs/current/DOCS_CLEANUP_4_CANDIDATE_SUMMARY.md
-- docs/current/NEXT_CHAT_PROMPT_RDAP_DOCS_CLEANUP_5.md
-- tools/cleanup/rdap-docs-cleanup-4-docs-current-scan.ps1
-- project-state/CURRENT_STATUS.md
-- project-state/NEXT_STEPS.md
-- project-state/TODO.md
-- project-state/FILES.md
-- project-state/CHANGELOG.md
+```text
+docs/current/DOCS_CLEANUP_5_CURRENT_ARCHIVE_MANIFEST.md
+docs/current/DOCS_CLEANUP_5_CANDIDATE_SUMMARY.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_DOCS_CLEANUP_6.md
+tools/cleanup/rdap-docs-cleanup-5-docs-current-archive.ps1
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
 
-Keine Backend-/Dashboard-/Remote-Modboard-Codeaenderung.
+## Bei Execute erzeugte Moves
+
+Historische `RDAP*`- und `NEXT_CHAT_PROMPT*`-Dateien werden von `docs/current/` nach `docs/archive/docs-current-cleanup-5/` verschoben.

@@ -1,20 +1,12 @@
 # Changelog
 
-## RDAP Docs Cleanup 4 - Module Docs Consolidation
+## RDAP Docs Cleanup 5
 
-- Zentrale Modul-Doku fuer Backend-/Dashboard-Domaenen vorbereitet.
-- Zentrale Remote-Modboard Route-/Service-Doku vorbereitet.
-- `docs/current` Konsolidierungs-Audit mit Snapshot-Zaehlen und Kategorien vorbereitet.
-- Lokales Scan-Script fuer `docs/current` und `project-state` Root vorbereitet.
-- Keine produktiven Codeaenderungen.
-- Kein Webserver-Deploy noetig.
-
-## RDAP Docs Cleanup 3 - Local Untracked Clean
-
-- Script zur gezielten lokalen Bereinigung untracked Restdateien nach Cleanup 2 vorbereitet.
-- Dry-Run/Execute-Modus fuer nachvollziehbare Entfernung.
-- Keine produktiven Codeaenderungen.
-- Kein Webserver-Deploy noetig.
+- Exaktes Archiv-Move-Manifest fuer historische `RDAP*`- und `NEXT_CHAT_PROMPT*`-Dateien aus `docs/current` erstellt.
+- PowerShell-Script mit Dry-Run und Execute vorbereitet.
+- Zielarchiv: `docs/archive/docs-current-cleanup-5/`.
+- Keine harten Deletes in diesem Step.
+- Keine Code-, DB- oder Webserver-Aenderungen.
 
 ## Version 0.1.3
 
