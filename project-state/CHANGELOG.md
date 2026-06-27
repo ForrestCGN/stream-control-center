@@ -1,5 +1,13 @@
 # Changelog
 
+## RDAP128 - Handoff nach Version 0.2.5
+
+- Live-Bestaetigung fuer `0.2.5 - Lokales Dashboard vorbereitet` dokumentiert.
+- Startdatei und Next-Chat-Prompt auf den bestaetigten Live-Stand aktualisiert.
+- Geparkte Idee `Kontrollierter Online-Sync lokaler Aenderungen` dokumentiert.
+- Naechster sinnvoller technischer Fokus auf `0.2.6 - Lokale Statusdaten verbessert` gesetzt.
+- Doku-only: keine Codeaenderung, kein Webserver-Deploy noetig.
+
 ## Version 0.2.5 - Lokales Dashboard vorbereitet
 
 - Sichtbare Version `0.2.5` eingefuehrt.
@@ -22,16 +30,4 @@
 - `/api/remote/routes` enthaelt jetzt `localDashboardProfile` passend zum RDAP122-Status.
 - Alter `localLanMode`-Block in `/routes` wurde durch Runtime-basierte Werte ersetzt.
 - Doku-/Projektstatus-Dateien auf den RDAP122/RDAP123-Live-Stand nachgezogen.
-- Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
-
-## RDAP122 - Lokales Dashboard-Profil
-
-- Sichtbare Version `0.2.3` eingefuehrt.
-- Deutscher kurzer Buildname `Lokales Dashboard-Profil` eingefuehrt.
-- `localDashboardProfile` in Config und Status-API vorbereitet.
-- Runtime-Modus `online/local` wird in der UI sichtbar angezeigt.
-- `REMOTE_MODBOARD_MODE=lan` wird weiter als `local` normalisiert.
-- Modulmanifest auf Version `0.2.3` gesetzt und Runtime-Profile dokumentiert.
-- Neues Frontend-Helferfile `runtime-profile.js` markiert Navigation anhand `runtime: online|local|both`.
-- Zentrale Sprachdateien um Runtime-Texte erweitert.
 - Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.

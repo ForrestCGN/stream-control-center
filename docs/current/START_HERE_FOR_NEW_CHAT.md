@@ -2,6 +2,23 @@
 
 Aktueller Stand: Version `0.2.5` - `Lokales Dashboard vorbereitet`.
 
+Live bestaetigt am 2026-06-27:
+
+```text
+/api/remote/status
+version: 0.2.5
+buildName: Lokales Dashboard vorbereitet
+moduleBuild: Lokales Dashboard vorbereitet
+runtimeMode: online
+localDashboardProfile.visibleLabel: Onlinemodus
+localDashboardProfile.localDashboardMenuPrepared: true
+localDashboardProfile.localDashboardReadOnlyPagesPrepared: true
+localDashboardProfile.localDashboardPages: stream-pc-status, lan-access, start-env
+localDashboardProfile.actionsEnabled: false
+localDashboardProfile.productiveWritesEnabled: false
+localDashboardProfile.agentActionsEnabled: false
+```
+
 Arbeitsweise:
 
 - Erst Doku/Stand lesen.
@@ -21,6 +38,13 @@ Aktueller Funktionsstand:
   - LAN / Zugriff,
   - Start / Env.
 - Diese lokalen Seiten haben `runtime: local`; im Onlinebetrieb werden sie nur als nicht passender Runtime-Scope markiert/gesperrt.
+
+Geparkte Idee:
+
+- Lokale Aenderungen spaeter kontrolliert online synchronisieren.
+- Nicht sofort bauen.
+- Zielbild: lokal speichern -> pruefen -> zum Sync vormerken -> freigeben -> online uebernehmen.
+- Kein Blind-Auto-Sync fuer kritische Bereiche.
 
 Sicherheitsstand:
 

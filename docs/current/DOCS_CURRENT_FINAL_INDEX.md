@@ -8,7 +8,7 @@ Diese Datei beschreibt den aktuellen Sollbestand von `docs/current/`.
 
 `docs/current/` soll nur aktuelle Arbeits-, Start-, Status-, Architektur- und Weiterarbeits-Dokumente enthalten. Historische Handoffs, alte Cleanup-Audits, alte Next-Chat-Prompts und abgeloeste Step-Dokumente gehoeren in `docs/archive/`.
 
-## Wichtige aktuelle Dateien
+## Aktueller wichtiger Bestand
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
@@ -19,12 +19,21 @@ docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
 docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
 docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
 docs/current/LOCAL_DASHBOARD_MODULE_SHELL_PLAN_CURRENT.md
+docs/current/ONLINE_SYNC_IDEA_PARKED_CURRENT.md
+docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
 docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
 docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
-docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
-docs/current/DOCS_CURRENT_FINAL_INDEX.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
+docs/current/DOCS_CURRENT_FINAL_INDEX.md
 ```
+
+## Aktueller sichtbarer Stand
+
+```text
+0.2.5 - Lokales Dashboard vorbereitet
+```
+
+Live bestaetigt am 2026-06-27.
 
 ## Arbeitsregel
 

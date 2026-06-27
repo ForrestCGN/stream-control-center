@@ -1,4 +1,4 @@
-# NEXT CHAT PROMPT - RDAP / Remote-Modboard normale Weiterarbeit
+# NEXT CHAT PROMPT - Remote-Modboard Weiterarbeit
 
 Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer ForrestCGN.
 
@@ -29,6 +29,7 @@ project-state/CHANGELOG.md
 docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
 docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
 docs/current/LOCAL_DASHBOARD_MODULE_SHELL_PLAN_CURRENT.md
+docs/current/ONLINE_SYNC_IDEA_PARKED_CURRENT.md
 ```
 
 ## Aktueller Stand
@@ -37,6 +38,23 @@ Aktueller sichtbarer Stand:
 
 ```text
 0.2.5 - Lokales Dashboard vorbereitet
+```
+
+Live bestaetigt am 2026-06-27:
+
+```text
+/api/remote/status
+version: 0.2.5
+buildName: Lokales Dashboard vorbereitet
+moduleBuild: Lokales Dashboard vorbereitet
+runtimeMode: online
+localDashboardProfile.visibleLabel: Onlinemodus
+localDashboardProfile.localDashboardMenuPrepared: true
+localDashboardProfile.localDashboardReadOnlyPagesPrepared: true
+localDashboardProfile.localDashboardPages: stream-pc-status, lan-access, start-env
+localDashboardProfile.actionsEnabled: false
+localDashboardProfile.productiveWritesEnabled: false
+localDashboardProfile.agentActionsEnabled: false
 ```
 
 Umgesetzt:
@@ -49,6 +67,13 @@ Umgesetzt:
 - Runtime-Scope `local` fuer diese Seiten.
 - Sprachkeys Deutsch/Englisch.
 - Status-API meldet lokale Dashboard-Seiten als vorbereitet.
+
+Geparkte Idee:
+
+- Lokale Aenderungen spaeter kontrolliert online synchronisieren.
+- Nicht sofort bauen.
+- Spaeteres Zielbild: lokal aendern -> pruefen -> vormerken -> freigeben -> online uebernehmen.
+- Kein Blind-Auto-Sync fuer kritische Bereiche.
 
 ## Was NICHT gemacht werden darf
 
@@ -64,6 +89,20 @@ Umgesetzt:
 ## Naechster sinnvoller Arbeitsfokus
 
 Lokales Dashboard mit echten read-only Daten verbessern, ohne Actions zu aktivieren.
+
+Moeglicher sichtbarer naechster Buildname:
+
+```text
+0.2.6 - Lokale Statusdaten verbessert
+```
+
+Moeglicher Inhalt:
+
+- vorhandene lokale read-only Seiten mit echten sicheren Statuswerten verbinden,
+- keine neuen Writes,
+- keine Agent-Actions,
+- keine OBS-/Sound-/Overlay-/Command-Steuerung,
+- Backend bleibt Sicherheitsinstanz.
 
 Vor jeder Umsetzung:
 

@@ -2,11 +2,10 @@
 
 Stand: 2026-06-27
 
-- [ ] Version `0.2.5 - Lokales Dashboard vorbereitet` lokal einspielen.
-- [ ] Syntax-Checks ausfuehren.
-- [ ] `/api/remote/status` pruefen.
-- [ ] Browser-Test: Moduluebersicht und Navigation.
-- [ ] Optional lokal mit `REMOTE_MODBOARD_MODE=local` gegenpruefen.
-- [ ] Nach Erfolg `stepdone.cmd`.
-- [ ] Webserver-Deploy mit Deploy-Wrapper.
-- [ ] Danach lokale read-only Seiten verfeinern.
+- [ ] RDAP128 Doku-Handoff lokal einspielen.
+- [ ] `git status --short` und `git diff --stat` pruefen.
+- [ ] Bei sauberem Doku-Stand `stepdone.cmd` ausfuehren.
+- [ ] Kein Webserver-Deploy noetig, weil Doku-only.
+- [ ] Im neuen Chat mit Pflichtdateien starten.
+- [ ] Danach moeglich: Version `0.2.6 - Lokale Statusdaten verbessert` planen.
+- [ ] Sync-Idee nur geparkt lassen, nicht sofort bauen.
