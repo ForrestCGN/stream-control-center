@@ -1,38 +1,6 @@
 # Start hier
 
-Aktueller Stand: Version `0.2.4` - `Routes-Status angeglichen`.
-
-Live bestaetigt am 2026-06-27:
-
-```text
-/api/remote/status
-version: 0.2.4
-buildName: Routes-Status angeglichen
-moduleBuild: Routes-Status angeglichen
-runtimeMode: online
-localDashboardProfile.visibleLabel: Onlinemodus
-localDashboardProfile.actionsEnabled: false
-localDashboardProfile.productiveWritesEnabled: false
-localDashboardProfile.agentActionsEnabled: false
-
-/api/remote/routes
-routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP
-localDashboardProfile.routeStatusAligned: true
-localLanMode.routeStatusAligned: true
-```
-
-Abgeschlossen:
-
-```text
-RDAP119 - Modulare UI/Foundation
-RDAP120 - Modul-Metadaten und Rechte
-RDAP121 - Zentrale Sprachdateien
-RDAP122 - Lokales Dashboard-Profil
-RDAP123 - Routes-Status angeglichen
-RDAP124 - Doku-Handoff und Modulregistrierungsregeln
-RDAP125 - Lokales Stream-PC-/LAN-Env- und Startprofil
-RDAP126 - Lokales Dashboard Modul-Shell-Plan
-```
+Aktueller Stand: Version `0.2.5` - `Lokales Dashboard vorbereitet`.
 
 Arbeitsweise:
 
@@ -41,25 +9,25 @@ Arbeitsweise:
 - WINDOWS / POWERSHELL und WEBSERVER / LINUX strikt trennen.
 - Keine `jq`-Befehle fuer Windows.
 - ZIP ist nur vorbereitet. Lokal gilt erst nach `installstep.cmd` + Neustart/Test. Webserver gilt erst nach `stepdone.cmd` + Deploy-Wrapper + Test.
-- Nutzerkommunikation mit Versionsnummern und sprechenden Namen, keine internen Step-Namen.
-- Neue Module/Seiten muessen sich sauber ueber das Modulmanifest registrieren. Sie duerfen nur dort neue Hauptmenuepunkte anlegen, wo ein fachlich eigener Modulbereich begruendet ist.
+- Nutzerkommunikation mit Versionsnummern und sprechenden deutschen Namen, keine internen Step-Namen.
+- Neue Module/Seiten muessen sich sauber ueber das zentrale Modulmanifest registrieren. Neue Hauptmenues entstehen nur ueber `manifest.modules`, Seiten ordnen sich per `moduleId` zu.
 
-Wichtige aktuelle Dokus:
+Aktueller Funktionsstand:
 
-```text
-docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
-docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
-docs/current/LOCAL_DASHBOARD_MODULE_SHELL_PLAN_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
-```
+- Remote-Modboard UI ist modularisiert.
+- Modul-Metadaten, Sprachdateien und Runtime-Scope sind vorbereitet.
+- Version `0.2.5 - Lokales Dashboard vorbereitet` ergaenzt den Hauptbereich `Lokales Dashboard` und drei lokale read-only Seiten:
+  - Stream-PC Status,
+  - LAN / Zugriff,
+  - Start / Env.
+- Diese lokalen Seiten haben `runtime: local`; im Onlinebetrieb werden sie nur als nicht passender Runtime-Scope markiert/gesperrt.
 
 Sicherheitsstand:
 
 - Online/Lokal-Runtime-Profil ist vorbereitet und sichtbar.
-- Modul-Runtime-Scope `online`, `local`, `both` ist vorbereitet.
 - Frontend-Metadaten steuern Anzeige und Navigation, nicht Sicherheit.
 - Backend bleibt fuer Rechte, Scope, Confirm-Write, Audit, Lock, Backup/Rollback und Readback massgeblich.
-- Keine neuen produktiven Writes in RDAP122 bis RDAP126.
+- Keine neuen produktiven Writes in Version 0.2.5.
 - Keine Agent-Actions.
 - Keine OBS-Steuerung, keine Szenen-/Quellen-/Sound-/Overlay-/Command-Aktionen.
 - Keine Shell-, Datei- oder Prozessaktionen.

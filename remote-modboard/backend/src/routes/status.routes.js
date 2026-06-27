@@ -9,8 +9,8 @@ const { buildAgentStatusSummary } = require('../services/agent-status.service');
 const RDAP62_STATUS_API_VERSION = 'rdap_admin_note_update_status62.v1';
 const RDAP62_BUILD = 'RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP';
 const RDAP122_STATUS_API_VERSION = 'rdap_local_dashboard_profile122.v1';
-const APP_VERSION_FALLBACK = '0.2.3';
-const BUILD_NAME_FALLBACK = 'Lokales Dashboard-Profil';
+const APP_VERSION_FALLBACK = '0.2.5';
+const BUILD_NAME_FALLBACK = 'Lokales Dashboard vorbereitet';
 
 function registerStatusRoutes(app, context) {
   app.get('/api/remote/status', async (req, res) => {
@@ -130,7 +130,8 @@ function registerStatusRoutes(app, context) {
           'Admin-Notiz Update-UI, Deactivate und Delete bleiben deaktiviert.',
           'RDAP80 ergaenzt nur Agent-Status/Heartbeat-Foundation read-only; Remote-Actions bleiben deaktiviert.',
           'RDAP82 bereitet nur einen Runtime-disabled Skeleton fuer die Stream-PC Verbindung vor; Agent-Actions bleiben deaktiviert.',
-          'RDAP122 ergaenzt nur das lokale Dashboard-Profil und Runtime-Scope-Anzeige; keine neuen Aktionen.'
+          'RDAP122 ergaenzt nur das lokale Dashboard-Profil und Runtime-Scope-Anzeige; keine neuen Aktionen.',
+          'Version 0.2.5 ergaenzt nur lokale Dashboard-Seiten read-only; keine Actions.'
         ]
       },
       adminNoteWritePlan: {
@@ -220,6 +221,9 @@ function registerStatusRoutes(app, context) {
         moduleVisibilityFrontendOnly: true,
         backendStillAuthoritative: true,
         localDashboardReplacementPrepared: true,
+        localDashboardMenuPrepared: true,
+        localDashboardReadOnlyPagesPrepared: true,
+        localDashboardPages: ['stream-pc-status', 'lan-access', 'start-env'],
         lanUseAllowed: localLan.lanUseAllowed === true,
         actionsEnabled: false,
         productiveWritesEnabled: false,
@@ -252,6 +256,7 @@ function buildModuleMetadataSummary(runtimeMode = 'online') {
     modules: [
       { id: 'system', label: 'System', runtime: 'both', permission: 'remote.view' },
       { id: 'modules', label: 'Module', runtime: 'both', permission: 'remote.modules.read' },
+      { id: 'local-dashboard', label: 'Lokales Dashboard', runtime: 'local', permission: 'local.dashboard.read' },
       { id: 'admin', label: 'Admin', runtime: 'both', permission: 'admin.view' },
       { id: 'account', label: 'Mein Konto', runtime: 'both', permission: 'remote.view', hiddenInMainNav: true }
     ],
@@ -259,6 +264,9 @@ function buildModuleMetadataSummary(runtimeMode = 'online') {
       { pageId: 'overview', label: 'Übersicht', moduleId: 'system', runtime: 'both', permission: 'remote.view' },
       { pageId: 'diagnostics', label: 'Diagnose', moduleId: 'system', runtime: 'both', permission: 'remote.diagnostics.read' },
       { pageId: 'modules', label: 'Modulübersicht', moduleId: 'modules', runtime: 'both', permission: 'remote.modules.read' },
+      { pageId: 'stream-pc-status', label: 'Stream-PC Status', moduleId: 'local-dashboard', runtime: 'local', permission: 'local.streamPc.status.read' },
+      { pageId: 'lan-access', label: 'LAN / Zugriff', moduleId: 'local-dashboard', runtime: 'local', permission: 'local.lan.access.read' },
+      { pageId: 'start-env', label: 'Start / Env', moduleId: 'local-dashboard', runtime: 'local', permission: 'local.env.read' },
       { pageId: 'admin-users', label: 'Benutzerverwaltung', moduleId: 'admin', runtime: 'both', permission: 'admin.users.read' },
       { pageId: 'admin-notes', label: 'Admin-Notizen', moduleId: 'admin', runtime: 'both', permission: 'admin.users.note.read', writePermission: 'admin.users.note.write' },
       { pageId: 'connections', label: 'Verbindungen', moduleId: 'admin', runtime: 'both', permission: 'admin.connections.read' },

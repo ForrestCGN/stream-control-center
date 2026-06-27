@@ -6,12 +6,14 @@
 
   languages.register('en', {
     'app.name': 'Remote Modboard',
-    'app.buildName': 'Local Dashboard Profile',
+    'app.buildName': 'Local Dashboard Prepared',
 
     'module.system.label': 'System',
     'module.system.description': 'Status, diagnostics and technical overview.',
     'module.modules.label': 'Modules',
     'module.modules.description': 'Overview of available and planned work areas.',
+    'module.localDashboard.label': 'Local Dashboard',
+    'module.localDashboard.description': 'Local Stream PC and LAN views without actions.',
     'module.admin.label': 'Admin',
     'module.admin.description': 'Users, notes, connections and diagnostic details.',
     'module.account.label': 'My Account',
@@ -30,6 +32,19 @@
     'page.modules.catalog.title': 'Module Overview',
     'page.modules.catalog.description': 'Modules with locale, permissions and online/local scope.',
     'page.modules.catalog.tab': 'read-only',
+
+    'page.localDashboard.streamPcStatus.label': 'Stream PC Status',
+    'page.localDashboard.streamPcStatus.title': 'Stream PC Status',
+    'page.localDashboard.streamPcStatus.description': 'Local Stream PC and agent status read-only.',
+    'page.localDashboard.streamPcStatus.tab': 'read-only',
+    'page.localDashboard.lanAccess.label': 'LAN / Access',
+    'page.localDashboard.lanAccess.title': 'LAN / Access',
+    'page.localDashboard.lanAccess.description': 'LAN access and role target state read-only.',
+    'page.localDashboard.lanAccess.tab': 'read-only',
+    'page.localDashboard.startEnv.label': 'Start / Env',
+    'page.localDashboard.startEnv.title': 'Start / Env',
+    'page.localDashboard.startEnv.description': 'Local start and env hints without secrets.',
+    'page.localDashboard.startEnv.tab': 'read-only',
 
     'page.admin.users.label': 'User Management',
     'page.admin.users.title': 'User Management',
