@@ -1,6 +1,6 @@
 # Remote-Modboard - aktuelle Roadmap
 
-Stand: RDAP106_DOCS_CURRENT_STATE_REBUILD  
+Stand: RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN  
 Datum: 2026-06-27  
 Projekt: `stream-control-center` / `remote-modboard` / RDAP
 
@@ -23,115 +23,38 @@ Projekt: `stream-control-center` / `remote-modboard` / RDAP
 
 ## Neuer Webserver-Deploy-Standard
 
-Ab RDAP104B:
-
 ```bash
 bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
 ```
 
-Regeln:
+## Erreichte Hauptphasen
 
 ```text
-- als root auf dem Webserver ausfuehren
-- kein sudo
-- kein git pull unter /opt/stream-control-center
-- keine langen manuellen Deploy-Ketten als Standard
-- Deploy-Wrapper macht frischen GitHub/dev-Clone, Deploy-Engine, Readiness und Cleanup
-```
-
-## Bisher erreichte Hauptphasen
-
-### Phase 1: Remote-Modboard Basis
-
-```text
-- Remote-Modboard-Projektstruktur aufgebaut.
-- Backend-Service fuer Webserver vorbereitet.
-- Status-/Routes-/Health-Basis geschaffen.
-- Service auf Port 3010 etabliert.
-- Deploy-Workflow fuer Webserver ueber frischen GitHub/dev-Clone festgelegt.
-```
-
-### Phase 2: Auth / Session / Login
-
-```text
-- Twitch-/Auth-/Session-Basis vorbereitet.
-- Auth-/Login-Status lesbar gemacht.
-- Dashboard-Zugriff serverseitig gegated.
-- Denied-/Login-Szenen in der UI vorhanden.
-```
-
-### Phase 3: Permission-/Admin-Read-Basis
-
-```text
-- Permission-Read-Modelle vorbereitet.
-- Admin-User-Modell read-only sichtbar gemacht.
-- User-Detail read-only aufgebaut.
-- Keine produktive Rollen-/Gruppenverwaltung in der UI freigegeben.
-```
-
-### Phase 4: Audit / Lock / Confirm-Write Grundlagen
-
-```text
-- Confirm-Write-Konzept vorbereitet.
-- Audit-Write-Basis vorbereitet.
-- Lock-Konzept vorbereitet.
-- Produktive Writes bleiben nur in explizit freigegebenen Bereichen erlaubt.
-```
-
-### Phase 5: Admin-Notes
-
-```text
-- Admin-Notes Read aufgebaut.
-- Admin-Notes Create freigegeben und getestet.
-- Admin-Notes Update/Speichern freigegeben und getestet.
-- Admin-Notes Delete/Deactivate bleiben disabled.
-- Admin-Notes UI wurde enttechnisiert.
-- Header-Aktionen wurden nach oben verschoben.
-- technische Normalansicht wurde reduziert.
-```
-
-### Phase 6: Stream-PC Verbindung / Agent-Status read-only
-
-```text
-- Public WSS Heartbeat wurde live bestaetigt.
-- Runtime danach final disabled.
-- Admin / Verbindungen zeigt Stream-PC Verbindung read-only.
-- Offline-Status ist korrekt, solange Agent-Runtime deaktiviert bleibt.
-- Keine Start/Stop/Action Buttons.
-- Keine Agent-Actions.
-```
-
-### Phase 7: Server-Deploy-Workflow-Hardening
-
-```text
-- Server-Deploy-Wrapper vorbereitet und live installiert.
-- Backup-/Deploy-Cleanup vorbereitet und live getestet.
-- Neuer Ein-Befehl-Deploy aktiv.
-- Maximal 6 Remote-Modboard-Backups und 6 RDAP-Deploy-Clones werden behalten.
-```
-
-### Phase 8: Doku-Konsolidierung
-
-```text
-- RDAP105: Inventur und Cleanup-Plan.
-- RDAP106: Current-State-Doku neu aufgebaut.
-- docs/current wird auf aktuelle Wahrheit/Startpunkte fokussiert.
-- Historische RDAP/CAN/DASHUI-Dateien bleiben erhalten, aber werden nicht als erste Orientierung genutzt.
+1. Remote-Modboard Basis
+2. Auth / Session / Login
+3. Permission-/Admin-Read-Basis
+4. Audit / Lock / Confirm-Write Grundlagen
+5. Admin-Notes Read/Create/Update
+6. Stream-PC Verbindung / Agent-Status read-only
+7. Server-Deploy-Workflow-Hardening
+8. Doku-Konsolidierung
+9. Stream-PC-Verbindungsdetails read-only geplant
 ```
 
 ## Aktuell naechster Step
 
 ```text
-RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
 ```
 
 Ziel:
 
 ```text
-- weitere Stream-PC-Verbindungsdetails nur read-only planen
-- bestehende Agent-/Status-/UI-Dateien aus GitHub/dev lesen
-- bestehende Admin-/Verbindungen-Seite bevorzugen
-- pruefen, welche Statusfelder sicher angezeigt werden koennen
+- bestehende Admin-/Verbindungen-Seite erweitern
+- sichere zusaetzliche Read-only-Felder anzeigen
+- keine neue Parallelseite
+- vorhandene GET /api/remote/agent/status Daten nutzen
+- moeglichst nur remote-modboard/backend/public/assets/rdap80-agent-status.js anfassen
 - keine Runtime-Aktivierung
 - keine Agent-Actions
 - keine produktiven Writes
@@ -142,11 +65,6 @@ Ziel:
 Noch nicht als Freigabe verstehen:
 
 ```text
-RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
-- Nur falls RDAP107 klaren UI-Scope ergibt.
-- Bestehende Admin-/Verbindungen-Seite erweitern.
-- Keine Actions.
-
 RDAP109_AGENT_SECURITY_BOUNDARY_AND_ALLOWLIST_PLAN
 - Nur Plan.
 - Keine Runtime-Aktivierung.
@@ -171,32 +89,6 @@ RDAP110_LOCAL_LAN_MODE_SECURITY_PLAN
 9. OBS-/Sound-/Overlay-/Command-Funktionen nur einzeln und sicher anbinden.
 ```
 
-## Agent-/Stream-PC-Zielbild spaeter
-
-```text
-- Stream-PC verbindet aktiv zum Webserver.
-- Keine eingehende Portfreigabe am Stream-PC.
-- Webserver prueft Login, Rollen und Rechte.
-- Agent fuehrt nur erlaubte Actions aus Allowlist aus.
-- Keine freie Shell.
-- Keine freie Dateioperation.
-- Keine freie Prozesssteuerung.
-- Kritische Aktionen brauchen Audit und ggf. Confirm/Lock.
-```
-
-## Lokaler Netzwerkbetrieb spaeter
-
-Langfristig soll das System sowohl online ueber Webserver als auch lokal im eigenen Netzwerk sinnvoll funktionieren.
-
-Zu beachten:
-
-```text
-- EngelCGN soll lokal im LAN damit arbeiten koennen.
-- Lokale Bedienung braucht trotzdem klare Rechtegrenzen.
-- Online- und Lokalbetrieb duerfen keine Sicherheitsloecher gegeneinander oeffnen.
-- Auth-/Rechte-/Audit-Konzept muss fuer beide Betriebsarten sauber bleiben.
-```
-
 ## Harte Grenzen fuer alle kommenden Steps
 
 ```text
@@ -207,4 +99,6 @@ Keine neuen parallelen Systeme, wenn vorhandene Struktur passt.
 Keine Apply-/Patch-/Regex-/Set-Content-Anweisungen fuer Forrest.
 Keine ZIPs ohne echte Repo-Zielpfade.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions ohne separaten Plan.
+Keine Access-Key-/Token-/Header-/Cookie-Anzeige.
+Keine Env-/Pfad-/Datei-/Prozesslisten.
 ```

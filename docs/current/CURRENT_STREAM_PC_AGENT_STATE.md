@@ -1,6 +1,6 @@
 # CURRENT_STREAM_PC_AGENT_STATE
 
-Stand: RDAP106_DOCS_CURRENT_STATE_REBUILD  
+Stand: RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN  
 Datum: 2026-06-27  
 Projekt: `stream-control-center` / Remote-Modboard / Stream-PC-Agent
 
@@ -42,6 +42,15 @@ RDAP103:
 - Portfreigabe Stream-PC: nein.
 ```
 
+RDAP107:
+
+```text
+- sichere zusaetzliche Read-only-Verbindungsdetails geplant.
+- bestehende Seite Admin / Verbindungen bleibt Ziel.
+- bestehende API GET /api/remote/agent/status bleibt Datenquelle.
+- Umsetzungsstep wird RDAP108.
+```
+
 ## Aktueller Sicherheitszustand
 
 ```text
@@ -79,7 +88,66 @@ nur Read-only Status neu laden
 GET /api/remote/agent/status
 ```
 
-Sichere Felder fuer Anzeige muessen pro Step geprueft werden. Grundsaetzlich geeignet sind nur Felder, die keine Secrets, keine Rohpayloads und keine sensiblen lokalen Details enthalten.
+## Sichere Felder fuer RDAP108
+
+```text
+agent.connected
+agent.connectionState
+agent.reason
+agent.lastHeartbeatAt
+agent.heartbeatAgeMs
+agent.heartbeatSeq
+agent.stale
+agent.agentName
+agent.agentVersion
+agent.protocolVersion
+agent.expectedAgentId
+agent.expectedAgentName
+agent.expectedHeartbeatProtocolVersion
+
+runtime.requestedEnabled
+runtime.acceptBuildEnabled
+runtime.effectiveEnabled
+runtime.acceptsAgentConnections
+runtime.heartbeatReceiverEnabled
+runtime.actionsEnabled
+runtime.productiveAgentRuntime
+
+transport.plannedTransport
+transport.plannedDirection
+transport.plannedWsPath
+transport.streamPcPublicPortRequired
+transport.incomingInternetConnectionToStreamPcRequired
+transport.dynamicStreamPcIpAllowed
+
+heartbeat.heartbeatInMemoryOnly
+heartbeat.persistsHeartbeatToDatabase
+heartbeat.databaseWriteEnabled
+heartbeat.plannedHeartbeatIntervalMs
+heartbeat.staleAfterMs
+heartbeat.offlineAfterMs
+
+safety.*
+warnings[]
+statusApiVersion
+moduleBuild
+generatedAt
+loadedAt
+```
+
+## Diagnose nur vorsichtig / einklappbar
+
+```text
+rejectCount
+lastRejectAt
+lastRejectReason
+lastRejectHasAgentIdHeader
+lastRejectHasProtocolHeader
+lastRejectAgentIdHint
+lastRejectProtocolHint
+lastRejectAccessKeyConfigured
+lastRejectConnectionProofCompared
+```
 
 ## Strikt nicht anzeigen
 
@@ -98,6 +166,7 @@ Env-Dumps
 Pfad-Dumps
 Dateilisten
 Prozesslisten
+rohe IP-Adressen
 ```
 
 ## Strikt nicht aktivieren
@@ -116,14 +185,15 @@ Prozesslisten
 ## Naechster fachlicher Step
 
 ```text
-RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
 ```
 
 Ziel:
 
 ```text
-- pruefen, welche weiteren Verbindungsdetails sicher read-only angezeigt werden koennen
-- bestehende Admin-/Verbindungen-Seite bevorzugen
+- bestehende Admin-/Verbindungen-Seite erweitern
+- zusaetzliche sichere Read-only-Felder anzeigen
+- keine neue Parallelseite
 - keine Actions
 - keine Runtime-Aktivierung
 ```

@@ -1,21 +1,24 @@
 # NEXT_STEPS
 
-Stand: RDAP106_DOCS_CURRENT_STATE_REBUILD  
+Stand: RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN  
 Datum: 2026-06-27
 
 ## Naechster Step
 
 ```text
-RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
 ```
 
 ## Ziel
 
 ```text
-- weitere Stream-PC-Verbindungsdetails nur read-only planen
-- bestehende Agent-/Status-/UI-Struktur aus GitHub/dev lesen
-- bestehende Admin-/Verbindungen-Seite bevorzugen
-- pruefen, welche Statusfelder sicher angezeigt werden koennen
+- bestehende Admin-/Verbindungen-Seite erweitern
+- zusaetzliche sichere Read-only-Felder anzeigen
+- keine neue Parallelseite
+- vorhandene GET /api/remote/agent/status Daten nutzen
+- moeglichst nur Frontend-Datei erweitern:
+  remote-modboard/backend/public/assets/rdap80-agent-status.js
+- Backend nur anfassen, wenn vorhandene Felder nicht reichen
 - keine Runtime-Aktivierung
 - keine Agent-Actions
 - keine produktiven Writes
@@ -25,14 +28,12 @@ RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
-docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
-docs/current/DOCS_STRUCTURE_AND_ARCHIVE_RULES.md
-project-state/CURRENT_STATUS.md
-project-state/TODO.md
-project-state/FILES.md
+docs/current/RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP107.md
+remote-modboard/backend/public/assets/rdap80-agent-status.js
+remote-modboard/backend/src/routes/agent-status.routes.js
+remote-modboard/backend/src/services/agent-status.service.js
 ```
 
 ## Neuer Standardbefehl fuer kuenftige Webserver-Deploys
@@ -55,4 +56,6 @@ Keine Runtime-Aktivierung.
 Keine Secrets.
 Keine Rohpayloads.
 Keine parallele neue UI, wenn Erweiterung der bestehenden Seite passt.
+Keine Access-Key-/Token-/Header-/Cookie-Anzeige.
+Keine Env-/Pfad-/Datei-/Prozesslisten.
 ```

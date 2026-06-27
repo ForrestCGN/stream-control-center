@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP106_DOCS_CURRENT_STATE_REBUILD  
+Stand: RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN  
 Datum: 2026-06-27  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -8,11 +8,10 @@ Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
 ```text
 RDAP101B: Stream-PC Agent public WSS Heartbeat live bestaetigt; Runtime danach final disabled.
-RDAP102: Stream-PC Verbindungsstatus UI-Plan dokumentiert.
-RDAP103: Read-only UI-Kachel fuer Stream-PC Verbindung vorbereitet und live sichtbar.
+RDAP103: Read-only UI-Kachel fuer Stream-PC Verbindung live sichtbar.
 RDAP104B: Server-Deploy-Wrapper und Cleanup live bestaetigt.
-RDAP105: Doku-Inventur und Cleanup-Plan erstellt.
 RDAP106: zentrale Current-State-Doku neu aufgebaut.
+RDAP107: sichere zusaetzliche Stream-PC-Verbindungsdetails read-only geplant.
 ```
 
 ## Remote-Modboard aktueller Stand
@@ -32,16 +31,6 @@ RDAP106: zentrale Current-State-Doku neu aufgebaut.
 
 ```bash
 bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
-```
-
-Bestaetigt in RDAP104B:
-
-```text
-- deploy-step wrapper vorhanden
-- cleanup wrapper vorhanden
-- deploy-step syntax ok
-- cleanup syntax ok
-- cleanup live ausgefuehrt
 ```
 
 ## Stream-PC-Agent aktueller Stand
@@ -65,17 +54,18 @@ actionEnabled=false
 productiveAgentRuntime=false
 ```
 
-## Doku aktueller Stand
-
-RDAP106 hat zentrale Current-Dateien aufgebaut:
+## RDAP107 Ergebnis
 
 ```text
-docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
-docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
-docs/current/CURRENT_DASHBOARD_STATE.md
-docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
-docs/current/DOCS_STRUCTURE_AND_ARCHIVE_RULES.md
+- Bestehende UI-Datei fuer RDAP108 identifiziert:
+  remote-modboard/backend/public/assets/rdap80-agent-status.js
+- Bestehende API bestaetigt:
+  GET /api/remote/agent/status
+- Bestehender Service liefert ausreichend Read-only-Felder.
+- Plan fuer sichere zusaetzliche UI-Details erstellt.
+- Kein Code geaendert.
+- Kein Backend geaendert.
+- Kein Webserver-Deploy noetig.
 ```
 
 ## Sicherheitsgrenzen
@@ -99,5 +89,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
 ```
