@@ -4,6 +4,8 @@ Stand: 2026-06-27
 
 Version 0.1.3 bleibt die aktuelle technische Basis: Streaming-PC Verbindung, Komponentenstatus und OBS-Status read-only. Keine Steuerung, keine Writes.
 
-RDAP Docs Cleanup 5 bis 9 ist abgeschlossen: historische und abgeloeste Dateien wurden aus `docs/current/` nach `docs/archive/docs-current-cleanup-*` verschoben. Keine Deletes, keine Code-, DB- oder Webserver-Aenderungen.
+RDAP Docs Cleanup 5 bis 10 ist abgeschlossen: historische und abgeloeste Dateien wurden aus `docs/current/` nach `docs/archive/docs-current-cleanup-*` verschoben. Keine Deletes, keine Code-, DB- oder Webserver-Aenderungen.
 
-RDAP Docs Cleanup 10 ist vorbereitet: finaler Verify-and-Close fuer `docs/current/`, Archivierung der drei abgeschlossenen Cleanup-9-Dateien nach `docs/archive/docs-current-cleanup-10/`, erwarteter Endbestand `docs/current/`: 20 Dateien. Danach ist der Docs-Cleanup abgeschlossen und normale RDAP-/Remote-Modboard-Weiterarbeit kann wieder aufgenommen werden.
+`docs/current/` ist auf den finalen erwarteten Current-Bestand reduziert. Der finale Index liegt unter `docs/current/DOCS_CURRENT_FINAL_INDEX.md`.
+
+Normale RDAP-/Remote-Modboard-Weiterarbeit kann wieder aufgenommen werden. Neuer Startpunkt fuer den naechsten Chat ist `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md`.

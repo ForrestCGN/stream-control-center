@@ -1,12 +1,18 @@
 # Changelog
 
+## RDAP Docs Cleanup Final Status Fix
+
+- Project-State von Cleanup-10-vorbereitet auf Cleanup-10-abgeschlossen korrigiert.
+- `CURRENT_STATUS.md`, `NEXT_STEPS.md`, `TODO.md`, `FILES.md` und `CHANGELOG.md` auf normalen RDAP-/Remote-Modboard-Weiterarbeitsstand gebracht.
+- Keine Code-, DB- oder Webserver-Aenderungen.
+
 ## RDAP Docs Cleanup 10
 
-- Verify-and-Close fuer `docs/current/` vorbereitet.
-- Drei abgeschlossene Cleanup-9-Dateien werden nach `docs/archive/docs-current-cleanup-10/` archiviert.
-- `docs/current/DOCS_CURRENT_FINAL_INDEX.md` als finaler Current-Docs-Index vorbereitet.
-- `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` als normaler RDAP-/Remote-Modboard-Weiterarbeits-Prompt vorbereitet.
-- Erwarteter Endbestand in `docs/current/` nach Execute: 20 Dateien.
+- Verify-and-Close fuer `docs/current/` abgeschlossen.
+- Drei abgeschlossene Cleanup-9-Dateien wurden nach `docs/archive/docs-current-cleanup-10/` archiviert.
+- `docs/current/DOCS_CURRENT_FINAL_INDEX.md` als finaler Current-Docs-Index erstellt.
+- `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` als normaler RDAP-/Remote-Modboard-Weiterarbeits-Prompt erstellt.
+- Endbestand in `docs/current/`: erwartete 20 Dateien.
 - Keine harten Deletes.
 - Keine Code-, DB- oder Webserver-Aenderungen.
 

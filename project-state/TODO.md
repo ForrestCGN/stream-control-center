@@ -2,10 +2,9 @@
 
 Stand: 2026-06-27
 
-- Cleanup 10 lokal einspielen und Dry-Run pruefen.
-- Mit `-Execute` nur die drei abgeschlossenen Cleanup-9-Dateien nach `docs/archive/docs-current-cleanup-10/` verschieben.
-- Final bestaetigen, dass `docs/current/` genau 20 erwartete Dateien enthaelt.
-- Keine Deletes in Cleanup 10.
-- Optional erzeugte `_handoff`-Reports bewusst committen oder lokal loeschen, nicht untracked liegen lassen.
-- Danach Docs-Cleanup als abgeschlossen behandeln und normale RDAP-/Remote-Modboard-Weiterarbeit aufnehmen.
+- Docs-Cleanup ist abgeschlossen.
+- `_handoff`-Reports nicht dauerhaft untracked im Repo liegen lassen; erzeugte lokale Reports bewusst loeschen oder committen.
+- Naechsten RDAP-/Remote-Modboard-Step anhand `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` planen.
+- Keine Codeaenderung ohne vorheriges Lesen der echten GitHub/dev-Dateien und ohne Forrests `go`.
+- Keine Remote-Modboard-Writes ohne Confirm-Write, Permission, Audit, Lock, Backup, Rollback und Read-Back-Pruefung.
 - Technischer Basisstand 0.1.3 bleibt unveraendert: read-only, keine Writes.
