@@ -2,55 +2,14 @@ import { Card } from "../../components/Card.jsx";
 
 export function OverviewPage() {
   return (
-    <div className="view-grid">
-      <Card title="Lokaler Dashboard-Einstieg" eyebrow="0.2.10">
-        <p>
-          Dashboard-v2 läuft auf dem bestehenden lokalen Node/Express-Server. Es wird
-          schrittweise zum Nachfolger des bisherigen Dashboards ausgebaut.
-        </p>
-
-        <div className="info-list">
-          <InfoRow label="Neuer Einstieg" value="http://127.0.0.1:8080/dashboard-v2/" />
-          <InfoRow label="Bisheriges Dashboard" value="http://127.0.0.1:8080/dashboard/" />
-          <InfoRow label="Betriebsart" value="Lokal · Read-only" />
-        </div>
-      </Card>
-
-      <Card title="Sicherer Ausgangspunkt" eyebrow="Aktueller Umfang">
-        <ul className="check-list">
-          <li><span>✓</span> bestehende React/Vite-Struktur verwendet</li>
-          <li><span>✓</span> bestehender Server auf Port 8080 verwendet</li>
-          <li><span>✓</span> Stream-PC Status read-only vorbereitet</li>
-          <li><span>✓</span> bisheriges Dashboard bleibt unverändert</li>
-        </ul>
-      </Card>
-
-      <Card title="Aktiver Read-only Bereich" eyebrow="System">
-        <div className="chip-row">
-          <span className="cgn-chip cgn-chip--ok">Übersicht</span>
-          <span className="cgn-chip cgn-chip--ok">Stream-PC</span>
-          <span className="cgn-chip cgn-chip--info">nur GET</span>
-          <span className="cgn-chip cgn-chip--warn">keine Actions</span>
-        </div>
-      </Card>
-
-      <Card title="Noch nicht freigegeben" eyebrow="Nächste Schritte separat">
-        <ul className="plain-list">
-          <li><span>○</span> keine OBS- oder Overlay-Steuerung</li>
-          <li><span>○</span> keine Sound- oder Media-Aktionen</li>
-          <li><span>○</span> keine Commands oder Prozessaktionen</li>
-          <li><span>○</span> keine Änderungen oder Speicherfunktionen</li>
-        </ul>
-      </Card>
-    </div>
+    <>
+      <section className="page-header module-page-header cgn-card"><p className="cgn-eyebrow">Remote Modboard</p><h1>Übersicht</h1><p>Alles Wichtige auf einen Blick: lokaler Server, Stream-PC Status und sichere Read-only-Grenzen.</p></section>
+      <section className="metric-grid"><Metric label="Server" value="Lokal" sub="Port 8080" /><Metric label="Login" value="Geplant" sub="lokaler Zugriff später" /><Metric label="Session" value="Read-only" sub="keine Schreibrechte" /><Metric label="Bearbeiten" value="Geschützt" sub="keine Writes" warn /></section>
+      <section className="page-grid"><Card title="Letzte Änderungen" eyebrow="Aktivitäten"><div className="activity-row"><div className="activity-icon">📋</div><div><b>Verlauf wird hier sichtbar</b><small>Produktive Historie bleibt später an Rechte, Audit und sichere Reads gebunden.</small></div></div></Card><Card title="Wichtige Bereiche" eyebrow="Schnellzugriff"><div className="quick-list"><div className="quick-row"><div className="quick-icon cyan">🖥</div><div><b>Stream-PC</b><small>Status lesen, keine Steuerung auslösen.</small></div></div><div className="quick-row"><div className="quick-icon purple">🧩</div><div><b>Module</b><small>Nächster geplanter Read-only Schritt.</small></div></div><div className="quick-row"><div className="quick-icon green">🛡</div><div><b>Sicherheit</b><small>Keine OBS-, Sound-, Overlay-, Command- oder Prozessaktionen.</small></div></div></div></Card></section>
+    </>
   );
 }
 
-function InfoRow({ label, value }) {
-  return (
-    <div className="info-row">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
+function Metric({ label, value, sub, warn = false }) {
+  return <article className="metric-card cgn-card"><span>{label}</span><strong>{value}</strong><small>{sub}</small><div className={`cgn-progress ${warn ? "cgn-progress--warn" : ""}`}><i style={{ width: warn ? "8%" : "86%" }}></i></div></article>;
 }

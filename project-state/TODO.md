@@ -2,10 +2,12 @@
 
 Stand: 2026-06-27
 
-- [ ] `0.2.10 - Stream-PC Status read-only vorbereitet` lokal einspielen.
+- [ ] `0.2.10C - Dashboard-v2 V13/Modboard-Design wirklich uebernommen` lokal einspielen.
 - [ ] `git status --short` und `git diff --stat` pruefen.
 - [ ] `/dashboard-v2/` lokal pruefen.
-- [ ] Bestaetigen: `System -> Stream-PC` aktiv, Statusdaten sichtbar, keine Buttons/Actions/Writes.
+- [ ] Bestaetigen: Topbar/Sidebar/Overview wirken wie Modboard/V13.
+- [ ] Bestaetigen: weisser/heller Topbar-Rand/Glow erscheint beim Scrollen (`body.is-scrolled`).
+- [ ] Bestaetigen: `System -> Stream-PC` aktiv, Statusdaten sichtbar, keine Actions/Writes.
 - [ ] `/dashboard/` unveraendert pruefen.
 - [ ] Kein Webserver-Deploy noetig.
 - [ ] Bei sauberem Stand `stepdone.cmd` ausfuehren.
