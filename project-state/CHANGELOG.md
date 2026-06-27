@@ -1,5 +1,16 @@
 # Changelog
 
+## RDAP Docs Cleanup 8
+
+- 40 `REVIEW_MANUALLY`-Dateien aus Cleanup 6 einzeln bewertet.
+- 9 Dateien als `KEEP_CURRENT` bestaetigt.
+- 31 Dateien als `ARCHIVE` klassifiziert und fuer Move nach `docs/archive/docs-current-cleanup-8/` vorbereitet.
+- PowerShell-Script `tools/cleanup/rdap-docs-cleanup-8-review-manually.ps1` vorbereitet.
+- Script laeuft standardmaessig als Dry-Run und verschiebt nur mit `-Execute`.
+- Keine Merges in diesem Step.
+- Keine harten Deletes.
+- Keine Code-, DB- oder Webserver-Aenderungen.
+
 ## RDAP Docs Cleanup 7
 
 - Exaktes Move-Manifest aus der Cleanup-6-Kategorie `ARCHIVE_OR_MERGE` vorbereitet.
