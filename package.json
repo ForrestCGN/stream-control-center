@@ -1,13 +1,17 @@
 {
-  "name": "stramassets",
+  "name": "stream-control-center",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Local streaming dashboard, overlay and integration control center",
+  "main": "backend/server.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node backend/server.js",
+    "check:backend": "node tools/check-backend-syntax.js",
+    "check:remote": "npm --prefix remote-modboard/backend run check",
+    "check:agent": "npm --prefix remote-modboard/stream-pc-agent run check",
+    "test": "npm run check:backend && npm run check:remote && npm run check:agent"
   },
   "keywords": [],
   "author": "",
