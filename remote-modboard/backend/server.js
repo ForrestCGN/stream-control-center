@@ -4,14 +4,14 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const MODULE_BUILD = 'VERSION_0_1_2_STREAMING_PC_COMPONENT_STATUS_TEXT_CLEANUP';
+const MODULE_BUILD = 'VERSION_0_1_3_STREAMING_PC_OBS_STATUS_READONLY';
 
 async function main() {
   const config = loadConfig();
   const app = createApp({ config, moduleBuild: MODULE_BUILD });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] ${MODULE_BUILD} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] streaming-pc-connection=true component-status=readonly actions=false remoteWritesControlled=true');
+    console.log('[remote-modboard] streaming-pc-connection=true component-status=readonly obs-status=readonly actions=false remoteWritesControlled=true');
   });
 
   registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD });

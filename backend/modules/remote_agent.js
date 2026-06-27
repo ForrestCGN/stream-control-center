@@ -14,10 +14,17 @@ try {
   WebSocket = null;
 }
 
+let net = null;
+try {
+  net = require('net');
+} catch (err) {
+  net = null;
+}
+
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.2';
-const MODULE_BUILD = 'VERSION_0_1_2_STREAMING_PC_COMPONENT_STATUS_TEXT_CLEANUP';
-const STATUS_API_VERSION = 'streaming_pc_component_status.v0.1.2';
+const MODULE_VERSION = '0.1.3';
+const MODULE_BUILD = 'VERSION_0_1_3_STREAMING_PC_OBS_STATUS_READONLY';
+const STATUS_API_VERSION = 'streaming_pc_obs_status.v0.1.3';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -51,6 +58,7 @@ const CAPABILITIES = Object.freeze({
   streamingPcConnectionClient: true,
   heartbeatSender: true,
   componentStatusSender: true,
+  obsStatusRead: true,
   obsControl: false,
   soundControl: false,
   overlayControl: false,
@@ -187,7 +195,7 @@ const LOCK_MODEL = Object.freeze({
   saveRequiresValidLock: true,
   sharedReadWhileLocked: true,
   notes: [
-    'Version 0.1.2 setzt keine produktiven Locks.',
+    'Version 0.1.3 setzt keine produktiven Locks.',
     'Speichern soll spaeter nur mit gueltigem Lock und passender Resource-Version erlaubt sein.',
     'Owner/Admin duerfen Locks spaeter uebernehmen; jede Uebernahme ist auditpflichtig.'
   ]
@@ -221,11 +229,29 @@ const AUDIT_MODEL = Object.freeze({
   ],
   sources: ['dashboard-local', 'remote-modboard', 'webserver', 'streaming-pc'],
   notes: [
-    'Version 0.1.2 schreibt noch keine Audit-Daten.',
+    'Version 0.1.3 schreibt noch keine Audit-Daten.',
     'Produktive Aenderungen muessen spaeter auditpflichtig sein.',
     'Sensible Werte duerfen nur maskiert oder zusammengefasst im Audit landen.'
   ]
 });
+
+
+const OBS_STATUS_STATE = {
+  prepared: true,
+  readOnly: true,
+  enabled: true,
+  configured: true,
+  host: '127.0.0.1',
+  port: 4455,
+  reachable: null,
+  status: 'not_checked',
+  checkedAt: null,
+  lastError: null,
+  checkInFlight: false,
+  controlEnabled: false,
+  noAuthenticationAttempt: true,
+  noObsRequestSent: true
+};
 
 const CONNECTION_STATE = {
   enabled: false,
@@ -398,7 +424,7 @@ function connectStreamingPc(config) {
     ws.on('close', () => handleClose(config, 'socket_close'));
     ws.on('error', (err) => handleError(config, err));
     ws.on('message', () => {
-      // Version 0.1.2 client ignores inbound data. No commands/actions are accepted.
+      // Version 0.1.3 client ignores inbound data. No commands/actions are accepted.
     });
   } catch (err) {
     handleError(config, err);
@@ -519,21 +545,14 @@ function buildComponentStatus(config) {
       checkedAt: now,
       detail: 'dieser Node-Server liefert den Heartbeat'
     },
-    obs: {
-      available: false,
-      name: 'OBS',
-      reachable: null,
-      status: 'not_checked',
-      checkedAt: now,
-      detail: 'Version 0.1.2 liest OBS noch nicht aktiv aus'
-    },
+    obs: buildObsStatus(now),
     streamerbot: {
       available: false,
       name: 'Streamer.bot',
       reachable: null,
       status: 'not_checked',
       checkedAt: now,
-      detail: 'Version 0.1.2 liest Streamer.bot noch nicht aktiv aus'
+      detail: 'Version 0.1.3 liest Streamer.bot noch nicht aktiv aus'
     },
     actionsEnabled: false,
     productiveActionsEnabled: false,
@@ -543,6 +562,113 @@ function buildComponentStatus(config) {
     noDatabaseWrite: true,
     rawPayloadStored: false
   };
+}
+
+function buildObsStatus(now) {
+  const config = readObsStatusConfig();
+  scheduleObsReachabilityCheck(config, now);
+  return buildObsStatusSnapshot(now, config);
+}
+
+function readObsStatusConfig() {
+  const enabled = readBoolean('STREAMING_PC_OBS_STATUS_ENABLED', readBoolean('OBS_STATUS_ENABLED', true));
+  const host = sanitizeLocalHost(readString('STREAMING_PC_OBS_HOST', readString('OBS_WEBSOCKET_HOST', '127.0.0.1')));
+  const port = safePort(readInt('STREAMING_PC_OBS_PORT', readInt('OBS_WEBSOCKET_PORT', 4455), 1, 65535));
+  return { enabled, host, port };
+}
+
+function buildObsStatusSnapshot(now, config) {
+  if (!config.enabled) {
+    return {
+      available: false,
+      name: 'OBS',
+      reachable: null,
+      status: 'disabled',
+      port: config.port,
+      checkedAt: now,
+      detail: 'OBS-Status-Lesen ist lokal deaktiviert',
+      readOnly: true,
+      controlEnabled: false
+    };
+  }
+
+  const reachable = OBS_STATUS_STATE.reachable;
+  const status = reachable === true ? 'reachable' : reachable === false ? 'not_reachable' : (OBS_STATUS_STATE.checkInFlight ? 'checking' : 'not_checked');
+  const detail = reachable === true
+    ? 'OBS-WebSocket-Port ist lokal erreichbar; es wurde keine OBS-Aktion ausgeführt'
+    : reachable === false
+      ? 'OBS-WebSocket-Port ist lokal nicht erreichbar oder OBS-WebSocket ist aus'
+      : 'OBS-Erreichbarkeit wird nur per lokalem TCP-Port geprüft; keine Anmeldung, keine OBS-Abfrage';
+
+  return {
+    available: true,
+    name: 'OBS',
+    reachable,
+    status,
+    port: config.port,
+    checkedAt: OBS_STATUS_STATE.checkedAt || now,
+    detail,
+    readOnly: true,
+    controlEnabled: false,
+    noAuthenticationAttempt: true,
+    noObsRequestSent: true,
+    lastError: OBS_STATUS_STATE.lastError || null
+  };
+}
+
+function scheduleObsReachabilityCheck(config, now) {
+  if (!config.enabled || !net || OBS_STATUS_STATE.checkInFlight) return;
+  const last = OBS_STATUS_STATE.checkedAt ? Date.parse(OBS_STATUS_STATE.checkedAt) : 0;
+  if (Number.isFinite(last) && Date.now() - last < 10000) return;
+
+  OBS_STATUS_STATE.enabled = true;
+  OBS_STATUS_STATE.configured = true;
+  OBS_STATUS_STATE.host = config.host;
+  OBS_STATUS_STATE.port = config.port;
+  OBS_STATUS_STATE.checkInFlight = true;
+
+  const socket = new net.Socket();
+  let finished = false;
+
+  function finish(reachable, errorMessage) {
+    if (finished) return;
+    finished = true;
+    try { socket.destroy(); } catch (err) { /* ignore */ }
+    OBS_STATUS_STATE.reachable = reachable === true;
+    OBS_STATUS_STATE.status = reachable === true ? 'reachable' : 'not_reachable';
+    OBS_STATUS_STATE.checkedAt = new Date().toISOString();
+    OBS_STATUS_STATE.lastError = errorMessage ? safeError(errorMessage) : null;
+    OBS_STATUS_STATE.checkInFlight = false;
+
+    if (CONNECTION_STATE.componentStatus && typeof CONNECTION_STATE.componentStatus === 'object') {
+      CONNECTION_STATE.componentStatus.obs = buildObsStatusSnapshot(OBS_STATUS_STATE.checkedAt, config);
+      CONNECTION_STATE.componentStatusUpdatedAt = OBS_STATUS_STATE.checkedAt;
+    }
+  }
+
+  socket.setTimeout(1200);
+  socket.once('connect', () => finish(true, null));
+  socket.once('timeout', () => finish(false, 'obs_port_timeout'));
+  socket.once('error', (err) => finish(false, err && err.code ? err.code : 'obs_port_not_reachable'));
+
+  try {
+    socket.connect(config.port, config.host);
+  } catch (err) {
+    finish(false, err && err.message ? err.message : 'obs_check_failed');
+  }
+  void now;
+}
+
+function sanitizeLocalHost(value) {
+  const host = String(value || '127.0.0.1').trim().toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1' || host === '192.168.16.200') return host;
+  return '127.0.0.1';
+}
+
+function safePort(value) {
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return 4455;
+  return port;
 }
 
 function buildBaseResponse(extra = {}) {
@@ -609,9 +735,9 @@ function buildStatusResponse() {
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
     warnings: [
-      'Version 0.1.2 sendet Heartbeats plus sicheren Komponentenstatus vom Streaming-PC zum Webserver.',
+      'Version 0.1.3 sendet Heartbeats plus sicheren Komponentenstatus inklusive OBS-Erreichbarkeit vom Streaming-PC zum Webserver.',
       'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.',
-      'OBS, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.',
+      'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.',
       'Verbindungsschluessel wird nie in Status, UI oder Logs ausgegeben. Komponentenstatus ist read-only und enthaelt keine Secrets, Pfade oder Prozesslisten.'
     ],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
@@ -659,7 +785,7 @@ function buildConnectionStatus() {
 
 function buildPermissionsModelResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'permissions.streaming_pc.v0.1.2',
+    modelApiVersion: 'permissions.streaming_pc.v0.1.3',
     permissionDecisionRule: 'roles are presets; groups are markers; concrete permission keys and module matrix grants decide',
     twitchRolesAreNotDashboardRoles: true,
     rolesAreSeparateFromGroups: true,
@@ -699,7 +825,7 @@ function buildPermissionsModelResponse() {
     specialRoles: {},
     legacyCompatibility: {
       previousSoundProfiRoleRemoved: true,
-      soundProfiWasRoleInRdap4b: true,
+      soundProfiWasPreviouslyRoleInOldPlanning: true,
       soundProfiNowGroupMarker: true
     },
     warnings: [
@@ -711,7 +837,7 @@ function buildPermissionsModelResponse() {
 
 function buildLocksStatusResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'locks.streaming_pc.v0.1.2',
+    modelApiVersion: 'locks.streaming_pc.v0.1.3',
     locks: clonePlain(LOCK_MODEL),
     activeLocks: [],
     summary: {
@@ -721,7 +847,7 @@ function buildLocksStatusResponse() {
       takeoverPendingCount: 0
     },
     warnings: [
-      'Version 0.1.2 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.',
+      'Version 0.1.3 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.',
       'Produktives Speichern darf spaeter nur mit gueltigem Lock und Resource-Version erfolgen.'
     ]
   });
@@ -729,7 +855,7 @@ function buildLocksStatusResponse() {
 
 function buildAuditModelResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'audit.streaming_pc.v0.1.2',
+    modelApiVersion: 'audit.streaming_pc.v0.1.3',
     audit: clonePlain(AUDIT_MODEL),
     summary: {
       enabled: false,
@@ -737,7 +863,7 @@ function buildAuditModelResponse() {
       retentionConfigurable: true
     },
     warnings: [
-      'Version 0.1.2 schreibt noch keine Audit-Events.',
+      'Version 0.1.3 schreibt noch keine Audit-Events.',
       'Produktive Remote-/Dashboard-Aktionen muessen spaeter Audit schreiben, bevor sie als fertig gelten.'
     ]
   });
@@ -774,7 +900,7 @@ function buildRoutesResponse() {
       {
         method: 'GET',
         path: '/api/remote-agent/routes',
-        description: 'Read-only Routenuebersicht fuer Version 0.1.2.'
+        description: 'Read-only Routenuebersicht fuer Version 0.1.3.'
       }
     ]
   });

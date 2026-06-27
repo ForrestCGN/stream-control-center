@@ -1,6 +1,6 @@
 'use strict';
 
-(function rdap120StreamingPcConnectionPage() {
+(function streamingPcConnectionPage() {
   const ENDPOINT = '/api/remote/agent/status';
   const PAGE_ID = 'admin-connections';
   const MODULE_ID = 'admin';
@@ -94,7 +94,7 @@
           </div>
         </article>
         <article class="cgn-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Streaming-PC</p><h2>OBS</h2></div><span class="cgn-chip cgn-chip--warn">später</span></div>
+          <div class="card-head"><div><p class="cgn-eyebrow">Streaming-PC</p><h2>OBS</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
           <div class="kv-grid">
             <div class="kv-row"><span>Status</span><strong id="componentObsStatus">—</strong></div>
             <div class="kv-row"><span>Erreichbar</span><strong id="componentObsReachable">—</strong></div>
@@ -153,7 +153,7 @@
             <div class="kv-row"><span>Steuerung aktiv</span><strong id="agentRuntimeActionsEnabled">—</strong></div>
             <div class="kv-row"><span>produktive Steuerung</span><strong id="agentRuntimeProductive">—</strong></div>
           </div>
-          <div class="rdap120-connection-notice">Version 0.1.2 zeigt die Verbindung sichtbar. Steuerbefehle bleiben aus und werden nicht ausgeführt.</div>
+          <div class="rdap120-connection-notice">Version 0.1.3 zeigt die Verbindung sichtbar. Steuerbefehle bleiben aus und werden nicht ausgeführt.</div>
         </article>
 
         <article class="cgn-card span2">
@@ -275,7 +275,7 @@
       chip.textContent = viewState.chip;
     }
 
-    setText('agentStatusNotice', `Version 0.1.2: Streaming-PC-Verbindung sichtbar geladen (${reason || 'auto'}). Verbindung ja, Steuerung nein.`);
+    setText('agentStatusNotice', `Version 0.1.3: Streaming-PC-Verbindung und OBS-Status sichtbar geladen (${reason || 'auto'}). Verbindung ja, Steuerung nein.`);
     updateQuickConnectionChip(viewState.quickChip, viewState.ok);
   }
 
@@ -311,11 +311,11 @@
 
     setText('componentObsStatus', obs.status || 'noch nicht geprüft');
     setText('componentObsReachable', formatReachable(obs.reachable));
-    setText('componentObsDetail', obs.detail || 'Version 0.1.2 liest OBS noch nicht aktiv aus');
+    setText('componentObsDetail', obs.detail || 'OBS-Status wird nur lesend angezeigt');
 
     setText('componentStreamerbotStatus', streamerbot.status || 'noch nicht geprüft');
     setText('componentStreamerbotReachable', formatReachable(streamerbot.reachable));
-    setText('componentStreamerbotDetail', streamerbot.detail || 'Version 0.1.2 liest Streamer.bot noch nicht aktiv aus');
+    setText('componentStreamerbotDetail', streamerbot.detail || 'Version 0.1.3 liest Streamer.bot noch nicht aktiv aus');
   }
 
   function formatComponentState(component) {

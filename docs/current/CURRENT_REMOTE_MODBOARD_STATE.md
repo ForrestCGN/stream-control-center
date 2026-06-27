@@ -1,28 +1,7 @@
-# Current Remote-Modboard State – Version 0.1.1
+# Aktueller Remote-Modboard-Stand
 
-## Verbindung Streaming-PC ↔ Webserver
+Version 0.1.3 – Streaming-PC OBS-Status read-only.
 
-Der Webserver akzeptiert die gesicherte ausgehende Verbindung vom Streaming-PC über `/agent-ws`.
-Der Streaming-PC sendet Heartbeats und ab Version 0.1.1 einen sicheren Komponentenstatus.
+Lokal sendet der Streaming-PC Heartbeats mit Komponentenstatus. Neu in 0.1.3: OBS wird nur lokal per TCP-Port-Erreichbarkeit geprüft. Es findet keine OBS-Anmeldung, keine OBS-Protokollabfrage und keine Steuerung statt.
 
-Sichtbar im Dashboard:
-- Streaming-PC online/offline
-- letzter Kontakt
-- Lebenszeichen-Nummer
-- lokales Dashboard
-- lokaler Dashboard-Server
-- OBS: noch nicht aktiv ausgelesen
-- Streamer.bot: noch nicht aktiv ausgelesen
-
-## Sicherheit
-
-Weiterhin deaktiviert:
-- OBS-Steuerung
-- Sound-Steuerung
-- Overlay-Steuerung
-- Commands/Kanalpunkte
-- Shell/Prozessaktionen
-- freie Dateioperationen
-- Datenbank-Writes
-
-Der Komponentenstatus ist read-only und enthält keine Secrets, Pfade, Prozesslisten oder Rohpayloads.
+Online zeigt der Webserver den empfangenen Komponentenstatus im Dashboard an.

@@ -3,8 +3,8 @@
 const crypto = require('crypto');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'VERSION_0_1_2_STREAMING_PC_COMPONENT_STATUS_TEXT_CLEANUP';
-const STATUS_API_VERSION = 'streaming_pc_runtime.v0.1.2';
+const MODULE_BUILD = 'VERSION_0_1_3_STREAMING_PC_OBS_STATUS_READONLY';
+const STATUS_API_VERSION = 'streaming_pc_runtime.v0.1.3';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -317,7 +317,7 @@ function acceptUpgrade(req, socket, details = {}) {
     'Upgrade: websocket',
     'Connection: Upgrade',
     `Sec-WebSocket-Accept: ${accept}`,
-    'X-SCC-Agent-Runtime: version-0.1.2-component-status-readonly',
+    'X-SCC-Agent-Runtime: version-0.1.3-obs-status-readonly',
     'X-SCC-Agent-Actions: disabled',
     'X-SCC-Agent-Heartbeat: readonly-in-memory',
     '',

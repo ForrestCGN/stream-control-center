@@ -1,23 +1,16 @@
-# Remote-Modboard Roadmap – aktuell nach Version 0.1.1
+# Roadmap
 
-## Erledigt
+Erledigt:
+- Version 0.1.0: Streaming-PC Verbindung Heartbeat.
+- Version 0.1.1: Komponentenstatus read-only.
+- Version 0.1.2: Text-/Anzeige-Cleanup.
+- Version 0.1.3: OBS-Status read-only per lokaler Port-Erreichbarkeit.
 
-- Version 0.1.0: Streaming-PC-Verbindung Client MVP.
-- Version 0.1.0 Dashboard-Anzeige: Verbindung sichtbar und verständlich im Dashboard.
-- Version 0.1.1: Komponentenstatus read-only über Heartbeat sichtbar.
+Naechster sinnvoller Schritt:
+- Streamer.bot Status read-only oder OBS-Statusanzeige im Dashboard verfeinern.
 
-## Nächster sinnvoller Schritt
-
-`VERSION_0_1_3_FIRST_SAFE_MODULE_ACTION_PLAN`
-
-Ziel:
-- erste echte Modul-Anbindung auswählen
-- nur feste Allowlist-Aktion
-- keine freie Shell
-- keine freien Dateipfade
-- Permission + Confirm + Audit + Lock/Readback planen, bevor produktive Steuerung gebaut wird
-
-Mögliche erste sichere Richtung:
-- Status erweitern: OBS verbunden ja/nein wirklich auslesen
-- danach Sound-/Media-Status lesen
-- erst später Aktionen
+Weiterhin gesperrt:
+- OBS steuern.
+- Sounds/Overlays ausloesen.
+- Shell/Dateien/Prozesse.
+- DB-Writes.

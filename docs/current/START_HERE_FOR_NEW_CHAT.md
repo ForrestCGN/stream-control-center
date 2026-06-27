@@ -1,18 +1,17 @@
-# START HERE – Version 0.1.2
+# Start hier
 
-Stand: `VERSION_0_1_2_STREAMING_PC_COMPONENT_STATUS_TEXT_CLEANUP`.
+Aktueller Stand: Version 0.1.3 – Streaming-PC OBS-Status read-only.
 
-Erreicht:
-- Version 0.1.0: Streaming-PC verbindet ausgehend zum Webserver `/agent-ws` und sendet Heartbeats.
-- Version 0.1.0 Dashboard-Anzeige: Dashboard zeigt unter Admin -> Verbindungen den Streaming-PC verständlich als online/offline mit letztem Kontakt.
-- Version 0.1.1: Streaming-PC sendet zusätzlich einen sicheren read-only Komponentenstatus im Heartbeat.
+Arbeitsweise:
+- Erst Doku/Stand lesen.
+- Erst Plan nennen, auf `go` warten.
+- WINDOWS / POWERSHELL und WEBSERVER / LINUX strikt trennen.
+- Keine `jq`-Befehle fuer Windows.
+- ZIP ist nur vorbereitet. Lokal gilt erst nach `installstep.cmd` + Neustart + Test. Webserver gilt erst nach `stepdone.cmd` + Deploy-Wrapper + Test.
+- Nutzerkommunikation mit Versionsnummern und sprechenden Namen, keine internen Step-Namen.
 
-Aktuelle Leitlinie:
-- Online- und lokales Dashboard immer parallel denken.
-- Menschen melden sich per Twitch an; Rechte bleiben eigenes Dashboard-Modell.
-- Streaming-PC nutzt Verbindungsschlüssel, kein Twitch-User.
-- Keine Admin-Notizen weiter ausbauen, außer ausdrücklich verlangt.
-- Keine Steuerung, keine Shell, keine Datei-/Prozessaktionen, keine DB-Migration ohne separaten Scope.
-
-Nach Version 0.1.1 sinnvoll:
-`VERSION_0_1_3_FIRST_SAFE_MODULE_ACTION_PLAN` – erste echte Modul-Anbindung planen, aber nur über Allowlist und weiterhin ohne freie Befehle.
+Sicherheitsstand:
+- Streaming-PC verbindet ausgehend zum Webserver.
+- Heartbeat + Komponentenstatus + OBS-Port-Erreichbarkeit read-only.
+- Keine OBS-Steuerung, keine Szenen-/Quellen-/Sound-Aktionen.
+- Keine Shell, keine Datei-/Prozessaktionen, keine DB-Writes.
