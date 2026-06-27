@@ -18,6 +18,7 @@ function loadConfig() {
   const port = readPort('REMOTE_MODBOARD_PORT', 3010);
   const runtimeMode = normalizeRuntimeMode(readString('REMOTE_MODBOARD_MODE', 'online'));
   const localLanAllowedCidrs = readList('REMOTE_MODBOARD_LOCAL_ALLOWED_CIDRS', ['127.0.0.1/32']);
+  const localLanDisplayName = readString('REMOTE_MODBOARD_LOCAL_DISPLAY_NAME', 'ForrestCGN Lokales Dashboard');
   const publicBaseUrl = readString('REMOTE_PUBLIC_BASE_URL', 'https://mods.forrestcgn.de');
   const centralAuthBaseUrl = readString('CENTRAL_AUTH_BASE_URL', 'https://forrestcgn.de');
   const centralAuthLoginPath = readString('CENTRAL_AUTH_LOGIN_PATH', '/login');
@@ -79,6 +80,8 @@ function loadConfig() {
     returnTo: returnToDefault
   });
 
+  const localLan = buildLocalLanProfile({ runtimeMode, host, allowedCidrs: localLanAllowedCidrs, displayName: localLanDisplayName });
+
   return {
     service: 'remote-modboard',
     module: 'remote_node_base',
@@ -88,14 +91,8 @@ function loadConfig() {
     envFileExists,
     publicBaseUrl,
     runtimeMode,
-    localLan: {
-      prepared: true,
-      mode: runtimeMode === 'local' ? 'local' : 'online',
-      bindHost: host,
-      allowedCidrs: localLanAllowedCidrs,
-      lanUseAllowed: runtimeMode === 'local',
-      securityBoundary: 'LAN access is only a serving mode. Productive actions still require explicit backend permissions and scoped write flows.'
-    },
+    localLan,
+    localDashboard: buildLocalDashboardProfile({ runtimeMode, localLan }),
     centralAuth: {
       prepared: true,
       mode: centralAuthMode,
@@ -191,6 +188,38 @@ function loadConfig() {
   };
 }
 
+function buildLocalLanProfile({ runtimeMode, host, allowedCidrs, displayName }) {
+  const localModeActive = runtimeMode === 'local';
+  return {
+    prepared: true,
+    mode: localModeActive ? 'local' : 'online',
+    displayName,
+    bindHost: host,
+    allowedCidrs: Array.isArray(allowedCidrs) && allowedCidrs.length ? allowedCidrs : ['127.0.0.1/32'],
+    lanUseAllowed: localModeActive,
+    streamPcLanUsePlanned: true,
+    engelCgnLanAccessPlanned: true,
+    safetyBoundary: 'LAN access is only a serving mode. Productive actions still require explicit backend permissions and scoped write flows.'
+  };
+}
+
+function buildLocalDashboardProfile({ runtimeMode, localLan }) {
+  const localModeActive = runtimeMode === 'local';
+  return {
+    prepared: true,
+    mode: localModeActive ? 'local' : 'online',
+    active: localModeActive,
+    visibleLabel: localModeActive ? 'Lokalmodus' : 'Onlinemodus',
+    localDashboardReplacementPrepared: true,
+    sharedModularUiFoundation: true,
+    moduleRuntimeScopesPrepared: true,
+    localLan,
+    actionsEnabled: false,
+    productiveWritesEnabled: false,
+    agentActionsEnabled: false,
+    safetyNote: 'Das lokale Dashboard-Profil markiert nur den Betriebsmodus und Module. Es aktiviert keine OBS-, Sound-, Overlay-, Command-, Shell-, Datei- oder Prozess-Aktionen.'
+  };
+}
 
 function normalizeRuntimeMode(value) {
   const normalized = String(value || '').trim().toLowerCase();
@@ -212,7 +241,8 @@ function buildPublicConfigSummary(config = {}) {
     envFileExists: config.envFileExists,
     publicBaseUrl: config.publicBaseUrl,
     runtimeMode: config.runtimeMode || 'online',
-    localLan: config.localLan || { prepared: true, mode: config.runtimeMode || 'online', bindHost: config.host, allowedCidrs: ['127.0.0.1/32'], lanUseAllowed: false },
+    localLan: config.localLan || buildLocalLanProfile({ runtimeMode: config.runtimeMode || 'online', host: config.host, allowedCidrs: ['127.0.0.1/32'], displayName: 'ForrestCGN Lokales Dashboard' }),
+    localDashboard: config.localDashboard || buildLocalDashboardProfile({ runtimeMode: config.runtimeMode || 'online', localLan: config.localLan || {} }),
     centralAuth: config.centralAuth || {},
     database: {
       engine: database.engine,

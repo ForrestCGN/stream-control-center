@@ -6,7 +6,7 @@
 
   languages.register('en', {
     'app.name': 'Remote Modboard',
-    'app.buildName': 'Central Language Files',
+    'app.buildName': 'Local Dashboard Profile',
 
     'module.system.label': 'System',
     'module.system.description': 'Status, diagnostics and technical overview.',
@@ -73,6 +73,21 @@
     'catalog.locale.eyebrow': 'Language',
     'catalog.locale.title': 'Central Language Files',
     'catalog.locale.text': 'German is the default. English is prepared. Module texts will use language keys instead of scattered hard-coded labels.',
+
+    'runtime.mode.loading': 'Mode',
+    'runtime.mode.unknown': 'Mode unknown',
+    'runtime.mode.online': 'Online mode',
+    'runtime.mode.local': 'Local mode',
+    'runtime.online.description': 'Online mode: webserver operation. Productive actions remain limited by the backend.',
+    'runtime.local.description': 'Local mode: LAN UI prepared. Productive actions remain disabled.',
+    'runtime.scope.online': 'Online only',
+    'runtime.scope.local': 'Local only',
+    'runtime.scope.both': 'Online and local',
+    'runtime.scope.onlineShort': 'online',
+    'runtime.scope.localShort': 'local',
+    'runtime.scope.bothShort': 'both',
+    'runtime.scope.blocked': 'Blocked in this mode',
+
     'ui.readOnly': 'read-only'
   });
 })();

@@ -3,8 +3,10 @@
 (function publishRemoteModboardModuleManifest() {
   const manifest = {
     locale: 'de',
-    version: '0.2.2',
+    version: '0.2.3',
     languagesPrepared: true,
+    runtimeProfilesPrepared: true,
+    runtimeProfiles: ['online', 'local', 'both'],
     modules: [
       {
         id: 'system',

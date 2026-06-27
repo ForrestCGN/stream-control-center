@@ -8,8 +8,9 @@ const { buildAgentStatusSummary } = require('../services/agent-status.service');
 
 const RDAP62_STATUS_API_VERSION = 'rdap_admin_note_update_status62.v1';
 const RDAP62_BUILD = 'RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP';
-const APP_VERSION_FALLBACK = '0.2.2';
-const BUILD_NAME_FALLBACK = 'Zentrale Sprachdateien';
+const RDAP122_STATUS_API_VERSION = 'rdap_local_dashboard_profile122.v1';
+const APP_VERSION_FALLBACK = '0.2.3';
+const BUILD_NAME_FALLBACK = 'Lokales Dashboard-Profil';
 
 function registerStatusRoutes(app, context) {
   app.get('/api/remote/status', async (req, res) => {
@@ -18,6 +19,9 @@ function registerStatusRoutes(app, context) {
     const authEnabled = Boolean(publicConfig.auth.authEnabled);
     const oauthEnabled = Boolean(publicConfig.auth.twitchOAuth.effectiveEnabled);
     const sessionsEnabled = Boolean(publicConfig.auth.sessions.effectiveEnabled);
+    const runtimeMode = publicConfig.runtimeMode || 'online';
+    const localLan = publicConfig.localLan || {};
+    const localDashboard = publicConfig.localDashboard || {};
 
     res.json({
       ok: true,
@@ -27,13 +31,14 @@ function registerStatusRoutes(app, context) {
       buildName: context.buildName || context.moduleBuild || BUILD_NAME_FALLBACK,
       stepRef: context.stepRef || '',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: RDAP62_STATUS_API_VERSION,
+      statusApiVersion: RDAP122_STATUS_API_VERSION,
+      previousStatusApiVersion: RDAP62_STATUS_API_VERSION,
       readOnly: false,
       writeEnabled: false,
       actionEnabled: false,
       productiveAgentRuntime: false,
       generatedAt: new Date().toISOString(),
-      runtimeMode: publicConfig.runtimeMode || 'online',
+      runtimeMode,
       app: {
         name: 'Remote Modboard',
         version: context.appVersion || APP_VERSION_FALLBACK,
@@ -41,7 +46,9 @@ function registerStatusRoutes(app, context) {
         stepRef: context.stepRef || '',
         locale: 'de',
         languagesPrepared: true,
-        availableLocales: ['de', 'en']
+        availableLocales: ['de', 'en'],
+        runtimeMode,
+        runtimeLabel: runtimeMode === 'local' ? 'Lokalmodus' : 'Onlinemodus'
       },
       publicHost: 'mods.forrestcgn.de',
       webserver: 'web.cgn.community',
@@ -122,7 +129,8 @@ function registerStatusRoutes(app, context) {
           'Twitch Login und Session-Handling bleiben aktiv und unveraendert.',
           'Admin-Notiz Update-UI, Deactivate und Delete bleiben deaktiviert.',
           'RDAP80 ergaenzt nur Agent-Status/Heartbeat-Foundation read-only; Remote-Actions bleiben deaktiviert.',
-          'RDAP82 bereitet nur einen Runtime-disabled Skeleton fuer die Stream-PC Verbindung vor; Agent-Actions bleiben deaktiviert.'
+          'RDAP82 bereitet nur einen Runtime-disabled Skeleton fuer die Stream-PC Verbindung vor; Agent-Actions bleiben deaktiviert.',
+          'RDAP122 ergaenzt nur das lokale Dashboard-Profil und Runtime-Scope-Anzeige; keine neuen Aktionen.'
         ]
       },
       adminNoteWritePlan: {
@@ -187,25 +195,44 @@ function registerStatusRoutes(app, context) {
         modulePermissionMatrixUsesTargetTypeAndTargetKey: true,
         productivePermissionEnforcementEnabled: true
       },
-      moduleMetadata: buildModuleMetadataSummary(),
+      moduleMetadata: buildModuleMetadataSummary(runtimeMode),
       localLanMode: {
         planned: true,
         foundationPrepared: true,
-        implemented: publicConfig.runtimeMode === 'local',
-        runtimeMode: publicConfig.runtimeMode || 'online',
-        bindHost: publicConfig.localLan && publicConfig.localLan.bindHost,
-        allowedCidrs: publicConfig.localLan && publicConfig.localLan.allowedCidrs,
+        implemented: runtimeMode === 'local',
+        runtimeMode,
+        bindHost: localLan.bindHost,
+        allowedCidrs: localLan.allowedCidrs,
+        lanUseAllowed: localLan.lanUseAllowed === true,
+        displayName: localLan.displayName || 'ForrestCGN Lokales Dashboard',
         twitchLoginPlanned: true,
         engelCgnLanAccessPlanned: true,
         safetyNote: 'Lokaler Modus oeffnet nur die Weboberflaeche im LAN. Produktive Aktionen bleiben weiter durch Backend-Scope, Permission, Confirm-Write, Audit, Lock und Readback begrenzt.'
+      },
+      localDashboardProfile: {
+        prepared: true,
+        active: runtimeMode === 'local',
+        runtimeMode,
+        visibleLabel: runtimeMode === 'local' ? 'Lokalmodus' : 'Onlinemodus',
+        sharedModularUiFoundation: true,
+        moduleRuntimeScopesPrepared: true,
+        moduleRuntimeScopes: ['online', 'local', 'both'],
+        moduleVisibilityFrontendOnly: true,
+        backendStillAuthoritative: true,
+        localDashboardReplacementPrepared: true,
+        lanUseAllowed: localLan.lanUseAllowed === true,
+        actionsEnabled: false,
+        productiveWritesEnabled: false,
+        agentActionsEnabled: false,
+        forbiddenActionsStillBlocked: ['OBS', 'Sounds', 'Overlays', 'Commands', 'Shell', 'Files', 'Processes'],
+        safetyNote: localDashboard.safetyNote || 'Das lokale Dashboard-Profil aktiviert keine produktiven Aktionen.'
       },
       safety: context.safety
     });
   });
 }
 
-
-function buildModuleMetadataSummary() {
+function buildModuleMetadataSummary(runtimeMode = 'online') {
   return {
     prepared: true,
     locale: 'de',
@@ -217,6 +244,8 @@ function buildModuleMetadataSummary() {
     languageKeysPrepared: true,
     permissionsPrepared: true,
     runtimeScopePrepared: true,
+    runtimeScopeEvaluationPrepared: true,
+    activeRuntimeMode: runtimeMode,
     frontendOnlyPermissionHints: true,
     backendStillAuthoritative: true,
     visibleBuildNameLanguage: 'de',

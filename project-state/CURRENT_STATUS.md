@@ -5,16 +5,16 @@ Stand: 2026-06-27
 Aktueller vorbereiteter Step:
 
 ```text
-RDAP121_CENTRAL_LANGUAGE_FILES
+RDAP122_LOCAL_DASHBOARD_RUNTIME_PROFILE
 ```
 
 Sichtbarer Stand:
 
 ```text
-v0.2.2 - Zentrale Sprachdateien
+v0.2.3 - Lokales Dashboard-Profil
 ```
 
-RDAP119 hat die Remote-Modboard-Oberflaeche modularisiert. RDAP120 hat Modul-Metadaten, Permission-Metadaten und Runtime-Scope eingefuehrt. RDAP121 fuehrt zentrale Frontend-Sprachdateien und Sprachschluessel fuer Modultexte ein.
+RDAP119 hat die Remote-Modboard-Oberflaeche modularisiert. RDAP120 hat Modul-Metadaten, Permission-Metadaten und Runtime-Scope eingefuehrt. RDAP121 hat zentrale Frontend-Sprachdateien eingefuehrt. RDAP122 bereitet den lokalen Dashboard-Betriebsmodus vor und zeigt den Runtime-Modus in der UI an.
 
 Nicht geaendert:
 - keine DB-Migration,

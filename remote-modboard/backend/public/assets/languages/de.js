@@ -6,7 +6,7 @@
 
   languages.register('de', {
     'app.name': 'Remote Modboard',
-    'app.buildName': 'Zentrale Sprachdateien',
+    'app.buildName': 'Lokales Dashboard-Profil',
 
     'module.system.label': 'System',
     'module.system.description': 'Status, Diagnose und technische Übersicht.',
@@ -73,6 +73,21 @@
     'catalog.locale.eyebrow': 'Sprache',
     'catalog.locale.title': 'Zentrale Sprachdateien',
     'catalog.locale.text': 'Deutsch ist Standard. Englisch ist vorbereitet. Modultexte kommen künftig über Sprachschluessel statt verstreute Einzeltexte.',
+
+    'runtime.mode.loading': 'Modus',
+    'runtime.mode.unknown': 'Modus unbekannt',
+    'runtime.mode.online': 'Onlinemodus',
+    'runtime.mode.local': 'Lokalmodus',
+    'runtime.online.description': 'Onlinemodus: Webserver-Betrieb. Produktive Aktionen bleiben backendseitig begrenzt.',
+    'runtime.local.description': 'Lokalmodus: LAN-Oberfläche vorbereitet. Produktive Aktionen bleiben gesperrt.',
+    'runtime.scope.online': 'Nur online',
+    'runtime.scope.local': 'Nur lokal',
+    'runtime.scope.both': 'Online und lokal',
+    'runtime.scope.onlineShort': 'online',
+    'runtime.scope.localShort': 'lokal',
+    'runtime.scope.bothShort': 'beides',
+    'runtime.scope.blocked': 'In diesem Modus gesperrt',
+
     'ui.readOnly': 'read-only'
   });
   languages.setLocale('de');

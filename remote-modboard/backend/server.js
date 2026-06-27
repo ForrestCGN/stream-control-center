@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.2';
-const BUILD_NAME = 'Zentrale Sprachdateien';
-const STEP_REF = 'RDAP121_CENTRAL_LANGUAGE_FILES';
+const APP_VERSION = '0.2.3';
+const BUILD_NAME = 'Lokales Dashboard-Profil';
+const STEP_REF = 'RDAP122_LOCAL_DASHBOARD_RUNTIME_PROFILE';
 const MODULE_BUILD = BUILD_NAME;
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
   const app = createApp({ config, moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] v${APP_VERSION} - ${BUILD_NAME} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] streaming-pc-connection=true component-status=readonly obs-status=readonly actions=false remoteWritesControlled=true');
+    console.log(`[remote-modboard] runtimeMode=${config.runtimeMode} localLan=${config.localLan && config.localLan.lanUseAllowed ? 'prepared' : 'disabled'} streaming-pc-connection=true component-status=readonly obs-status=readonly actions=false remoteWritesControlled=true`);
   });
 
   registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
