@@ -6,8 +6,8 @@
   const ADMIN_ORDER = [
     { page: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', order: 10 },
     { page: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read-only', order: 20 },
-    { page: 'diagnostics', label: 'Sicherheit', title: 'Sicherheit', tab: 'Status', order: 30 },
-    { page: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', order: 40 }
+    { page: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', order: 30 },
+    { page: 'routes', label: 'Doku / Details', title: 'Doku / Details', tab: 'read-only', order: 90 }
   ];
 
   const HIDDEN_ADMIN_PAGES = new Set([
@@ -16,7 +16,8 @@
     'admin-user',
     'account',
     'permissions',
-    'access'
+    'access',
+    'diagnostics'
   ]);
 
   function registerAdminPage() {
@@ -68,7 +69,12 @@
       const page = button.dataset.page || '';
       const label = button.textContent.trim();
 
-      if (HIDDEN_ADMIN_PAGES.has(page) || /^User-Detail$/i.test(label) || /^Rollen\s*&\s*Rechte$/i.test(label)) {
+      if (
+        HIDDEN_ADMIN_PAGES.has(page) ||
+        /^User-Detail$/i.test(label) ||
+        /^Rollen\s*&\s*Rechte$/i.test(label) ||
+        /^Sicherheit$/i.test(label)
+      ) {
         button.remove();
         return;
       }
@@ -116,10 +122,10 @@
   }
 
   function installStyle() {
-    if (document.getElementById('rdap115bAdminNavCleanupStyle')) return;
+    if (document.getElementById('rdap115cAdminNavCleanupStyle')) return;
 
     const style = document.createElement('style');
-    style.id = 'rdap115bAdminNavCleanupStyle';
+    style.id = 'rdap115cAdminNavCleanupStyle';
     style.textContent = `
       .nav-group[data-target="nav-admin-users-management"],#nav-admin-users-management{display:none!important}
       #nav-admin .nav-link[data-page="admin-user-detail"],
@@ -127,7 +133,8 @@
       #nav-admin .nav-link[data-page="admin-user"],
       #nav-admin .nav-link[data-page="account"],
       #nav-admin .nav-link[data-page="permissions"],
-      #nav-admin .nav-link[data-page="access"]{display:none!important}
+      #nav-admin .nav-link[data-page="access"],
+      #nav-admin .nav-link[data-page="diagnostics"]{display:none!important}
       [data-page-panel="admin-users"] .page-header p:not(.cgn-eyebrow){max-width:980px}
       [data-page-panel="admin-users"] .admin-lock-note{background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2)}
       [data-page-panel="admin-users"] .admin-lock-note i{background:rgba(255,209,102,.18)}
@@ -137,8 +144,8 @@
   }
 
   function installAdminNavObserver() {
-    if (document.documentElement.dataset.rdap115bAdminNavObserver === '1') return;
-    document.documentElement.dataset.rdap115bAdminNavObserver = '1';
+    if (document.documentElement.dataset.rdap115cAdminNavObserver === '1') return;
+    document.documentElement.dataset.rdap115cAdminNavObserver = '1';
 
     const nav = document.querySelector('.cgn-nav');
     if (!nav) return;

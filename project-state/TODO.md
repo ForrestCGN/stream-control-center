@@ -1,12 +1,13 @@
 # TODO
 
-Stand: RDAP115B_REMOVE_ACCESS_NAV_DOC_ONLY  
+Stand: RDAP115C_ADMIN_DOCS_DETAILS_AREA  
 Datum: 2026-06-27
 
 ```text
-- Browser nach RDAP115B pruefen: Rollen & Rechte ist links weg.
-- Admin-Navigation: Benutzerverwaltung, Admin-Notizen, Sicherheit, Verbindungen.
-- Rollenverwaltung spaeter im User-Detail als Modal/Fenster planen.
+- Browser pruefen:
+  System: Übersicht, Diagnose
+  Admin: Benutzerverwaltung, Admin-Notizen, Verbindungen, Doku / Details
+- Pruefen: System -> Routen nicht sichtbar.
+- Pruefen: Admin -> Sicherheit nicht mehr als Diagnose-Kopie sichtbar.
 - Danach RDAP116: Admin-Notizen als eigenes Admin-Modul strukturieren.
-- Weiterhin: Bereich = Modul/JS-Datei; Shell bleibt Shell.
 ```

@@ -1,53 +1,45 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP115B_REMOVE_ACCESS_NAV_DOC_ONLY  
+Stand: RDAP115C_ADMIN_DOCS_DETAILS_AREA  
 Datum: 2026-06-27
 
-## UI-/Produktregel
+## Navigation
 
 ```text
-Admin-Funktionen bleiben unter Admin.
-User-Selbstkonto gehoert oben rechts ins Profilmenue.
-Keine technischen Unterseiten als normaler Navigationspunkt.
-Keine reine Doku-Seite als eigener Admin-Menuepunkt.
-```
+System:
+- Übersicht
+- Diagnose
 
-## Admin-Navigation
-
-```text
 Admin:
 - Benutzerverwaltung
 - Admin-Notizen
-- Sicherheit
 - Verbindungen
-
-Nicht in linker Navigation:
-- User-Detail
-- Rollen & Rechte
-- eigenes Benutzer-Hauptmenue
-- Details / System-Routen
+- Doku / Details
 ```
 
-## Rollenverwaltung Zielbild spaeter
+## Nicht normale Navigation
 
 ```text
-Benutzerverwaltung
--> User oeffnen
--> User-Detail
--> Rollen verwalten
--> Modal/Fenster:
-   - Rollen zuweisen/entziehen
-   - Hover/Info pro Rolle
-   - Sicherheitswarnung bei kritischen Rollen
-   - Speichern erst mit Scope, Permission, Confirm-Write, Audit, Lock, Readback
+- System -> Routen
+- Admin -> Rollen & Rechte
+- Admin -> Sicherheit als Kopie der Systemdiagnose
+- User-Detail
+- Details-Hauptbereich
+```
+
+## Logik
+
+```text
+Systemdiagnose = kompakter Status fuer Mods/Streamer.
+Admin Doku / Details = technische Read-only-Details, Routen, Doku/Diagnose.
+Benutzerrollen werden spaeter im User-Detail verwaltet, nicht als eigener Doku-Menuepunkt.
 ```
 
 ## Sicherheit
 
 ```text
-Keine Agent-Runtime aktiv.
-Keine Agent-Actions aktiv.
-Keine Backend-Aenderung in RDAP115B.
-Keine DB-Migration in RDAP115B.
+Keine Backend-Aenderung.
+Keine DB-Migration.
+Keine Agent-Actions.
 Keine neuen Writes.
 ```

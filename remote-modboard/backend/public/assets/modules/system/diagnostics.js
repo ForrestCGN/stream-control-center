@@ -15,9 +15,9 @@
     panel.dataset.pagePanel = PAGE_ID;
     panel.innerHTML = `
       <section class="page-header module-page-header cgn-card">
-        <p class="cgn-eyebrow">Admin / Diagnose</p>
+        <p class="cgn-eyebrow">System / Diagnose</p>
         <h1>Systemstatus</h1>
-        <p>Nur das, was Mods und Streamer brauchen: OK oder Problem. Details gibt es über Info.</p>
+        <p>Nur das, was Mods und Streamer brauchen: OK oder Problem. Admin-Details liegen unter Doku / Details.</p>
       </section>
 
       <section class="page-grid">
@@ -78,12 +78,22 @@
       section: 'System',
       order: 20
     });
+
+    window.RemoteModboardModules.registerPage({
+      moduleId: 'admin',
+      pageId: 'routes',
+      label: 'Doku / Details',
+      title: 'Doku / Details',
+      tab: 'read-only',
+      section: 'Admin',
+      order: 90
+    });
   }
 
   function installDiagnosticsPolish() {
-    if (document.getElementById('rdap113bHideDetailsNavStyle')) return;
+    if (document.getElementById('rdap115cAdminDocsDetailsStyle')) return;
     const style = document.createElement('style');
-    style.id = 'rdap113bHideDetailsNavStyle';
+    style.id = 'rdap115cAdminDocsDetailsStyle';
     style.textContent = `
       .endpoint{position:relative}
       .endpoint .rdap-diagnostics-human-detail{display:block;margin-top:4px;opacity:.78;padding-right:34px}
@@ -95,6 +105,7 @@
       [data-page-panel="routes"] .routeDescription{opacity:.76}
       [data-page-panel="routes"] .routePath{font-weight:800}
       .nav-group[data-target="nav-system-details"],#nav-system-details{display:none!important}
+      #nav-system .nav-link[data-page="routes"]{display:none!important}
     `;
     document.head.appendChild(style);
   }
@@ -186,10 +197,10 @@
     const cardEyebrow = panel.querySelector('.card-head .cgn-eyebrow');
     const cardTitle = panel.querySelector('.card-head h2');
 
-    if (eyebrow) eyebrow.textContent = 'System-Routen';
-    if (title) title.textContent = 'System-Routen';
-    if (intro) intro.textContent = 'Nur für Admins und Fehlerdiagnose. Diese Ansicht ist nicht in der normalen Navigation sichtbar.';
-    if (cardEyebrow) cardEyebrow.textContent = 'Admin-Details';
+    if (eyebrow) eyebrow.textContent = 'Admin / Doku';
+    if (title) title.textContent = 'Doku / Details';
+    if (intro) intro.textContent = 'Technische Read-only-Details für Admins. Normale Bedienung bleibt in Benutzerverwaltung, Admin-Notizen und Verbindungen.';
+    if (cardEyebrow) cardEyebrow.textContent = 'Systemdetails';
     if (cardTitle) cardTitle.textContent = 'Erreichbare Schnittstellen';
 
     const routesList = document.getElementById('routesList');

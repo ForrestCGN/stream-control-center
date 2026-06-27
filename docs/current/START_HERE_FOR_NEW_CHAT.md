@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP115B_REMOVE_ACCESS_NAV_DOC_ONLY  
+Stand: RDAP115C_ADMIN_DOCS_DETAILS_AREA  
 Datum: 2026-06-27
 
 ## Zuerst lesen
@@ -14,7 +14,7 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115B.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115C.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -25,20 +25,11 @@ project-state/CHANGELOG.md
 ## Aktueller Stand kurz
 
 ```text
-RDAP115B: Rollen & Rechte aus der linken Admin-Navigation entfernt.
+RDAP115C: Technische Routen/Details sind aus System raus und unter Admin -> Doku / Details gebuendelt.
+System -> Diagnose bleibt Systemstatus fuer Mods/Streamer.
+Admin -> Sicherheit wird nicht mehr als Kopie derselben Diagnose-Seite angezeigt.
 Rollenverwaltung kommt spaeter im User-Detail als eigenes Fenster/Modal.
-Hover/Info pro Rolle ist dort vorgesehen.
 Keine Backend-Aenderung, keine DB-Migration, keine neuen Writes.
-```
-
-## Arbeitsregel
-
-```text
-Kurz im Chat bleiben.
-Keine langen Techniklisten im Chat.
-Plan kurz nennen, bei echten Entscheidungen fragen.
-ZIP mit echten Zielpfaden.
-Nach lokalem Test: stepdone, dann Webserver-Deploy.
 ```
 
 ## Webserver-Deploy
