@@ -1,5 +1,18 @@
 # Changelog
 
+## Version 0.2.6 - Online-Modoberflaeche bereinigt
+
+- Sichtbare Version `0.2.6` vorbereitet.
+- Deutscher Buildname `Online-Modoberflaeche bereinigt` eingefuehrt.
+- Linke Online-Navigation bereinigt:
+  - `Lokales Dashboard` wird nicht mehr als Hauptmenue angezeigt.
+  - `Mein Konto` wird nicht mehr als Hauptmenue angezeigt.
+  - `Routen` wird nicht mehr unter System angezeigt.
+- Technische Routen-/Detailansicht bleibt unter `Admin -> Doku / Details`.
+- Konto-/Rechtefunktionen bleiben oben rechts im User-Panel.
+- Keine Backend-Routen entfernt.
+- Keine DB-Migration, keine produktiven Writes, keine Agent-Actions.
+
 ## DOKU - Projektstatus und Langzeit-TODOs zentralisiert
 
 - Master-Prompt um zentrale Langzeit-TODO-Regel ergaenzt.
@@ -31,14 +44,4 @@
 - Alle lokalen Seiten nutzen `runtime: local`.
 - Sprachdateien Deutsch/Englisch erweitert.
 - Status-API meldet lokale Dashboard-Seiten als vorbereitet.
-- Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
-
-## RDAP123 - Routes-Status angeglichen
-
-- Sichtbare Version `0.2.4` eingefuehrt.
-- Deutscher kurzer Buildname `Routes-Status angeglichen` eingefuehrt.
-- `/api/remote/routes` meldet `routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP`.
-- `/api/remote/routes` enthaelt jetzt `localDashboardProfile` passend zum RDAP122-Status.
-- Alter `localLanMode`-Block in `/routes` wurde durch Runtime-basierte Werte ersetzt.
-- Doku-/Projektstatus-Dateien auf den RDAP122/RDAP123-Live-Stand nachgezogen.
 - Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.

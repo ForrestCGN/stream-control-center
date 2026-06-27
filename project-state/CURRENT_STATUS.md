@@ -2,42 +2,29 @@
 
 Stand: 2026-06-27
 
-Aktueller bestaetigter Stand:
+Aktueller bestaetigter Stand nach lokalem Einspielen/Tests dieses Steps:
+
+```text
+v0.2.6 - Online-Modoberflaeche bereinigt
+```
+
+Geaendert:
+
+```text
+Online-Modoberflaeche / linke Navigation:
+- `Lokales Dashboard` nicht mehr als Hauptmenue in der Online-Modoberflaeche.
+- `Mein Konto` nicht mehr als Hauptmenue in der linken Navigation.
+- `Routen` nicht mehr unter System.
+- Technische Routen-/Detailansicht bleibt unter Admin -> Doku / Details.
+- Konto-/Rechtefunktionen bleiben oben rechts im User-Panel.
+```
+
+Vorher bestaetigt:
 
 ```text
 v0.2.5 - Lokales Dashboard vorbereitet
-```
-
-Live bestaetigt:
-
-```text
 /api/remote/status -> version 0.2.5, buildName Lokales Dashboard vorbereitet, runtimeMode online
-localDashboardProfile.localDashboardMenuPrepared -> true
-localDashboardProfile.localDashboardReadOnlyPagesPrepared -> true
-localDashboardProfile.localDashboardPages -> stream-pc-status, lan-access, start-env
-localDashboardProfile.actionsEnabled -> false
-localDashboardProfile.productiveWritesEnabled -> false
-localDashboardProfile.agentActionsEnabled -> false
 ```
-
-Abgeschlossen:
-
-- RDAP119: Remote-Modboard-Oberflaeche modularisiert.
-- RDAP120: Modul-Metadaten, Permission-Metadaten und Runtime-Scope eingefuehrt.
-- RDAP121: zentrale Frontend-Sprachdateien eingefuehrt.
-- RDAP122: lokales Dashboard-Profil vorbereitet und Runtime-Modus in UI sichtbar gemacht.
-- RDAP123: Routenuebersicht an RDAP122-Status angeglichen.
-- RDAP124: Doku-Handoff und Modulregistrierungsregeln ergaenzt.
-- RDAP125: lokales Stream-PC-/LAN-Env- und Startprofil dokumentiert.
-- RDAP126: lokales Dashboard als Modulbereich geplant.
-- RDAP127 / Version 0.2.5: Lokales Dashboard vorbereitet; Hauptbereich und drei lokale read-only Seiten live bestaetigt.
-- RDAP128: Handoff fuer neuen Chat, Live-Bestaetigung und Sync-Idee dokumentiert.
-
-Geparkte Idee:
-
-- lokale Aenderungen spaeter kontrolliert online synchronisieren,
-- nicht sofort bauen,
-- kein Blind-Auto-Sync fuer kritische Bereiche.
 
 Nicht geaendert:
 
@@ -45,4 +32,10 @@ Nicht geaendert:
 - keine neuen produktiven Writes,
 - keine Agent-Actions,
 - keine OBS-/Sound-/Overlay-/Command-Steuerung,
-- keine Shell-/Datei-/Prozess-Actions.
+- keine Shell-/Datei-/Prozess-Actions,
+- keine Backend-Routen entfernt,
+- keine Account-/Rechtefunktionen entfernt.
+
+Hinweis:
+
+Die lokale Oberflaeche wird spaeter als lokale Instanz/Kopie derselben App auf dem Streaming-PC geplant. Sie ist kein Menuepunkt in der Online-Modoberflaeche.

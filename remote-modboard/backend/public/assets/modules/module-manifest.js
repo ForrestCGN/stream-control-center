@@ -3,10 +3,11 @@
 (function publishRemoteModboardModuleManifest() {
   const manifest = {
     locale: 'de',
-    version: '0.2.5',
+    version: '0.2.6',
     languagesPrepared: true,
     runtimeProfilesPrepared: true,
     runtimeProfiles: ['online', 'local', 'both'],
+    navigationCleanupBuild: 'RDAP129_ONLINE_MODBOARD_NAVIGATION_CLEANUP',
     modules: [
       {
         id: 'system',
@@ -31,18 +32,6 @@
         runtime: 'both',
         permission: 'remote.view',
         navSubId: 'nav-modules'
-      },
-      {
-        id: 'local-dashboard',
-        labelKey: 'module.localDashboard.label',
-        descriptionKey: 'module.localDashboard.description',
-        label: { de: 'Lokales Dashboard', en: 'Local Dashboard' },
-        description: { de: 'Lokale Stream-PC- und LAN-Ansichten ohne Actions.', en: 'Local Stream PC and LAN views without actions.' },
-        icon: '⌂',
-        order: 25,
-        runtime: 'local',
-        permission: 'local.dashboard.read',
-        navSubId: 'nav-local-dashboard'
       },
       {
         id: 'admin',
@@ -118,54 +107,6 @@
         runtime: 'both',
         permission: 'remote.modules.read',
         script: '/assets/modules/modules/catalog.js'
-      },
-      {
-        moduleId: 'local-dashboard',
-        pageId: 'stream-pc-status',
-        labelKey: 'page.localDashboard.streamPcStatus.label',
-        titleKey: 'page.localDashboard.streamPcStatus.title',
-        descriptionKey: 'page.localDashboard.streamPcStatus.description',
-        tabKey: 'page.localDashboard.streamPcStatus.tab',
-        label: { de: 'Stream-PC Status', en: 'Stream PC Status' },
-        title: { de: 'Stream-PC Status', en: 'Stream PC Status' },
-        description: { de: 'Lokaler Stream-PC- und Agent-Status read-only.', en: 'Local Stream PC and agent status read-only.' },
-        tab: { de: 'read-only', en: 'read-only' },
-        order: 10,
-        runtime: 'local',
-        permission: 'local.streamPc.status.read',
-        script: '/assets/modules/local-dashboard/stream-pc-status.js'
-      },
-      {
-        moduleId: 'local-dashboard',
-        pageId: 'lan-access',
-        labelKey: 'page.localDashboard.lanAccess.label',
-        titleKey: 'page.localDashboard.lanAccess.title',
-        descriptionKey: 'page.localDashboard.lanAccess.description',
-        tabKey: 'page.localDashboard.lanAccess.tab',
-        label: { de: 'LAN / Zugriff', en: 'LAN / Access' },
-        title: { de: 'LAN / Zugriff', en: 'LAN / Access' },
-        description: { de: 'LAN-Zugriff und Rollen-Zielbild read-only.', en: 'LAN access and role target state read-only.' },
-        tab: { de: 'read-only', en: 'read-only' },
-        order: 20,
-        runtime: 'local',
-        permission: 'local.lan.access.read',
-        script: '/assets/modules/local-dashboard/lan-access.js'
-      },
-      {
-        moduleId: 'local-dashboard',
-        pageId: 'start-env',
-        labelKey: 'page.localDashboard.startEnv.label',
-        titleKey: 'page.localDashboard.startEnv.title',
-        descriptionKey: 'page.localDashboard.startEnv.description',
-        tabKey: 'page.localDashboard.startEnv.tab',
-        label: { de: 'Start / Env', en: 'Start / Env' },
-        title: { de: 'Start / Env', en: 'Start / Env' },
-        description: { de: 'Lokale Start- und Env-Hinweise ohne Secrets.', en: 'Local start and env hints without secrets.' },
-        tab: { de: 'read-only', en: 'read-only' },
-        order: 30,
-        runtime: 'local',
-        permission: 'local.env.read',
-        script: '/assets/modules/local-dashboard/start-env.js'
       },
       {
         moduleId: 'admin',

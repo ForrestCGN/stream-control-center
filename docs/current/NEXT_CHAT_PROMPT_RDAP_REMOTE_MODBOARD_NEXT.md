@@ -28,10 +28,6 @@ project-state/TODO.md
 project-state/PARKED_TODOS.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
-docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
-docs/current/LOCAL_DASHBOARD_MODULE_SHELL_PLAN_CURRENT.md
-docs/current/ONLINE_SYNC_IDEA_PARKED_CURRENT.md
 ```
 
 ## Aktueller Stand
@@ -39,45 +35,19 @@ docs/current/ONLINE_SYNC_IDEA_PARKED_CURRENT.md
 Aktueller sichtbarer Stand:
 
 ```text
-0.2.5 - Lokales Dashboard vorbereitet
-```
-
-Live bestaetigt am 2026-06-27:
-
-```text
-/api/remote/status
-version: 0.2.5
-buildName: Lokales Dashboard vorbereitet
-moduleBuild: Lokales Dashboard vorbereitet
-runtimeMode: online
-localDashboardProfile.visibleLabel: Onlinemodus
-localDashboardProfile.localDashboardMenuPrepared: true
-localDashboardProfile.localDashboardReadOnlyPagesPrepared: true
-localDashboardProfile.localDashboardPages: stream-pc-status, lan-access, start-env
-localDashboardProfile.actionsEnabled: false
-localDashboardProfile.productiveWritesEnabled: false
-localDashboardProfile.agentActionsEnabled: false
+0.2.6 - Online-Modoberflaeche bereinigt
 ```
 
 Umgesetzt:
 
-- Hauptbereich `Lokales Dashboard` im zentralen Modulmanifest.
-- Drei lokale read-only Seiten:
-  - Stream-PC Status,
-  - LAN / Zugriff,
-  - Start / Env.
-- Runtime-Scope `local` fuer diese Seiten.
-- Sprachkeys Deutsch/Englisch.
-- Status-API meldet lokale Dashboard-Seiten als vorbereitet.
-- Doku wurde zentralisiert: `project-state/PARKED_TODOS.md` ist die Langzeit-Merkstelle; `project-state/TODO.md` bleibt kurz und aktiv.
-
-Geparkte Idee:
-
-- Lokale Aenderungen spaeter kontrolliert online synchronisieren.
-- Nicht sofort bauen.
-- Spaeteres Zielbild: lokal aendern -> pruefen -> vormerken -> freigeben -> online uebernehmen.
-- Kein Blind-Auto-Sync fuer kritische Bereiche.
-- Weitere geparkte Punkte stehen in `project-state/PARKED_TODOS.md`.
+- Linke Online-Navigation bereinigt.
+- Kein Hauptmenue `Lokales Dashboard` in der Online-Modoberflaeche.
+- Kein Hauptmenue `Mein Konto` in der linken Navigation.
+- Kein `Routen` unter System.
+- Technische Details bleiben unter `Admin -> Doku / Details`.
+- Konto-/Rechtefunktionen bleiben oben rechts im User-Panel.
+- Keine Backend-Routen entfernt.
+- Keine DB-Migration, keine Writes, keine Agent-Actions.
 
 ## Was NICHT gemacht werden darf
 
@@ -92,26 +62,20 @@ Geparkte Idee:
 
 ## Naechster sinnvoller Arbeitsfokus
 
-Lokales Dashboard mit echten read-only Daten verbessern, ohne Actions zu aktivieren.
+Lokale Oberflaeche als lokale Instanz/Kopie derselben App auf dem Streaming-PC planen.
 
 Moeglicher sichtbarer naechster Buildname:
 
 ```text
-0.2.6 - Lokale Statusdaten verbessert
+0.2.7 - Lokaler Modboard-Start geplant
 ```
 
 Moeglicher Inhalt:
 
-- vorhandene lokale read-only Seiten mit echten sicheren Statuswerten verbinden,
+- echte lokale Start-/Runtime-Dateien pruefen,
+- gleiche App lokal startbar planen,
+- keine parallele Oberflaeche bauen,
 - keine neuen Writes,
 - keine Agent-Actions,
 - keine OBS-/Sound-/Overlay-/Command-Steuerung,
 - Backend bleibt Sicherheitsinstanz.
-
-Vor jeder Umsetzung:
-
-1. echte Dateien aus GitHub/dev lesen,
-2. bestehende Module/Services/Routes bevorzugen,
-3. keine parallelen Strukturen bauen,
-4. Plan mit deutschem sichtbarem Buildnamen nennen,
-5. auf Forrests explizites `go` warten.

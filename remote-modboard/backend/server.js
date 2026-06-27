@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.5';
-const BUILD_NAME = 'Lokales Dashboard vorbereitet';
-const STEP_REF = 'RDAP127_LOCAL_DASHBOARD_FOUNDATION';
+const APP_VERSION = '0.2.6';
+const BUILD_NAME = 'Online-Modoberflaeche bereinigt';
+const STEP_REF = 'RDAP129_ONLINE_MODBOARD_NAVIGATION_CLEANUP';
 const MODULE_BUILD = BUILD_NAME;
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
   const app = createApp({ config, moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] v${APP_VERSION} - ${BUILD_NAME} listening on http://${config.host}:${config.port}`);
-    console.log(`[remote-modboard] runtimeMode=${config.runtimeMode} localLan=${config.localLan && config.localLan.lanUseAllowed ? 'prepared' : 'disabled'} localDashboard=readonly-prepared streaming-pc-connection=true component-status=readonly obs-status=readonly actions=false remoteWritesControlled=true`);
+    console.log(`[remote-modboard] runtimeMode=${config.runtimeMode} onlineNavigation=cleaned localDashboardMenu=false accountLeftNav=false systemRoutesLeftNav=false actions=false remoteWritesControlled=true`);
   });
 
   registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });

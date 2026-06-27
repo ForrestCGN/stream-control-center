@@ -19,14 +19,10 @@
   <section class="loginScene" id="loginScene">
     <main class="login-wrap">
       <section class="login-card cgn-card login-card--welcome">
-        <div class="login-mark" aria-hidden="true">
-          <span></span>
-        </div>
+        <div class="login-mark" aria-hidden="true"><span></span></div>
         <p class="cgn-eyebrow">ForrestCGN Remote Modboard</p>
         <h1>Willkommen</h1>
-        <p>
-          Melde dich mit Twitch an und öffne dein Modboard.
-        </p>
+        <p>Melde dich mit Twitch an und öffne dein Modboard.</p>
         <a class="twitch-login" id="loginStartLink" href="/api/remote/auth/login/start">
           <span class="twitch-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -35,10 +31,7 @@
           </span>
           Anmelden
         </a>
-        <div class="login-safe-note">
-          <span aria-hidden="true">🔒</span>
-          Sicher anmelden und direkt loslegen
-        </div>
+        <div class="login-safe-note"><span aria-hidden="true">🔒</span>Sicher anmelden und direkt loslegen</div>
       </section>
     </main>
   </section>
@@ -53,12 +46,7 @@
           <button class="secondaryButton" type="button" id="deniedLogoutButton">Ausloggen</button>
           <a class="secondaryButton" href="/">Zurück</a>
         </div>
-        <div class="login-hints">
-          <div class="login-state">
-            <span class="cgn-chip cgn-chip--warn">Access-Denied</span>
-            <span class="cgn-chip cgn-chip--info">Serverseitige Prüfung</span>
-          </div>
-        </div>
+        <div class="login-hints"><div class="login-state"><span class="cgn-chip cgn-chip--warn">Access-Denied</span><span class="cgn-chip cgn-chip--info">Serverseitige Prüfung</span></div></div>
       </section>
     </main>
   </section>
@@ -66,130 +54,67 @@
   <section class="dashboardScene" id="dashboardScene" hidden>
     <header class="cgn-topbar" id="topbar">
       <div class="top-left">
-        <button class="cgn-icon-button" id="navToggle" title="Navigation ein-/ausklappen" aria-label="Navigation ein-/ausklappen">
-          <span class="hamburger"><i></i><i></i><i></i></span>
-        </button>
-        <div class="cgn-breadcrumb">
-          <span id="sectionLabel">System</span>
-          <strong id="pageTitle">Übersicht <span class="tab-part">Status</span></strong>
-        </div>
+        <button class="cgn-icon-button" id="navToggle" title="Navigation ein-/ausklappen" aria-label="Navigation ein-/ausklappen"><span class="hamburger"><i></i><i></i><i></i></span></button>
+        <div class="cgn-breadcrumb"><span id="sectionLabel">System</span><strong id="pageTitle">Übersicht <span class="tab-part">Status</span></strong></div>
       </div>
-
-      <div class="top-search disabled">
-        <span>⌕</span>
-        <input type="search" placeholder="Suche später: Module, User, Logs …" disabled>
-      </div>
-
-      <div class="top-center">
-        <span class="cgn-chip" id="quickService">Service</span>
-        <span class="cgn-chip" id="quickRuntimeMode">Modus</span>
-        <span class="cgn-chip" id="quickLogin">Login</span>
-        <span class="cgn-chip" id="quickOAuth">OAuth</span>
-        <span class="cgn-chip" id="quickAgent">Agent</span>
-      </div>
-
+      <div class="top-search disabled"><span>⌕</span><input type="search" placeholder="Suche später: Module, User, Logs …" disabled></div>
+      <div class="top-center"><span class="cgn-chip" id="quickService">Service</span><span class="cgn-chip" id="quickRuntimeMode">Modus</span><span class="cgn-chip" id="quickLogin">Login</span><span class="cgn-chip" id="quickOAuth">OAuth</span><span class="cgn-chip" id="quickAgent">Agent</span></div>
       <div class="top-right">
         <button class="cgn-icon-button cgn-lang" type="button">DE</button>
         <button class="cgn-icon-button cgn-bell" type="button">🔒<em>0</em></button>
         <button class="cgn-avatar-button" type="button" id="userMenuButton" aria-haspopup="dialog" aria-expanded="false" title="Mein Konto anzeigen">
-          <span class="cgn-avatar" id="topUserAvatar">
-            <img id="topUserAvatarImage" alt="" hidden>
-            <span id="topUserAvatarInitial">F</span>
-          </span>
-          <span class="cgn-avatar-copy">
-            <strong id="loginStateText">Angemeldet</strong>
-            <small id="lastUpdatedText">Noch nicht geladen</small>
-          </span>
+          <span class="cgn-avatar" id="topUserAvatar"><img id="topUserAvatarImage" alt="" hidden><span id="topUserAvatarInitial">F</span></span>
+          <span class="cgn-avatar-copy"><strong id="loginStateText">Angemeldet</strong><small id="lastUpdatedText">Noch nicht geladen</small></span>
         </button>
       </div>
     </header>
 
     <aside class="self-profile-panel cgn-card" id="selfProfilePanel" hidden aria-label="Mein Profil">
       <div class="self-profile-head">
-        <div class="self-profile-avatar" id="selfPanelAvatar">
-          <img id="selfPanelAvatarImage" alt="" hidden>
-          <span id="selfPanelAvatarInitial">F</span>
-        </div>
-        <div>
-          <p class="cgn-eyebrow">Mein Konto</p>
-          <h2 id="selfPanelDisplayName">—</h2>
-          <small id="selfPanelLoginName">—</small>
-        </div>
+        <div class="self-profile-avatar" id="selfPanelAvatar"><img id="selfPanelAvatarImage" alt="" hidden><span id="selfPanelAvatarInitial">F</span></div>
+        <div><p class="cgn-eyebrow">Mein Konto</p><h2 id="selfPanelDisplayName">—</h2><small id="selfPanelLoginName">—</small></div>
         <button class="cgn-icon-button self-profile-close" type="button" id="selfProfileCloseButton" aria-label="Profil schließen">×</button>
       </div>
-
-      <div class="self-profile-grid self-profile-grid--compact">
-        <div class="kv-row"><span>Rolle</span><strong id="selfPanelRoles">—</strong></div>
-      </div>
-
-      <div class="self-profile-sync" id="selfProfileSyncNotice" hidden>
-        <strong id="selfProfileSyncTitle">Profil wird aktualisiert</strong>
-        <span id="selfProfileSyncText">Twitch-Daten werden neu gelesen …</span>
-      </div>
-
+      <div class="self-profile-grid self-profile-grid--compact"><div class="kv-row"><span>Rolle</span><strong id="selfPanelRoles">—</strong></div></div>
+      <div class="self-profile-sync" id="selfProfileSyncNotice" hidden><strong id="selfProfileSyncTitle">Profil wird aktualisiert</strong><span id="selfProfileSyncText">Twitch-Daten werden neu gelesen …</span></div>
       <div class="self-profile-actions self-profile-actions--compact">
         <button class="secondaryButton small" type="button" id="selfProfileAccessButton">Meine Rechte</button>
         <button class="secondaryButton small" type="button" id="selfProfileSyncButton">Profil aktualisieren</button>
         <button class="secondaryButton small danger" type="button" id="selfProfileLogoutButton">Ausloggen</button>
       </div>
     </aside>
-
     <div class="self-profile-backdrop" id="selfProfileBackdrop" hidden></div>
 
     <div class="cgn-layout">
       <aside class="cgn-sidebar">
-        <div class="sidebar-head">
-          <strong>Navigation</strong>
-          <span>Remote Modboard</span>
-        </div>
-
+        <div class="sidebar-head"><strong>Navigation</strong><span>Remote Modboard</span></div>
         <nav class="cgn-nav">
-          <button class="nav-group is-open" type="button" data-target="nav-system"><span>◆</span><b>System</b><i>⌄</i></button>
-          <div class="nav-sub is-open" id="nav-system">
-            <button class="nav-link is-active" type="button" data-section="System" data-title="Übersicht" data-tab="Status" data-page="overview">Übersicht</button>
-            <button class="nav-link" type="button" data-section="System" data-title="Diagnose" data-tab="Status" data-page="diagnostics">Diagnose</button>
-            <button class="nav-link" type="button" data-section="System" data-title="Routen" data-tab="Read-only" data-page="routes">Routen</button>
+          <button class="nav-group is-open" type="button" data-target="nav-system" data-module-id="system" data-order="10"><span>◆</span><b>System</b><i>⌄</i></button>
+          <div class="nav-sub is-open" id="nav-system" data-module-id="system" data-order="10">
+            <button class="nav-link is-active" type="button" data-section="System" data-title="Übersicht" data-tab="Status" data-page="overview" data-module-id="system" data-order="10">Übersicht</button>
+            <button class="nav-link" type="button" data-section="System" data-title="Diagnose" data-tab="Status" data-page="diagnostics" data-module-id="system" data-order="20">Diagnose</button>
           </div>
-
-          <button class="nav-group" type="button" data-target="nav-modules"><span>◇</span><b>Module</b><i>⌄</i></button>
-          <div class="nav-sub" id="nav-modules">
-            <button class="nav-link" type="button" data-section="Module" data-title="Module" data-tab="read-only" data-page="modules">Module</button>
+          <button class="nav-group" type="button" data-target="nav-modules" data-module-id="modules" data-order="20"><span>◇</span><b>Module</b><i>⌄</i></button>
+          <div class="nav-sub" id="nav-modules" data-module-id="modules" data-order="20">
+            <button class="nav-link" type="button" data-section="Module" data-title="Modulübersicht" data-tab="read-only" data-page="modules" data-module-id="modules" data-order="10">Modulübersicht</button>
           </div>
-
-          <button class="nav-group" type="button" data-target="nav-admin"><span>⚙</span><b>Admin</b><i>⌄</i></button>
-          <div class="nav-sub" id="nav-admin">
-            <button class="nav-link" type="button" data-section="Admin" data-title="Benutzerverwaltung" data-tab="read-only" data-page="admin-users">Benutzerverwaltung</button>
-            <button class="nav-link" type="button" data-section="Admin" data-title="Rollen & Rechte" data-tab="read-only" data-page="access">Rollen & Rechte</button>
-            <button class="nav-link" type="button" data-section="Admin" data-title="Sicherheit" data-tab="Status" data-page="diagnostics">Sicherheit</button>
+          <button class="nav-group" type="button" data-target="nav-admin" data-module-id="admin" data-order="30"><span>⚙</span><b>Admin</b><i>⌄</i></button>
+          <div class="nav-sub" id="nav-admin" data-module-id="admin" data-order="30">
+            <button class="nav-link" type="button" data-section="Admin" data-title="Benutzerverwaltung" data-tab="read-only" data-page="admin-users" data-module-id="admin" data-order="10">Benutzerverwaltung</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Admin-Notizen" data-tab="read/create" data-page="admin-notes" data-module-id="admin" data-order="20">Admin-Notizen</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Verbindungen" data-tab="read-only" data-page="connections" data-module-id="admin" data-order="30">Verbindungen</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Doku / Details" data-tab="read-only" data-page="routes" data-module-id="admin" data-order="90">Doku / Details</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Rollen & Rechte" data-tab="read-only" data-page="access" data-module-id="admin" data-order="100">Rollen & Rechte</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Sicherheit" data-tab="Status" data-page="diagnostics" data-module-id="admin" data-order="110">Sicherheit</button>
           </div>
         </nav>
-
-        <div class="sidebar-foot">
-          <span>ForrestCGN</span>
-          <strong>Modboard</strong>
-        </div>
+        <div class="sidebar-foot"><span>ForrestCGN</span><strong>Modboard</strong></div>
       </aside>
-
       <div class="cgn-scrim" id="scrim"></div>
-
       <main class="cgn-content" id="remoteModboardContent">
-        <section class="errorBox cgn-card" id="errorBox" hidden>
-          <div><strong>Diagnose-Hinweis</strong><p id="errorText">—</p></div>
-          <button class="secondaryButton small" type="button" id="clearErrorsButton">Ausblenden</button>
-        </section>
-
-        <section class="rdap-view rdap-module-loading is-active-view" data-page-panel="overview" data-module-placeholder="overview">
-          <section class="page-header module-page-header cgn-card">
-            <p class="cgn-eyebrow">Remote Modboard</p>
-            <h1>Übersicht</h1>
-            <p>Module werden geladen …</p>
-          </section>
-        </section>
-
-        <footer class="footer">
-          <span id="autoRefreshText">Auto-Refresh: —</span>
-          <button class="secondaryButton" type="button" id="refreshButton">Neu laden</button>
-        </footer>
+        <section class="errorBox cgn-card" id="errorBox" hidden><div><strong>Diagnose-Hinweis</strong><p id="errorText">—</p></div><button class="secondaryButton small" type="button" id="clearErrorsButton">Ausblenden</button></section>
+        <section class="rdap-view rdap-module-loading is-active-view" data-page-panel="overview" data-module-placeholder="overview"><section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Remote Modboard</p><h1>Übersicht</h1><p>Module werden geladen …</p></section></section>
+        <footer class="footer"><span id="autoRefreshText">Auto-Refresh: —</span><button class="secondaryButton" type="button" id="refreshButton">Neu laden</button></footer>
       </main>
     </div>
   </section>
@@ -199,6 +124,7 @@
   <script src="/assets/languages/en.js" defer></script>
   <script src="/assets/modules/module-manifest.js" defer></script>
   <script src="/assets/remote-modboard.js" defer></script>
+  <script src="/assets/modules/ui/navigation-cleanup.js" defer></script>
   <script src="/assets/runtime-profile.js" defer></script>
 </body>
 </html>

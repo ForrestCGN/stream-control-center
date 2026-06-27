@@ -2,9 +2,10 @@
 
 Stand: 2026-06-27
 
-- [ ] Doku-Cleanup lokal einspielen: `PARKED_TODOS.md` zentralisieren und RDAP-Dokus straffen.
+- [ ] `0.2.6 - Online-Modoberflaeche bereinigt` lokal einspielen.
 - [ ] `git status --short` und `git diff --stat` pruefen.
-- [ ] Bei sauberem Doku-Stand `stepdone.cmd` ausfuehren.
-- [ ] Kein Webserver-Deploy noetig, weil Doku-only.
-- [ ] Danach moeglich: Version `0.2.6 - Lokale Statusdaten verbessert` planen.
-- [ ] Sync-Idee nur geparkt lassen, nicht sofort bauen.
+- [ ] Browser-Sichttest: links kein `Lokales Dashboard`, kein `Mein Konto`, kein `Routen` unter System.
+- [ ] Browser-Sichttest: Admin -> `Doku / Details` bleibt vorhanden.
+- [ ] Bei sauberem Stand `stepdone.cmd` ausfuehren.
+- [ ] Danach Webserver-Deploy per Wrapper, weil Code unter `remote-modboard/` geaendert wurde.
+- [ ] Danach moeglich: `0.2.7 - Lokaler Modboard-Start geplant`.

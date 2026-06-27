@@ -1,22 +1,16 @@
 # Start hier
 
-Aktueller Stand: Version `0.2.5` - `Lokales Dashboard vorbereitet`.
+Aktueller Stand: Version `0.2.6` - `Online-Modoberflaeche bereinigt`.
 
-Live bestaetigt am 2026-06-27:
+Geaendert in 0.2.6:
 
 ```text
-/api/remote/status
-version: 0.2.5
-buildName: Lokales Dashboard vorbereitet
-moduleBuild: Lokales Dashboard vorbereitet
-runtimeMode: online
-localDashboardProfile.visibleLabel: Onlinemodus
-localDashboardProfile.localDashboardMenuPrepared: true
-localDashboardProfile.localDashboardReadOnlyPagesPrepared: true
-localDashboardProfile.localDashboardPages: stream-pc-status, lan-access, start-env
-localDashboardProfile.actionsEnabled: false
-localDashboardProfile.productiveWritesEnabled: false
-localDashboardProfile.agentActionsEnabled: false
+Online-Modoberflaeche auf mods.forrestcgn.de bereinigt:
+- kein Hauptmenue `Lokales Dashboard` in der Online-Modoberflaeche
+- kein Hauptmenue `Mein Konto` in der linken Navigation
+- kein `Routen` unter System
+- technische Routen-/Detailansicht bleibt unter Admin -> Doku / Details
+- Konto-/Rechtefunktionen bleiben oben rechts im User-Panel
 ```
 
 ## Zentrale Startreihenfolge
@@ -45,7 +39,7 @@ Nicht alte `NEXT_CHAT_PROMPT_*` Dateien als Wahrheit verwenden, wenn eine neuere
 - Keine `jq`-Befehle fuer Windows.
 - ZIP ist nur vorbereitet. Lokal gilt erst nach `installstep.cmd` + Neustart/Test. Webserver gilt erst nach `stepdone.cmd` + Deploy-Wrapper + Test.
 - Nutzerkommunikation mit Versionsnummern und sprechenden deutschen Namen, keine internen Step-Namen.
-- Neue Module/Seiten muessen sich sauber ueber das zentrale Modulmanifest registrieren. Neue Hauptmenues entstehen nur ueber `manifest.modules`, Seiten ordnen sich per `moduleId` zu.
+- Neue Module/Seiten muessen sich sauber ueber das zentrale Modulmanifest registrieren.
 - `project-state/TODO.md` bleibt kurz und aktiv.
 - `project-state/PARKED_TODOS.md` ist die zentrale Langzeit-Merkstelle fuer geparkte Arbeit.
 
@@ -53,11 +47,12 @@ Nicht alte `NEXT_CHAT_PROMPT_*` Dateien als Wahrheit verwenden, wenn eine neuere
 
 - Remote-Modboard UI ist modularisiert.
 - Modul-Metadaten, Sprachdateien und Runtime-Scope sind vorbereitet.
-- Version `0.2.5 - Lokales Dashboard vorbereitet` ergaenzt den Hauptbereich `Lokales Dashboard` und drei lokale read-only Seiten:
-  - Stream-PC Status,
-  - LAN / Zugriff,
-  - Start / Env.
-- Diese lokalen Seiten haben `runtime: local`; im Onlinebetrieb werden sie nur als nicht passender Runtime-Scope markiert/gesperrt.
+- Online-Modoberflaeche ist bereinigt:
+  - System zeigt `Uebersicht` und `Diagnose`.
+  - Module zeigt `Moduluebersicht`.
+  - Admin zeigt `Benutzerverwaltung`, `Admin-Notizen`, `Verbindungen`, `Doku / Details` sowie bestehende Admin-Unterseiten.
+  - Konto-/Rechtefunktionen bleiben im User-Panel oben rechts.
+- Lokale Oberflaeche soll spaeter als lokale Instanz/Kopie derselben App auf dem Streaming-PC geplant werden, nicht als Online-Menuepunkt.
 
 ## Geparkte Idee
 
@@ -69,10 +64,9 @@ Nicht alte `NEXT_CHAT_PROMPT_*` Dateien als Wahrheit verwenden, wenn eine neuere
 
 ## Sicherheitsstand
 
-- Online/Lokal-Runtime-Profil ist vorbereitet und sichtbar.
 - Frontend-Metadaten steuern Anzeige und Navigation, nicht Sicherheit.
 - Backend bleibt fuer Rechte, Scope, Confirm-Write, Audit, Lock, Backup/Rollback und Readback massgeblich.
-- Keine neuen produktiven Writes in Version 0.2.5.
+- Keine neuen produktiven Writes in Version 0.2.6.
 - Keine Agent-Actions.
 - Keine OBS-Steuerung, keine Szenen-/Quellen-/Sound-/Overlay-/Command-Aktionen.
 - Keine Shell-, Datei- oder Prozessaktionen.
