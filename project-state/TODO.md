@@ -2,10 +2,8 @@
 
 Stand: 2026-06-27
 
-- [ ] `0.2.6 - Online-Modoberflaeche bereinigt` lokal einspielen.
+- [ ] `0.2.7 - Lokaler Dashboard-Ersatz geplant` lokal einspielen.
 - [ ] `git status --short` und `git diff --stat` pruefen.
-- [ ] Browser-Sichttest: links kein `Lokales Dashboard`, kein `Mein Konto`, kein `Routen` unter System.
-- [ ] Browser-Sichttest: Admin -> `Doku / Details` bleibt vorhanden.
+- [ ] Bestaetigen: Doku-only, kein Webserver-Deploy noetig.
 - [ ] Bei sauberem Stand `stepdone.cmd` ausfuehren.
-- [ ] Danach Webserver-Deploy per Wrapper, weil Code unter `remote-modboard/` geaendert wurde.
-- [ ] Danach moeglich: `0.2.7 - Lokaler Modboard-Start geplant`.
+- [ ] Danach moeglich: `0.2.8 - Dashboard-v2 Shell vorbereitet` planen.

@@ -1,5 +1,17 @@
 # Changelog
 
+## Version 0.2.7 - Lokaler Dashboard-Ersatz geplant
+
+- Doku-/Plan-Step fuer den lokalen Ersatz des alten Dashboards erstellt.
+- Festgelegt: lokaler Server `backend/server.js` auf Port `8080` ist Wahrheit fuer die lokale Oberflaeche.
+- Festgelegt: neue lokale Oberflaeche soll `/dashboard-v2` werden.
+- Festgelegt: `/dashboard` bleibt zuerst stabil/alt und kann spaeter auf `/dashboard-v2` zeigen oder ersetzt werden.
+- Festgelegt: alte Dashboard-Funktionen werden nach und nach uebernommen, wie beim Online-Modboard.
+- Kritische lokale Bereiche werden einzeln geprueft: Sounds, Alerts, Texte/Configs, Commands/Channelpoints, OBS, Overlays, lokale Bridges, Uploads/Dateien.
+- Read-only fuer Startphasen erklaert: anzeigen ja, ausloesen/aendern erstmal nein.
+- Keine Codeaenderung, keine DB-Migration, keine produktiven Writes, keine Agent-Actions.
+- Doku-only: kein Webserver-Deploy noetig.
+
 ## Version 0.2.6 - Online-Modoberflaeche bereinigt
 
 - Sichtbare Version `0.2.6` vorbereitet.

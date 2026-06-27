@@ -32,13 +32,28 @@ project-state/CHANGELOG.md
 
 ## Aktueller Stand
 
-Aktueller sichtbarer Stand:
+Aktueller bestaetigter Stand:
+
+```text
+0.2.7 - Lokaler Dashboard-Ersatz geplant
+```
+
+Umgesetzt:
+
+- Doku-/Plan-Step fuer lokalen Ersatz des alten Dashboards.
+- Lokaler Server `backend/server.js` auf Port `8080` ist Wahrheit fuer die lokale Oberflaeche.
+- Neue lokale Zieloberflaeche soll `/dashboard-v2` werden.
+- `/dashboard` bleibt zuerst stabil/alt und kann spaeter auf `/dashboard-v2` zeigen oder ersetzt werden.
+- Alte Dashboard-Funktionen werden nach und nach uebernommen.
+- Kritische lokale Module werden einzeln geprueft: Sounds, Alerts, Texte/Configs, Commands/Channelpoints, OBS, Overlays, lokale Bridges, Uploads/Dateien.
+- Start je Modul zuerst read-only: anzeigen ja, ausloesen/aendern erstmal nein.
+- Keine Codeaenderung, keine DB-Migration, keine Writes, keine Agent-Actions.
+
+Vorher bestaetigt:
 
 ```text
 0.2.6 - Online-Modoberflaeche bereinigt
 ```
-
-Umgesetzt:
 
 - Linke Online-Navigation bereinigt.
 - Kein Hauptmenue `Lokales Dashboard` in der Online-Modoberflaeche.
@@ -46,8 +61,6 @@ Umgesetzt:
 - Kein `Routen` unter System.
 - Technische Details bleiben unter `Admin -> Doku / Details`.
 - Konto-/Rechtefunktionen bleiben oben rechts im User-Panel.
-- Keine Backend-Routen entfernt.
-- Keine DB-Migration, keine Writes, keine Agent-Actions.
 
 ## Was NICHT gemacht werden darf
 
@@ -59,23 +72,29 @@ Umgesetzt:
 - Keine OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Actions.
 - Keine aktiven Module entfernen.
 - Keine Funktionen entfernen.
+- `/dashboard` nicht blind ersetzen.
 
 ## Naechster sinnvoller Arbeitsfokus
 
-Lokale Oberflaeche als lokale Instanz/Kopie derselben App auf dem Streaming-PC planen.
+```text
+0.2.8 - Dashboard-v2 Shell vorbereitet
+```
 
-Moeglicher sichtbarer naechster Buildname:
+Vor dem Plan unbedingt lesen:
 
 ```text
-0.2.7 - Lokaler Modboard-Start geplant
+backend/server.js
+backend/core/paths.js
+htdocs/dashboard-v2/index.html
+htdocs/dashboard/index.html
 ```
+
+Falls `htdocs/...` im Repo nicht vollstaendig abgebildet ist, mit Forrest klaeren, ob die echten lokalen Dateien aus `D:\Streaming\stramAssets\htdocs\...` hochgeladen/abgeglichen werden muessen.
 
 Moeglicher Inhalt:
 
-- echte lokale Start-/Runtime-Dateien pruefen,
-- gleiche App lokal startbar planen,
-- keine parallele Oberflaeche bauen,
-- keine neuen Writes,
-- keine Agent-Actions,
-- keine OBS-/Sound-/Overlay-/Command-Steuerung,
-- Backend bleibt Sicherheitsinstanz.
+- echte bestehende lokale Dashboard-Dateien pruefen,
+- minimale neue `/dashboard-v2` Shell im Modboard-Look planen,
+- `/dashboard` stabil lassen,
+- keine Aktionen/Writes,
+- erste Startseite read-only.
