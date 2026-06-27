@@ -2,16 +2,17 @@
 
 Stand: 2026-06-27
 
-1. Cleanup 6 ZIP lokal einspielen:
-   `./installstep.cmd "$env:USERPROFILE\Downloads\RDAP_DOCS_CLEANUP_6_DOCS_CURRENT_SECOND_PASS.zip" "RDAP Docs Cleanup 6 Second-Pass-Audit und RDAP-Arbeitsweise-Restore"`
+1. Cleanup 7 ZIP lokal einspielen:
+   `./installstep.cmd "$env:USERPROFILE\Downloads\RDAP_DOCS_CLEANUP_7_ARCHIVE_OR_MERGE_MANIFEST.zip" "RDAP Docs Cleanup 7 Archive-or-Merge-Manifest vorbereitet"`
 2. Dry-Run ausfuehren:
-   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\tools\cleanup\rdap-docs-cleanup-6-second-pass.ps1"`
-3. Wenn plausibel: Execute nur fuer den Restore ausfuehren:
-   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\tools\cleanup\rdap-docs-cleanup-6-second-pass.ps1" -Execute`
-4. Optional lokale Reports erzeugen, danach bewusst loeschen oder committen:
-   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\tools\cleanup\rdap-docs-cleanup-6-second-pass.ps1" -WriteReports`
-5. `git status` pruefen.
-6. Wenn sauber/nachvollziehbar: `stepdone.cmd`.
-7. Danach Cleanup 7 planen: aus `ARCHIVE_OR_MERGE` ein exaktes Move-/Merge-Manifest bauen.
+   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\tools\cleanup\rdap-docs-cleanup-7-archive-or-merge.ps1"`
+3. Dry-Run pruefen: erwartete Move-Kandidaten `1033`, fehlende Quellen `0`, vorhandene Ziele `0`.
+4. Wenn plausibel: Execute ausfuehren:
+   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\tools\cleanup\rdap-docs-cleanup-7-archive-or-merge.ps1" -Execute`
+5. Optional lokale Reports erzeugen, danach bewusst loeschen oder committen:
+   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\tools\cleanup\rdap-docs-cleanup-7-archive-or-merge.ps1" -WriteReports`
+6. `git status` pruefen.
+7. Wenn sauber/nachvollziehbar: `stepdone.cmd`.
+8. Danach Cleanup 8 planen: die 40 `REVIEW_MANUALLY`-Dateien einzeln pruefen.
 
-Kein Webserver-Deploy fuer Cleanup 6 noetig.
+Kein Webserver-Deploy fuer Cleanup 7 noetig.

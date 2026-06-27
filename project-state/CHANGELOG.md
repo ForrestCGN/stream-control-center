@@ -1,5 +1,17 @@
 # Changelog
 
+## RDAP Docs Cleanup 7
+
+- Exaktes Move-Manifest aus der Cleanup-6-Kategorie `ARCHIVE_OR_MERGE` vorbereitet.
+- Umfang: 1033 Dateien.
+- Zielarchiv: `docs/archive/docs-current-cleanup-7/`.
+- PowerShell-Script `tools/cleanup/rdap-docs-cleanup-7-archive-or-merge.ps1` vorbereitet.
+- Script laeuft standardmaessig als Dry-Run und verschiebt nur mit `-Execute`.
+- Keine harten Deletes.
+- `KEEP_CURRENT` bleibt unangetastet.
+- `REVIEW_MANUALLY` bleibt unangetastet.
+- Keine Code-, DB- oder Webserver-Aenderungen.
+
 ## RDAP Docs Cleanup 6
 
 - Second-Pass-Audit fuer `docs/current/` nach Cleanup 5 vorbereitet.
