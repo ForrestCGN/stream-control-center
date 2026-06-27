@@ -1,5 +1,16 @@
 # Changelog
 
+## Doku-/Handoff-Step nach RDAP123
+
+- `START_HERE_FOR_NEW_CHAT.md` auf Live-Stand `0.2.4 - Routes-Status angeglichen` aktualisiert.
+- `CURRENT_REMOTE_MODBOARD_STATE.md` auf RDAP123-Live-Bestaetigung aktualisiert.
+- `REMOTE_MODBOARD_ROADMAP_CURRENT.md` auf RDAP119 bis RDAP123 nachgezogen.
+- `NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` neu auf RDAP123 ausgerichtet.
+- `DOCS_CURRENT_FINAL_INDEX.md` aktualisiert.
+- Neue Current-Doku `MODULE_REGISTRATION_RULES_CURRENT.md` erstellt.
+- Modulregel dokumentiert: Hauptmenues ueber `manifest.modules`, Seiten ueber `manifest.pages`, Zuordnung ueber `moduleId`.
+- Keine Code-Aenderung, keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
+
 ## RDAP123 - Routes-Status angeglichen
 
 - Sichtbare Version `0.2.4` eingefuehrt.
@@ -20,16 +31,4 @@
 - Modulmanifest auf Version `0.2.3` gesetzt und Runtime-Profile dokumentiert.
 - Neues Frontend-Helferfile `runtime-profile.js` markiert Navigation anhand `runtime: online|local|both`.
 - Zentrale Sprachdateien um Runtime-Texte erweitert.
-- Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
-
-## RDAP121 - Zentrale Sprachdateien
-
-- Sichtbare Version `0.2.2` eingefuehrt.
-- Deutscher kurzer Buildname `Zentrale Sprachdateien` eingefuehrt.
-- Zentrale Frontend-Sprach-Registry `RemoteModboardLanguages` erstellt.
-- Sprachdateien `de.js` und `en.js` vorbereitet.
-- Modulmanifest um `labelKey`, `titleKey`, `descriptionKey` und `tabKey` erweitert.
-- Modul-Registry nutzt Sprachschluessel mit Fallback auf bestehende Texte.
-- Moduluebersicht zeigt Sprachdatei-Hinweis read-only an.
-- Frontend-Metadaten und Sprachtexte bleiben Anzeige/Navigation; Backend bleibt Sicherheitsinstanz.
 - Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.

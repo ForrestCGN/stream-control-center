@@ -2,18 +2,29 @@
 
 Stand: 2026-06-27
 
-## Geaendert in RDAP123
+## Geaendert in diesem Doku-/Handoff-Step
+
+```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
+docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
+docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
+docs/current/DOCS_CURRENT_FINAL_INDEX.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
+
+## Zuletzt geaendert in RDAP123
 
 ```text
 remote-modboard/backend/server.js
 remote-modboard/backend/src/routes/routes.routes.js
 docs/current/RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP123.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
 ```
 
 ## Zuletzt geaendert in RDAP122

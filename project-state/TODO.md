@@ -2,10 +2,9 @@
 
 Stand: 2026-06-27
 
-- [ ] RDAP123 lokal einspielen.
-- [ ] Syntax-Checks ausfuehren.
-- [ ] `/api/remote/status` und `/api/remote/routes` pruefen.
-- [ ] Browser-Test der Runtime-Anzeige und Modulnavigation.
-- [ ] Nach Erfolg `stepdone.cmd`.
-- [ ] Webserver-Deploy mit Deploy-Wrapper.
-- [ ] Danach lokalen Stream-PC/LAN-Startbetrieb weiter konkretisieren.
+- [ ] Doku-/Handoff-Step lokal einspielen.
+- [ ] `git status --short` und `git diff --stat` pruefen.
+- [ ] Bei sauberem Stand `stepdone.cmd` ausfuehren.
+- [ ] Kein Webserver-Deploy fuer Doku-only.
+- [ ] Danach lokalen Stream-PC/LAN-Startbetrieb konkretisieren.
+- [ ] Bei neuen Modulen `MODULE_REGISTRATION_RULES_CURRENT.md` anwenden.

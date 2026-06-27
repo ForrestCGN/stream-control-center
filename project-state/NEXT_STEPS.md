@@ -2,19 +2,34 @@
 
 Stand: 2026-06-27
 
-1. `RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP.zip` lokal einspielen.
-2. Lokale Syntax-Checks ausfuehren.
-3. Browser/API pruefen:
-   - `/api/remote/status`
-   - `/api/remote/routes`
-   - System / Übersicht
-   - Module / Modulübersicht
-4. Besonders pruefen:
-   - `/status` meldet `v0.2.4 - Routes-Status angeglichen`.
-   - `/routes` enthaelt `routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP`.
-   - `/routes.localDashboardProfile.visibleLabel` ist `Onlinemodus` im Webserver-Onlinebetrieb.
-   - `/routes.localLanMode.routeStatusAligned` ist `true`.
-   - Keine roten Console-Fehler.
-5. Wenn sauber: `stepdone.cmd`.
-6. Danach Webserver-Deploy, weil `remote-modboard/...` geaendert wurde.
-7. Naechster sinnvoller Schritt danach: lokale Start-/Env-Doku fuer Stream-PC/LAN konkretisieren, weiterhin ohne Agent-Actions.
+Naechster sinnvoller technischer Step:
+
+```text
+RDAP124_LOCAL_STREAM_PC_LAN_START_DOCS_AND_MODULE_REGISTRATION_RULES
+```
+
+Ziel:
+
+1. Lokalen Stream-PC/LAN-Startbetrieb konkretisieren.
+2. Lokale Env-/Start-Konfiguration sauber dokumentieren.
+3. Forrest-/Engel-LAN-Nutzung vorbereiten.
+4. Neue lokale Dashboard-Seiten nur nach Modulregistrierungsregeln planen oder read-only vorbereiten.
+5. Keine Agent-Actions aktivieren.
+6. Keine OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Actions aktivieren.
+
+Bei neuen Modulen vorher lesen:
+
+```text
+docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+remote-modboard/backend/public/assets/modules/module-manifest.js
+remote-modboard/backend/public/assets/languages/de.js
+remote-modboard/backend/public/assets/languages/en.js
+```
+
+Wichtige Regel:
+
+```text
+Neue Hauptmenues entstehen ueber manifest.modules.
+Neue Seiten entstehen ueber manifest.pages.
+Seiten geben mit moduleId an, wo sie hingehoeren.
+```

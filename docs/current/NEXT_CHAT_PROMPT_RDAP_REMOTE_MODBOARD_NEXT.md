@@ -1,6 +1,8 @@
-# NEXT CHAT PROMPT - RDAP / Remote-Modboard normale Weiterarbeit
+# NEXT CHAT PROMPT - RDAP / Remote-Modboard nach RDAP123
 
 Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer ForrestCGN.
+
+Sprache: Deutsch. Direkt, pragmatisch, keine unnoetigen Wiederholungen.
 
 ## Wahrheit / Arbeitsbasis
 
@@ -21,40 +23,61 @@ Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer Forrest
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
+docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
+docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
+docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+docs/current/DOCS_CURRENT_FINAL_INDEX.md
+docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
+docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
+docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-docs/current/DOCS_CURRENT_FINAL_INDEX.md
-docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
-docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
-docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
-docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
 ```
 
 Falls eine Datei fehlt: nicht improvisieren, exakt diese Datei aus `D:\Git\stream-control-center` anfordern.
 
-## Aktueller Stand
+## Aktueller Live-Stand
 
-RDAP Docs Cleanup 5 bis 10 ist abgeschlossen:
+RDAP123 ist live bestaetigt:
 
-- Historische `docs/current/`-Altlasten wurden nach `docs/archive/docs-current-cleanup-*` verschoben.
-- `docs/current/` ist auf den erwarteten Current-Bestand reduziert.
-- Keine Code-Dateien wurden geaendert.
-- Keine DB-Aenderung.
-- Kein Webserver-Deploy fuer die Doku-Cleanup-Steps.
-- Technischer Basisstand bleibt Version 0.1.3: Streaming-PC Verbindung, Komponentenstatus und OBS-Status read-only. Keine Steuerung, keine Writes.
+```text
+version: 0.2.4
+buildName: Routes-Status angeglichen
+moduleBuild: Routes-Status angeglichen
+runtimeMode: online
+routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP
+localDashboardProfile.visibleLabel: Onlinemodus
+localDashboardProfile.actionsEnabled: false
+localDashboardProfile.productiveWritesEnabled: false
+localDashboardProfile.agentActionsEnabled: false
+localLanMode.routeStatusAligned: true
+```
 
-## Naechster sinnvoller Arbeitsfokus
+RDAP119 bis RDAP123 sind fachlich abgeschlossen:
 
-Wieder normale RDAP-/Remote-Modboard-Weiterarbeit aufnehmen. Vor jeder Umsetzung:
+- modulare UI/Foundation,
+- Modulmanifest mit Metadaten, Rechten und Runtime-Scope,
+- zentrale Sprachdateien `languages`,
+- lokales Dashboard-Profil vorbereitet,
+- `/status` und `/routes` konsistent.
 
-1. echte Dateien aus GitHub/dev lesen,
-2. bestehende Module/Services/Routes bevorzugen,
-3. keine parallelen Strukturen bauen,
-4. Plan nennen,
-5. auf Forrests `go` warten.
+## Modulregistrierung
+
+Neue Module/Seiten muessen nach `docs/current/MODULE_REGISTRATION_RULES_CURRENT.md` registriert werden.
+
+Kurzregel:
+
+```text
+Neue Hauptmenues entstehen ueber manifest.modules.
+Neue Seiten entstehen ueber manifest.pages.
+Seiten geben mit moduleId an, wo sie hingehoeren.
+Runtime-Scope online/local/both und permission sind Pflicht.
+Sprachtexte gehoeren in languages.
+Backend entscheidet Sicherheit.
+```
 
 ## Was NICHT gemacht werden darf
 
@@ -64,7 +87,18 @@ Wieder normale RDAP-/Remote-Modboard-Weiterarbeit aufnehmen. Vor jeder Umsetzung
 - Keine Remote-Modboard-Writes ohne Confirm-Write, Permission, Audit, Lock, Backup, Rollback und Read-Back-Pruefung.
 - Keine aktiven Module entfernen.
 - Keine Funktionen entfernen.
+- Keine OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Actions ohne separaten Sicherheits-Scope.
 - Kein Webserver-Deploy bei Doku-only.
+
+## Naechster sinnvoller technischer Fokus
+
+Lokalen Stream-PC/LAN-Startbetrieb konkretisieren:
+
+- lokale Env-/Start-Konfiguration dokumentieren,
+- LAN-Zugriff fuer Forrest/Engel vorbereiten,
+- weiterhin keine Agent-Actions,
+- lokale Dashboard-Seiten nur planen oder read-only vorbereiten,
+- bestehende modulare UI und Modulregistrierungsregeln nutzen.
 
 ## Aufgabe im neuen Chat
 
