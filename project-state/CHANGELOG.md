@@ -1,5 +1,14 @@
 # Changelog
 
+## RDAP Docs Cleanup 4 - Module Docs Consolidation
+
+- Zentrale Modul-Doku fuer Backend-/Dashboard-Domaenen vorbereitet.
+- Zentrale Remote-Modboard Route-/Service-Doku vorbereitet.
+- `docs/current` Konsolidierungs-Audit mit Snapshot-Zaehlen und Kategorien vorbereitet.
+- Lokales Scan-Script fuer `docs/current` und `project-state` Root vorbereitet.
+- Keine produktiven Codeaenderungen.
+- Kein Webserver-Deploy noetig.
+
 ## RDAP Docs Cleanup 3 - Local Untracked Clean
 
 - Script zur gezielten lokalen Bereinigung untracked Restdateien nach Cleanup 2 vorbereitet.

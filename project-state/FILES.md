@@ -1,12 +1,15 @@
 # Files
 
-## RDAP_DOCS_CLEANUP_3_LOCAL_UNTRACKED_CLEAN
+## RDAP_DOCS_CLEANUP_4_MODULE_DOCS_CONSOLIDATION
 
 Neu/geaendert:
 
-- docs/current/DOCS_CLEANUP_3_LOCAL_UNTRACKED_CLEAN.md
-- docs/current/NEXT_CHAT_PROMPT_RDAP_DOCS_CLEANUP_4.md
-- tools/cleanup/rdap-docs-cleanup-3-local-untracked-clean.ps1
+- docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
+- docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
+- docs/current/DOCS_CURRENT_CONSOLIDATION_AUDIT.md
+- docs/current/DOCS_CLEANUP_4_CANDIDATE_SUMMARY.md
+- docs/current/NEXT_CHAT_PROMPT_RDAP_DOCS_CLEANUP_5.md
+- tools/cleanup/rdap-docs-cleanup-4-docs-current-scan.ps1
 - project-state/CURRENT_STATUS.md
 - project-state/NEXT_STEPS.md
 - project-state/TODO.md
