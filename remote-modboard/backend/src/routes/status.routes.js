@@ -8,6 +8,8 @@ const { buildAgentStatusSummary } = require('../services/agent-status.service');
 
 const RDAP62_STATUS_API_VERSION = 'rdap_admin_note_update_status62.v1';
 const RDAP62_BUILD = 'RDAP62_ADMIN_NOTE_UPDATE_STATUS_SEMANTICS_CLEANUP';
+const APP_VERSION_FALLBACK = '0.2.1';
+const BUILD_NAME_FALLBACK = 'Modul-Metadaten und Rechte';
 
 function registerStatusRoutes(app, context) {
   app.get('/api/remote/status', async (req, res) => {
@@ -21,6 +23,9 @@ function registerStatusRoutes(app, context) {
       ok: true,
       service: 'remote-modboard',
       module: 'remote_node_base',
+      version: context.appVersion || APP_VERSION_FALLBACK,
+      buildName: context.buildName || context.moduleBuild || BUILD_NAME_FALLBACK,
+      stepRef: context.stepRef || '',
       moduleBuild: context.moduleBuild,
       statusApiVersion: RDAP62_STATUS_API_VERSION,
       readOnly: false,
@@ -28,6 +33,14 @@ function registerStatusRoutes(app, context) {
       actionEnabled: false,
       productiveAgentRuntime: false,
       generatedAt: new Date().toISOString(),
+      runtimeMode: publicConfig.runtimeMode || 'online',
+      app: {
+        name: 'Remote Modboard',
+        version: context.appVersion || APP_VERSION_FALLBACK,
+        buildName: context.buildName || context.moduleBuild || BUILD_NAME_FALLBACK,
+        stepRef: context.stepRef || '',
+        locale: 'de'
+      },
       publicHost: 'mods.forrestcgn.de',
       webserver: 'web.cgn.community',
       runtime: {
@@ -172,6 +185,7 @@ function registerStatusRoutes(app, context) {
         modulePermissionMatrixUsesTargetTypeAndTargetKey: true,
         productivePermissionEnforcementEnabled: true
       },
+      moduleMetadata: buildModuleMetadataSummary(),
       localLanMode: {
         planned: true,
         foundationPrepared: true,
@@ -186,6 +200,38 @@ function registerStatusRoutes(app, context) {
       safety: context.safety
     });
   });
+}
+
+
+function buildModuleMetadataSummary() {
+  return {
+    prepared: true,
+    locale: 'de',
+    localizationPrepared: true,
+    permissionsPrepared: true,
+    runtimeScopePrepared: true,
+    frontendOnlyPermissionHints: true,
+    backendStillAuthoritative: true,
+    visibleBuildNameLanguage: 'de',
+    modules: [
+      { id: 'system', label: 'System', runtime: 'both', permission: 'remote.view' },
+      { id: 'modules', label: 'Module', runtime: 'both', permission: 'remote.modules.read' },
+      { id: 'admin', label: 'Admin', runtime: 'both', permission: 'admin.view' },
+      { id: 'account', label: 'Mein Konto', runtime: 'both', permission: 'remote.view', hiddenInMainNav: true }
+    ],
+    pages: [
+      { pageId: 'overview', label: 'Übersicht', moduleId: 'system', runtime: 'both', permission: 'remote.view' },
+      { pageId: 'diagnostics', label: 'Diagnose', moduleId: 'system', runtime: 'both', permission: 'remote.diagnostics.read' },
+      { pageId: 'modules', label: 'Modulübersicht', moduleId: 'modules', runtime: 'both', permission: 'remote.modules.read' },
+      { pageId: 'admin-users', label: 'Benutzerverwaltung', moduleId: 'admin', runtime: 'both', permission: 'admin.users.read' },
+      { pageId: 'admin-notes', label: 'Admin-Notizen', moduleId: 'admin', runtime: 'both', permission: 'admin.users.note.read', writePermission: 'admin.users.note.write' },
+      { pageId: 'connections', label: 'Verbindungen', moduleId: 'admin', runtime: 'both', permission: 'admin.connections.read' },
+      { pageId: 'routes', label: 'Doku / Details', moduleId: 'admin', runtime: 'both', permission: 'admin.details.read' },
+      { pageId: 'account', label: 'Status', moduleId: 'account', runtime: 'both', permission: 'remote.view', hiddenInMainNav: true },
+      { pageId: 'permissions', label: 'Meine Rechte', moduleId: 'account', runtime: 'both', permission: 'remote.permissions.self.read', hiddenInMainNav: true }
+    ],
+    note: 'Frontend-Metadaten steuern Navigation, Lokalisierung und Sichtbarkeit. Sicherheit bleibt serverseitig.'
+  };
 }
 
 function buildAdminNoteWriteConfirmedUiSemantics() {

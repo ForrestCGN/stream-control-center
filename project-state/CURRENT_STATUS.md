@@ -2,22 +2,22 @@
 
 Stand: 2026-06-27
 
-Aktueller vorbereiteter Code-Step:
+Aktueller vorbereiteter Step:
 
 ```text
-RDAP119_MODULAR_UI_AND_LOCAL_DASHBOARD_FOUNDATION
+RDAP120_MODULE_METADATA_VERSION_RUNTIME_AND_PERMISSIONS
 ```
 
-Ziel:
+Sichtbarer Stand:
 
-- Remote-Modboard-UI von statischem Seitenblock zu modularer Shell umbauen.
-- Erste Menuepunkte als sprechende Moduldateien nachladen.
-- Local-Dashboard-Grundlage vorbereiten, ohne alte Dashboard-Aktionen produktiv zu aktivieren.
+```text
+v0.2.1 - Modul-Metadaten und Rechte
+```
 
-Sicherheitsstand:
+RDAP119 hat die Remote-Modboard-Oberflaeche modularisiert. RDAP120 ergaenzt Versionierung, deutschen Buildnamen, Modulmanifest, Lokalisierungsstruktur, Permission-Metadaten und Runtime-Scope.
 
-- Keine DB-Migration.
-- Keine neuen produktiven Writes.
-- Keine Agent-Actions.
-- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
-- Keine Shell-/Datei-/Prozessaktionen.
+Nicht geaendert:
+- keine DB-Migration,
+- keine neuen produktiven Writes,
+- keine Agent-Actions,
+- keine OBS-/Sound-/Overlay-/Command-Steuerung.

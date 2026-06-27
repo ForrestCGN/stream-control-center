@@ -33,18 +33,9 @@ let latestAuthBody = null;
 let latestPermissionBody = null;
 let latestDashboardResults = null;
 
-const rdapPageModuleScripts = new Map([
-  ['overview', '/assets/modules/system/overview.js'],
-  ['diagnostics', '/assets/modules/system/diagnostics.js'],
-  ['routes', '/assets/modules/admin/details.js'],
-  ['modules', '/assets/modules/modules/catalog.js'],
-  ['account', '/assets/modules/account/status.js'],
-  ['permissions', '/assets/modules/account/permissions.js'],
-  ['access', '/assets/modules/admin/access.js'],
-  ['admin-users', '/assets/modules/admin/users.js'],
-  ['connections', '/assets/modules/admin/connections.js'],
-  ['admin-notes', '/assets/modules/admin/notes.js']
-]);
+const CURRENT_LOCALE = 'de';
+const rdapModuleManifest = normalizeModuleManifest(window.RemoteModboardModuleManifest || {});
+const rdapPageModuleScripts = createPageScriptMap(rdapModuleManifest);
 const rdapLoadedModuleScripts = new Map();
 
 const remoteModboardModules = createRemoteModboardModuleRegistry();
@@ -84,6 +75,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+function normalizeModuleManifest(manifest) {
+  const source = manifest && typeof manifest === 'object' ? manifest : {};
+  return {
+    locale: source.locale || CURRENT_LOCALE,
+    version: source.version || '',
+    modules: Array.isArray(source.modules) ? source.modules : [],
+    pages: Array.isArray(source.pages) ? source.pages : []
+  };
+}
+
+function createPageScriptMap(manifest) {
+  const map = new Map([
+    ['overview', '/assets/modules/system/overview.js'],
+    ['diagnostics', '/assets/modules/system/diagnostics.js'],
+    ['routes', '/assets/modules/admin/details.js'],
+    ['modules', '/assets/modules/modules/catalog.js'],
+    ['account', '/assets/modules/account/status.js'],
+    ['permissions', '/assets/modules/account/permissions.js'],
+    ['access', '/assets/modules/admin/access.js'],
+    ['admin-users', '/assets/modules/admin/users.js'],
+    ['connections', '/assets/modules/admin/connections.js'],
+    ['admin-notes', '/assets/modules/admin/notes.js']
+  ]);
+  (manifest.pages || []).forEach((page) => {
+    const pageId = normalizePageId(page.pageId || page.id || page.page);
+    if (pageId && page.script) map.set(pageId, page.script);
+  });
+  return map;
+}
+
+function localized(value, fallback) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value[CURRENT_LOCALE] || value.de || value.en || Object.values(value).find(Boolean) || fallback || '';
+  }
+  return value !== undefined && value !== null && String(value) !== '' ? String(value) : (fallback || '');
+}
+
+function localizedPageConfig(page, moduleConfig) {
+  const moduleLabel = moduleConfig ? localized(moduleConfig.label, moduleConfig.id) : '';
+  return {
+    ...page,
+    moduleId: page.moduleId || page.module || 'modules',
+    pageId: page.pageId || page.id || page.page,
+    label: localized(page.label, page.pageId || page.id || page.page),
+    title: localized(page.title, page.label || page.pageId || page.id || page.page),
+    tab: localized(page.tab, ''),
+    section: localized(page.section, moduleLabel),
+    description: localized(page.description, ''),
+    runtime: page.runtime || 'both',
+    permission: page.permission || '',
+    writePermission: page.writePermission || '',
+    hiddenInMainNav: page.hiddenInMainNav === true
+  };
+}
+
+function localizedModuleConfig(moduleConfig) {
+  return {
+    ...moduleConfig,
+    label: localized(moduleConfig.label, moduleConfig.id),
+    description: localized(moduleConfig.description, ''),
+    runtime: moduleConfig.runtime || 'both',
+    permission: moduleConfig.permission || '',
+    hiddenInMainNav: moduleConfig.hiddenInMainNav === true
+  };
+}
+
+function getManifestModuleById(moduleId) {
+  const safeId = normalizePageId(moduleId);
+  return (rdapModuleManifest.modules || []).find((item) => normalizePageId(item.id || item.moduleId) === safeId) || null;
+}
+
+function getManifestPageById(pageId) {
+  const safeId = normalizePageId(pageId);
+  return (rdapModuleManifest.pages || []).find((item) => normalizePageId(item.pageId || item.id || item.page) === safeId) || null;
+}
+
 function createRemoteModboardModuleRegistry() {
   const modules = new Map();
   const pages = new Map();
@@ -101,10 +169,14 @@ function createRemoteModboardModuleRegistry() {
       ...existing,
       ...source,
       id,
-      label: source.label || existing.label || id,
+      label: localized(source.label !== undefined ? source.label : existing.label, id),
+      description: localized(source.description !== undefined ? source.description : existing.description, ''),
       icon: source.icon || existing.icon || '◇',
       order: Number.isFinite(Number(source.order)) ? Number(source.order) : (Number.isFinite(Number(existing.order)) ? Number(existing.order) : 100),
-      navSubId: source.navSubId || existing.navSubId || `nav-${id}`
+      navSubId: source.navSubId || existing.navSubId || `nav-${id}`,
+      runtime: source.runtime || existing.runtime || 'both',
+      permission: source.permission || existing.permission || '',
+      hiddenInMainNav: source.hiddenInMainNav === true || existing.hiddenInMainNav === true
     };
   }
 
@@ -121,13 +193,17 @@ function createRemoteModboardModuleRegistry() {
       key,
       pageId,
       moduleId,
-      label: source.label || existing.label || source.title || existing.title || pageId,
-      title: source.title || existing.title || source.label || existing.label || pageId,
-      tab: source.tab !== undefined ? source.tab : (existing.tab !== undefined ? existing.tab : ''),
-      section: source.section || existing.section || source.moduleLabel || existing.moduleLabel || '',
+      label: localized(source.label !== undefined ? source.label : existing.label, localized(source.title !== undefined ? source.title : existing.title, pageId)),
+      title: localized(source.title !== undefined ? source.title : existing.title, localized(source.label !== undefined ? source.label : existing.label, pageId)),
+      tab: localized(source.tab !== undefined ? source.tab : (existing.tab !== undefined ? existing.tab : ''), ''),
+      section: localized(source.section || existing.section || source.moduleLabel || existing.moduleLabel || '', ''),
       order: Number.isFinite(Number(source.order)) ? Number(source.order) : (Number.isFinite(Number(existing.order)) ? Number(existing.order) : 100),
       status: source.status || existing.status || 'active',
       permission: source.permission || existing.permission || '',
+      writePermission: source.writePermission || existing.writePermission || '',
+      runtime: source.runtime || existing.runtime || 'both',
+      description: localized(source.description !== undefined ? source.description : existing.description, ''),
+      hiddenInMainNav: source.hiddenInMainNav === true || existing.hiddenInMainNav === true,
       script: source.script || existing.script || rdapPageModuleScripts.get(pageId) || ''
     };
   }
@@ -144,7 +220,12 @@ function createRemoteModboardModuleRegistry() {
     const pageConfig = normalizePage(input);
     if (!pageConfig) return publicApi;
     if (!modules.has(pageConfig.moduleId)) {
-      registerModule({ id: pageConfig.moduleId, label: pageConfig.section || pageConfig.moduleId });
+      const manifestModule = localizedModuleConfig(getManifestModuleById(pageConfig.moduleId) || { id: pageConfig.moduleId, label: pageConfig.section || pageConfig.moduleId });
+      if (pageConfig.hiddenInMainNav === true || manifestModule.hiddenInMainNav === true) {
+        modules.set(pageConfig.moduleId, normalizeModule(manifestModule));
+      } else {
+        registerModule(manifestModule);
+      }
     }
     pages.set(pageConfig.key, pageConfig);
     if (document.readyState !== 'loading') ensurePageNavigation(pageConfig);
@@ -152,19 +233,30 @@ function createRemoteModboardModuleRegistry() {
   }
 
   function registerDefaultShell() {
-    registerModule({ id: 'system', label: 'System', icon: '◆', order: 10, navSubId: 'nav-system' });
-    registerPage({ moduleId: 'system', pageId: 'overview', label: 'Übersicht', title: 'Übersicht', tab: 'Status', section: 'System', order: 10, script: '/assets/modules/system/overview.js' });
-    registerPage({ moduleId: 'system', pageId: 'diagnostics', label: 'Diagnose', title: 'Diagnose', tab: 'Status', section: 'System', order: 20, script: '/assets/modules/system/diagnostics.js' });
+    if (rdapModuleManifest.modules.length || rdapModuleManifest.pages.length) {
+      rdapModuleManifest.modules
+        .map(localizedModuleConfig)
+        .filter((moduleConfig) => !moduleConfig.hiddenInMainNav)
+        .forEach(registerModule);
 
-    registerModule({ id: 'modules', label: 'Module', icon: '◇', order: 20, navSubId: 'nav-modules' });
-    registerPage({ moduleId: 'modules', pageId: 'modules', label: 'Module', title: 'Module', tab: 'read-only', section: 'Module', order: 10, script: '/assets/modules/modules/catalog.js' });
+      rdapModuleManifest.pages
+        .map((pageConfig) => localizedPageConfig(pageConfig, getManifestModuleById(pageConfig.moduleId || pageConfig.module)))
+        .forEach(registerPage);
+      return;
+    }
 
-    registerModule({ id: 'admin', label: 'Admin', icon: '⚙', order: 30, navSubId: 'nav-admin' });
-    registerPage({ moduleId: 'admin', pageId: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', section: 'Admin', order: 10, script: '/assets/modules/admin/users.js' });
-    registerPage({ moduleId: 'admin', pageId: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read-only', section: 'Admin', order: 20, permission: 'admin.users.note.read', script: '/assets/modules/admin/notes.js' });
-    registerPage({ moduleId: 'admin', pageId: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', section: 'Admin', order: 30, script: '/assets/modules/admin/connections.js' });
-    registerPage({ moduleId: 'admin', pageId: 'routes', label: 'Doku / Details', title: 'Doku / Details', tab: 'read-only', section: 'Admin', order: 90, script: '/assets/modules/admin/details.js' });
+    registerModule({ id: 'system', label: 'System', icon: '◆', order: 10, navSubId: 'nav-system', runtime: 'both', permission: 'remote.view' });
+    registerPage({ moduleId: 'system', pageId: 'overview', label: 'Übersicht', title: 'Übersicht', tab: 'Status', section: 'System', order: 10, runtime: 'both', permission: 'remote.view', script: '/assets/modules/system/overview.js' });
+    registerPage({ moduleId: 'system', pageId: 'diagnostics', label: 'Diagnose', title: 'Diagnose', tab: 'Status', section: 'System', order: 20, runtime: 'both', permission: 'remote.diagnostics.read', script: '/assets/modules/system/diagnostics.js' });
 
+    registerModule({ id: 'modules', label: 'Module', icon: '◇', order: 20, navSubId: 'nav-modules', runtime: 'both', permission: 'remote.modules.read' });
+    registerPage({ moduleId: 'modules', pageId: 'modules', label: 'Modulübersicht', title: 'Modulübersicht', tab: 'read-only', section: 'Module', order: 10, runtime: 'both', permission: 'remote.modules.read', script: '/assets/modules/modules/catalog.js' });
+
+    registerModule({ id: 'admin', label: 'Admin', icon: '⚙', order: 30, navSubId: 'nav-admin', runtime: 'both', permission: 'admin.view' });
+    registerPage({ moduleId: 'admin', pageId: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', section: 'Admin', order: 10, runtime: 'both', permission: 'admin.users.read', script: '/assets/modules/admin/users.js' });
+    registerPage({ moduleId: 'admin', pageId: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read/create', section: 'Admin', order: 20, runtime: 'both', permission: 'admin.users.note.read', writePermission: 'admin.users.note.write', script: '/assets/modules/admin/notes.js' });
+    registerPage({ moduleId: 'admin', pageId: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', section: 'Admin', order: 30, runtime: 'both', permission: 'admin.connections.read', script: '/assets/modules/admin/connections.js' });
+    registerPage({ moduleId: 'admin', pageId: 'routes', label: 'Doku / Details', title: 'Doku / Details', tab: 'read-only', section: 'Admin', order: 90, runtime: 'both', permission: 'admin.details.read', script: '/assets/modules/admin/details.js' });
   }
 
   function initialize() {
@@ -233,6 +325,7 @@ function createRemoteModboardModuleRegistry() {
 
   function ensurePageNavigation(pageConfig) {
     if (!pageConfig) return null;
+    if (pageConfig.hiddenInMainNav === true) return null;
     const moduleConfig = modules.get(pageConfig.moduleId) || registerModule({ id: pageConfig.moduleId });
     const sub = ensureModuleNavigation(modules.get(pageConfig.moduleId) || moduleConfig);
     if (!sub) return null;
@@ -252,6 +345,10 @@ function createRemoteModboardModuleRegistry() {
     button.dataset.title = pageConfig.title || pageConfig.label || pageConfig.pageId;
     button.dataset.tab = pageConfig.tab || '';
     if (pageConfig.permission) button.dataset.permission = pageConfig.permission;
+    if (pageConfig.writePermission) button.dataset.writePermission = pageConfig.writePermission;
+    if (pageConfig.runtime) button.dataset.runtime = pageConfig.runtime;
+    if (pageConfig.description) button.dataset.description = pageConfig.description;
+    button.title = [pageConfig.description, pageConfig.permission ? `Recht: ${pageConfig.permission}` : '', pageConfig.runtime ? `Modus: ${pageConfig.runtime}` : ''].filter(Boolean).join(' | ');
     button.textContent = pageConfig.label || pageConfig.title || pageConfig.pageId;
 
     bindNavLink(button);
@@ -285,7 +382,8 @@ function createRemoteModboardModuleRegistry() {
     initialize,
     ensureAllNavigation,
     getPage,
-    getSnapshot
+    getSnapshot,
+    manifest: rdapModuleManifest
   };
 
   return publicApi;
@@ -666,6 +764,8 @@ function getPageModuleScript(page) {
     const registered = window.RemoteModboardModules.getPage(pageId);
     if (registered && registered.script) return registered.script;
   }
+  const manifestPage = getManifestPageById(pageId);
+  if (manifestPage && manifestPage.script) return manifestPage.script;
   return rdapPageModuleScripts.get(pageId) || '';
 }
 
@@ -930,7 +1030,7 @@ function renderStatus(result) {
   setText('statusAuthEnabled', auth.enabled ? 'Aktiv' : 'Problem');
   setText('statusLoginEnabled', auth.loginEnabled ? 'Bereit' : 'Problem');
   setText('statusWriteEnabled', body.writeEnabled ? 'Aktiv' : 'Geschützt');
-  setText('statusModuleBuild', body.moduleBuild || '—');
+  setText('statusModuleBuild', body.version ? `v${body.version} – ${body.buildName || 'Remote Modboard'}` : (body.buildName || body.moduleBuild || '—'));
 }
 
 function renderQuickStatus(results) {
@@ -940,7 +1040,7 @@ function renderQuickStatus(results) {
   const oauth = auth.twitchOAuth || {};
   const agent = statusBody.agent || {};
 
-  setChip('quickService', results.status && results.status.ok, results.status && results.status.ok ? 'Service online' : 'Service prüfen');
+  setChip('quickService', results.status && results.status.ok, results.status && results.status.ok ? `v${statusBody.version || '0.2.1'} online` : 'Service prüfen');
   setChip('quickLogin', authMe.dashboardAccess === true, authMe.dashboardAccess ? 'Login freigegeben' : (authMe.loggedIn ? 'Login gesperrt' : 'Login nötig'));
   setChip('quickOAuth', oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'OAuth aktiv' : 'OAuth gated');
   setChip('quickAgent', agent.connected === true, agent.connected ? 'Stream-PC online' : 'Stream-PC offline');

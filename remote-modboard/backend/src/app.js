@@ -16,7 +16,7 @@ const { registerAdminMiniWriteFoundationRoutes } = require('./routes/admin-mini-
 const { registerAgentStatusRoutes } = require('./routes/agent-status.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 
-function createApp({ config, moduleBuild }) {
+function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   const app = express();
 
   app.disable('x-powered-by');
@@ -28,7 +28,7 @@ function createApp({ config, moduleBuild }) {
     next();
   });
 
-  const context = { config, moduleBuild, safety: buildSafetyBlock() };
+  const context = { config, moduleBuild, appVersion: appVersion || '0.2.1', buildName: buildName || moduleBuild, stepRef: stepRef || '', safety: buildSafetyBlock() };
   const publicDir = path.join(__dirname, '..', 'public');
 
   registerHealthRoutes(app, context);

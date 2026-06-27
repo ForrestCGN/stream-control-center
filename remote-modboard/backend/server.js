@@ -4,17 +4,20 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const MODULE_BUILD = 'RDAP119_MODULAR_UI_AND_LOCAL_DASHBOARD_FOUNDATION';
+const APP_VERSION = '0.2.1';
+const BUILD_NAME = 'Modul-Metadaten und Rechte';
+const STEP_REF = 'RDAP120_MODULE_METADATA_VERSION_RUNTIME_AND_PERMISSIONS';
+const MODULE_BUILD = BUILD_NAME;
 
 async function main() {
   const config = loadConfig();
-  const app = createApp({ config, moduleBuild: MODULE_BUILD });
+  const app = createApp({ config, moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
   const server = app.listen(config.port, config.host, () => {
-    console.log(`[remote-modboard] ${MODULE_BUILD} listening on http://${config.host}:${config.port}`);
+    console.log(`[remote-modboard] v${APP_VERSION} - ${BUILD_NAME} listening on http://${config.host}:${config.port}`);
     console.log('[remote-modboard] streaming-pc-connection=true component-status=readonly obs-status=readonly actions=false remoteWritesControlled=true');
   });
 
-  registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD });
+  registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
 
   process.on('SIGTERM', () => shutdown(server, 'SIGTERM'));
   process.on('SIGINT', () => shutdown(server, 'SIGINT'));

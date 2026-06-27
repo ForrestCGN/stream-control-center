@@ -211,6 +211,8 @@ function buildPublicConfigSummary(config = {}) {
     envPath: config.envPath,
     envFileExists: config.envFileExists,
     publicBaseUrl: config.publicBaseUrl,
+    runtimeMode: config.runtimeMode || 'online',
+    localLan: config.localLan || { prepared: true, mode: config.runtimeMode || 'online', bindHost: config.host, allowedCidrs: ['127.0.0.1/32'], lanUseAllowed: false },
     centralAuth: config.centralAuth || {},
     database: {
       engine: database.engine,
