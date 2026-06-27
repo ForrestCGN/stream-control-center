@@ -1,12 +1,14 @@
 # REMOTE_MODBOARD_ROADMAP_CURRENT
 
-Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
+Stand: RDAP116B_REFRESH_BEHAVIOR_CLEANUP  
 Datum: 2026-06-27
 
 ## Zuletzt erledigt
 
 ```text
-RDAP116: Admin-Notizen als eigenes Admin-Frontend-Modul strukturiert.
+RDAP116B: Refresh-Verhalten aufgeraeumt.
+Bottom-Auto-Refresh-Anzeige entfernt.
+Doku / Details ohne sichtbaren Dauer-Refresh.
 ```
 
 ## Naechster sinnvoller Step

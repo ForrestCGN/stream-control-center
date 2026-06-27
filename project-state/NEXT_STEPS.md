@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
+Stand: RDAP116B_REFRESH_BEHAVIOR_CLEANUP  
 Datum: 2026-06-27
 
 ## Naechster sinnvoller Step

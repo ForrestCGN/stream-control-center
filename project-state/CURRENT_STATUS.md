@@ -1,14 +1,14 @@
 # CURRENT_STATUS
 
-Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
+Stand: RDAP116B_REFRESH_BEHAVIOR_CLEANUP  
 Datum: 2026-06-27
 
 ## Ergebnis
 
 ```text
-- Admin-Notizen als eigenes Admin-Frontend-Modul strukturiert.
-- Benutzerverwaltung bleibt unter Admin.
-- Verbindungen bleibt unter Admin.
-- Doku / Details bleibt unter Admin.
+- Refresh-Verhalten im Frontend aufgeraeumt.
+- Alter Footer mit Auto-Refresh/Neu laden wird ausgeblendet.
+- Doku / Details zeigt keinen sichtbaren Auto-Refresh.
+- Statusseiten duerfen weiter automatisch aktualisieren.
 - Keine Backend-Aenderung, keine DB-Migration, keine Runtime-/Agent-Actions.
 ```

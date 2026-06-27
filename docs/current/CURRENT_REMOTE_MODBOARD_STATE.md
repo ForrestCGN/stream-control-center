@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
+Stand: RDAP116B_REFRESH_BEHAVIOR_CLEANUP  
 Datum: 2026-06-27
 
 ## Navigation
@@ -17,20 +17,14 @@ Admin:
 - Doku / Details
 ```
 
-## Frontend-Module
+## Refresh-Regel
 
 ```text
-remote-modboard/backend/public/assets/modules/admin/users.js
-remote-modboard/backend/public/assets/modules/admin/notes.js
-remote-modboard/backend/public/assets/modules/system/diagnostics.js
-```
-
-## Admin-Notizen
-
-```text
-Admin-Notizen sind jetzt als eigenes Admin-Frontend-Modul strukturiert.
-Die Ansicht bleibt unter Admin.
-Schreibfunktionen bleiben nur über die bestehenden gesicherten Admin-Flows.
+- Live-/Statusseiten duerfen automatisch aktualisieren.
+- Doku / Details und statische Read-only-Seiten zeigen keinen sichtbaren Auto-Refresh.
+- Der alte Footer mit Auto-Refresh/Neu laden ist nicht mehr sichtbar.
+- Manuelles Neu laden ist oben/dezent oder in seitenlokalen Aktionen vorgesehen.
+- Nach spaeteren Schreibaktionen gilt: automatischer Readback/Refresh direkt nach Erfolg.
 ```
 
 ## Sicherheit

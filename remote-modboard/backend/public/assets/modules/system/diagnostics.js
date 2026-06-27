@@ -237,6 +237,16 @@
     document.head.appendChild(script);
   }
 
+  function loadRefreshBehaviorModuleScript() {
+    if (document.querySelector('script[data-rdap-refresh-behavior-module="1"]')) return;
+
+    const script = document.createElement('script');
+    script.src = '/assets/modules/ui/refresh-behavior.js';
+    script.defer = true;
+    script.dataset.rdapRefreshBehaviorModule = '1';
+    document.head.appendChild(script);
+  }
+
   function setText(id, value) {
     const node = document.getElementById(id);
     if (node) node.textContent = value == null || value === '' ? '—' : String(value);
@@ -246,11 +256,13 @@
   registerPage();
   installRoutesDecision();
   loadAdminUsersModuleScript();
+  loadRefreshBehaviorModuleScript();
 
   document.addEventListener('DOMContentLoaded', () => {
     createDiagnosticsPanel();
     registerPage();
     installRoutesDecision();
     loadAdminUsersModuleScript();
+    loadRefreshBehaviorModuleScript();
   });
 })();
