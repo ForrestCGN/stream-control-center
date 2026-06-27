@@ -146,7 +146,7 @@
           <button class="nav-group is-open" type="button" data-target="nav-system"><span>◆</span><b>System</b><i>⌄</i></button>
           <div class="nav-sub is-open" id="nav-system">
             <button class="nav-link is-active" type="button" data-section="System" data-title="Übersicht" data-tab="Status" data-page="overview">Übersicht</button>
-            <button class="nav-link" type="button" data-section="System" data-title="Diagnose" data-tab="Endpoints" data-page="diagnostics">Diagnose</button>
+            <button class="nav-link" type="button" data-section="System" data-title="Diagnose" data-tab="Status" data-page="diagnostics">Diagnose</button>
             <button class="nav-link" type="button" data-section="System" data-title="Routen" data-tab="Read-only" data-page="routes">Routen</button>
           </div>
 
@@ -159,7 +159,7 @@
           <div class="nav-sub" id="nav-admin">
             <button class="nav-link" type="button" data-section="Admin" data-title="Benutzerverwaltung" data-tab="read-only" data-page="admin-users">Benutzerverwaltung</button>
             <button class="nav-link" type="button" data-section="Admin" data-title="Rollen & Rechte" data-tab="read-only" data-page="access">Rollen & Rechte</button>
-            <button class="nav-link" type="button" data-section="Admin" data-title="Sicherheit" data-tab="Diagnose" data-page="diagnostics">Sicherheit</button>
+            <button class="nav-link" type="button" data-section="Admin" data-title="Sicherheit" data-tab="Status" data-page="diagnostics">Sicherheit</button>
           </div>
         </nav>
 
@@ -175,14 +175,6 @@
         <section class="errorBox cgn-card" id="errorBox" hidden>
           <div><strong>Diagnose-Hinweis</strong><p id="errorText">—</p></div>
           <button class="secondaryButton small" type="button" id="clearErrorsButton">Ausblenden</button>
-        </section>
-
-        <section class="rdap-view" data-page-panel="diagnostics">
-          <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Admin / Diagnose</p><h1>Systemstatus</h1><p>Auf einen Blick: grün bedeutet OK. Details helfen nur dann, wenn etwas rot wird.</p></section>
-          <section class="page-grid">
-            <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Status</p><h2>API-Prüfungen</h2></div><span class="cgn-chip" id="endpointPill">lädt</span></div><div class="endpoint-grid" id="endpointList"></div></article>
-            <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Schutzsystem</p><h2>Bearbeitung & Verlauf</h2></div><span class="cgn-chip" id="lockAuditPill">lädt</span></div><div class="kv-grid"><div class="kv-row"><span>Datenmodell</span><strong id="schemaAdapterPrepared">—</strong></div><div class="kv-row"><span>Locks lesen</span><strong id="locksRead">—</strong></div><div class="kv-row"><span>Schreibschutz</span><strong id="locksWrite">—</strong></div><div class="kv-row"><span>Fehlende Felder</span><strong id="locksMissing">—</strong></div><div class="kv-row"><span>Verlauf lesen</span><strong id="auditRead">—</strong></div><div class="kv-row"><span>Verlauf schreiben</span><strong id="auditWrite">—</strong></div><div class="kv-row"><span>Sperre setzen</span><strong id="lockAcquireEnabled">—</strong></div><div class="kv-row"><span>Verlauf speichern</span><strong id="auditInsertEnabled">—</strong></div></div></article>
-          </section>
         </section>
 
         <section class="rdap-view" data-page-panel="routes">
@@ -326,5 +318,6 @@
 
   <script src="/assets/remote-modboard.js" defer></script>
   <script src="/assets/modules/system/overview.js" defer></script>
+  <script src="/assets/modules/system/diagnostics.js" defer></script>
 </body>
 </html>
