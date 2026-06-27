@@ -3,7 +3,7 @@ import { Card } from "../../components/Card.jsx";
 export function OverviewPage() {
   return (
     <div className="view-grid">
-      <Card title="Lokaler Dashboard-Einstieg" eyebrow="0.2.8">
+      <Card title="Lokaler Dashboard-Einstieg" eyebrow="0.2.9">
         <p>
           Dashboard-v2 läuft auf dem bestehenden lokalen Node/Express-Server. Es wird
           schrittweise zum Nachfolger des bisherigen Dashboards ausgebaut.
@@ -25,11 +25,11 @@ export function OverviewPage() {
         </ul>
       </Card>
 
-      <Card title="Oberfläche vorbereitet" eyebrow="Modboard-Look">
+      <Card title="Navigation angeglichen" eyebrow="Modboard-Struktur">
         <div className="chip-row">
-          <span className="cgn-chip cgn-chip--ok">Startseite</span>
-          <span className="cgn-chip cgn-chip--ok">Topbar</span>
-          <span className="cgn-chip cgn-chip--ok">Navigation</span>
+          <span className="cgn-chip cgn-chip--ok">System</span>
+          <span className="cgn-chip cgn-chip--ok">Module</span>
+          <span className="cgn-chip cgn-chip--ok">Admin</span>
           <span className="cgn-chip cgn-chip--info">Read-only</span>
         </div>
       </Card>

@@ -2,19 +2,19 @@
 
 Stand: 2026-06-27
 
-Naechster sinnvoller technischer Schritt nach `0.2.8 - Dashboard-v2 Einstieg vorbereitet`:
+Naechster sinnvoller technischer Schritt nach `0.2.9 - Dashboard-v2 Navigation angeglichen`:
 
 ```text
-0.2.9 - Erstes lokales Read-only-Modul vorbereitet
+0.2.10 - Stream-PC Status read-only vorbereitet
 ```
 
 Ziel:
 
-1. Bestehende lokale Status- und Diagnosefunktionen in Backend und altem Dashboard lesen.
-2. Ein risikoarmes erstes Modul auswaehlen, bevorzugt System-/Stream-PC-Status.
-3. Vorhandene APIs und Datenmodelle verwenden; keine parallelen Statuswege bauen.
-4. Nur vorhandene Daten anzeigen.
-5. Keine Actions, Writes oder Steuerfunktionen aktivieren.
+1. Vorhandenen Menuepunkt `System -> Stream-PC` aktivieren.
+2. Ausschliesslich bestehende GET-Routen verwenden: `/api/_status`, `/api/stream-status/current`, `/api/diag/ws`.
+3. Server-, Modul-, Routen-, WebSocket- und gecachten Streamstatus anzeigen.
+4. Keine Refresh-, Test-, Log-, Session- oder Schreibroute aufrufen.
+5. Keine Buttons, Actions oder Steuerfunktionen aktivieren.
 6. `/dashboard` stabil lassen.
 
 Pflicht-Pruefdateien:
@@ -22,10 +22,10 @@ Pflicht-Pruefdateien:
 ```text
 backend/server.js
 backend/modules/stream_status.js
-backend/modules/live_status_monitor.js
 backend/modules/diagnostics.js
-htdocs/dashboard/modules/live_status_monitor.js
-htdocs/dashboard/modules/diagnostics.js
+frontend/dashboard-v2/src/services/apiClient.js
+frontend/dashboard-v2/src/services/agentClient.js
+frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
 frontend/dashboard-v2/src/services/
 frontend/dashboard-v2/src/modules/
 ```
@@ -33,8 +33,8 @@ frontend/dashboard-v2/src/modules/
 Wenn vorhanden zusaetzlich:
 
 ```text
-backend/modules/bus_diagnostics.js
-htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js
+htdocs/dashboard/modules/live_status_monitor.js
+htdocs/dashboard/modules/diagnostics.js
 docs/current/LOCAL_DASHBOARD_REPLACEMENT_PLAN_CURRENT.md
 docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
 project-state/PARKED_TODOS.md

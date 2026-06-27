@@ -1,5 +1,17 @@
 # Changelog
 
+## Version 0.2.9 - Dashboard-v2 Navigation angeglichen
+
+- Lokale Dashboard-v2 Navigation strukturell an das Online-Modboard angeglichen.
+- Hauptbereiche `System`, `Module` und `Admin` als gemeinsame Basis aufgenommen.
+- Sichtbare Online-Unterpunkte als geplante, deaktivierte Navigation aufgenommen.
+- Lokale Zukunftsbereiche `Aktionen`, `Loyalty`, `Media` und `Overlays` beibehalten.
+- Nur `System -> Uebersicht` ist aktiv.
+- Keine Online-Adminfunktion, API oder Action kopiert oder freigeschaltet.
+- Produktions-Build unter `htdocs/dashboard-v2/` aktualisiert.
+- `/dashboard` und Backend nicht geaendert.
+- Keine DB-Migration, keine produktiven Writes und kein Webserver-Deploy.
+
 ## Version 0.2.8 - Dashboard-v2 Einstieg vorbereitet
 
 - Vorhandene React/Vite-Struktur fuer den ersten lokalen Dashboard-v2 Einstieg verwendet.

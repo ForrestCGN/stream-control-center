@@ -1,7 +1,7 @@
 # Lokaler Dashboard-Ersatz - Plan
 
 Stand: 2026-06-27  
-Gilt ab: `0.2.8 - Dashboard-v2 Einstieg vorbereitet`
+Gilt ab: `0.2.9 - Dashboard-v2 Navigation angeglichen`
 Step: `RDAP130_LOCAL_DASHBOARD_REPLACEMENT_PLAN`
 
 ## Zweck
@@ -151,28 +151,28 @@ kein Webserver-Deploy noetig
 ## Aktuell umgesetzt
 
 ```text
-0.2.8 - Dashboard-v2 Einstieg vorbereitet
+0.2.9 - Dashboard-v2 Navigation angeglichen
 ```
 
-- bestehende React/Vite-Struktur verwendet
-- erste lokale Startseite im Modboard-Look
-- nur read-only
-- noch nicht migrierte Module deaktiviert
+- System, Module und Admin an die Online-Struktur angeglichen
+- lokale Zukunftsbereiche beibehalten
+- nur System -> Uebersicht aktiv
+- alle weiteren Menuepunkte deaktiviert
 - `/dashboard` unveraendert
 
 ## Naechster sinnvoller technischer Schritt
 
 ```text
-0.2.9 - Erstes lokales Read-only-Modul vorbereitet
+0.2.10 - Stream-PC Status read-only vorbereitet
 ```
 
 Moeglicher Scope:
 
 ```text
-- bestehende lokale Statusmodule und APIs lesen
-- ein risikoarmes erstes Statusmodul auswaehlen
-- nur vorhandene Daten anzeigen
-- keine neuen parallelen Statuswege
+- vorhandenen Stream-PC-Menuepunkt aktivieren
+- nur `/api/_status`, `/api/stream-status/current` und `/api/diag/ws` lesen
+- Server-, WebSocket- und gecachten Streamstatus anzeigen
+- keine Refresh-, Test- oder Log-Routen
 - keine Actions oder Writes
 - /dashboard bleibt stabil
 ```

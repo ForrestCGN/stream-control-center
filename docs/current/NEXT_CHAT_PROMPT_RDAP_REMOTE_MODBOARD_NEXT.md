@@ -35,26 +35,27 @@ project-state/CHANGELOG.md
 Aktueller bestaetigter Stand:
 
 ```text
-0.2.8 - Dashboard-v2 Einstieg vorbereitet
+0.2.9 - Dashboard-v2 Navigation angeglichen
 ```
 
 Umgesetzt:
 
-- Bestehende React/Vite-Struktur und lokale Route `/dashboard-v2` verwendet.
-- Erste lokale Startseite im Modboard-Look vorbereitet.
-- Fake-Status und scheinbar aktive Demo-Bedienelemente entfernt.
-- Noch nicht migrierte Module bleiben deaktiviert.
+- System, Module und Admin an die Online-Struktur angeglichen.
+- Lokale Zukunftsbereiche Aktionen, Loyalty, Media und Overlays beibehalten.
+- Sichtbare Unterpunkte bleiben deaktiviert.
+- Nur System -> Uebersicht ist aktiv.
+- Keine Online-Adminfunktion kopiert oder freigeschaltet.
 - `/dashboard` bleibt unveraendert.
 - Keine DB-Migration, keine Writes, keine Agent-Actions.
 
 Vorher bestaetigt:
 
 ```text
-0.2.7 - Lokaler Dashboard-Ersatz geplant
+0.2.8 - Dashboard-v2 Einstieg vorbereitet
 ```
 
-- Lokalen Dashboard-Ersatz und modulweise Read-only-Migration geplant.
-- Lokalen Server auf Port 8080 als Wahrheit festgelegt.
+- Erste lokale Startseite im Modboard-Look vorbereitet.
+- Fake-Zustaende und Demo-Bedienelemente entfernt.
 
 ## Was NICHT gemacht werden darf
 
@@ -71,7 +72,7 @@ Vorher bestaetigt:
 ## Naechster sinnvoller Arbeitsfokus
 
 ```text
-0.2.9 - Erstes lokales Read-only-Modul vorbereitet
+0.2.10 - Stream-PC Status read-only vorbereitet
 ```
 
 Vor dem Plan unbedingt lesen:
@@ -79,20 +80,19 @@ Vor dem Plan unbedingt lesen:
 ```text
 backend/server.js
 backend/modules/stream_status.js
-backend/modules/live_status_monitor.js
 backend/modules/diagnostics.js
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/live_status_monitor.js
-htdocs/dashboard/modules/diagnostics.js
+frontend/dashboard-v2/src/services/apiClient.js
+frontend/dashboard-v2/src/services/agentClient.js
+frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
 frontend/dashboard-v2/src/services/
 frontend/dashboard-v2/src/modules/
 ```
 
 Moeglicher Inhalt:
 
-- bestehende Status-/Diagnosefunktionen und APIs pruefen,
-- ein risikoarmes erstes Modul auswaehlen,
-- vorhandene Daten nur anzeigen,
+- vorhandenen Menuepunkt System -> Stream-PC aktivieren,
+- nur bestehende sichere GET-Routen verwenden,
+- Server-, WebSocket- und gecachten Streamstatus anzeigen,
 - keine parallelen Statuswege bauen,
 - `/dashboard` stabil lassen,
 - keine Aktionen/Writes.

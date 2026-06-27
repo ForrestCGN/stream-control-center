@@ -6,9 +6,9 @@ import { AdminAuditPage } from "../modules/admin/AdminAuditPage.jsx";
 import { PlaceholderPage } from "../modules/shared/PlaceholderPage.jsx";
 
 export const moduleRegistry = {
-  "live.overview": {
-    id: "live.overview",
-    sectionTitle: "Live",
+  "system.overview": {
+    id: "system.overview",
+    sectionTitle: "System",
     moduleTitle: "Übersicht",
     activeTabTitle: "Status",
     migrationStatus: "read_only",
@@ -20,9 +20,9 @@ export const moduleRegistry = {
     ]
   },
 
-  "live.remoteAgent": {
-    id: "live.remoteAgent",
-    sectionTitle: "Live",
+  "system.streamPc": {
+    id: "system.streamPc",
+    sectionTitle: "System",
     moduleTitle: "Stream-PC Verbindung",
     activeTabTitle: "Übersicht",
     migrationStatus: "read_only",
@@ -35,7 +35,8 @@ export const moduleRegistry = {
     ]
   },
 
-  "live.analytics": placeholder("Live", "Statistiken"),
+  "system.diagnostics": placeholder("System", "Diagnose"),
+  "modules.catalog": placeholder("Module", "Modulübersicht"),
   "events.shotAlarm": placeholder("Aktionen", "Shot-Alarm"),
   "events.streamEvents": placeholder("Aktionen", "Stream-Events"),
   "events.hug": placeholder("Aktionen", "Hug-System"),
@@ -90,7 +91,12 @@ export const moduleRegistry = {
       { id: "events", title: "Events", disabled: true },
       { id: "routes", title: "API-Routen", disabled: true }
     ]
-  }
+  },
+  "admin.notes": placeholder("Admin", "Admin-Notizen"),
+  "admin.connections": placeholder("Admin", "Verbindungen"),
+  "admin.details": placeholder("Admin", "Doku / Details"),
+  "admin.access": placeholder("Admin", "Rollen & Rechte"),
+  "admin.security": placeholder("Admin", "Sicherheit")
 };
 
 function placeholder(sectionTitle, moduleTitle) {

@@ -5,31 +5,31 @@ Stand: 2026-06-27
 Aktueller bestaetigter Stand nach lokalem Einspielen/Tests dieses Steps:
 
 ```text
-v0.2.8 - Dashboard-v2 Einstieg vorbereitet
+v0.2.9 - Dashboard-v2 Navigation angeglichen
 ```
 
 Geaendert:
 
 ```text
-Lokaler Dashboard-v2 Einstieg:
-- bestehende React/Vite- und Node/Express-Struktur verwendet.
-- /dashboard-v2 zeigt eine erste lokale Startseite im Modboard-Look.
-- sichtbare Fake-Zustaende und scheinbar aktive Demo-Bedienelemente entfernt.
-- noch nicht migrierte Module bleiben sichtbar geplant, aber deaktiviert.
-- Startseite ist ausdruecklich lokal und read-only.
-- Build liegt unter htdocs/dashboard-v2.
+Lokale Dashboard-v2 Navigation:
+- sichtbare Grundstruktur an das Online-Modboard angeglichen.
+- System, Module und Admin als gemeinsame Strukturbasis verwendet.
+- lokale Zukunftsbereiche Aktionen, Loyalty, Media und Overlays bleiben erhalten.
+- Online-Unterpunkte sind als geplante, deaktivierte Menuepunkte sichtbar.
+- nur System -> Uebersicht ist aktiv.
+- keine Online-Adminfunktion kopiert oder freigeschaltet.
 - /dashboard bleibt unveraendert.
 ```
 
 Vorher bestaetigt:
 
 ```text
-v0.2.7 - Lokaler Dashboard-Ersatz geplant
+v0.2.8 - Dashboard-v2 Einstieg vorbereitet
 ```
 
-- Lokaler Server auf Port 8080 als Wahrheit festgelegt.
-- `/dashboard-v2` als kuenftiger lokaler Dashboard-Ersatz geplant.
-- Modulweise Migration mit Read-only-Start festgelegt.
+- Erste lokale Startseite im Modboard-Look vorbereitet.
+- Fake-Zustaende und scheinbar aktive Demo-Bedienelemente entfernt.
+- Noch nicht migrierte Module deaktiviert.
 
 Nicht geaendert:
 

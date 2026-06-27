@@ -2,6 +2,24 @@
 
 Stand: 2026-06-27
 
+## Geaendert in Version 0.2.9 - Dashboard-v2 Navigation angeglichen
+
+```text
+frontend/dashboard-v2/src/app/navigation.js
+frontend/dashboard-v2/src/app/moduleRegistry.js
+frontend/dashboard-v2/src/modules/overview/OverviewPage.jsx
+htdocs/dashboard-v2/index.html
+htdocs/dashboard-v2/assets/*
+docs/current/LOCAL_DASHBOARD_REPLACEMENT_PLAN_CURRENT.md
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+```
+
 ## Geaendert in Version 0.2.8 - Dashboard-v2 Einstieg vorbereitet
 
 ```text

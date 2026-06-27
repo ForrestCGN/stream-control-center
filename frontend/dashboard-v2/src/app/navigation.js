@@ -1,23 +1,36 @@
 export const navigationSections = [
   {
-    id: "live",
-    title: "Live",
+    id: "system",
+    title: "System",
     icon: "◆",
     modules: [
       {
-        route: "live.overview",
+        route: "system.overview",
         title: "Übersicht",
         subtitle: "Lokaler Einstieg · read-only"
       },
       {
-        route: "live.analytics",
-        title: "Statistiken",
+        route: "system.diagnostics",
+        title: "Diagnose",
         subtitle: "später",
         disabled: true
       },
       {
-        route: "live.remoteAgent",
+        route: "system.streamPc",
         title: "Stream-PC",
+        subtitle: "später",
+        disabled: true
+      }
+    ]
+  },
+  {
+    id: "modules",
+    title: "Module",
+    icon: "◇",
+    modules: [
+      {
+        route: "modules.catalog",
+        title: "Modulübersicht",
         subtitle: "später",
         disabled: true
       }
@@ -57,7 +70,7 @@ export const navigationSections = [
   {
     id: "loyalty",
     title: "Loyalty",
-    icon: "◇",
+    icon: "◉",
     modules: [
       {
         route: "loyalty.core",
@@ -136,19 +149,37 @@ export const navigationSections = [
     modules: [
       {
         route: "admin.users",
-        title: "Benutzer & Rechte",
+        title: "Benutzerverwaltung",
         subtitle: "später",
         disabled: true
       },
       {
-        route: "admin.locks",
-        title: "Locks",
+        route: "admin.notes",
+        title: "Admin-Notizen",
         subtitle: "später",
         disabled: true
       },
       {
-        route: "admin.audit",
-        title: "Audit",
+        route: "admin.connections",
+        title: "Verbindungen",
+        subtitle: "später",
+        disabled: true
+      },
+      {
+        route: "admin.details",
+        title: "Doku / Details",
+        subtitle: "später",
+        disabled: true
+      },
+      {
+        route: "admin.access",
+        title: "Rollen & Rechte",
+        subtitle: "später",
+        disabled: true
+      },
+      {
+        route: "admin.security",
+        title: "Sicherheit",
         subtitle: "später",
         disabled: true
       }
@@ -157,5 +188,5 @@ export const navigationSections = [
 ];
 
 export function getDefaultRoute() {
-  return "live.overview";
+  return "system.overview";
 }
