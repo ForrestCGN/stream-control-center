@@ -85,8 +85,9 @@
     const style = document.createElement('style');
     style.id = 'rdap111DiagnosticsModuleStyle';
     style.textContent = `
-      .endpoint .rdap-diagnostics-human-detail{display:block;margin-top:4px;opacity:.78}
-      .endpoint .rdap-diagnostics-info-button{margin-top:8px}
+      .endpoint{position:relative}
+      .endpoint .rdap-diagnostics-human-detail{display:block;margin-top:4px;opacity:.78;padding-right:34px}
+      .endpoint .rdap-diagnostics-info-button{position:absolute;top:12px;right:12px;width:28px;height:28px;min-width:28px;padding:0;border-radius:999px;font-weight:900;line-height:1}
       .rdap-diagnostics-dialog{max-width:min(720px,92vw);border:1px solid rgba(255,255,255,.22);border-radius:22px;padding:22px;background:#160925;color:#fff;box-shadow:0 30px 80px rgba(0,0,0,.65)}
       .rdap-diagnostics-dialog::backdrop{background:rgba(0,0,0,.68);backdrop-filter:blur(4px)}
       .rdap-diagnostics-dialog-close{float:right}
@@ -143,7 +144,9 @@
         ? 'Keine Aktion nötig.'
         : 'Streamer/Admin informieren und die technische Info weitergeben.';
       button.dataset.technical = technical || '—';
-      button.textContent = 'Info';
+      button.textContent = 'i';
+      button.title = `Info zu ${label}`;
+      button.setAttribute('aria-label', `Info zu ${label}`);
       row.appendChild(button);
     });
   }

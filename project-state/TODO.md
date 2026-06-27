@@ -1,32 +1,11 @@
 # TODO
 
-Stand: RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI  
+Stand: RDAP111B_DIAGNOSTICS_INFO_ICON_AND_DOCS_SYNC  
 Datum: 2026-06-27
 
-## Erledigt/vorbereitet
-
 ```text
-RDAP108:
-- Bestehende Admin-/Verbindungen-Seite erweitert.
-- Nur Frontend-Datei geaendert.
-- Zusätzliche sichere Read-only-Felder sichtbar gemacht.
-- Technische Diagnose einklappbar.
-- Keine Backend-/Runtime-/Action-Aenderung.
-```
-
-## Naechster Schritt
-
-```text
-RDAP108B_STREAM_PC_CONNECTION_READONLY_UI_LIVE_CONFIRM
-```
-
-## Offen / pruefen in RDAP108B
-
-```text
-- Webserver-Deploy nach stepdone.
-- Browser: Admin / Verbindungen.
-- Neue Runtime-Gates und Transportdetails sichtbar.
-- Diagnose einklappbar.
-- Keine Secrets/Rohpayloads sichtbar.
-- API-Status weiterhin actionEnabled=false und productiveAgentRuntime=false.
+- Browser nach RDAP111B pruefen: Diagnose-Info als kleines Icon oben rechts.
+- Danach RDAP112 entscheiden: Routen-Menue entfernen/verschieben oder auslagern.
+- Weiterhin: Bereich = Modul/JS-Datei; Shell bleibt Shell.
+- Keine Projekt-Erklaerungen und keine Technik-Wand in normalen Modboard-Ansichten.
 ```
