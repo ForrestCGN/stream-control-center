@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-06-27 - RDAP115_ACCESS_MODULE_SPLIT
+
+```text
+- Rollen & Rechte als eigenes Admin-Frontend-Modul `assets/modules/admin/access.js` strukturiert.
+- Modul bleibt unter Admin und read-only.
+- Benutzerverwaltung laedt das Admin-Access-Modul mit.
+- Keine Backend-Aenderung, keine DB-Migration, keine Agent-Actions.
+```
+
 ## 2026-06-27 - RDAP114_ADMIN_NAV_CLEANUP
 
 ```text
@@ -16,11 +25,4 @@
 - Benutzerverwaltung wieder korrekt unter Admin eingeordnet.
 - Eigener Hauptbereich Benutzer entfernt.
 - User-Selbstkonto bleibt oben rechts im Profilmenue.
-```
-
-## 2026-06-27 - RDAP113B_HIDE_DETAILS_NAV
-
-```text
-- Details-Navigation aus der Sidebar entfernt.
-- System-Routen bleiben nicht als normaler Menuepunkt sichtbar.
 ```

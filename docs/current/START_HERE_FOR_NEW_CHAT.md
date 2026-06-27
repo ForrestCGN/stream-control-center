@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP114_ADMIN_NAV_CLEANUP  
+Stand: RDAP115_ACCESS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Zuerst lesen
@@ -14,7 +14,7 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP114.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -26,9 +26,8 @@ project-state/CHANGELOG.md
 
 ```text
 RDAP114: Admin-Navigation bereinigt.
-User-Detail ist kein normaler Menuepunkt mehr.
-Benutzerverwaltung bleibt unter Admin.
-Admin-Reihenfolge ist sauber.
+RDAP115: Rollen & Rechte als eigenes Admin-Frontend-Modul strukturiert.
+Weiterhin keine Backend-Aenderung, keine DB-Migration, keine neuen Writes.
 ```
 
 ## Arbeitsregel

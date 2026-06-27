@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP114_ADMIN_NAV_CLEANUP  
+Stand: RDAP115_ACCESS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## UI-/Produktregel
@@ -28,12 +28,19 @@ Nicht in linker Navigation:
 - Details / System-Routen
 ```
 
+## Strukturstand
+
+```text
+remote-modboard/backend/public/assets/modules/admin/users.js
+remote-modboard/backend/public/assets/modules/admin/access.js
+```
+
 ## Sicherheit
 
 ```text
 Keine Agent-Runtime aktiv.
 Keine Agent-Actions aktiv.
-Keine Backend-Aenderung in RDAP114.
-Keine DB-Migration in RDAP114.
-Alle betroffenen Admin-Ansichten bleiben read-only beziehungsweise im bestehenden Sicherheitszustand.
+Keine Backend-Aenderung in RDAP115.
+Keine DB-Migration in RDAP115.
+Rollen & Rechte bleibt read-only.
 ```

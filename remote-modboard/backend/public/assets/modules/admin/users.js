@@ -148,11 +148,22 @@
     observer.observe(nav, { childList: true, subtree: true });
   }
 
+  function loadAccessModuleScript() {
+    if (document.querySelector('script[data-rdap-access-module="1"]')) return;
+
+    const script = document.createElement('script');
+    script.src = '/assets/modules/admin/access.js';
+    script.defer = true;
+    script.dataset.rdapAccessModule = '1';
+    document.head.appendChild(script);
+  }
+
   function installAdminUsersModule() {
     registerAdminPage();
     cleanupAdminNavigation();
     polishAdminUsersPanel();
     installAdminNavObserver();
+    loadAccessModuleScript();
   }
 
   installAdminUsersModule();

@@ -1,16 +1,17 @@
 # FILES
 
-Stand: RDAP114_ADMIN_NAV_CLEANUP  
+Stand: RDAP115_ACCESS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Geaendert/neu im aktuellen UI-Strukturblock
 
 ```text
 remote-modboard/backend/public/assets/modules/admin/users.js
+remote-modboard/backend/public/assets/modules/admin/access.js
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP114.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

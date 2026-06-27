@@ -1,16 +1,15 @@
 # CURRENT_STATUS
 
-Stand: RDAP114_ADMIN_NAV_CLEANUP  
+Stand: RDAP115_ACCESS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Ergebnis
 
 ```text
-- Admin-Navigation bereinigt.
+- Admin-Navigation bleibt bereinigt.
+- Rollen & Rechte ist als eigenes Admin-Frontend-Modul strukturiert.
 - Benutzerverwaltung bleibt unter Admin.
-- User-Detail ist kein normaler Menuepunkt mehr.
+- User-Detail ist kein normaler Menuepunkt.
 - Admin-Reihenfolge: Benutzerverwaltung, Admin-Notizen, Rollen & Rechte, Sicherheit, Verbindungen.
-- Kein eigener Hauptbereich Benutzer.
-- Details/System-Routen nicht normal sichtbar.
 - Keine Backend-Aenderung, keine DB-Migration, keine Runtime-/Agent-Actions.
 ```

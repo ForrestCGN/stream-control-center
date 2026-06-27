@@ -1,12 +1,11 @@
 # TODO
 
-Stand: RDAP114_ADMIN_NAV_CLEANUP  
+Stand: RDAP115_ACCESS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ```text
-- Browser nach RDAP114 pruefen: User-Detail ist links weg.
-- Admin-Reihenfolge pruefen.
-- Kein eigener Hauptbereich Benutzer.
-- Danach RDAP115: Rollen & Rechte als eigenes Admin-Modul strukturieren.
+- Browser nach RDAP115 pruefen: Rollen & Rechte bleibt unter Admin.
+- Rollen & Rechte zeigt lesbarere Admin-Read-only-Ansicht.
+- Danach RDAP116: Admin-Notizen als eigenes Admin-Modul strukturieren.
 - Weiterhin: Bereich = Modul/JS-Datei; Shell bleibt Shell.
 ```
