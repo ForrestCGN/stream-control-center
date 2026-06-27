@@ -765,7 +765,7 @@
     }
 
     closeCreateDialog({ keepNotice: true });
-    closeUpdateEditor({ keepNotice: true });
+    closeUpdateEditor({ keepNotice: true, skipRender: true });
     setChipSafe("adminNotesWritePill", false, okRead ? "kein Write" : "Read prüfen");
     setTextSafe("adminNotesWriteLockTitle", okRead ? "Schreiben nicht sichtbar" : "Read nicht verfügbar");
     setTextSafe("adminNotesWriteLockText", okRead
@@ -974,14 +974,21 @@
   function closeUpdateEditor(options) {
     if (updateState.inFlight) return;
     const keepNotice = Boolean(options && options.keepNotice);
-    updateState = {
+    const skipRender = Boolean(options && options.skipRender);
+    const nextState = {
       noteUid: null,
       inFlight: false,
       noticeNoteUid: keepNotice ? updateState.noticeNoteUid : null,
       noticeOk: keepNotice ? updateState.noticeOk : null,
       noticeText: keepNotice ? updateState.noticeText : ""
     };
-    if (latestAdminNotesResult) renderAdminNotesResult(latestAdminNotesResult);
+    const stateChanged = updateState.noteUid !== nextState.noteUid
+      || updateState.inFlight !== nextState.inFlight
+      || updateState.noticeNoteUid !== nextState.noticeNoteUid
+      || updateState.noticeOk !== nextState.noticeOk
+      || updateState.noticeText !== nextState.noticeText;
+    updateState = nextState;
+    if (stateChanged && latestAdminNotesResult && !skipRender) renderAdminNotesResult(latestAdminNotesResult);
   }
 
   function updateUpdateCount(noteUid) {

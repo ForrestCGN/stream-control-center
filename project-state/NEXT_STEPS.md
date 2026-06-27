@@ -2,23 +2,35 @@
 
 Stand: 2026-06-27
 
-1. TODO Rescue 1 und Rescue 2 sind abgeschlossen.
-2. `project-state/TODO.md` bleibt die kurze aktive TODO-Liste.
-3. `project-state/PARKED_TODOS.md` bleibt die zentrale Langzeit-Merkstelle fuer geparkte/verschobene Themen.
-4. `RDAP_MODULE_ROUTE_AUDIT_1_DEV_CODE_VERIFY` wurde als Doku-only-Audit gegen echte GitHub/dev-Dateien vorbereitet.
-5. Naechster sinnvoller Schritt:
-   - `RDAP_MODULE_ROUTE_AUDIT_1_STATUS_SEMANTICS_DOC_FIX`
-   - Ziel: Projektstatus/Routes-/Status-Semantik korrigieren, damit "read-only", "Write aktiv", "UI vorbereitet" und "Agent/OBS deaktiviert" nicht vermischt werden.
-6. Danach erst Admin-User/Admin-Notes weiterfuehren:
-   - Zieluser-Auswahl/Admin-User-Detail,
-   - ggf. Admin-Note UI-Folgearbeit,
-   - keine neuen Parallelmodule.
-7. Vor jeder Umsetzung weiter nach Arbeitsweise vorgehen:
-   - GitHub/dev und echte Dateien lesen,
-   - bestehende Module/Services/Routes bevorzugen,
-   - Plan nennen,
-   - auf Forrests `go` warten,
-   - ZIP mit echten Repo-Zielpfaden liefern,
-   - lokal per `installstep.cmd` einspielen,
-   - nach Test per `stepdone.cmd` committen/pushen.
-8. Webserver-Deploy nur bei Code-/Remote-Modboard-Aenderungen, nicht bei Doku-only.
+1. `RDAP_ADMIN_NOTES_UI_LOOP_FIX_1_PRELOGIN_STACK_OVERFLOW.zip` lokal einspielen.
+2. Lokal pruefen:
+
+```powershell
+cd D:\Git\stream-control-center
+
+node --check .\remote-modboard\backend\public\assets\rdap28-admin-notes.js
+git diff -- remote-modboard/backend/public/assets/rdap28-admin-notes.js
+git status
+```
+
+3. Wenn sauber:
+
+```powershell
+.\stepdone.cmd "RDAP Admin Notes UI Loop Fix 1: Prelogin Stack-Overflow in rdap28-admin-notes.js behoben; keine Backend-, DB- oder Route-Aenderung"
+```
+
+4. Danach Webserver-Deploy, weil `remote-modboard/...` geaendert wurde:
+
+```bash
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP_ADMIN_NOTES_UI_LOOP_FIX_1_PRELOGIN_STACK_OVERFLOW dev
+```
+
+5. Browser-Test:
+   - ausgeloggt `https://mods.forrestcgn.de/` oeffnen,
+   - Browser-Konsole auf `RangeError: Maximum call stack size exceeded` pruefen,
+   - danach Login/Admin-Notizen testen.
+
+6. Danach separate Folgepunkte:
+   - Login-Buttontext `Anmelden` -> `Mit Twitch anmelden` pruefen/fixen.
+   - Verwaistes `• Admin-Notizen` mit `index.html`/Shell-JS pruefen/fixen.
+   - Audit-1 Status-/Semantik-Doku-Fix nachholen.

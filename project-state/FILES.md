@@ -2,36 +2,17 @@
 
 Stand: 2026-06-27
 
-## Aktiver Projektstatus
+## Geaendert in RDAP Admin Notes UI Loop Fix 1
 
 ```text
+remote-modboard/backend/public/assets/rdap28-admin-notes.js
+docs/current/RDAP_ADMIN_NOTES_UI_LOOP_FIX_1_PRELOGIN_STACK_OVERFLOW.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_ADMIN_NOTES_UI_LOOP_FIX_1_VERIFY_DEPLOY.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
-project-state/PARKED_TODOS.md
-project-state/FILES.md
 project-state/CHANGELOG.md
-```
-
-## TODO-Struktur
-
-```text
-project-state/TODO.md           # kurze aktive TODO-Liste
-project-state/PARKED_TODOS.md   # zentrale Langzeit-Merkstelle
-```
-
-## RDAP Module/Route Audit
-
-```text
-docs/current/RDAP_MODULE_ROUTE_AUDIT_1_DEV_CODE_VERIFY.md
-```
-
-## TODO Rescue Doku
-
-```text
-docs/current/TODO_RESCUE_1_SPLIT_ACTIVE_AND_PARKED_TODOS.md
-docs/current/TODO_RESCUE_2_ARCHIVE_SOURCE_DEEP_SCAN.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_TODO_RESCUE_2_VERIFY_OR_CONTINUE.md
+project-state/FILES.md
 ```
 
 ## Naechster normaler RDAP-Startprompt
