@@ -2,48 +2,11 @@
 
 Stand: 2026-06-27
 
-## Nach Installation lokal ausfuehren
+1. RDAP Docs Cleanup 3 lokal installieren.
+2. Cleanup-3-Script im Dry-Run ausfuehren.
+3. Cleanup-3-Script mit `-Execute` ausfuehren, wenn die Liste passt.
+4. `git status` pruefen.
+5. Wenn sauber/nachvollziehbar: `stepdone.cmd`.
+6. Danach RDAP Docs Cleanup 4: Modul-Doku-Konsolidierung gegen echte dev-Dateien.
 
-Aus dem lokalen Repo:
-
-```powershell
-cd D:\Git\stream-control-center
-```
-
-Dry-Run:
-
-```powershell
-.\tools\cleanup\rdap-docs-cleanup-2-safe-delete.ps1
-```
-
-Wenn die Liste passt, echte Loeschung:
-
-```powershell
-.\tools\cleanup\rdap-docs-cleanup-2-safe-delete.ps1 -Execute
-```
-
-Danach:
-
-```powershell
-git status
-```
-
-## Kein Webserver-Deploy
-
-Dieser Step ist Cleanup/Doku/Tooling. Kein Runtime-Deploy noetig.
-
-## Danach
-
-Wenn `git status` sauber nachvollziehbar ist:
-
-```powershell
-.\stepdone.cmd "RDAP Docs Cleanup 2: sichere Backup- und project-state-Root-Altdateien bereinigt"
-```
-
-## Naechster fachlicher Cleanup
-
-```text
-RDAP_DOCS_CLEANUP_3_DOCS_CURRENT_CONSOLIDATION
-```
-
-Ziel: `docs/current` wirklich zusammenfuehren und veraltete Handoff-/Statusdateien paketweise entfernen.
+Kein Webserver-Deploy fuer Cleanup 3 noetig.
