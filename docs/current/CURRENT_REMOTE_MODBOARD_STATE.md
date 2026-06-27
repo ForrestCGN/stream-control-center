@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP117_ADMIN_CONNECTIONS_MODULE_SPLIT  
+Stand: RDAP117B_CONNECTIONS_NAV_DEDUP  
 Datum: 2026-06-27
 
 ## Navigation
@@ -17,23 +17,11 @@ Admin:
 - Doku / Details
 ```
 
-## Frontend-Module
+## RDAP117B
 
 ```text
-remote-modboard/backend/public/assets/modules/admin/users.js
-remote-modboard/backend/public/assets/modules/admin/notes.js
-remote-modboard/backend/public/assets/modules/admin/connections.js
-remote-modboard/backend/public/assets/modules/system/diagnostics.js
-remote-modboard/backend/public/assets/modules/ui/refresh-behavior.js
-```
-
-## Verbindungen
-
-```text
-Verbindungen ist ein eigenes Admin-Frontend-Modul.
-Die Ansicht zeigt read-only den Stream-PC/Agent-Verbindungsstatus und Heartbeat.
-Es gibt keine Agent-Actions, keine Start-/Stop-Funktionen und keine produktiven Writes.
-Status darf automatisch aktualisieren, weil Verbindung/Heartbeat live relevant sind.
+Doppelte Admin-Navigationseintraege mit gleicher data-page werden entfernt.
+Verbindungen darf genau einmal unter Admin sichtbar sein.
 ```
 
 ## Sicherheit

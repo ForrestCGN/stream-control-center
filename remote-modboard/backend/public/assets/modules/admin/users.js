@@ -59,6 +59,31 @@
     button.textContent = 'Benutzerverwaltung';
   }
 
+  function dedupeAdminNavByPage(adminSub, pageId) {
+    const buttons = [...adminSub.querySelectorAll(`.nav-link[data-page="${cssEscape(pageId)}"]`)];
+    if (buttons.length <= 1) return;
+
+    const desired = ADMIN_ORDER.find((item) => item.page === pageId);
+    const keep = buttons.find((button) => Number(button.dataset.order || 100) === (desired ? desired.order : 100)) || buttons[buttons.length - 1];
+
+    buttons.forEach((button) => {
+      if (button !== keep) button.remove();
+    });
+
+    if (desired) {
+      keep.dataset.section = 'Admin';
+      keep.dataset.title = desired.title;
+      keep.dataset.tab = desired.tab;
+      keep.dataset.moduleId = 'admin';
+      keep.dataset.order = String(desired.order);
+      keep.textContent = desired.label;
+    }
+  }
+
+  function dedupeAdminNavigation(adminSub) {
+    ADMIN_ORDER.forEach((item) => dedupeAdminNavByPage(adminSub, item.page));
+  }
+
   function cleanupAdminNavigation() {
     const adminSub = document.getElementById('nav-admin');
     if (!adminSub) return;
@@ -91,6 +116,7 @@
     });
 
     ensureAdminUsersInAdminMenu();
+    dedupeAdminNavigation(adminSub);
 
     const ordered = [...adminSub.querySelectorAll('.nav-link[data-page]')]
       .filter((button) => ADMIN_ORDER.some((item) => item.page === button.dataset.page || item.label === button.textContent.trim()))
@@ -122,10 +148,10 @@
   }
 
   function installStyle() {
-    if (document.getElementById('rdap115cAdminNavCleanupStyle')) return;
+    if (document.getElementById('rdap117bAdminNavCleanupStyle')) return;
 
     const style = document.createElement('style');
-    style.id = 'rdap115cAdminNavCleanupStyle';
+    style.id = 'rdap117bAdminNavCleanupStyle';
     style.textContent = `
       .nav-group[data-target="nav-admin-users-management"],#nav-admin-users-management{display:none!important}
       #nav-admin .nav-link[data-page="admin-user-detail"],
@@ -144,8 +170,8 @@
   }
 
   function installAdminNavObserver() {
-    if (document.documentElement.dataset.rdap115cAdminNavObserver === '1') return;
-    document.documentElement.dataset.rdap115cAdminNavObserver = '1';
+    if (document.documentElement.dataset.rdap117bAdminNavObserver === '1') return;
+    document.documentElement.dataset.rdap117bAdminNavObserver = '1';
 
     const nav = document.querySelector('.cgn-nav');
     if (!nav) return;
@@ -174,6 +200,11 @@
     script.defer = true;
     script.dataset.rdapAdminConnectionsModule = '1';
     document.head.appendChild(script);
+  }
+
+  function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(String(value));
+    return String(value).replace(/[^A-Za-z0-9_-]/g, '\\$&');
   }
 
   function installAdminUsersModule() {

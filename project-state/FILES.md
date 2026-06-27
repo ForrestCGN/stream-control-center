@@ -1,17 +1,16 @@
 # FILES
 
-Stand: RDAP117_ADMIN_CONNECTIONS_MODULE_SPLIT  
+Stand: RDAP117B_CONNECTIONS_NAV_DEDUP  
 Datum: 2026-06-27
 
 ## Geaendert/neu
 
 ```text
 remote-modboard/backend/public/assets/modules/admin/users.js
-remote-modboard/backend/public/assets/modules/admin/connections.js
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP117.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP117B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

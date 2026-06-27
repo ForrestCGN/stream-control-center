@@ -1,13 +1,12 @@
 # CURRENT_STATUS
 
-Stand: RDAP117_ADMIN_CONNECTIONS_MODULE_SPLIT  
+Stand: RDAP117B_CONNECTIONS_NAV_DEDUP  
 Datum: 2026-06-27
 
 ## Ergebnis
 
 ```text
-- Verbindungen als eigenes Admin-Frontend-Modul strukturiert.
-- Verbindungen zeigt read-only Stream-PC/Agent-Verbindungsstatus und Heartbeat.
-- Keine Agent-Actions, keine Start-/Stop-Funktionen.
+- Doppelte Verbindungen-Eintraege in der Admin-Navigation werden dedupliziert.
+- Admin-Reihenfolge bleibt Benutzerverwaltung, Admin-Notizen, Verbindungen, Doku / Details.
 - Keine Backend-Aenderung, keine DB-Migration, keine Runtime-/Agent-Actions.
 ```

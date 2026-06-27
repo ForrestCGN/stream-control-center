@@ -1,12 +1,12 @@
 # REMOTE_MODBOARD_ROADMAP_CURRENT
 
-Stand: RDAP117_ADMIN_CONNECTIONS_MODULE_SPLIT  
+Stand: RDAP117B_CONNECTIONS_NAV_DEDUP  
 Datum: 2026-06-27
 
 ## Zuletzt erledigt
 
 ```text
-RDAP117: Verbindungen als eigenes Admin-Frontend-Modul strukturiert.
+RDAP117B: Doppelte Verbindungen-Eintraege in Admin-Navigation dedupliziert.
 ```
 
 ## Naechster sinnvoller Step

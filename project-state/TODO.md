@@ -1,13 +1,11 @@
 # TODO
 
-Stand: RDAP117_ADMIN_CONNECTIONS_MODULE_SPLIT  
+Stand: RDAP117B_CONNECTIONS_NAV_DEDUP  
 Datum: 2026-06-27
 
 ```text
 - Browser pruefen:
-  Admin -> Verbindungen sichtbar.
-  Verbindungen zeigt Stream-PC online/offline.
-  Button Verbindung neu laden funktioniert.
-  Keine Agent-Actions/Start-/Stop-Funktionen sichtbar.
+  Admin -> Verbindungen ist nur einmal sichtbar.
+  Admin-Reihenfolge stimmt.
 - Danach RDAP118: sichtbarer Navi-/Label-Review.
 ```
