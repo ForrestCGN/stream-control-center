@@ -171,44 +171,10 @@
 
       <div class="cgn-scrim" id="scrim"></div>
 
-      <main class="cgn-content">
+      <main class="cgn-content" id="remoteModboardContent">
         <section class="errorBox cgn-card" id="errorBox" hidden>
           <div><strong>Diagnose-Hinweis</strong><p id="errorText">—</p></div>
           <button class="secondaryButton small" type="button" id="clearErrorsButton">Ausblenden</button>
-        </section>
-
-        <section class="rdap-view is-active-view" data-page-panel="overview">
-          <section class="page-header module-page-header cgn-card">
-            <div>
-              <p class="cgn-eyebrow">Remote Modboard</p>
-              <h1>Übersicht</h1>
-              <p>Alles Wichtige auf einen Blick: Server, Login, Stream-PC und die letzten Aktivitäten.</p>
-            </div>
-          </section>
-
-          <section class="metric-grid">
-            <article class="metric-card cgn-card"><span>Server</span><strong id="statusOk">—</strong><small>Remote-Modboard</small><div class="cgn-progress"><i style="width:92%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Login</span><strong id="statusAuthEnabled">—</strong><small>Anmeldung</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Session</span><strong id="statusLoginEnabled">—</strong><small>Benutzerzugriff</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Bearbeiten</span><strong id="statusWriteEnabled">—</strong><small>aktuell nur erlaubte Bereiche</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
-          </section>
-
-          <section class="page-grid">
-            <article class="cgn-card">
-              <div class="card-head"><div><p class="cgn-eyebrow">Aktivitäten</p><h2>Letzte Änderungen</h2></div><span class="cgn-chip cgn-chip--info">bald</span></div>
-              <div class="module-list">
-                <div class="module-row"><span class="module-icon blue">🧾</span><div><b>Verlauf wird hier sichtbar</b><small>Wer was wann gemacht hat, wird als nächster Produktbereich eingebunden.</small></div></div>
-              </div>
-            </article>
-            <article class="cgn-card">
-              <div class="card-head"><div><p class="cgn-eyebrow">Schnellzugriff</p><h2>Wichtige Bereiche</h2></div><span class="cgn-chip cgn-chip--ok">bereit</span></div>
-              <div class="module-list">
-                <div class="module-row"><span class="module-icon cyan">👥</span><div><b>Benutzer</b><small>Konten, Rollen und Sitzungen ansehen.</small></div></div>
-                <div class="module-row"><span class="module-icon purple">📝</span><div><b>Admin-Notizen</b><small>Notizen lesen und erlaubte Notizen speichern.</small></div></div>
-                <div class="module-row"><span class="module-icon green">🟢</span><div><b>Diagnose</b><small>Nur öffnen, wenn etwas nicht funktioniert.</small></div></div>
-              </div>
-            </article>
-          </section>
         </section>
 
         <section class="rdap-view" data-page-panel="diagnostics">
@@ -359,5 +325,6 @@
   </section>
 
   <script src="/assets/remote-modboard.js" defer></script>
+  <script src="/assets/modules/system/overview.js" defer></script>
 </body>
 </html>
