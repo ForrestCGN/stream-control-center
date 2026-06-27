@@ -2,10 +2,10 @@
 
 Stand: 2026-06-27
 
-- [ ] RDAP122 lokal einspielen.
+- [ ] RDAP123 lokal einspielen.
 - [ ] Syntax-Checks ausfuehren.
+- [ ] `/api/remote/status` und `/api/remote/routes` pruefen.
 - [ ] Browser-Test der Runtime-Anzeige und Modulnavigation.
-- [ ] Optional lokal mit `REMOTE_MODBOARD_MODE=local` gegenpruefen.
 - [ ] Nach Erfolg `stepdone.cmd`.
 - [ ] Webserver-Deploy mit Deploy-Wrapper.
 - [ ] Danach lokalen Stream-PC/LAN-Startbetrieb weiter konkretisieren.

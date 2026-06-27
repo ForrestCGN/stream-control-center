@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.3';
-const BUILD_NAME = 'Lokales Dashboard-Profil';
-const STEP_REF = 'RDAP122_LOCAL_DASHBOARD_RUNTIME_PROFILE';
+const APP_VERSION = '0.2.4';
+const BUILD_NAME = 'Routes-Status angeglichen';
+const STEP_REF = 'RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP';
 const MODULE_BUILD = BUILD_NAME;
 
 async function main() {

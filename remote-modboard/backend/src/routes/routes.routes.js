@@ -6,22 +6,26 @@ const { buildAgentRoutesSummary } = require('../services/agent-status.service');
 const RDAP42_STATUS_API_VERSION = 'rdap_admin_note_ui_status42.v1';
 const RDAP42_BUILD = 'RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP';
 const RDAP61_BUILD = 'RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION';
+const RDAP123_BUILD = 'RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP';
 
 function registerRoutesRoutes(app, context) {
   app.get('/api/remote/routes', (req, res) => {
+    const publicConfig = buildRoutesPublicConfig(context);
+
     res.json({
       ok: true,
       service: 'remote-modboard',
       module: 'remote_routes',
       moduleBuild: context.moduleBuild,
       statusApiVersion: RDAP42_STATUS_API_VERSION,
+      routeStatusBuild: RDAP123_BUILD,
       readOnly: false,
       writeEnabled: false,
       authEnabled: Boolean(context.config && context.config.auth && context.config.auth.authEnabled),
       routes: [
         { method: 'GET', path: '/api/remote/health', description: 'Read-only Healthcheck' },
-        { method: 'GET', path: '/api/remote/status', description: 'Service-/Security-/Auth-/RDAP42-Status-Semantik' },
-        { method: 'GET', path: '/api/remote/routes', description: 'Routenuebersicht' },
+        { method: 'GET', path: '/api/remote/status', description: 'Service-/Security-/Auth-/Runtime-Status inklusive lokalem Dashboard-Profil' },
+        { method: 'GET', path: '/api/remote/routes', description: 'Routenuebersicht inklusive RDAP123 Routes-Status-Angleichung' },
         { method: 'GET', path: '/api/remote/auth/model', description: 'Read-only Auth-/Rechte-Modell' },
         { method: 'GET', path: '/api/remote/auth/me', description: 'Aktueller Login-/Session-Status' },
         { method: 'POST', path: '/api/remote/auth/me/sync-twitch', description: 'Self-Service: eigenes Twitch-Profil synchronisieren' },
@@ -221,15 +225,66 @@ function registerRoutesRoutes(app, context) {
         routeRemainsReadOnly: true
       },
       agentStatusFoundation: buildAgentRoutesSummary(context),
-      localLanMode: {
-        planned: true,
-        implemented: false,
-        twitchLoginPlanned: true,
-        todoParkedUntilWebDashboardStable: true
-      },
+      localDashboardProfile: buildLocalDashboardProfileSummary(publicConfig),
+      localLanMode: buildLocalLanModeSummary(publicConfig),
       safety: context.safety
     });
   });
+}
+
+function buildRoutesPublicConfig(context = {}) {
+  const config = context.config || {};
+  return {
+    runtimeMode: config.runtimeMode || 'online',
+    localLan: config.localLan || {},
+    localDashboardProfile: config.localDashboardProfile || {}
+  };
+}
+
+function buildLocalDashboardProfileSummary(publicConfig = {}) {
+  const runtimeMode = publicConfig.runtimeMode === 'local' ? 'local' : 'online';
+  const source = publicConfig.localDashboardProfile || {};
+  return {
+    prepared: true,
+    active: runtimeMode === 'local',
+    runtimeMode,
+    visibleLabel: runtimeMode === 'local' ? 'Lokalmodus' : 'Onlinemodus',
+    sharedModularUiFoundation: true,
+    moduleRuntimeScopesPrepared: true,
+    moduleRuntimeScopes: ['online', 'local', 'both'],
+    moduleVisibilityFrontendOnly: true,
+    backendStillAuthoritative: true,
+    localDashboardReplacementPrepared: true,
+    lanUseAllowed: Boolean(publicConfig.localLan && publicConfig.localLan.lanUseAllowed),
+    actionsEnabled: false,
+    productiveWritesEnabled: false,
+    agentActionsEnabled: false,
+    forbiddenActionsStillBlocked: ['OBS', 'Sounds', 'Overlays', 'Commands', 'Shell', 'Files', 'Processes'],
+    sourcePrepared: source.prepared === true,
+    routeStatusAligned: true,
+    routeStatusBuild: RDAP123_BUILD,
+    safetyNote: 'Das lokale Dashboard-Profil markiert nur den Betriebsmodus und Module. Es aktiviert keine OBS-, Sound-, Overlay-, Command-, Shell-, Datei- oder Prozess-Aktionen.'
+  };
+}
+
+function buildLocalLanModeSummary(publicConfig = {}) {
+  const runtimeMode = publicConfig.runtimeMode === 'local' ? 'local' : 'online';
+  const localLan = publicConfig.localLan || {};
+  return {
+    planned: true,
+    foundationPrepared: true,
+    implemented: runtimeMode === 'local',
+    runtimeMode,
+    bindHost: localLan.bindHost,
+    allowedCidrs: Array.isArray(localLan.allowedCidrs) ? localLan.allowedCidrs : [],
+    lanUseAllowed: localLan.lanUseAllowed === true,
+    twitchLoginPlanned: true,
+    engelCgnLanAccessPlanned: true,
+    localDashboardReplacementPrepared: true,
+    routeStatusAligned: true,
+    routeStatusBuild: RDAP123_BUILD,
+    safetyNote: 'Lokaler Modus oeffnet nur die Weboberflaeche im LAN. Produktive Aktionen bleiben weiter durch Backend-Scope, Permission, Confirm-Write, Audit, Lock und Readback begrenzt.'
+  };
 }
 
 function buildAdminNoteWriteConfirmedUiSemantics() {

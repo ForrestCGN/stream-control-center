@@ -1,5 +1,15 @@
 # Changelog
 
+## RDAP123 - Routes-Status angeglichen
+
+- Sichtbare Version `0.2.4` eingefuehrt.
+- Deutscher kurzer Buildname `Routes-Status angeglichen` eingefuehrt.
+- `/api/remote/routes` meldet `routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP`.
+- `/api/remote/routes` enthaelt jetzt `localDashboardProfile` passend zum RDAP122-Status.
+- Alter `localLanMode`-Block in `/routes` wurde durch Runtime-basierte Werte ersetzt.
+- Doku-/Projektstatus-Dateien auf den RDAP122/RDAP123-Live-Stand nachgezogen.
+- Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
+
 ## RDAP122 - Lokales Dashboard-Profil
 
 - Sichtbare Version `0.2.3` eingefuehrt.
