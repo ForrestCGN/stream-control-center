@@ -6,6 +6,6 @@ Version 0.1.3 bleibt die aktuelle technische Basis: Streaming-PC Verbindung, Kom
 
 RDAP Docs Cleanup 5 bis 10 ist abgeschlossen: historische und abgeloeste Dateien wurden aus `docs/current/` nach `docs/archive/docs-current-cleanup-*` verschoben. Keine Deletes, keine Code-, DB- oder Webserver-Aenderungen.
 
-`docs/current/` ist auf den finalen erwarteten Current-Bestand reduziert. Der finale Index liegt unter `docs/current/DOCS_CURRENT_FINAL_INDEX.md`.
+Nach dem Cleanup wurde festgestellt, dass `project-state/TODO.md` faelschlich auf aktive Cleanup-/Kurzfristpunkte reduziert wurde, obwohl sie auch als zentrale Merkstelle fuer zurueckgestellte Arbeit genutzt wurde.
 
-Normale RDAP-/Remote-Modboard-Weiterarbeit kann wieder aufgenommen werden. Neuer Startpunkt fuer den naechsten Chat ist `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md`.
+RDAP TODO Rescue 1 ist vorbereitet: `project-state/TODO.md` wird wieder aktive Kurzfrist-TODO, `project-state/PARKED_TODOS.md` wird zentrale Langzeit-Merkstelle. Belegte alte Parkpunkte aus Master-TODO, TODO-Rescue-Report, EventSound, StreamEvents, VIP, RDAP43 und Lokal/LAN werden rekonstruiert. Keine Code-, DB- oder Webserver-Aenderungen.
