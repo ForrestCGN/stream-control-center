@@ -1,6 +1,6 @@
 # REMOTE_MODBOARD_ROADMAP_CURRENT
 
-Stand: RDAP112_SYSTEM_ROUTES_MODULE_DECISION  
+Stand: RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX  
 Datum: 2026-06-27
 
 ## Aktuelle Richtung
@@ -12,11 +12,12 @@ Shell bleibt Shell.
 Technik nur, wenn sie bei Fehlern hilft.
 ```
 
-## Zuletzt entschieden
+## Zuletzt korrigiert
 
 ```text
-RDAP112_SYSTEM_ROUTES_MODULE_DECISION
+RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX
 
+RDAP112-Doku und echter UI-Code wurden synchronisiert.
 Routen sind nicht relevant fuer den normalen Streambetrieb.
 Der normale System-Bereich zeigt weiter Uebersicht und Diagnose.
 Routen wandern aus dem normalen System-Menue in Details / System-Routen.

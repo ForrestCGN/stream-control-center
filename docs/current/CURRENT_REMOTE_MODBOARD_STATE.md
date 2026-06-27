@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP112_SYSTEM_ROUTES_MODULE_DECISION  
+Stand: RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX  
 Datum: 2026-06-27
 
 ## UI-/Produktregel
@@ -25,14 +25,19 @@ remote-modboard/backend/public/assets/modules/system/overview.js
 remote-modboard/backend/public/assets/modules/system/diagnostics.js
 ```
 
-## RDAP112 Entscheidung
+## RDAP112B Sync-Fix
 
 ```text
-Routen bleiben nicht als normaler System-Menuepunkt sichtbar.
-Routen werden in der UI als Details / System-Routen behandelt.
+RDAP112-Doku war bereits auf System-Routen-Entscheidung gesetzt.
+GitHub/dev UI-Code war aber noch nicht synchron: Routen stand noch im normalen System-Menue.
+RDAP112B synchronisiert den echten Frontend-Code.
+
+Routen werden beim Laden aus dem normalen System-Menue entfernt.
+Routen werden als Details / System-Routen neu eingeordnet.
 Die Ansicht ist stark vereinfacht und nur fuer Admin-/Fehlerdiagnose gedacht.
+Bestehendes geladenes System-Modul diagnostics.js wird erweitert, damit kein Shell-/Script-Tag-Umbau noetig ist.
 Keine Backend-Aenderung.
-Keine neue Route.
+Keine neue Backend-Route.
 Keine DB-Migration.
 Keine Agent-/Runtime-Aktivierung.
 ```
@@ -42,6 +47,6 @@ Keine Agent-/Runtime-Aktivierung.
 ```text
 Keine Agent-Runtime aktiv.
 Keine Agent-Actions aktiv.
-Keine Backend-Aenderung in RDAP109-RDAP112.
-Keine DB-Migration in RDAP109-RDAP112.
+Keine Backend-Aenderung in RDAP109-RDAP112B.
+Keine DB-Migration in RDAP109-RDAP112B.
 ```

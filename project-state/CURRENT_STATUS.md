@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP112_SYSTEM_ROUTES_MODULE_DECISION  
+Stand: RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX  
 Datum: 2026-06-27
 
 ## Ergebnis
@@ -10,7 +10,8 @@ Datum: 2026-06-27
 - RDAP110: Uebersicht als eigenes Frontend-Modul ausgelagert.
 - RDAP111: Diagnose als eigenes Frontend-Modul ausgelagert.
 - RDAP111B: Diagnose-Info ist kleines Icon oben rechts in der Kachel statt grossem Button.
-- RDAP112: Routen sind aus dem normalen System-Menue herausgenommen und als Details / System-Routen vereinfacht.
+- RDAP112B: GitHub/dev UI-Code mit RDAP112-Doku synchronisiert.
+- Routen werden aus dem normalen System-Menue entfernt und als Details / System-Routen vereinfacht.
 - Diagnose-Hauptansicht bleibt fuer Mods/Streamer einfach: OK, Problem, Bereit.
 - Technische Details liegen nur im Info-Fenster oder im Details/Admin-Bereich.
 - Keine Backend-Aenderung, keine DB-Migration, keine Runtime-/Agent-Actions.
