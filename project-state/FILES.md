@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP113C_ADMIN_USERS_BACK_TO_ADMIN_NAV  
+Stand: RDAP114_ADMIN_NAV_CLEANUP  
 Datum: 2026-06-27
 
 ## Geaendert/neu im aktuellen UI-Strukturblock
@@ -9,7 +9,8 @@ Datum: 2026-06-27
 remote-modboard/backend/public/assets/modules/admin/users.js
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP113C.md
+docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP114.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

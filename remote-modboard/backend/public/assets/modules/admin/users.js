@@ -3,6 +3,22 @@
 (function registerAdminUsersModule() {
   const PAGE_ID = 'admin-users';
 
+  const ADMIN_ORDER = [
+    { page: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', order: 10 },
+    { page: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read-only', order: 20 },
+    { page: 'access', label: 'Rollen & Rechte', title: 'Rollen & Rechte', tab: 'read-only', order: 30 },
+    { page: 'diagnostics', label: 'Sicherheit', title: 'Sicherheit', tab: 'Status', order: 40 },
+    { page: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', order: 50 }
+  ];
+
+  const HIDDEN_ADMIN_PAGES = new Set([
+    'admin-user-detail',
+    'user-detail',
+    'admin-user',
+    'account',
+    'permissions'
+  ]);
+
   function registerAdminPage() {
     if (!window.RemoteModboardModules || typeof window.RemoteModboardModules.registerPage !== 'function') return;
 
@@ -42,6 +58,41 @@
     button.textContent = 'Benutzerverwaltung';
   }
 
+  function cleanupAdminNavigation() {
+    const adminSub = document.getElementById('nav-admin');
+    if (!adminSub) return;
+
+    removeStandaloneUsersNavigation();
+
+    adminSub.querySelectorAll('.nav-link[data-page]').forEach((button) => {
+      const page = button.dataset.page || '';
+      const label = button.textContent.trim();
+
+      if (HIDDEN_ADMIN_PAGES.has(page) || /^User-Detail$/i.test(label)) {
+        button.remove();
+        return;
+      }
+
+      const desired = ADMIN_ORDER.find((item) => item.page === page || item.label === label);
+      if (!desired) return;
+
+      button.dataset.section = 'Admin';
+      button.dataset.title = desired.title;
+      button.dataset.tab = desired.tab;
+      button.dataset.moduleId = 'admin';
+      button.dataset.order = String(desired.order);
+      button.textContent = desired.label;
+    });
+
+    ensureAdminUsersInAdminMenu();
+
+    const ordered = [...adminSub.querySelectorAll('.nav-link[data-page]')]
+      .filter((button) => ADMIN_ORDER.some((item) => item.page === button.dataset.page || item.label === button.textContent.trim()))
+      .sort((a, b) => Number(a.dataset.order || 100) - Number(b.dataset.order || 100));
+
+    ordered.forEach((button) => adminSub.appendChild(button));
+  }
+
   function polishAdminUsersPanel() {
     const panel = document.querySelector('[data-page-panel="admin-users"]');
     if (!panel) return;
@@ -65,12 +116,17 @@
   }
 
   function installStyle() {
-    if (document.getElementById('rdap113cAdminUsersBackToAdminStyle')) return;
+    if (document.getElementById('rdap114AdminNavCleanupStyle')) return;
 
     const style = document.createElement('style');
-    style.id = 'rdap113cAdminUsersBackToAdminStyle';
+    style.id = 'rdap114AdminNavCleanupStyle';
     style.textContent = `
       .nav-group[data-target="nav-admin-users-management"],#nav-admin-users-management{display:none!important}
+      #nav-admin .nav-link[data-page="admin-user-detail"],
+      #nav-admin .nav-link[data-page="user-detail"],
+      #nav-admin .nav-link[data-page="admin-user"],
+      #nav-admin .nav-link[data-page="account"],
+      #nav-admin .nav-link[data-page="permissions"]{display:none!important}
       [data-page-panel="admin-users"] .page-header p:not(.cgn-eyebrow){max-width:980px}
       [data-page-panel="admin-users"] .admin-lock-note{background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2)}
       [data-page-panel="admin-users"] .admin-lock-note i{background:rgba(255,209,102,.18)}
@@ -79,11 +135,24 @@
     document.head.appendChild(style);
   }
 
+  function installAdminNavObserver() {
+    if (document.documentElement.dataset.rdap114AdminNavObserver === '1') return;
+    document.documentElement.dataset.rdap114AdminNavObserver = '1';
+
+    const nav = document.querySelector('.cgn-nav');
+    if (!nav) return;
+
+    const observer = new MutationObserver(() => {
+      window.requestAnimationFrame(cleanupAdminNavigation);
+    });
+    observer.observe(nav, { childList: true, subtree: true });
+  }
+
   function installAdminUsersModule() {
     registerAdminPage();
-    removeStandaloneUsersNavigation();
-    ensureAdminUsersInAdminMenu();
+    cleanupAdminNavigation();
     polishAdminUsersPanel();
+    installAdminNavObserver();
   }
 
   installAdminUsersModule();
@@ -91,6 +160,7 @@
   document.addEventListener('DOMContentLoaded', installAdminUsersModule);
   window.addEventListener('rdap:module-registry-ready', installAdminUsersModule);
   window.addEventListener('rdap:main-router-page-change', (event) => {
+    cleanupAdminNavigation();
     if (event && event.detail && event.detail.page === PAGE_ID) polishAdminUsersPanel();
   });
 })();

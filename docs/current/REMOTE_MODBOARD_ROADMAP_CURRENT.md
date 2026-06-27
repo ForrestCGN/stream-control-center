@@ -1,6 +1,6 @@
 # REMOTE_MODBOARD_ROADMAP_CURRENT
 
-Stand: RDAP113_ADMIN_USERS_MODULE_SPLIT  
+Stand: RDAP114_ADMIN_NAV_CLEANUP  
 Datum: 2026-06-27
 
 ## Aktuelle Richtung
@@ -9,27 +9,29 @@ Datum: 2026-06-27
 Sicheres Modboard, aber fuer Mods/Streamer einfach nutzbar.
 Bereich = eigenes Frontend-Modul.
 Shell bleibt Shell.
-Technik nur, wenn sie bei Fehlern hilft.
+Admin-Funktionen bleiben unter Admin.
+Technische Unterseiten nicht als normale Menuepunkte zeigen.
 ```
 
 ## Zuletzt erledigt
 
 ```text
-RDAP113: Admin-Benutzerverwaltung als eigenes Frontend-Modul eingeordnet.
-Keine neuen Writes.
-Keine DB-Migration.
-Keine Backend-Aenderung.
+RDAP114: Admin-Navigation bereinigt.
+User-Detail aus der linken Navigation entfernt.
+Admin-Reihenfolge sauber sortiert.
+Keine Backend-Aenderung, keine DB-Migration, keine Agent-Actions.
 ```
 
 ## Naechster sinnvoller Step
 
 ```text
-RDAP114_ACCESS_MODULE_SPLIT
+RDAP115_ACCESS_MODULE_SPLIT
 ```
 
 ## Danach
 
 ```text
-Rollen & Rechte aus Shell/Normalstruktur herausloesen.
-Admin-Notizen weiter produktnah aufraeumen.
+Rollen & Rechte als eigenes Admin-Modul.
+Admin-Notizen als eigenes Admin-Modul.
+Verbindungen als eigenes Admin-Modul.
 ```

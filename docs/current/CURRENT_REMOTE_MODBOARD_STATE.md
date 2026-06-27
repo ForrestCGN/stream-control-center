@@ -1,43 +1,31 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP113C_ADMIN_USERS_BACK_TO_ADMIN_NAV  
+Stand: RDAP114_ADMIN_NAV_CLEANUP  
 Datum: 2026-06-27
 
 ## UI-/Produktregel
 
 ```text
-Das Modboard ist ein Werkzeug fuer Streambetrieb, Mods und Admins.
+Admin-Funktionen bleiben unter Admin.
+User-Selbstkonto gehoert oben rechts ins Profilmenue.
+Keine technischen Unterseiten als normaler Navigationspunkt.
 Keine Projekt-Erklaerungen in normalen Ansichten.
-Keine technische Dauerwand.
-Mods/Streamer sehen: OK, Problem, Handlungshinweis.
-Technische Details nur hinter Info oder in Admin-Bereichen.
 ```
 
-## Strukturstand
-
-```text
-Shell:
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/remote-modboard.js
-
-Ausgelagerte/strukturierte Frontend-Module:
-remote-modboard/backend/public/assets/modules/system/overview.js
-remote-modboard/backend/public/assets/modules/system/diagnostics.js
-remote-modboard/backend/public/assets/modules/admin/users.js
-```
-
-## Navigation
+## Admin-Navigation
 
 ```text
 Admin:
 - Benutzerverwaltung
+- Admin-Notizen
 - Rollen & Rechte
 - Sicherheit
+- Verbindungen
 
-Mein Konto oben rechts:
-- Meine Rechte
-- Profil aktualisieren
-- Ausloggen
+Nicht in linker Navigation:
+- User-Detail
+- eigenes Benutzer-Hauptmenue
+- Details / System-Routen
 ```
 
 ## Sicherheit
@@ -45,7 +33,7 @@ Mein Konto oben rechts:
 ```text
 Keine Agent-Runtime aktiv.
 Keine Agent-Actions aktiv.
-Keine Backend-Aenderung in RDAP113C.
-Keine DB-Migration in RDAP113C.
-Admin-Benutzerverwaltung bleibt read-only.
+Keine Backend-Aenderung in RDAP114.
+Keine DB-Migration in RDAP114.
+Alle betroffenen Admin-Ansichten bleiben read-only beziehungsweise im bestehenden Sicherheitszustand.
 ```

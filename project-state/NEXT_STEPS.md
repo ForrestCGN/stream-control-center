@@ -1,18 +1,19 @@
 # NEXT_STEPS
 
-Stand: RDAP113C_ADMIN_USERS_BACK_TO_ADMIN_NAV  
+Stand: RDAP114_ADMIN_NAV_CLEANUP  
 Datum: 2026-06-27
 
 ## Naechster sinnvoller Step
 
 ```text
-RDAP114_ACCESS_MODULE_SPLIT
+RDAP115_ACCESS_MODULE_SPLIT
 ```
 
 ## Ziel
 
 ```text
-Rollen & Rechte weiter aus der Shell/Normalstruktur herausloesen, aber unter Admin belassen.
+Rollen & Rechte als eigenes Admin-Frontend-Modul strukturieren.
+Weiterhin unter Admin einordnen.
 Bestehende Dateien/Module bevorzugen.
 Keine neuen produktiven Writes.
 Keine DB-Migration.
