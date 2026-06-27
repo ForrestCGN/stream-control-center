@@ -7,10 +7,20 @@ try {
   routes = null;
 }
 
+let WebSocket = null;
+try {
+  WebSocket = require('ws');
+} catch (err) {
+  WebSocket = null;
+}
+
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.0.3';
-const MODULE_BUILD = 'RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY';
-const STATUS_API_VERSION = 'rdap5c3.v1';
+const MODULE_VERSION = '0.1.0';
+const MODULE_BUILD = 'RDAP119_STREAMING_PC_CONNECTION_CLIENT_MVP';
+const STATUS_API_VERSION = 'rdap119_streaming_pc_connection.v1';
+const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
+const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
+const DEFAULT_REMOTE_WS_URL = 'wss://mods.forrestcgn.de/agent-ws';
 const LOADED_AT = new Date().toISOString();
 
 const MODULE_META = {
@@ -19,11 +29,11 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'remote-dashboard',
-  description: 'Read-only Remote-Agent status and security model contract for Dashboard-v2. No WSS agent runtime and no productive actions. RDAP5C3 keeps roles and groups separated.',
-  routesPrefix: ['/api/remote-agent'],
+  description: 'Streaming-PC connection client MVP. Connects outbound to the webserver and sends read-only heartbeats. No productive actions.',
+  routesPrefix: ['/api/remote-agent', '/api/streaming-pc-connection'],
   bus: {
     registered: false,
-    heartbeat: false,
+    heartbeat: true,
     emits: [],
     listens: []
   },
@@ -37,6 +47,8 @@ const CAPABILITIES = Object.freeze({
   permissionsModel: true,
   locksStatus: true,
   auditModel: true,
+  streamingPcConnectionClient: true,
+  heartbeatSender: true,
   obsControl: false,
   soundControl: false,
   overlayControl: false,
@@ -138,8 +150,8 @@ const PERMISSIONS = Object.freeze([
   { key: 'channelpoints.edit', label: 'Kanalpunkte-Aktionen bearbeiten', area: 'twitch', protectionLevel: 'high' },
   { key: 'obs.control', label: 'OBS steuern', area: 'obs', protectionLevel: 'critical' },
   { key: 'overlay.control', label: 'Overlays steuern', area: 'overlays', protectionLevel: 'critical' },
-  { key: 'agent.action.requested', label: 'Agent-Aktion anfordern', area: 'agent', protectionLevel: 'critical' },
-  { key: 'agent.status.read', label: 'Agent-Status lesen', area: 'agent', protectionLevel: 'low' }
+  { key: 'streaming_pc.connection.status.read', label: 'Streaming-PC Verbindung lesen', area: 'streaming-pc', protectionLevel: 'low' },
+  { key: 'streaming_pc.action.requested', label: 'Streaming-PC Aktion anfordern', area: 'streaming-pc', protectionLevel: 'critical' }
 ]);
 
 const ROLE_PERMISSION_PRESETS = Object.freeze({
@@ -148,16 +160,16 @@ const ROLE_PERMISSION_PRESETS = Object.freeze({
     'dashboard.read', 'admin.audit.read', 'admin.users.manage', 'locks.read', 'locks.create',
     'locks.heartbeat', 'locks.release', 'locks.takeover', 'texts.read', 'texts.edit',
     'config.read', 'config.edit', 'media.read', 'media.upload', 'media.edit', 'media.delete',
-    'sound.read', 'sound.test', 'sound.command.edit', 'channelpoints.edit', 'agent.status.read'
+    'sound.read', 'sound.test', 'sound.command.edit', 'channelpoints.edit', 'streaming_pc.connection.status.read'
   ],
   lead_mod: [
     'dashboard.read', 'locks.read', 'locks.create', 'locks.heartbeat', 'locks.release',
     'texts.read', 'texts.edit', 'config.read', 'media.read', 'sound.read', 'sound.test',
-    'agent.status.read'
+    'streaming_pc.connection.status.read'
   ],
-  mod: ['dashboard.read', 'locks.read', 'texts.read', 'config.read', 'media.read', 'sound.read', 'agent.status.read'],
-  media_manager: ['dashboard.read', 'locks.read', 'locks.create', 'locks.heartbeat', 'locks.release', 'media.read', 'media.upload', 'media.edit', 'texts.read', 'agent.status.read'],
-  readonly: ['dashboard.read', 'locks.read', 'texts.read', 'config.read', 'media.read', 'sound.read', 'agent.status.read']
+  mod: ['dashboard.read', 'locks.read', 'texts.read', 'config.read', 'media.read', 'sound.read', 'streaming_pc.connection.status.read'],
+  media_manager: ['dashboard.read', 'locks.read', 'locks.create', 'locks.heartbeat', 'locks.release', 'media.read', 'media.upload', 'media.edit', 'texts.read', 'streaming_pc.connection.status.read'],
+  readonly: ['dashboard.read', 'locks.read', 'texts.read', 'config.read', 'media.read', 'sound.read', 'streaming_pc.connection.status.read']
 });
 
 const LOCK_MODEL = Object.freeze({
@@ -173,7 +185,7 @@ const LOCK_MODEL = Object.freeze({
   saveRequiresValidLock: true,
   sharedReadWhileLocked: true,
   notes: [
-    'RDAP5C3 stellt nur das Modell bereit; es setzt noch keine produktiven Locks.',
+    'RDAP119 setzt keine produktiven Locks.',
     'Speichern soll spaeter nur mit gueltigem Lock und passender Resource-Version erlaubt sein.',
     'Owner/Admin duerfen Locks spaeter uebernehmen; jede Uebernahme ist auditpflichtig.'
   ]
@@ -197,44 +209,99 @@ const AUDIT_MODEL = Object.freeze({
     'resource.save.requested',
     'resource.save.succeeded',
     'resource.save.failed',
-    'agent.action.requested',
-    'agent.action.accepted',
-    'agent.action.rejected',
-    'agent.action.failed'
+    'streaming_pc.connection.started',
+    'streaming_pc.connection.heartbeat',
+    'streaming_pc.connection.failed',
+    'streaming_pc.action.requested',
+    'streaming_pc.action.accepted',
+    'streaming_pc.action.rejected',
+    'streaming_pc.action.failed'
   ],
-  sources: ['dashboard-local', 'remote-modboard', 'webserver', 'stream-pc-agent'],
+  sources: ['dashboard-local', 'remote-modboard', 'webserver', 'streaming-pc'],
   notes: [
-    'RDAP5C3 schreibt noch keine Audit-Daten.',
+    'RDAP119 schreibt noch keine Audit-Daten.',
     'Produktive Aenderungen muessen spaeter auditpflichtig sein.',
     'Sensible Werte duerfen nur maskiert oder zusammengefasst im Audit landen.'
   ]
 });
+
+const CONNECTION_STATE = {
+  enabled: false,
+  configured: false,
+  connectAttempted: false,
+  connected: false,
+  connectionState: 'disabled',
+  reason: 'not_initialized',
+  remoteWsUrl: DEFAULT_REMOTE_WS_URL,
+  wsPath: '/agent-ws',
+  agentId: 'stream-pc-main',
+  agentName: 'Forrest Stream-PC',
+  agentVersion: MODULE_VERSION,
+  protocolVersion: HANDSHAKE_PROTOCOL_VERSION,
+  heartbeatProtocolVersion: HEARTBEAT_PROTOCOL_VERSION,
+  connectedSince: null,
+  lastSeenAt: null,
+  lastHeartbeatAt: null,
+  heartbeatSeq: 0,
+  heartbeatIntervalMs: 30000,
+  reconnectDelayMs: 5000,
+  reconnectCount: 0,
+  lastConnectAttemptAt: null,
+  lastDisconnectAt: null,
+  lastErrorAt: null,
+  lastError: null,
+  keyConfigured: false,
+  keyExposed: false,
+  actionsEnabled: false,
+  productiveActionsEnabled: false,
+  noShellOrProcessActions: true,
+  noFileWrite: true,
+  noDatabaseWrite: true,
+  noRawPayloadStored: true
+};
+
+let ws = null;
+let heartbeatTimer = null;
+let reconnectTimer = null;
+let started = false;
 
 function init(ctx) {
   const app = ctx && ctx.app;
   if (!app) return;
 
   registerGet(app, '/api/remote-agent/status', (req, res) => {
+    void req;
+    res.json(buildStatusResponse());
+  });
+
+  registerGet(app, '/api/streaming-pc-connection/status', (req, res) => {
+    void req;
     res.json(buildStatusResponse());
   });
 
   registerGet(app, '/api/remote-agent/permissions/model', (req, res) => {
+    void req;
     res.json(buildPermissionsModelResponse());
   });
 
   registerGet(app, '/api/remote-agent/locks/status', (req, res) => {
+    void req;
     res.json(buildLocksStatusResponse());
   });
 
   registerGet(app, '/api/remote-agent/audit/model', (req, res) => {
+    void req;
     res.json(buildAuditModelResponse());
   });
 
   registerGet(app, '/api/remote-agent/routes', (req, res) => {
+    void req;
     res.json(buildRoutesResponse());
   });
 
-  console.log(`[remote_agent] ${MODULE_BUILD} read-only status/security model routes registered. No agent actions enabled.`);
+  startStreamingPcConnectionClient();
+
+  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client MVP registered. actions=false.`);
 }
 
 function registerGet(app, routePath, handler) {
@@ -243,6 +310,179 @@ function registerGet(app, routePath, handler) {
     return;
   }
   app.get(routePath, handler);
+}
+
+function startStreamingPcConnectionClient() {
+  if (started) return;
+  started = true;
+
+  const config = readConnectionConfig();
+  applyConnectionConfig(config);
+
+  if (!config.enabled) {
+    CONNECTION_STATE.connectionState = 'disabled';
+    CONNECTION_STATE.reason = 'streaming_pc_connection_disabled';
+    return;
+  }
+
+  if (!WebSocket) {
+    CONNECTION_STATE.connectionState = 'error';
+    CONNECTION_STATE.reason = 'ws_dependency_missing';
+    CONNECTION_STATE.lastError = 'ws dependency missing';
+    CONNECTION_STATE.lastErrorAt = new Date().toISOString();
+    return;
+  }
+
+  if (!config.accessKey) {
+    CONNECTION_STATE.connectionState = 'not_configured';
+    CONNECTION_STATE.reason = 'connection_key_missing';
+    return;
+  }
+
+  connectStreamingPc(config);
+}
+
+function readConnectionConfig() {
+  const remoteWsUrl = readString('STREAMING_PC_REMOTE_WS_URL', readString('AGENT_REMOTE_WS_URL', DEFAULT_REMOTE_WS_URL));
+  const agentId = readString('STREAMING_PC_CONNECTION_ID', readString('AGENT_ID', 'stream-pc-main'));
+  const agentName = readString('STREAMING_PC_CONNECTION_NAME', readString('AGENT_NAME', 'Forrest Stream-PC'));
+  const accessKey = readString('STREAMING_PC_CONNECTION_KEY', readString('AGENT_ACCESS_KEY', ''));
+
+  return {
+    enabled: readBoolean('STREAMING_PC_CONNECTION_ENABLED', readBoolean('AGENT_CONNECTION_ENABLED', false)),
+    remoteWsUrl,
+    agentId,
+    agentName,
+    accessKey,
+    heartbeatIntervalMs: readInt('STREAMING_PC_HEARTBEAT_INTERVAL_MS', readInt('AGENT_HEARTBEAT_INTERVAL_MS', 30000), 5000, 300000),
+    reconnectDelayMs: readInt('STREAMING_PC_RECONNECT_DELAY_MS', readInt('AGENT_RECONNECT_DELAY_MS', 5000), 1000, 300000)
+  };
+}
+
+function applyConnectionConfig(config) {
+  CONNECTION_STATE.enabled = Boolean(config.enabled);
+  CONNECTION_STATE.configured = Boolean(config.enabled && config.accessKey && config.remoteWsUrl && config.agentId);
+  CONNECTION_STATE.remoteWsUrl = sanitizeRemoteWsUrl(config.remoteWsUrl);
+  CONNECTION_STATE.wsPath = safeWsPath(config.remoteWsUrl);
+  CONNECTION_STATE.agentId = safeAgentId(config.agentId);
+  CONNECTION_STATE.agentName = safeAgentName(config.agentName);
+  CONNECTION_STATE.heartbeatIntervalMs = config.heartbeatIntervalMs;
+  CONNECTION_STATE.reconnectDelayMs = config.reconnectDelayMs;
+  CONNECTION_STATE.keyConfigured = Boolean(config.accessKey);
+  CONNECTION_STATE.keyExposed = false;
+}
+
+function connectStreamingPc(config) {
+  clearReconnectTimer();
+  CONNECTION_STATE.connectAttempted = true;
+  CONNECTION_STATE.lastConnectAttemptAt = new Date().toISOString();
+  CONNECTION_STATE.connectionState = 'connecting';
+  CONNECTION_STATE.reason = 'connecting_to_webserver';
+
+  try {
+    ws = new WebSocket(config.remoteWsUrl, {
+      headers: {
+        'Authorization': `Bearer ${config.accessKey}`,
+        'X-SCC-Agent-Id': config.agentId,
+        'X-SCC-Agent-Protocol': HANDSHAKE_PROTOCOL_VERSION,
+        'X-SCC-Agent-Version': MODULE_VERSION
+      },
+      handshakeTimeout: 10000
+    });
+
+    ws.on('open', () => handleOpen(config));
+    ws.on('close', () => handleClose(config, 'socket_close'));
+    ws.on('error', (err) => handleError(config, err));
+    ws.on('message', () => {
+      // RDAP119 client ignores inbound data. No commands/actions are accepted.
+    });
+  } catch (err) {
+    handleError(config, err);
+    handleClose(config, 'connect_exception');
+  }
+}
+
+function handleOpen(config) {
+  const now = new Date().toISOString();
+  CONNECTION_STATE.connected = true;
+  CONNECTION_STATE.connectionState = 'connected';
+  CONNECTION_STATE.reason = 'connected_readonly_heartbeat';
+  CONNECTION_STATE.connectedSince = now;
+  CONNECTION_STATE.lastSeenAt = now;
+  CONNECTION_STATE.lastError = null;
+  CONNECTION_STATE.lastErrorAt = null;
+  CONNECTION_STATE.actionsEnabled = false;
+  CONNECTION_STATE.productiveActionsEnabled = false;
+  startHeartbeatTimer(config);
+  sendHeartbeat(config);
+}
+
+function handleClose(config, reason) {
+  stopHeartbeatTimer();
+  CONNECTION_STATE.connected = false;
+  CONNECTION_STATE.connectionState = CONNECTION_STATE.enabled ? 'reconnecting' : 'disabled';
+  CONNECTION_STATE.reason = safeReason(reason || 'socket_close');
+  CONNECTION_STATE.lastDisconnectAt = new Date().toISOString();
+  CONNECTION_STATE.lastSeenAt = CONNECTION_STATE.lastDisconnectAt;
+  if (CONNECTION_STATE.enabled && CONNECTION_STATE.keyConfigured) scheduleReconnect(config);
+}
+
+function handleError(config, err) {
+  CONNECTION_STATE.connected = false;
+  CONNECTION_STATE.connectionState = 'error';
+  CONNECTION_STATE.reason = 'connection_error';
+  CONNECTION_STATE.lastErrorAt = new Date().toISOString();
+  CONNECTION_STATE.lastError = err && err.message ? safeError(err.message) : 'connection_error';
+  void config;
+}
+
+function startHeartbeatTimer(config) {
+  stopHeartbeatTimer();
+  heartbeatTimer = setInterval(() => sendHeartbeat(config), config.heartbeatIntervalMs);
+  if (heartbeatTimer && typeof heartbeatTimer.unref === 'function') heartbeatTimer.unref();
+}
+
+function stopHeartbeatTimer() {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+}
+
+function scheduleReconnect(config) {
+  clearReconnectTimer();
+  CONNECTION_STATE.reconnectCount += 1;
+  reconnectTimer = setTimeout(() => connectStreamingPc(config), config.reconnectDelayMs);
+  if (reconnectTimer && typeof reconnectTimer.unref === 'function') reconnectTimer.unref();
+}
+
+function clearReconnectTimer() {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+}
+
+function sendHeartbeat(config) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  CONNECTION_STATE.heartbeatSeq += 1;
+  const payload = {
+    type: 'heartbeat',
+    protocolVersion: HEARTBEAT_PROTOCOL_VERSION,
+    agentId: config.agentId,
+    seq: CONNECTION_STATE.heartbeatSeq,
+    agentVersion: MODULE_VERSION
+  };
+
+  try {
+    ws.send(JSON.stringify(payload));
+    const now = new Date().toISOString();
+    CONNECTION_STATE.lastHeartbeatAt = now;
+    CONNECTION_STATE.lastSeenAt = now;
+    CONNECTION_STATE.connectionState = 'connected';
+    CONNECTION_STATE.reason = 'heartbeat_sent';
+    CONNECTION_STATE.actionsEnabled = false;
+    CONNECTION_STATE.productiveActionsEnabled = false;
+  } catch (err) {
+    handleError(config, err);
+  }
 }
 
 function buildBaseResponse(extra = {}) {
@@ -264,23 +504,29 @@ function buildBaseResponse(extra = {}) {
 
 function buildStatusResponse() {
   const now = new Date().toISOString();
+  const state = buildConnectionStatus();
 
   return buildBaseResponse({
+    displayName: 'Streaming-PC Verbindung',
     status: {
-      connected: false,
-      connectionState: 'offline',
-      reason: 'rdap4b_no_agent_runtime_yet',
-      lastSeenAt: null,
-      connectedSince: null,
-      heartbeatAgeMs: null,
-      reconnectCount: 0,
-      stale: false
+      connected: state.connected,
+      connectionState: state.connectionState,
+      reason: state.reason,
+      lastSeenAt: state.lastSeenAt,
+      connectedSince: state.connectedSince,
+      lastHeartbeatAt: state.lastHeartbeatAt,
+      heartbeatSeq: state.heartbeatSeq,
+      heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt),
+      reconnectCount: state.reconnectCount,
+      stale: isHeartbeatStale(state.lastHeartbeatAt)
     },
+    streamingPcConnection: state,
     agent: {
-      agentId: null,
-      agentName: null,
-      agentVersion: null,
-      protocolVersion: STATUS_API_VERSION,
+      agentId: state.agentId,
+      agentName: state.agentName,
+      agentVersion: state.agentVersion,
+      protocolVersion: state.protocolVersion,
+      heartbeatProtocolVersion: state.heartbeatProtocolVersion,
       expectedAgentId: 'stream-pc-main',
       expectedAgentName: 'Forrest Stream-PC'
     },
@@ -294,24 +540,64 @@ function buildStatusResponse() {
     },
     remoteTarget: {
       publicDashboardUrl: 'https://mods.forrestcgn.de',
-      plannedTransport: 'wss',
-      plannedWsPath: '/agent-ws',
-      streamPcPublicPortRequired: false
+      remoteWsUrl: state.remoteWsUrl,
+      plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws',
+      plannedWsPath: state.wsPath,
+      streamPcPublicPortRequired: false,
+      outgoingConnectionOnly: true
     },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
     warnings: [
-      'RDAP5C3 korrigiert das Modell: Rollen und Gruppen/Marker sind getrennt.',
-      'Es existiert in diesem Step noch kein produktiver WSS-Agent.',
-      'Alle produktiven Aktionen bleiben deaktiviert.'
+      'RDAP119 sendet nur Heartbeats vom Streaming-PC zum Webserver.',
+      'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.',
+      'OBS, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.',
+      'Verbindungsschluessel wird nie in Status, UI oder Logs ausgegeben.'
     ],
-    errors: []
+    errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
+}
+
+function buildConnectionStatus() {
+  return {
+    enabled: CONNECTION_STATE.enabled,
+    configured: CONNECTION_STATE.configured,
+    connectAttempted: CONNECTION_STATE.connectAttempted,
+    connected: CONNECTION_STATE.connected,
+    connectionState: CONNECTION_STATE.connectionState,
+    reason: CONNECTION_STATE.reason,
+    remoteWsUrl: CONNECTION_STATE.remoteWsUrl,
+    wsPath: CONNECTION_STATE.wsPath,
+    agentId: CONNECTION_STATE.agentId,
+    agentName: CONNECTION_STATE.agentName,
+    agentVersion: CONNECTION_STATE.agentVersion,
+    protocolVersion: CONNECTION_STATE.protocolVersion,
+    heartbeatProtocolVersion: CONNECTION_STATE.heartbeatProtocolVersion,
+    connectedSince: CONNECTION_STATE.connectedSince,
+    lastSeenAt: CONNECTION_STATE.lastSeenAt,
+    lastHeartbeatAt: CONNECTION_STATE.lastHeartbeatAt,
+    heartbeatSeq: CONNECTION_STATE.heartbeatSeq,
+    heartbeatIntervalMs: CONNECTION_STATE.heartbeatIntervalMs,
+    reconnectDelayMs: CONNECTION_STATE.reconnectDelayMs,
+    reconnectCount: CONNECTION_STATE.reconnectCount,
+    lastConnectAttemptAt: CONNECTION_STATE.lastConnectAttemptAt,
+    lastDisconnectAt: CONNECTION_STATE.lastDisconnectAt,
+    lastErrorAt: CONNECTION_STATE.lastErrorAt,
+    lastError: CONNECTION_STATE.lastError,
+    keyConfigured: CONNECTION_STATE.keyConfigured,
+    keyExposed: false,
+    actionsEnabled: false,
+    productiveActionsEnabled: false,
+    noShellOrProcessActions: true,
+    noFileWrite: true,
+    noDatabaseWrite: true,
+    noRawPayloadStored: true
+  };
 }
 
 function buildPermissionsModelResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'permissions.rdap5c3.v1',
+    modelApiVersion: 'permissions.rdap119.v1',
     permissionDecisionRule: 'roles are presets; groups are markers; concrete permission keys and module matrix grants decide',
     twitchRolesAreNotDashboardRoles: true,
     rolesAreSeparateFromGroups: true,
@@ -341,7 +627,7 @@ function buildPermissionsModelResponse() {
         ],
         mayNot: [
           'Owner-/Security-Rechte verwalten',
-          'Agent-Secrets verwalten',
+          'Verbindungsschluessel verwalten',
           'freie Shell-/Datei-/Prozessaktionen ausloesen',
           'Datenbankmigrationen starten',
           'globale System-Konfiguration aendern'
@@ -363,7 +649,7 @@ function buildPermissionsModelResponse() {
 
 function buildLocksStatusResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'locks.rdap4b.v1',
+    modelApiVersion: 'locks.rdap119.v1',
     locks: clonePlain(LOCK_MODEL),
     activeLocks: [],
     summary: {
@@ -373,7 +659,7 @@ function buildLocksStatusResponse() {
       takeoverPendingCount: 0
     },
     warnings: [
-      'RDAP5C3 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.',
+      'RDAP119 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.',
       'Produktives Speichern darf spaeter nur mit gueltigem Lock und Resource-Version erfolgen.'
     ]
   });
@@ -381,7 +667,7 @@ function buildLocksStatusResponse() {
 
 function buildAuditModelResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'audit.rdap4b.v1',
+    modelApiVersion: 'audit.rdap119.v1',
     audit: clonePlain(AUDIT_MODEL),
     summary: {
       enabled: false,
@@ -389,7 +675,7 @@ function buildAuditModelResponse() {
       retentionConfigurable: true
     },
     warnings: [
-      'RDAP5C3 schreibt noch keine Audit-Events.',
+      'RDAP119 schreibt noch keine Audit-Events.',
       'Produktive Remote-/Dashboard-Aktionen muessen spaeter Audit schreiben, bevor sie als fertig gelten.'
     ]
   });
@@ -401,12 +687,17 @@ function buildRoutesResponse() {
       {
         method: 'GET',
         path: '/api/remote-agent/status',
-        description: 'Read-only Remote-Agent Status. Liefert echten Offline-Startzustand und fuehrt keine Aktionen aus.'
+        description: 'Read-only Status fuer lokale Streaming-PC-Verbindung und Sicherheitsmodell.'
+      },
+      {
+        method: 'GET',
+        path: '/api/streaming-pc-connection/status',
+        description: 'Lesbarer Alias fuer Streaming-PC Verbindung. Keine Aktionen.'
       },
       {
         method: 'GET',
         path: '/api/remote-agent/permissions/model',
-        description: 'Read-only Rollen-/Permission-Modell fuer RDAP5C3. Keine User-/Grant-Schreiboperation.'
+        description: 'Read-only Rollen-/Permission-Modell. Keine User-/Grant-Schreiboperation.'
       },
       {
         method: 'GET',
@@ -421,7 +712,7 @@ function buildRoutesResponse() {
       {
         method: 'GET',
         path: '/api/remote-agent/routes',
-        description: 'Read-only Routenuebersicht fuer RDAP5C3.'
+        description: 'Read-only Routenuebersicht fuer RDAP119.'
       }
     ]
   });
@@ -438,8 +729,89 @@ function buildSafetyBlock() {
     noDatabaseWrite: true,
     noFileWrite: true,
     noShellOrProcessActions: true,
-    noAgentActionExecution: true
+    noAgentActionExecution: true,
+    noStreamingPcActionExecution: true,
+    heartbeatOnly: true,
+    outgoingConnectionOnly: true
   };
+}
+
+function readString(name, fallback) {
+  const value = process.env[name];
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  return trimmed || fallback;
+}
+
+function readBoolean(name, fallback) {
+  const value = process.env[name];
+  if (typeof value !== 'string') return Boolean(fallback);
+  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+}
+
+function readInt(name, fallback, min, max) {
+  const parsed = Number.parseInt(process.env[name], 10);
+  if (!Number.isInteger(parsed)) return fallback;
+  if (Number.isFinite(min) && parsed < min) return fallback;
+  if (Number.isFinite(max) && parsed > max) return fallback;
+  return parsed;
+}
+
+function sanitizeRemoteWsUrl(value) {
+  try {
+    const url = new URL(value || DEFAULT_REMOTE_WS_URL);
+    if (url.protocol !== 'wss:' && url.protocol !== 'ws:') return DEFAULT_REMOTE_WS_URL;
+    url.username = '';
+    url.password = '';
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch (err) {
+    return DEFAULT_REMOTE_WS_URL;
+  }
+}
+
+function safeWsPath(value) {
+  try {
+    const url = new URL(value || DEFAULT_REMOTE_WS_URL);
+    return url.pathname || '/agent-ws';
+  } catch (err) {
+    return '/agent-ws';
+  }
+}
+
+function safeAgentId(value) {
+  const normalized = String(value || 'stream-pc-main').trim();
+  return /^[a-zA-Z0-9_-]{3,64}$/.test(normalized) ? normalized : 'stream-pc-main';
+}
+
+function safeAgentName(value) {
+  const text = String(value || 'Forrest Stream-PC').trim().replace(/[^\p{L}\p{N} _.-]/gu, '');
+  return text.slice(0, 80) || 'Forrest Stream-PC';
+}
+
+function safeReason(value) {
+  return String(value || 'unknown').trim().replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80) || 'unknown';
+}
+
+function safeError(value) {
+  return String(value || 'connection_error')
+    .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi, 'Bearer [masked]')
+    .replace(/[A-Za-z0-9_-]{24,}/g, '[masked]')
+    .slice(0, 240);
+}
+
+function calculateHeartbeatAgeMs(value) {
+  if (!value) return null;
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return null;
+  return Math.max(0, Date.now() - time);
+}
+
+function isHeartbeatStale(value) {
+  const age = calculateHeartbeatAgeMs(value);
+  if (age === null) return false;
+  return age > Math.max(90000, CONNECTION_STATE.heartbeatIntervalMs * 3);
 }
 
 function clonePlain(value) {

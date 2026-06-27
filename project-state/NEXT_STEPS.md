@@ -1,31 +1,22 @@
 # NEXT_STEPS
 
-Stand: RDAP118_ADMIN_NAV_POLISH_AND_VISIBLE_REVIEW  
+Stand: RDAP119_STREAMING_PC_CONNECTION_CLIENT_MVP  
 Datum: 2026-06-27
 
-## Naechster sinnvoller Step
+## Direkt testen
 
 ```text
-RDAP118 lokal installieren und sichtbar pruefen.
-```
-
-## Ziel
-
-```text
-Browser pruefen:
-System-Menue zeigt nur Übersicht und Diagnose.
-Admin-Menue zeigt Benutzerverwaltung, Admin-Notizen, Verbindungen, Doku / Details.
-Verbindungen ist nur einmal sichtbar.
-Admin-Notizen oeffnet weiterhin.
-Verbindungen oeffnet weiterhin.
-Doku / Details oeffnet weiterhin die Routen-/Details-Seite.
+RDAP119 lokal installieren.
+Lokalen Node-Server neu starten.
+/api/streaming-pc-connection/status prüfen.
+Bei gesetzten Env-Werten STREAMING_PC_CONNECTION_ENABLED=true und Verbindungsschlüssel prüfen, ob der Webserver /api/remote/agent/status Heartbeat/connected zeigt.
 ```
 
 ## Danach
 
 ```text
-Bei Erfolg stepdone.cmd ausfuehren.
-Danach Webserver-Deploy, weil remote-modboard/Frontend-Code geaendert wurde.
-Nach bestaetigtem RDAP118 wieder funktionalen Fortschritt planen.
-Keine weitere Navi-Kosmetik ohne konkreten sichtbaren Fehler.
+- Streaming-PC-Verbindung dauerhaft machen: Autostart/Windows-Dienst oder bestehender Node-Start sauber einbinden.
+- Online- und Lokal-Dashboard/Login parallel planen: Twitch-Login online und lokal, lokale Adresse 192.168.16.200.
+- Rollen/Rechte minimal bedienbar machen, damit Mods praktisch arbeiten können.
+- Erst danach erste echte erlaubte Funktion über die Verbindung anbinden.
 ```

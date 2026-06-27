@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP118_ADMIN_NAV_POLISH_AND_VISIBLE_REVIEW  
+Stand: RDAP119_STREAMING_PC_CONNECTION_CLIENT_MVP  
 Datum: 2026-06-27
 
 ## Navigation
@@ -15,6 +15,23 @@ Admin:
 - Admin-Notizen
 - Verbindungen
 - Doku / Details
+```
+
+## Streaming-PC-Verbindung
+
+```text
+Webserver-Seite:
+- remote-modboard/backend/server.js registriert registerAgentRuntime(...).
+- /agent-ws ist vorbereitet und akzeptiert gesicherte Verbindungen, wenn Runtime/Env aktiv ist.
+- /api/remote/agent/status zeigt Verbindung, Heartbeat und Reject-Diagnose.
+- Heartbeat bleibt read-only/in-memory.
+- Keine Aktionen werden ausgefuehrt.
+
+Lokale Streaming-PC-Seite:
+- backend/modules/remote_agent.js ist ab RDAP119 der Streaming-PC-Verbindungsclient-MVP.
+- Verbindung laeuft ausgehend zum Webserver.
+- Verbindungsschluessel wird nur intern genutzt und nicht ausgegeben.
+- Status lokal ueber /api/streaming-pc-connection/status.
 ```
 
 ## Admin-Modul-Vertrag
@@ -32,15 +49,14 @@ Admin-Fachmodule duerfen NICHT:
 
 Admin-Navigation:
 - zentrale Sortierung/Deduplizierung in users.js
-- RDAP118 normalisiert letzte alte Labels/Alias-Reste
-- RDAP118 sorgt zentral dafuer, dass alle vier Admin-Eintraege vorhanden sind
 ```
 
 ## Sicherheit
 
 ```text
-Keine Backend-Aenderung.
 Keine DB-Migration.
-Keine Agent-Actions.
-Keine neuen Writes.
+Keine produktiven Writes.
+Keine OBS-/Sound-/Overlay-/Command-Aktionen.
+Keine Shell-/Datei-/Prozesssteuerung.
+Keine freien URLs oder freien Befehle.
 ```

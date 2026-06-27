@@ -1,17 +1,19 @@
 # TODO
 
-Stand: RDAP118_ADMIN_NAV_POLISH_AND_VISIBLE_REVIEW  
+Stand: RDAP119_STREAMING_PC_CONNECTION_CLIENT_MVP  
 Datum: 2026-06-27
 
 ```text
-- Browser pruefen:
-  System -> Übersicht ist sichtbar und oeffnet.
-  System -> Diagnose ist sichtbar und oeffnet.
-  System -> Routen ist nicht mehr als eigener System-Menuepunkt sichtbar.
-  Admin -> Benutzerverwaltung ist sichtbar und oeffnet.
-  Admin -> Admin-Notizen ist sichtbar und oeffnet.
-  Admin -> Verbindungen ist genau einmal sichtbar und oeffnet.
-  Admin -> Doku / Details ist sichtbar und oeffnet die Routen-/Details-Seite.
-- Nach erfolgreichem lokalen Test stepdone.cmd ausfuehren.
-- Danach Webserver-Deploy aus GitHub/dev, weil remote-modboard/Frontend-Code geaendert wurde.
+- Lokal testen: node --check backend/modules/remote_agent.js.
+- Lokalen Server neu starten.
+- http://127.0.0.1:8080/api/streaming-pc-connection/status prüfen.
+- Optional mit Env aktivieren:
+  STREAMING_PC_CONNECTION_ENABLED=true
+  STREAMING_PC_REMOTE_WS_URL=wss://mods.forrestcgn.de/agent-ws
+  STREAMING_PC_CONNECTION_ID=stream-pc-main
+  STREAMING_PC_CONNECTION_NAME=Forrest Stream-PC
+  STREAMING_PC_CONNECTION_KEY=<nicht posten>
+- Webserver prüfen:
+  curl -fsS http://127.0.0.1:3010/api/remote/agent/status | jq '.agent.connected,.agent.lastHeartbeatAt,.agent.heartbeatSeq,.agent.actionsEnabled'
+- Keine Admin-Notizen weiterbauen, außer Forrest verlangt es ausdrücklich.
 ```

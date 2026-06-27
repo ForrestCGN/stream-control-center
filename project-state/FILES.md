@@ -1,16 +1,16 @@
 # FILES
 
-Stand: RDAP118_ADMIN_NAV_POLISH_AND_VISIBLE_REVIEW  
+Stand: RDAP119_STREAMING_PC_CONNECTION_CLIENT_MVP  
 Datum: 2026-06-27
 
 ## Geaendert/neu
 
 ```text
-remote-modboard/backend/public/assets/modules/admin/users.js
+backend/modules/remote_agent.js
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP118.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP119.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -18,9 +18,13 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## Unveraendert relevant
+## Relevant unveraendert
 
 ```text
-remote-modboard/backend/public/assets/modules/admin/notes.js
-remote-modboard/backend/public/assets/modules/admin/connections.js
+remote-modboard/backend/server.js
+remote-modboard/backend/src/services/agent-runtime.service.js
+remote-modboard/backend/src/services/agent-status.service.js
+remote-modboard/backend/src/routes/agent-status.routes.js
+remote-modboard/backend/src/services/auth-twitch-oauth.service.js
+remote-modboard/backend/src/services/auth-login-entry.service.js
 ```
