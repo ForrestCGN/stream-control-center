@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-06-27 - RDAP112_SYSTEM_ROUTES_MODULE_DECISION
+
+```text
+- Routen aus dem normalen System-Menue herausgenommen.
+- Routen als Details / System-Routen eingeordnet.
+- Routenansicht sprachlich vereinfacht: Admin-/Fehlerdiagnose, keine Aktion fuer Mods noetig.
+- Keine Backend-Aenderung.
+- Keine DB-Migration.
+- Keine Agent-/Runtime-Aktivierung.
+```
+
 ## 2026-06-27 - RDAP111B_DIAGNOSTICS_INFO_ICON_AND_DOCS_SYNC
 
 ```text

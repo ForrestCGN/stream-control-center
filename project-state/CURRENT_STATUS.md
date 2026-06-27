@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP111B_DIAGNOSTICS_INFO_ICON_AND_DOCS_SYNC  
+Stand: RDAP112_SYSTEM_ROUTES_MODULE_DECISION  
 Datum: 2026-06-27
 
 ## Ergebnis
@@ -9,9 +9,10 @@ Datum: 2026-06-27
 - RDAP109/RDAP109B: Modboard-UI enttechnisiert; Projekterklaerungen aus der normalen Ansicht entfernt.
 - RDAP110: Uebersicht als eigenes Frontend-Modul ausgelagert.
 - RDAP111: Diagnose als eigenes Frontend-Modul ausgelagert.
-- RDAP111B: Diagnose-Info ist jetzt kleines Icon oben rechts in der Kachel statt grossem Button.
+- RDAP111B: Diagnose-Info ist kleines Icon oben rechts in der Kachel statt grossem Button.
+- RDAP112: Routen sind aus dem normalen System-Menue herausgenommen und als Details / System-Routen vereinfacht.
 - Diagnose-Hauptansicht bleibt fuer Mods/Streamer einfach: OK, Problem, Bereit.
-- Technische Details liegen nur im Info-Fenster.
+- Technische Details liegen nur im Info-Fenster oder im Details/Admin-Bereich.
 - Keine Backend-Aenderung, keine DB-Migration, keine Runtime-/Agent-Actions.
 ```
 
@@ -21,5 +22,5 @@ Datum: 2026-06-27
 Keine Projekt-Erklaerungen ins Modboard.
 Keine Technik-Wand fuer Mods/Streamer.
 Bei Fehler: klar sagen, dass Streamer/Admin informiert werden soll.
-Technische Details nur bei Bedarf hinter Info.
+Technische Details nur bei Bedarf hinter Info oder Details/Admin-Bereich.
 ```

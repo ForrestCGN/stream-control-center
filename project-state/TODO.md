@@ -1,11 +1,12 @@
 # TODO
 
-Stand: RDAP111B_DIAGNOSTICS_INFO_ICON_AND_DOCS_SYNC  
+Stand: RDAP112_SYSTEM_ROUTES_MODULE_DECISION  
 Datum: 2026-06-27
 
 ```text
-- Browser nach RDAP111B pruefen: Diagnose-Info als kleines Icon oben rechts.
-- Danach RDAP112 entscheiden: Routen-Menue entfernen/verschieben oder auslagern.
-- Weiterhin: Bereich = Modul/JS-Datei; Shell bleibt Shell.
+- Browser nach RDAP112 pruefen: System-Menue zeigt nur Uebersicht und Diagnose.
+- Browser nach RDAP112 pruefen: Details / System-Routen ist vorhanden und stark vereinfacht.
+- Danach RDAP113: Admin-Benutzerverwaltung sinnvoll auslagern/aufräumen.
+- Weiterhin: Shell bleibt Shell; bestehende Module/Dateien bevorzugen.
 - Keine Projekt-Erklaerungen und keine Technik-Wand in normalen Modboard-Ansichten.
 ```

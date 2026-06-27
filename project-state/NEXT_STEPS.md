@@ -1,20 +1,19 @@
 # NEXT_STEPS
 
-Stand: RDAP111B_DIAGNOSTICS_INFO_ICON_AND_DOCS_SYNC  
+Stand: RDAP112_SYSTEM_ROUTES_MODULE_DECISION  
 Datum: 2026-06-27
 
 ## Naechster sinnvoller Step
 
 ```text
-RDAP112_SYSTEM_ROUTES_MODULE_DECISION
+RDAP113_ADMIN_USERS_MODULE_SPLIT
 ```
 
-## Entscheidung
+## Ziel
 
 ```text
-Routen sind fuer Mods vermutlich nicht relevant.
-Entscheiden:
-- aus normalem System-Menue entfernen und nur Admin/Diagnose/Details lassen
-oder
-- als eigenes Modul auslagern und stark vereinfachen.
+Admin-Benutzerverwaltung weiter aus der Shell/Normalstruktur herausloesen.
+Bestehende Dateien/Module bevorzugen.
+Keine neuen produktiven Writes.
+Keine DB-Migration.
 ```

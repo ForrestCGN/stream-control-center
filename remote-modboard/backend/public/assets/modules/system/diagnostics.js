@@ -81,9 +81,9 @@
   }
 
   function installDiagnosticsPolish() {
-    if (document.getElementById('rdap111DiagnosticsModuleStyle')) return;
+    if (document.getElementById('rdap112SystemDetailsStyle')) return;
     const style = document.createElement('style');
-    style.id = 'rdap111DiagnosticsModuleStyle';
+    style.id = 'rdap112SystemDetailsStyle';
     style.textContent = `
       .endpoint{position:relative}
       .endpoint .rdap-diagnostics-human-detail{display:block;margin-top:4px;opacity:.78;padding-right:34px}
@@ -92,6 +92,8 @@
       .rdap-diagnostics-dialog::backdrop{background:rgba(0,0,0,.68);backdrop-filter:blur(4px)}
       .rdap-diagnostics-dialog-close{float:right}
       .rdap-diagnostics-info-grid{margin-top:14px}
+      [data-page-panel="routes"] .routeDescription{opacity:.76}
+      [data-page-panel="routes"] .routePath{font-weight:800}
     `;
     document.head.appendChild(style);
   }
@@ -164,6 +166,80 @@
     else dialog.setAttribute('open', 'open');
   }
 
+  function registerRoutesAsDetailsPage() {
+    if (!window.RemoteModboardModules || typeof window.RemoteModboardModules.registerModule !== 'function') return;
+
+    window.RemoteModboardModules.registerModule({
+      id: 'system-details',
+      label: 'Details',
+      icon: '⋯',
+      order: 35,
+      navSubId: 'nav-system-details'
+    });
+
+    window.RemoteModboardModules.registerPage({
+      moduleId: 'system-details',
+      pageId: 'routes',
+      label: 'System-Routen',
+      title: 'System-Routen',
+      tab: 'Details',
+      section: 'Details',
+      order: 10
+    });
+  }
+
+  function moveRoutesOutOfNormalSystemMenu() {
+    document.querySelectorAll('#nav-system .nav-link[data-page="routes"]').forEach((button) => button.remove());
+
+    const systemDetailsGroup = document.querySelector('.nav-group[data-target="nav-system-details"]');
+    const systemDetailsSub = document.getElementById('nav-system-details');
+    if (systemDetailsGroup && systemDetailsSub) {
+      systemDetailsGroup.classList.remove('is-open');
+      systemDetailsSub.classList.remove('is-open');
+    }
+  }
+
+  function simplifyRoutesPanel() {
+    const panel = document.querySelector('[data-page-panel="routes"]');
+    if (!panel) return;
+
+    const eyebrow = panel.querySelector('.page-header .cgn-eyebrow');
+    const title = panel.querySelector('.page-header h1');
+    const intro = panel.querySelector('.page-header p:not(.cgn-eyebrow)');
+    const cardEyebrow = panel.querySelector('.card-head .cgn-eyebrow');
+    const cardTitle = panel.querySelector('.card-head h2');
+
+    if (eyebrow) eyebrow.textContent = 'Details / System-Routen';
+    if (title) title.textContent = 'System-Routen';
+    if (intro) intro.textContent = 'Nur für Admins und Fehlerdiagnose. Im normalen Streambetrieb ist diese Ansicht nicht nötig.';
+    if (cardEyebrow) cardEyebrow.textContent = 'Admin-Details';
+    if (cardTitle) cardTitle.textContent = 'Erreichbare Schnittstellen';
+
+    const routesList = document.getElementById('routesList');
+    if (!routesList || routesList.dataset.rdap112Observer === '1') return;
+    routesList.dataset.rdap112Observer = '1';
+    const observer = new MutationObserver(() => humanizeRouteRows(routesList));
+    observer.observe(routesList, { childList: true, subtree: true });
+    humanizeRouteRows(routesList);
+  }
+
+  function humanizeRouteRows(routesList) {
+    routesList.querySelectorAll('.route').forEach((row) => {
+      if (row.dataset.rdap112Humanized === '1') return;
+      row.dataset.rdap112Humanized = '1';
+      const description = row.querySelector('.routeDescription');
+      if (description) {
+        description.textContent = 'Admin-/Fehlerdiagnose. Keine Aktion für Mods nötig.';
+      }
+    });
+  }
+
+  function installRoutesDecision() {
+    registerRoutesAsDetailsPage();
+    moveRoutesOutOfNormalSystemMenu();
+    simplifyRoutesPanel();
+  }
+
   function setText(id, value) {
     const node = document.getElementById(id);
     if (node) node.textContent = value == null || value === '' ? '—' : String(value);
@@ -171,9 +247,11 @@
 
   createDiagnosticsPanel();
   registerPage();
+  installRoutesDecision();
 
   document.addEventListener('DOMContentLoaded', () => {
     createDiagnosticsPanel();
     registerPage();
+    installRoutesDecision();
   });
 })();
