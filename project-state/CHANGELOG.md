@@ -2,22 +2,39 @@
 
 ## Version 0.2.10C - Dashboard-v2 V13/Modboard-Design wirklich uebernommen
 
-- Lokale Dashboard-v2 Oberflaeche visuell an Remote-Modboard/V13 angeglichen.
-- Topbar-Struktur angepasst: Breadcrumb, Suche, Quick-Chips, Neu-laden-Optik, DE, Lock, Avatar/Userbereich.
-- Scroll-Verhalten fuer Topbar uebernommen: `body.is-scrolled .cgn-topbar` mit hellem Rand/Glow/Shadow.
-- Sidebar an echtes Modboard angeglichen: fixed Position, Gruppen, aktive Dot-Markierung, Footer.
-- Uebersicht an Modboard-Startseite angenaehert: Header, Metric-Karten, Aktivitaeten, Schnellzugriff.
-- Navigation auf sichtbare Grundstruktur `System`, `Module`, `Admin` reduziert; lokale Zukunftsbereiche bleiben geparkt.
-- `System -> Stream-PC` bleibt aktiv/read-only.
+- Design-Wahrheiten fuer Dashboard-v2 festgehalten:
+  - `docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md`
+  - `docs/reference/dashboard-v2-design-test-v13/`
+  - `remote-modboard/backend/public/index.html`
+  - `remote-modboard/backend/public/assets/remote-modboard.css`
+  - `remote-modboard/backend/public/assets/remote-modboard.js`
+- Lokales Dashboard-v2 weiter an V13/Remote-Modboard angenaehert.
+- Topbar, Sidebar und Uebersicht neu aufgebaut.
+- `body.is-scrolled .cgn-topbar` fuer hellen Rand/Glow/Shadow beim Scrollen vorbereitet.
+- Navigation auf `System`, `Module`, `Admin` reduziert.
+- `System -> Stream-PC` aktiv/read-only beibehalten.
 - Nur bestehende GET-Routen verwendet:
   - `/api/_status`
   - `/api/stream-status/current`
   - `/api/diag/ws`
-- Keine Refresh-, Test-, Log-, Session- oder Schreibroute aufgerufen.
-- Keine Buttons, Actions oder Steuerfunktionen aktiviert.
-- Produktionsdateien unter `htdocs/dashboard-v2/` aktualisiert.
 - `/dashboard` und Backend nicht geaendert.
 - Keine DB-Migration, keine produktiven Writes und kein Webserver-Deploy.
+- Sichttest-Hinweis: Topbar ist lokal weiterhin nicht final sauber. Naechster Pflicht-Fix: `0.2.10D - Dashboard-v2 Topbar V13 exakt nachziehen`.
+
+## Version 0.2.10B - Dashboard-v2 Modboard-Layout exakt angeglichen
+
+- Dashboard-v2 Layout/Navigation deutlich naeher an echte Online-Modboard-Struktur angeglichen.
+- Topbar mit Breadcrumb, deaktivierter Suche, Quick-Chips und lokalem Userbereich vorbereitet.
+- Sidebar wie Online-Modboard: fixed, gleiche Gruppenlogik, gleiche aktive Link-Markierung, Footer.
+- Stream-PC Status read-only unter `System -> Stream-PC` vorbereitet.
+- Nur bestehende lokale GET-Routen verwendet:
+  - `/api/_status`
+  - `/api/stream-status/current`
+  - `/api/diag/ws`
+- Keine Refresh-, Test-, Log-, Session- oder Schreibroute aufgerufen.
+- Keine OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Actions.
+- `/dashboard` bleibt unveraendert.
+- Kein Webserver-Deploy noetig.
 
 ## Version 0.2.10 - Stream-PC Status read-only vorbereitet
 

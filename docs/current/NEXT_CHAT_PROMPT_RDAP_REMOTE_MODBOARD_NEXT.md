@@ -40,9 +40,9 @@ project-state/CHANGELOG.md
 
 Umgesetzt:
 
-- Dashboard-v2 visuell an Remote-Modboard/V13 angeglichen.
+- Dashboard-v2 visuell weiter an Remote-Modboard/V13 angenaehert.
 - Topbar mit Breadcrumb, Suche, Quick-Chips, Neu-laden-Optik, DE, Lock, Avatar/Userbereich.
-- `body.is-scrolled .cgn-topbar` Verhalten fuer hellen Rand/Glow beim Scrollen uebernommen.
+- `body.is-scrolled .cgn-topbar` Verhalten fuer hellen Rand/Glow beim Scrollen vorbereitet.
 - Sidebar fixed, System/Module/Admin, aktive Dot-Markierung, Footer.
 - Uebersicht mit Header, Metric-Karten, Aktivitaeten, Schnellzugriff.
 - `System -> Stream-PC` aktiv/read-only.
@@ -52,6 +52,16 @@ Umgesetzt:
   - `/api/diag/ws`
 - `/dashboard` bleibt unveraendert.
 - Keine DB-Migration, keine Writes, keine Agent-Actions, kein Webserver-Deploy.
+
+## Wichtiger Sichttest-Hinweis
+
+Forrest hat nach 0.2.10C gemeldet:
+
+```text
+Die Leiste oben sieht nicht gut aus.
+```
+
+Darum nicht direkt mit 0.2.11 weitermachen. Erst die Topbar sauber korrigieren.
 
 ## Was NICHT gemacht werden darf
 
@@ -68,15 +78,37 @@ Umgesetzt:
 ## Naechster sinnvoller Arbeitsfokus
 
 ```text
-0.2.11 - Moduluebersicht read-only vorbereiten
+0.2.10D - Dashboard-v2 Topbar V13 exakt nachziehen
 ```
 
-Moeglicher Inhalt:
+Vor dem Plan unbedingt lesen:
 
-- vorhandenen Menuepunkt `Module -> Moduluebersicht` aktivieren,
-- im V13/Modboard-Layout bleiben,
-- nur bestehende sichere GET-Routen verwenden,
-- lokale Module/Routenstatus anzeigen,
-- keine parallelen Statuswege bauen,
-- `/dashboard` stabil lassen,
-- keine Aktionen/Writes.
+```text
+docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
+docs/reference/dashboard-v2-design-test-v13/index.html
+docs/reference/dashboard-v2-design-test-v13/assets/dashboard-v2-design-test-v13.css
+docs/reference/dashboard-v2-design-test-v13/assets/dashboard-v2-design-test-v13.js
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/remote-modboard.css
+remote-modboard/backend/public/assets/remote-modboard.js
+frontend/dashboard-v2/src/layout/Topbar.jsx
+frontend/dashboard-v2/src/layout/AppShell.jsx
+frontend/dashboard-v2/src/styles/global.css
+frontend/dashboard-v2/src/app/navigation.js
+frontend/dashboard-v2/src/app/moduleRegistry.js
+```
+
+Ziel:
+
+- Topbar im lokalen Dashboard-v2 exakt gegen Netz-Modboard/V13 angleichen.
+- Hoehe, Spalten, Abstaende, Breadcrumb, Suche, Quick-Chips, Refresh, DE, Lock und Avatar/Userbereich korrigieren.
+- `body.is-scrolled .cgn-topbar` inklusive hellem Rand/Glow/Shadow sauber testen.
+- Keine fachliche Erweiterung, bevor die Topbar passt.
+- `/dashboard` stabil lassen.
+- Keine Backend-/DB-/Action-Aenderungen.
+
+Danach erst:
+
+```text
+0.2.11 - Moduluebersicht read-only vorbereiten
+```

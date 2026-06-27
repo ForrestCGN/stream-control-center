@@ -10,9 +10,19 @@ Stand: 2026-06-27
 
 `/dashboard-v2/` bleibt der neue lokale Einstieg auf dem bestehenden lokalen Node/Express-Server auf Port 8080. `/dashboard/` bleibt unveraendert.
 
+## Sichttest / offener Punkt
+
+Forrest hat nach lokalem Sichttest von 0.2.10C bestaetigt:
+
+```text
+Die Leiste oben sieht nicht gut aus.
+```
+
+Damit ist 0.2.10C nicht als finaler Optik-Stand zu behandeln. Funktional/read-only ist der Step korrekt vorbereitet, aber vor fachlicher Weiterarbeit muss die Topbar sauber nachgezogen werden.
+
 ## Design-Wahrheit
 
-Fuer Dashboard-v2 gilt ab diesem Step:
+Fuer Dashboard-v2 gilt:
 
 ```text
 - docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
@@ -36,6 +46,20 @@ Die lokale Oberflaeche darf funktional lokal/read-only bleiben, soll optisch abe
   - `/api/stream-status/current`
   - `/api/diag/ws`
 
+## Offener Pflicht-Fix
+
+```text
+0.2.10D - Dashboard-v2 Topbar V13 exakt nachziehen
+```
+
+Ziel fuer 0.2.10D:
+
+1. Topbar aus lokalem Dashboard-v2 optisch/strukturell exakt gegen Netz-Modboard/V13 pruefen.
+2. Spaltenbreiten, Hoehe, Abstaende, Breadcrumb, Suche, Chips, Refresh, DE, Lock, Avatar/Userblock korrigieren.
+3. `body.is-scrolled .cgn-topbar` inklusive hellem Rand/Glow/Shadow sauber testen.
+4. Kein fachliches Modul ausbauen, bevor die Topbar passt.
+5. Keine Backend-/DB-/Action-Aenderungen.
+
 ## Sicherheitsgrenzen
 
 - keine Backend-Aenderung,
@@ -48,6 +72,12 @@ Die lokale Oberflaeche darf funktional lokal/read-only bleiben, soll optisch abe
 - kein Webserver-Deploy noetig.
 
 ## Naechster sinnvoller Schritt
+
+```text
+0.2.10D - Dashboard-v2 Topbar V13 exakt nachziehen
+```
+
+Danach erst:
 
 ```text
 0.2.11 - Moduluebersicht read-only vorbereiten
