@@ -1,4 +1,4 @@
-# NEXT CHAT PROMPT - RDAP / Remote-Modboard nach RDAP125
+# NEXT CHAT PROMPT - RDAP / Remote-Modboard Weiterarbeit
 
 Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer ForrestCGN.
 
@@ -27,15 +27,16 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
 docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
 docs/current/LOCAL_STREAM_PC_ENV_START_PROFILE_CURRENT.md
-docs/current/DOCS_CURRENT_FINAL_INDEX.md
-docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
-docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
-docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
+docs/current/LOCAL_DASHBOARD_MODULE_SHELL_PLAN_CURRENT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
+docs/current/DOCS_CURRENT_FINAL_INDEX.md
+docs/current/MODULE_DOCS_CONSOLIDATED_CURRENT.md
+docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
+docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
 ```
 
 Falls eine Datei fehlt: nicht improvisieren, exakt diese Datei aus `D:\Git\stream-control-center` anfordern.
@@ -45,55 +46,77 @@ Falls eine Datei fehlt: nicht improvisieren, exakt diese Datei aus `D:\Git\strea
 Live bestaetigt:
 
 ```text
-Version: 0.2.4
-Buildname: Routes-Status angeglichen
+v0.2.4 - Routes-Status angeglichen
 runtimeMode: online
 localDashboardProfile.visibleLabel: Onlinemodus
+localDashboardProfile.actionsEnabled: false
+localDashboardProfile.productiveWritesEnabled: false
+localDashboardProfile.agentActionsEnabled: false
 routeStatusBuild: RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP
 ```
 
-RDAP124 ist abgeschlossen:
+Abgeschlossen:
 
-- Doku-Handoff aktualisiert.
-- Modulregistrierungsregeln dokumentiert.
-- Module/Seiten gehoeren ins zentrale Manifest.
-- Neue Hauptmenuepunkte nur ueber `manifest.modules` und nur bei fachlich eigenem Modulbereich.
-
-RDAP125 ist abgeschlossen:
-
-- Lokales Stream-PC-/LAN-Env- und Startprofil dokumentiert.
-- Backend-Env fuer `REMOTE_MODBOARD_MODE=online|local|lan` dokumentiert.
-- Stream-PC-Agent-Env fuer `SCC_AGENT_*` dokumentiert.
-- Forrest/Engel-LAN-Zielbild dokumentiert.
-- Doku-only, keine Codeaenderung, kein Webserver-Deploy noetig.
+```text
+RDAP119 - Modulare UI/Foundation
+RDAP120 - Modul-Metadaten und Rechte
+RDAP121 - Zentrale Sprachdateien
+RDAP122 - Lokales Dashboard-Profil
+RDAP123 - Routes-Status angeglichen
+RDAP124 - Doku-Handoff und Modulregistrierungsregeln
+RDAP125 - Lokales Stream-PC-/LAN-Env- und Startprofil
+RDAP126 - Lokales Dashboard Modul-Shell-Plan
+```
 
 ## Naechster sinnvoller technischer Step
 
 ```text
-RDAP126_LOCAL_DASHBOARD_MODULE_SHELL_PLAN
+RDAP127_LOCAL_DASHBOARD_MODULE_SHELL_IMPLEMENTATION_READONLY
 ```
 
 Ziel:
 
-- lokalen Dashboard-Hauptbereich im Modulmanifest planen,
-- erste lokale read-only Seiten definieren,
-- Runtime-Scope `local`/`both` sauber anwenden,
-- keine Agent-Actions,
-- keine OBS-/Sound-/Overlay-/Command-Steuerung,
-- keine DB-Migration,
-- keine neuen produktiven Writes.
+1. Echte Dateien aus GitHub/dev lesen.
+2. Bestehende Modulregistrierungsregeln anwenden.
+3. `local-dashboard` im Modulmanifest technisch anlegen.
+4. Drei lokale read-only Seiten minimal vorbereiten:
+   - `stream-pc-status`,
+   - `lan-connections`,
+   - `local-runtime-help`.
+5. Sprachdateien `de.js` und `en.js` um die geplanten Keys ergaenzen.
+6. Page-Scripte unter `remote-modboard/backend/public/assets/modules/local-dashboard/` erstellen.
+7. Runtime-Scope `local` sauber verwenden.
+8. Keine Actions aktivieren.
+9. Keine DB-Migration.
+10. Keine neuen produktiven Writes.
+
+## Relevante echte Dateien fuer RDAP127 zuerst lesen
+
+```text
+docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+docs/current/LOCAL_DASHBOARD_MODULE_SHELL_PLAN_CURRENT.md
+remote-modboard/backend/public/assets/modules/module-manifest.js
+remote-modboard/backend/public/assets/languages/de.js
+remote-modboard/backend/public/assets/languages/en.js
+remote-modboard/backend/public/assets/runtime-profile.js
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+```
 
 ## Was NICHT gemacht werden darf
 
 - Kein GitHub/main.
-- Keine Codeaenderung nebenbei.
+- Keine Codeaenderung nebenbei vor Plan + `go`.
 - Keine DB-Migration ohne expliziten Scope.
-- Keine Remote-Modboard-Writes ohne Confirm-Write, Permission, Audit, Lock, Backup, Rollback und Read-Back-Pruefung.
-- Keine aktiven Module entfernen.
+- Keine Remote-Modboard-Writes ohne Confirm-Write, Permission, Audit, Lock, Backup/Rollback und Read-Back-Pruefung.
+- Keine Agent-Actions.
+- Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+- Keine Shell-/Datei-/Prozess-Actions.
 - Keine Funktionen entfernen.
-- Kein Webserver-Deploy bei Doku-only.
-- Keine Agent-/OBS-/Sound-/Overlay-/Command-/Shell-/Datei-/Prozess-Actions ohne separaten Sicherheits-Scope.
+- Keine parallele Navigation ausserhalb Manifest erfinden.
 
 ## Aufgabe im neuen Chat
 
-Lies zuerst die genannten Dateien wirklich aus GitHub/dev. Bestaetige kurz den aktuellen Stand. Nenne einen Plan fuer den naechsten RDAP-/Remote-Modboard-Step. Warte auf Forrests explizites `go`.
+Lies zuerst die genannten Dateien wirklich aus GitHub/dev. Bestaetige kurz den aktuellen Stand. Nenne einen Plan fuer `RDAP127_LOCAL_DASHBOARD_MODULE_SHELL_IMPLEMENTATION_READONLY` mit betroffenen Dateien, Tests und Nicht-Zielen. Warte auf Forrests explizites `go`.

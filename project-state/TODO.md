@@ -2,12 +2,9 @@
 
 Stand: 2026-06-27
 
-- [ ] RDAP126 planen: Local-Dashboard-Modul-Shell.
-- [ ] Bestehende Modulregistrierungsregeln anwenden.
-- [ ] Keine neuen Hauptmenues ohne fachlich eigenen Modulbereich.
-- [ ] Erste lokale Seiten nur read-only planen.
-- [ ] Runtime-Scope `local`/`both` sauber verwenden.
-- [ ] Keine Agent-Actions aktivieren.
-- [ ] Keine OBS-/Sound-/Overlay-/Command-Steuerung aktivieren.
-- [ ] Keine DB-Migration.
-- [ ] Keine neuen produktiven Writes.
+- [ ] RDAP126 lokal einspielen.
+- [ ] Doku-Diff pruefen.
+- [ ] `LOCAL_DASHBOARD_MODULE_SHELL_PLAN_CURRENT.md` pruefen.
+- [ ] Nach Erfolg `stepdone.cmd`.
+- [ ] Kein Webserver-Deploy fuer RDAP126, weil Doku-only.
+- [ ] Danach RDAP127 planen: lokale Dashboard Modul-Shell read-only implementieren.

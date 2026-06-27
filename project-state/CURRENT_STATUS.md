@@ -24,6 +24,7 @@ Abgeschlossen:
 - RDAP123: Routenuebersicht an RDAP122-Status angeglichen.
 - RDAP124: Doku-Handoff und Modulregistrierungsregeln ergaenzt.
 - RDAP125: lokales Stream-PC-/LAN-Env- und Startprofil dokumentiert.
+- RDAP126: lokalen Dashboard-Modulbereich und erste lokale read-only Seiten geplant.
 
 Nicht geaendert:
 

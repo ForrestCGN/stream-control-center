@@ -2,7 +2,8 @@
 
 Stand: 2026-06-27  
 Gilt ab: `0.2.4 - Routes-Status angeglichen`  
-Vorbereitet in: `RDAP125_LOCAL_STREAM_PC_ENV_START_PROFILE`
+Vorbereitet in: `RDAP125_LOCAL_STREAM_PC_ENV_START_PROFILE`  
+Korrigiert/ergaenzt in: `RDAP126_LOCAL_DASHBOARD_MODULE_SHELL_PLAN`
 
 ## Zweck
 
@@ -121,7 +122,7 @@ Aus der echten Agent-Konfiguration gilt:
 PowerShell auf dem Stream-PC:
 
 ```powershell
-cd D:\Git\stream-control-centeremote-modboard\stream-pc-agent
+cd D:\Git\stream-control-center\remote-modboard\stream-pc-agent
 
 $env:SCC_AGENT_WS_URL = "wss://mods.forrestcgn.de/agent-ws"
 $env:SCC_AGENT_ID = "stream-pc-main"
@@ -139,7 +140,7 @@ npm start
 Nur fuer bewusste lokale Diagnose:
 
 ```powershell
-cd D:\Git\stream-control-centeremote-modboard\stream-pc-agent
+cd D:\Git\stream-control-center\remote-modboard\stream-pc-agent
 
 $env:SCC_AGENT_WS_URL = "ws://127.0.0.1:3010/agent-ws"
 $env:SCC_AGENT_ID = "stream-pc-main"
@@ -189,11 +190,12 @@ Details stehen in:
 
 ```text
 docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
+docs/current/LOCAL_DASHBOARD_MODULE_SHELL_PLAN_CURRENT.md
 ```
 
 ## Sicherheitsgrenze
 
-RDAP125 ist Doku-only.
+RDAP125/RDAP126 sind Doku-only.
 
 Nicht umgesetzt:
 
@@ -210,17 +212,17 @@ Nicht umgesetzt:
 - kein Windows-Dienst,
 - keine Firewall-Aenderung.
 
-## Naechster technischer Schritt nach dieser Doku
+## Naechster technischer Schritt
 
 Sinnvoller Folgeschritt:
 
 ```text
-RDAP126_LOCAL_DASHBOARD_MODULE_SHELL_PLAN
+RDAP127_LOCAL_DASHBOARD_MODULE_SHELL_IMPLEMENTATION_READONLY
 ```
 
 Ziel:
 
-- lokalen Dashboard-Hauptbereich im Manifest planen,
-- erste lokale read-only Seiten definieren,
+- lokalen Dashboard-Hauptbereich im Manifest umsetzen,
+- erste lokale read-only Seiten anlegen,
 - keine Actions aktivieren,
 - keine OBS-/Sound-/Overlay-/Command-Steuerung.

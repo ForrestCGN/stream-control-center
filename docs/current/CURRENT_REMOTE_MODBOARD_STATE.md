@@ -1,14 +1,9 @@
 # Aktueller Remote-Modboard-Stand
 
-Stand: 2026-06-27
+Stand: 2026-06-27  
+Aktueller bestaetigter Live-Stand: `0.2.4 - Routes-Status angeglichen`
 
-Aktueller sichtbarer Stand:
-
-```text
-Version 0.2.4 - Routes-Status angeglichen
-```
-
-Live bestaetigt:
+## Live bestaetigt
 
 ```text
 /api/remote/status
@@ -27,27 +22,28 @@ localDashboardProfile.routeStatusAligned: true
 localLanMode.routeStatusAligned: true
 ```
 
-Aktueller Funktionsstand:
+## Erledigter aktueller Ausbau
 
-- Remote-Modboard-Webseite laeuft ueber `mods.forrestcgn.de`.
-- Backend-Service laeuft intern auf Port `3010`.
-- Twitch-/Session-/Auth-Basis ist vorhanden.
-- Admin-User-/Admin-Notes-/Status-/Routes-/Agent-Status-Basis ist vorhanden.
-- Admin-Notes Create/Update sind kontrollierte Backend-Writes mit Permission, Confirm-Write, Audit, Lock und Readback.
-- Admin-Notes Deactivate/Delete bleiben deaktiviert.
-- Online/Lokal-Runtime-Profil ist vorbereitet.
-- UI zeigt `Onlinemodus` bzw. spaeter `Lokalmodus`.
-- Modul-Runtime-Scope `online`, `local`, `both` ist vorbereitet.
-- Modulregistrierungsregeln sind dokumentiert.
-- Stream-PC-/LAN-Env- und Startprofil ist dokumentiert.
+- RDAP119: Remote-Modboard-Oberflaeche modularisiert.
+- RDAP120: Modul-Metadaten, Permission-Metadaten und Runtime-Scope eingefuehrt.
+- RDAP121: zentrale Frontend-Sprachdateien eingefuehrt.
+- RDAP122: lokales Dashboard-Profil vorbereitet und Runtime-Modus in UI sichtbar gemacht.
+- RDAP123: Routenuebersicht an RDAP122-Status angeglichen.
+- RDAP124: Doku-Handoff und Modulregistrierungsregeln ergaenzt.
+- RDAP125: lokales Stream-PC-/LAN-Env- und Startprofil dokumentiert.
+- RDAP126: lokalen Dashboard-Modulbereich und erste lokale read-only Seiten geplant.
+
+## Sicherheitsstand
 
 Weiterhin gesperrt:
 
-- keine DB-Migration ohne separaten Plan,
-- keine neuen produktiven Writes ohne separaten Sicherheits-Scope,
+- keine DB-Migration,
+- keine neuen produktiven Writes,
 - keine Agent-Actions,
 - keine OBS-Steuerung,
 - keine Sound-Steuerung,
 - keine Overlay-Steuerung,
 - keine Command-/Channelpoints-Steuerung,
-- keine freie Shell-/Datei-/Prozess-/URL-Ausfuehrung.
+- keine Shell-/Datei-/Prozess-Actions.
+
+Frontend-Metadaten steuern Anzeige/Navigation. Backend bleibt fuer echte Rechte und Sicherheit massgeblich.

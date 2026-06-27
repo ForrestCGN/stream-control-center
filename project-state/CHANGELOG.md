@@ -1,25 +1,33 @@
 # Changelog
 
+## RDAP126 - Lokales Dashboard Modul-Shell-Plan
+
+- Lokalen Hauptbereich `local-dashboard` geplant.
+- Drei lokale read-only Seiten geplant:
+  - `stream-pc-status`,
+  - `lan-connections`,
+  - `local-runtime-help`.
+- Manifest-Beispiele fuer `manifest.modules` und `manifest.pages` dokumentiert.
+- Sprachkey-Bedarf fuer `languages/de.js` und `languages/en.js` dokumentiert.
+- Erlaubte read-only Datenquellen fuer spaetere Implementierung festgelegt.
+- Doku-Tippfehler in lokalen Stream-PC-Agent PowerShell-Pfaden korrigiert.
+- Naechster Code-Step `RDAP127_LOCAL_DASHBOARD_MODULE_SHELL_IMPLEMENTATION_READONLY` definiert.
+- Keine Codeaenderung, keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
+
 ## RDAP125 - Lokales Stream-PC-/LAN-Env- und Startprofil
 
-- Doku fuer lokales Stream-PC-/LAN-Env- und Startprofil erstellt.
-- Backend-Env fuer `REMOTE_MODBOARD_MODE=online|local|lan` dokumentiert.
-- Webserver-Onlineprofil und spaeteres LAN-Profil getrennt beschrieben.
-- Stream-PC-Agent-Env `SCC_AGENT_*` anhand echter Agent-Konfiguration dokumentiert.
-- Manuelles Webserver-Agent-Startprofil dokumentiert.
-- Manuelles lokales Diagnoseprofil dokumentiert.
+- Backend-Env fuer Online-/Lokalmodus dokumentiert.
+- Stream-PC-Agent-Env `SCC_AGENT_*` dokumentiert.
+- Manuelles Startprofil und Diagnoseprofil dokumentiert.
 - Forrest-/Engel-LAN-Zielbild dokumentiert.
-- Naechster Schritt `RDAP126_LOCAL_DASHBOARD_MODULE_SHELL_PLAN` vorbereitet.
-- Doku-only: keine Codeaenderung, kein Webserver-Deploy noetig.
-- Keine DB-Migration, keine neuen produktiven Writes, keine Agent-Actions.
+- Keine Codeaenderung, kein Webserver-Deploy.
 
 ## RDAP124 - Doku-Handoff und Modulregistrierungsregeln
 
-- Start-/Current-/Next-Chat-Doku auf RDAP123-Live-Stand aktualisiert.
-- Modulregistrierungsregeln dokumentiert.
-- Geklaert: Module/Seiten geben ueber `moduleId`/`pageId` an, wo sie hingehoeren.
-- Geklaert: neue Hauptmenuepunkte sind ueber `manifest.modules` erlaubt, aber nur bei fachlich eigenem Modulbereich.
-- Doku-only: kein Webserver-Deploy noetig.
+- Live-Stand RDAP123 in Current-Dokus aktualisiert.
+- Modulregistrierungsregeln ergaenzt.
+- Geklaert: Seiten geben ueber `moduleId` an, wo sie hingehoeren.
+- Geklaert: Neue Hauptmenues entstehen kontrolliert ueber `manifest.modules`.
 
 ## RDAP123 - Routes-Status angeglichen
 
