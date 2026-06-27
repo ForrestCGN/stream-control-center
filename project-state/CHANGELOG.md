@@ -1,5 +1,13 @@
 # Changelog
 
+## RDAP Module Route Audit 1 Dev Code Verify
+
+- Echte GitHub/dev-Dateien fuer Remote-Modboard Mounts, Routes, Status-Semantik, Admin-User/Admin-Note-Routen und DB-Gating gelesen.
+- Audit-Doku `docs/current/RDAP_MODULE_ROUTE_AUDIT_1_DEV_CODE_VERIFY.md` erstellt.
+- Befund dokumentiert: Projektstatus war zu pauschal "read-only / keine Writes"; echter Code trennt Agent/OBS read-only von vorhandenen Admin-Note Create/Update Backend-Writes.
+- Naechsten Doku-/Semantik-Fix als sinnvollen Schritt markiert.
+- Keine Code-, DB- oder Webserver-Aenderungen.
+
 ## RDAP TODO Rescue 2 Final TODO Close
 
 - `project-state/TODO.md` bereinigt: Rescue-2-Einspiel-/Pruefpunkt aus den offenen Aufgaben entfernt und als abgeschlossen dokumentiert.

@@ -17,7 +17,10 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const PORT = 8080;
+const configuredPort = Number.parseInt(process.env.PORT || "", 10);
+const PORT = Number.isInteger(configuredPort) && configuredPort > 0 && configuredPort <= 65535
+  ? configuredPort
+  : 8080;
 
 const SERVER_VERSION = "0.1.2-can31-1-ws-log-summary";
 const MODULE_LOADER_DIAGNOSTICS_VERSION = "0.1.1";

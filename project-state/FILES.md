@@ -20,6 +20,12 @@ project-state/TODO.md           # kurze aktive TODO-Liste
 project-state/PARKED_TODOS.md   # zentrale Langzeit-Merkstelle
 ```
 
+## RDAP Module/Route Audit
+
+```text
+docs/current/RDAP_MODULE_ROUTE_AUDIT_1_DEV_CODE_VERIFY.md
+```
+
 ## TODO Rescue Doku
 
 ```text

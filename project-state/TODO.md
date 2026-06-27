@@ -14,9 +14,10 @@ project-state/PARKED_TODOS.md
 
 ## Aktuell / naechster Fokus
 
-- [ ] `project-state/PARKED_TODOS.md` als zentrale Langzeit-Merkstelle behalten und bei jedem neuen geparkten Punkt aktualisieren.
-- [ ] Naechsten RDAP-/Remote-Modboard-Step anhand `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` planen.
-- [ ] Vor jedem Code-Step echte Dateien aus GitHub/dev lesen.
+- [ ] `RDAP_MODULE_ROUTE_AUDIT_1_DEV_CODE_VERIFY` lokal einspielen und pruefen.
+- [ ] Danach Status-/Routes-Semantik-Doku-Fix planen: `RDAP_MODULE_ROUTE_AUDIT_1_STATUS_SEMANTICS_DOC_FIX`.
+- [ ] Projektstatus differenziert halten: Agent/OBS/Sound/Overlay bleiben deaktiviert; Admin-Note Create/Update-Backend sind gesondert zu dokumentieren.
+- [ ] Vor weiterem Admin-User/Admin-Notes-Code echte Dateien aus GitHub/dev erneut lesen.
 - [ ] Bestehende Module/Services/Routes bevorzugen; keine parallelen Strukturen bauen.
 - [ ] Plan nennen und auf Forrests explizites `go` warten.
 - [ ] ZIP mit echten Repo-Zielpfaden liefern.
@@ -24,9 +25,9 @@ project-state/PARKED_TODOS.md
 
 ## Aktuell bekannte konkrete naechste RDAP-Kandidaten
 
-- [ ] RDAP Admin-User/Admin-Notes weiterfuehren: Zieluser-Auswahl/Admin-User-Detail oder kleine Admin-User-Detail-Anbindung vorbereiten.
-- [ ] Vor RDAP-Admin-User-Code echte Admin-User-/Frontend-Dateien erneut pruefen.
-- [ ] Optional eigener Doku-/Audit-Step: echte Route-/Service-/Modulpruefung gegen GitHub/dev-Code, Mounts und Status-/Diagnose-Endpunkte.
+- [ ] Status-/Routes-Semantik bereinigen: Top-Level read-only, feature-spezifische Admin-Note-Backend-Writes, UI-Status und Agent/OBS-Grenze sauber trennen.
+- [ ] Admin-User/Admin-Notes weiterfuehren: Zieluser-Auswahl/Admin-User-Detail oder kleine Admin-User-Detail-Anbindung vorbereiten.
+- [ ] Backup-Garantie fuer produktive Admin-Note-Writes klaeren: Prozessvoraussetzung oder service-seitig erzwingen/dokumentieren.
 
 ## Arbeitsregeln
 
@@ -34,7 +35,6 @@ project-state/PARKED_TODOS.md
 - [ ] Keine Remote-Modboard-Writes ohne Confirm-Write, Permission, Audit, Lock, Backup, Rollback und Read-Back-Pruefung.
 - [ ] Kein Webserver-Deploy bei Doku-only.
 - [ ] `_handoff`-Reports nicht dauerhaft untracked liegen lassen; erzeugte lokale Reports bewusst loeschen oder committen.
-- [ ] Technischer Basisstand 0.1.3 bleibt unveraendert: read-only, keine Writes, bis ein expliziter Write-Step geplant und freigegeben ist.
 
 ## Zuletzt abgeschlossen
 
