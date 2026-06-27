@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP116B_REFRESH_BEHAVIOR_CLEANUP  
+Stand: RDAP117_ADMIN_CONNECTIONS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Zuerst lesen
@@ -14,7 +14,7 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP116B.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP117.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -25,11 +25,9 @@ project-state/CHANGELOG.md
 ## Aktueller Stand kurz
 
 ```text
-RDAP116: Admin-Notizen sind als eigenes Admin-Frontend-Modul strukturiert.
 RDAP116B: Refresh-Verhalten aufgeraeumt.
-Auto-Refresh ist nicht mehr als Bottom-Daueranzeige sichtbar.
-Doku / Details zeigt keinen sichtbaren Auto-Refresh.
-Statusseiten duerfen weiter automatisch aktualisieren.
+RDAP117: Verbindungen ist als eigenes Admin-Frontend-Modul strukturiert.
+Verbindungen zeigt read-only Stream-PC/Agent-Status und Heartbeat.
 Keine Backend-Aenderung, keine DB-Migration, keine neuen Writes.
 ```
 

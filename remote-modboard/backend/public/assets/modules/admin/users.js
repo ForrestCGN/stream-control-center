@@ -166,12 +166,23 @@
     document.head.appendChild(script);
   }
 
+  function loadAdminConnectionsModuleScript() {
+    if (document.querySelector('script[data-rdap-admin-connections-module="1"]')) return;
+
+    const script = document.createElement('script');
+    script.src = '/assets/modules/admin/connections.js';
+    script.defer = true;
+    script.dataset.rdapAdminConnectionsModule = '1';
+    document.head.appendChild(script);
+  }
+
   function installAdminUsersModule() {
     registerAdminPage();
     cleanupAdminNavigation();
     polishAdminUsersPanel();
     installAdminNavObserver();
     loadAdminNotesModuleScript();
+    loadAdminConnectionsModuleScript();
   }
 
   installAdminUsersModule();

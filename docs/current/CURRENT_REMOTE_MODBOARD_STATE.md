@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP116B_REFRESH_BEHAVIOR_CLEANUP  
+Stand: RDAP117_ADMIN_CONNECTIONS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Navigation
@@ -17,14 +17,23 @@ Admin:
 - Doku / Details
 ```
 
-## Refresh-Regel
+## Frontend-Module
 
 ```text
-- Live-/Statusseiten duerfen automatisch aktualisieren.
-- Doku / Details und statische Read-only-Seiten zeigen keinen sichtbaren Auto-Refresh.
-- Der alte Footer mit Auto-Refresh/Neu laden ist nicht mehr sichtbar.
-- Manuelles Neu laden ist oben/dezent oder in seitenlokalen Aktionen vorgesehen.
-- Nach spaeteren Schreibaktionen gilt: automatischer Readback/Refresh direkt nach Erfolg.
+remote-modboard/backend/public/assets/modules/admin/users.js
+remote-modboard/backend/public/assets/modules/admin/notes.js
+remote-modboard/backend/public/assets/modules/admin/connections.js
+remote-modboard/backend/public/assets/modules/system/diagnostics.js
+remote-modboard/backend/public/assets/modules/ui/refresh-behavior.js
+```
+
+## Verbindungen
+
+```text
+Verbindungen ist ein eigenes Admin-Frontend-Modul.
+Die Ansicht zeigt read-only den Stream-PC/Agent-Verbindungsstatus und Heartbeat.
+Es gibt keine Agent-Actions, keine Start-/Stop-Funktionen und keine produktiven Writes.
+Status darf automatisch aktualisieren, weil Verbindung/Heartbeat live relevant sind.
 ```
 
 ## Sicherheit
