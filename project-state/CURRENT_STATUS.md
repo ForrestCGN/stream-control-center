@@ -1,14 +1,16 @@
 # CURRENT_STATUS
 
-Stand: RDAP117C_ADMIN_MODULE_NAV_CONTRACT_FIX  
+Stand: RDAP118_ADMIN_NAV_POLISH_AND_VISIBLE_REVIEW  
 Datum: 2026-06-27
 
 ## Ergebnis
 
 ```text
-- Admin-Modul-/Navigation-Vertrag korrigiert.
-- notes.js und connections.js erzeugen keine eigenen Admin-Navi-Buttons mehr.
+- Admin-/System-Navigation sichtbar poliert.
 - users.js bleibt zentraler Admin-Nav-Owner fuer Sortierung/Deduplizierung.
-- Admin-Reihenfolge bleibt Benutzerverwaltung, Admin-Notizen, Verbindungen, Doku / Details.
+- Admin-Menue-Ziel: Benutzerverwaltung, Admin-Notizen, Verbindungen, Doku / Details.
+- System-Menue-Ziel: Übersicht, Diagnose.
+- Admin-Label/Alias-Reste werden zentral normalisiert.
+- notes.js und connections.js bleiben Fachmodule ohne eigene Admin-Navi-Button-Erzeugung.
 - Keine Backend-Aenderung, keine DB-Migration, keine Runtime-/Agent-Actions.
 ```

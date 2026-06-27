@@ -20,6 +20,32 @@
     'diagnostics'
   ]);
 
+  const ADMIN_LABEL_ALIASES = new Map([
+    ['benutzerverwaltung', 'admin-users'],
+    ['benutzer', 'admin-users'],
+    ['users', 'admin-users'],
+    ['userverwaltung', 'admin-users'],
+    ['admin-notizen', 'admin-notes'],
+    ['admin notizen', 'admin-notes'],
+    ['admin notes', 'admin-notes'],
+    ['notizen', 'admin-notes'],
+    ['connections', 'connections'],
+    ['verbindungen', 'connections'],
+    ['verbindung', 'connections'],
+    ['stream-pc verbindung', 'connections'],
+    ['doku / details', 'routes'],
+    ['doku/details', 'routes'],
+    ['doku', 'routes'],
+    ['details', 'routes'],
+    ['routen', 'routes'],
+    ['routes', 'routes']
+  ]);
+
+  const SYSTEM_ORDER = [
+    { page: 'overview', label: 'Übersicht', title: 'Übersicht', tab: 'read-only', order: 10 },
+    { page: 'diagnostics', label: 'Diagnose', title: 'Diagnose', tab: 'read-only', order: 20 }
+  ];
+
   function registerAdminPage() {
     if (!window.RemoteModboardModules || typeof window.RemoteModboardModules.registerPage !== 'function') return;
 
@@ -61,7 +87,32 @@
     button.dataset.tab = desired.tab;
     button.dataset.moduleId = 'admin';
     button.dataset.order = String(desired.order);
+    button.dataset.page = desired.page;
     button.textContent = desired.label;
+  }
+
+  function normalizeSystemButton(button, desired) {
+    if (!button || !desired) return;
+    button.dataset.section = 'System';
+    button.dataset.title = desired.title;
+    button.dataset.tab = desired.tab;
+    button.dataset.order = String(desired.order);
+    button.dataset.page = desired.page;
+    button.textContent = desired.label;
+  }
+
+  function normalizeLabel(value) {
+    return String(value || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+
+  function desiredAdminForButton(button) {
+    if (!button) return null;
+    const page = button.dataset.page || '';
+    const label = normalizeLabel(button.textContent);
+    return ADMIN_ORDER.find((item) => item.page === page) || ADMIN_ORDER.find((item) => item.page === ADMIN_LABEL_ALIASES.get(label)) || null;
   }
 
   function cleanupAdminNavigation() {
@@ -84,7 +135,7 @@
         return;
       }
 
-      const desired = ADMIN_ORDER.find((item) => item.page === page || item.label === label);
+      const desired = desiredAdminForButton(button);
       if (desired) normalizeAdminButton(button, desired);
     });
 
@@ -92,26 +143,53 @@
     dedupeAdminNavigation(adminSub);
 
     const ordered = [...adminSub.querySelectorAll('.nav-link[data-page]')]
-      .filter((button) => ADMIN_ORDER.some((item) => item.page === button.dataset.page || item.label === button.textContent.trim()))
+      .filter((button) => desiredAdminForButton(button))
       .sort((a, b) => Number(a.dataset.order || 100) - Number(b.dataset.order || 100));
 
     ordered.forEach((button) => adminSub.appendChild(button));
   }
 
   function dedupeAdminNavigation(adminSub) {
-    ADMIN_ORDER.forEach((desired) => {
-      const matches = [...adminSub.querySelectorAll('.nav-link[data-page]')]
-        .filter((button) => button.dataset.page === desired.page || button.textContent.trim() === desired.label);
+    const seen = new Set();
 
-      if (!matches.length) return;
+    [...adminSub.querySelectorAll('.nav-link[data-page]')].forEach((button) => {
+      const desired = desiredAdminForButton(button);
+      if (!desired) return;
 
-      const keep = matches.find((button) => button.dataset.page === desired.page) || matches[0];
-      normalizeAdminButton(keep, desired);
+      if (seen.has(desired.page)) {
+        button.remove();
+        return;
+      }
 
-      matches.forEach((button) => {
-        if (button !== keep) button.remove();
-      });
+      seen.add(desired.page);
+      normalizeAdminButton(button, desired);
     });
+  }
+
+  function cleanupSystemNavigation() {
+    const systemSub = document.getElementById('nav-system');
+    if (!systemSub) return;
+
+    const allowedPages = new Set(SYSTEM_ORDER.map((item) => item.page));
+    const seen = new Set();
+
+    systemSub.querySelectorAll('.nav-link[data-page]').forEach((button) => {
+      const desired = SYSTEM_ORDER.find((item) => item.page === button.dataset.page || item.label === button.textContent.trim());
+
+      if (!desired || !allowedPages.has(desired.page) || seen.has(desired.page)) {
+        button.remove();
+        return;
+      }
+
+      seen.add(desired.page);
+      normalizeSystemButton(button, desired);
+    });
+
+    const ordered = [...systemSub.querySelectorAll('.nav-link[data-page]')]
+      .filter((button) => allowedPages.has(button.dataset.page))
+      .sort((a, b) => Number(a.dataset.order || 100) - Number(b.dataset.order || 100));
+
+    ordered.forEach((button) => systemSub.appendChild(button));
   }
 
   function polishAdminUsersPanel() {
@@ -137,10 +215,10 @@
   }
 
   function installStyle() {
-    if (document.getElementById('rdap117cAdminNavContractStyle')) return;
+    if (document.getElementById('rdap118AdminNavPolishStyle')) return;
 
     const style = document.createElement('style');
-    style.id = 'rdap117cAdminNavContractStyle';
+    style.id = 'rdap118AdminNavPolishStyle';
     style.textContent = `
       .nav-group[data-target="nav-admin-users-management"],#nav-admin-users-management{display:none!important}
       #nav-admin .nav-link[data-page="admin-user-detail"],
@@ -159,14 +237,14 @@
   }
 
   function installAdminNavObserver() {
-    if (document.documentElement.dataset.rdap117cAdminNavObserver === '1') return;
-    document.documentElement.dataset.rdap117cAdminNavObserver = '1';
+    if (document.documentElement.dataset.rdap118AdminNavObserver === '1') return;
+    document.documentElement.dataset.rdap118AdminNavObserver = '1';
 
     const nav = document.querySelector('.cgn-nav');
     if (!nav) return;
 
     const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(cleanupAdminNavigation);
+      window.requestAnimationFrame(cleanupAllNavigation);
     });
     observer.observe(nav, { childList: true, subtree: true });
   }
@@ -191,9 +269,14 @@
     document.head.appendChild(script);
   }
 
+  function cleanupAllNavigation() {
+    cleanupSystemNavigation();
+    cleanupAdminNavigation();
+  }
+
   function installAdminUsersModule() {
     registerAdminPage();
-    cleanupAdminNavigation();
+    cleanupAllNavigation();
     polishAdminUsersPanel();
     installAdminNavObserver();
     loadAdminNotesModuleScript();
@@ -205,7 +288,7 @@
   document.addEventListener('DOMContentLoaded', installAdminUsersModule);
   window.addEventListener('rdap:module-registry-ready', installAdminUsersModule);
   window.addEventListener('rdap:main-router-page-change', (event) => {
-    cleanupAdminNavigation();
+    cleanupAllNavigation();
     if (event && event.detail && event.detail.page === PAGE_ID) polishAdminUsersPanel();
   });
 })();

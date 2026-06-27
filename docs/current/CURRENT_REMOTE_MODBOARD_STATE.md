@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP117C_ADMIN_MODULE_NAV_CONTRACT_FIX  
+Stand: RDAP118_ADMIN_NAV_POLISH_AND_VISIBLE_REVIEW  
 Datum: 2026-06-27
 
 ## Navigation
@@ -32,6 +32,8 @@ Admin-Fachmodule duerfen NICHT:
 
 Admin-Navigation:
 - zentrale Sortierung/Deduplizierung in users.js
+- RDAP118 normalisiert letzte alte Labels/Alias-Reste
+- RDAP118 sorgt zentral dafuer, dass alle vier Admin-Eintraege vorhanden sind
 ```
 
 ## Sicherheit
