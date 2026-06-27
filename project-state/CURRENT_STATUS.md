@@ -1,15 +1,14 @@
 # CURRENT_STATUS
 
-Stand: RDAP115C_ADMIN_DOCS_DETAILS_AREA  
+Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Ergebnis
 
 ```text
-- System -> Diagnose bleibt kompakter Systemstatus.
-- System -> Routen ist nicht mehr normal sichtbar.
-- Admin -> Doku / Details buendelt technische Read-only-Details/Routen.
-- Admin -> Sicherheit als Kopie der Systemdiagnose ist nicht mehr sichtbar.
-- Rollen & Rechte bleibt aus der Admin-Navigation entfernt.
+- Admin-Notizen als eigenes Admin-Frontend-Modul strukturiert.
+- Benutzerverwaltung bleibt unter Admin.
+- Verbindungen bleibt unter Admin.
+- Doku / Details bleibt unter Admin.
 - Keine Backend-Aenderung, keine DB-Migration, keine Runtime-/Agent-Actions.
 ```

@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP115C_ADMIN_DOCS_DETAILS_AREA  
+Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Zuerst lesen
@@ -14,7 +14,7 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115C.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP116.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -26,9 +26,7 @@ project-state/CHANGELOG.md
 
 ```text
 RDAP115C: Technische Routen/Details sind aus System raus und unter Admin -> Doku / Details gebuendelt.
-System -> Diagnose bleibt Systemstatus fuer Mods/Streamer.
-Admin -> Sicherheit wird nicht mehr als Kopie derselben Diagnose-Seite angezeigt.
-Rollenverwaltung kommt spaeter im User-Detail als eigenes Fenster/Modal.
+RDAP116: Admin-Notizen sind als eigenes Admin-Frontend-Modul strukturiert.
 Keine Backend-Aenderung, keine DB-Migration, keine neuen Writes.
 ```
 

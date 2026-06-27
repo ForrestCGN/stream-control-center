@@ -156,11 +156,22 @@
     observer.observe(nav, { childList: true, subtree: true });
   }
 
+  function loadAdminNotesModuleScript() {
+    if (document.querySelector('script[data-rdap-admin-notes-module="1"]')) return;
+
+    const script = document.createElement('script');
+    script.src = '/assets/modules/admin/notes.js';
+    script.defer = true;
+    script.dataset.rdapAdminNotesModule = '1';
+    document.head.appendChild(script);
+  }
+
   function installAdminUsersModule() {
     registerAdminPage();
     cleanupAdminNavigation();
     polishAdminUsersPanel();
     installAdminNavObserver();
+    loadAdminNotesModuleScript();
   }
 
   installAdminUsersModule();

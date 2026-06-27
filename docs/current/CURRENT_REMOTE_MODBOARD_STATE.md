@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP115C_ADMIN_DOCS_DETAILS_AREA  
+Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Navigation
@@ -17,22 +17,20 @@ Admin:
 - Doku / Details
 ```
 
-## Nicht normale Navigation
+## Frontend-Module
 
 ```text
-- System -> Routen
-- Admin -> Rollen & Rechte
-- Admin -> Sicherheit als Kopie der Systemdiagnose
-- User-Detail
-- Details-Hauptbereich
+remote-modboard/backend/public/assets/modules/admin/users.js
+remote-modboard/backend/public/assets/modules/admin/notes.js
+remote-modboard/backend/public/assets/modules/system/diagnostics.js
 ```
 
-## Logik
+## Admin-Notizen
 
 ```text
-Systemdiagnose = kompakter Status fuer Mods/Streamer.
-Admin Doku / Details = technische Read-only-Details, Routen, Doku/Diagnose.
-Benutzerrollen werden spaeter im User-Detail verwaltet, nicht als eigener Doku-Menuepunkt.
+Admin-Notizen sind jetzt als eigenes Admin-Frontend-Modul strukturiert.
+Die Ansicht bleibt unter Admin.
+Schreibfunktionen bleiben nur über die bestehenden gesicherten Admin-Flows.
 ```
 
 ## Sicherheit

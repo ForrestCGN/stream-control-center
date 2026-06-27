@@ -1,19 +1,20 @@
 # NEXT_STEPS
 
-Stand: RDAP115C_ADMIN_DOCS_DETAILS_AREA  
+Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Naechster sinnvoller Step
 
 ```text
-RDAP116_ADMIN_NOTES_MODULE_SPLIT
+RDAP117_ADMIN_CONNECTIONS_MODULE_SPLIT
 ```
 
 ## Ziel
 
 ```text
-Admin-Notizen als eigenes Admin-Frontend-Modul strukturieren.
+Verbindungen als eigenes Admin-Frontend-Modul strukturieren.
 Weiterhin unter Admin.
-Keine neuen produktiven Writes ohne separaten Scope.
+Keine Backend-Aenderung.
 Keine DB-Migration.
+Keine Agent-Actions.
 ```

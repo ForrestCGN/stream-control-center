@@ -1,13 +1,11 @@
 # TODO
 
-Stand: RDAP115C_ADMIN_DOCS_DETAILS_AREA  
+Stand: RDAP116_ADMIN_NOTES_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ```text
 - Browser pruefen:
-  System: Übersicht, Diagnose
-  Admin: Benutzerverwaltung, Admin-Notizen, Verbindungen, Doku / Details
-- Pruefen: System -> Routen nicht sichtbar.
-- Pruefen: Admin -> Sicherheit nicht mehr als Diagnose-Kopie sichtbar.
-- Danach RDAP116: Admin-Notizen als eigenes Admin-Modul strukturieren.
+  Admin -> Admin-Notizen bleibt sichtbar und funktioniert.
+  Admin-Reihenfolge bleibt sauber.
+- Danach RDAP117: Verbindungen als eigenes Admin-Modul strukturieren.
 ```
