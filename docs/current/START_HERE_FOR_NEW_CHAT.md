@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP113B_HIDE_DETAILS_NAV  
+Stand: RDAP113C_ADMIN_USERS_BACK_TO_ADMIN_NAV  
 Datum: 2026-06-27
 
 ## Zuerst lesen
@@ -14,7 +14,7 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP113B.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP113C.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -29,8 +29,9 @@ RDAP109/RDAP109B: UI enttechnisiert; Projekterklaerungen aus der normalen Ansich
 RDAP110: Uebersicht als eigenes Frontend-Modul ausgelagert.
 RDAP111/RDAP111B: Diagnose als eigenes Frontend-Modul; Info als kleines Icon, Details im Dialog.
 RDAP112/RDAP112B: Routen aus normalem System-Menue entfernt.
-RDAP113: Admin-Benutzerverwaltung als eigenes Frontend-Modul eingeordnet.
-RDAP113B: Details-Navigation entfernt; System-Routen nicht normal sichtbar.
+RDAP113: Benutzerverwaltung strukturell ausgelagert.
+RDAP113B: Details-Navigation entfernt.
+RDAP113C: Benutzerverwaltung wieder korrekt unter Admin eingeordnet; eigener User-Account bleibt oben rechts.
 ```
 
 ## Arbeitsregel

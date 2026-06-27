@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP113B_HIDE_DETAILS_NAV  
+Stand: RDAP113C_ADMIN_USERS_BACK_TO_ADMIN_NAV  
 Datum: 2026-06-27
 
 ## Naechster sinnvoller Step
@@ -12,7 +12,7 @@ RDAP114_ACCESS_MODULE_SPLIT
 ## Ziel
 
 ```text
-Rollen & Rechte weiter aus der Shell/Normalstruktur herausloesen.
+Rollen & Rechte weiter aus der Shell/Normalstruktur herausloesen, aber unter Admin belassen.
 Bestehende Dateien/Module bevorzugen.
 Keine neuen produktiven Writes.
 Keine DB-Migration.

@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP113B_HIDE_DETAILS_NAV  
+Stand: RDAP113C_ADMIN_USERS_BACK_TO_ADMIN_NAV  
 Datum: 2026-06-27
 
 ## UI-/Produktregel
@@ -26,13 +26,26 @@ remote-modboard/backend/public/assets/modules/system/diagnostics.js
 remote-modboard/backend/public/assets/modules/admin/users.js
 ```
 
+## Navigation
+
+```text
+Admin:
+- Benutzerverwaltung
+- Rollen & Rechte
+- Sicherheit
+
+Mein Konto oben rechts:
+- Meine Rechte
+- Profil aktualisieren
+- Ausloggen
+```
+
 ## Sicherheit
 
 ```text
 Keine Agent-Runtime aktiv.
 Keine Agent-Actions aktiv.
-Keine Backend-Aenderung in RDAP113B.
-Keine DB-Migration in RDAP113B.
-System-Routen sind nicht mehr normal in der Navigation sichtbar.
+Keine Backend-Aenderung in RDAP113C.
+Keine DB-Migration in RDAP113C.
 Admin-Benutzerverwaltung bleibt read-only.
 ```
