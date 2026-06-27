@@ -1,34 +1,22 @@
-# REMOTE_MODBOARD_ROADMAP_CURRENT
+# Remote-Modboard Roadmap — ab RDAP120
 
-Stand: RDAP119_STREAMING_PC_CONNECTION_CLIENT_MVP  
-Datum: 2026-06-27
+## Erledigt
 
-## Zuletzt erledigt
+- RDAP119: Streaming-PC-Verbindung Client MVP geprüft.
+- RDAP120: Verbindung im Dashboard sichtbar und sprachlich auf Streaming-PC statt Agent ausgerichtet.
 
-```text
-RDAP117C: Admin-Modul-/Navigation-Vertrag korrigiert.
-RDAP118: Admin-/System-Navigation sichtbar poliert und zentral normalisiert.
-RDAP119: Lokaler Streaming-PC-Verbindungsclient-MVP in backend/modules/remote_agent.js integriert.
-```
+## Nächste sinnvolle Schritte
 
-## Naechster sinnvoller Step
+1. RDAP121: Verbindung stabilisieren/autostart prüfen
+   - lokaler Start beim Streaming-PC-Boot
+   - Reconnect sichtbar prüfen
+   - Verbindungsstatus nach Neustart Webserver/Streaming-PC validieren
 
-```text
-Streaming-PC-Verbindung live stabil testen:
-- lokale Env setzen
-- lokalen Node-Server neu starten
-- lokalen Status pruefen
-- Webserver /api/remote/agent/status pruefen
-- Heartbeat/connected bestaetigen
-```
+2. RDAP122: erste sichere Modul-Anbindung planen
+   - keine freie Shell
+   - nur feste Allowlist-Aktion
+   - Confirm/Audit/Permission erst wenn echte Aktion gebaut wird
 
-## Danach
-
-```text
-- Online-/Lokal-Twitch-Login sauber zusammenfuehren.
-- Lokale Adresse fuer Dashboard: http://192.168.16.200:8080/dashboard.
-- Twitch Redirect lokal: http://192.168.16.200:8080/api/remote/auth/callback bzw. spaeter passende lokale Remote-Auth-Route.
-- Rollen/Rechte minimal praktisch bedienbar machen.
-- Erstes echtes Modul nur ueber feste Allowlist-Aktion anbinden.
-- Keine Admin-Notizen weiterbauen, solange Forrest das nicht ausdruecklich verlangt.
-```
+3. Rollen/Rechte bedienbar machen
+   - minimal für Forrest, EngelCGN, Mods, Sound-Profi
+   - keine UI-Fantasie ohne Serverprüfung

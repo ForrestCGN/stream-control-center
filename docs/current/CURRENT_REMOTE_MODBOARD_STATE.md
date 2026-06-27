@@ -1,62 +1,29 @@
-# CURRENT_REMOTE_MODBOARD_STATE
+# Current Remote-Modboard State — RDAP120
 
-Stand: RDAP119_STREAMING_PC_CONNECTION_CLIENT_MVP  
-Datum: 2026-06-27
+## Verbindungsstand
 
-## Navigation
+RDAP119 wurde erfolgreich geprüft:
+- Streaming-PC sendet Heartbeats zum Webserver.
+- Webserver `/api/remote/agent/status` zeigt `connected=true` und steigende `heartbeatSeq`.
+- `actionsEnabled=false` bleibt korrekt.
 
-```text
-System:
-- Übersicht
-- Diagnose
+RDAP120 verbessert die Anzeige im Remote-Modboard:
+- Admin -> Verbindungen zeigt Streaming-PC online/offline.
+- Anzeige nutzt verständliche Sprache: Streaming-PC, letzter Kontakt, Lebenszeichen.
+- Technische Details bleiben im Diagnose-Bereich, ohne Secrets.
 
-Admin:
-- Benutzerverwaltung
-- Admin-Notizen
-- Verbindungen
-- Doku / Details
-```
+## Sicherheitsgrenzen
 
-## Streaming-PC-Verbindung
+Weiterhin nicht aktiv:
+- OBS-Steuerung
+- Sound-Steuerung
+- Overlay-Steuerung
+- Commands/Kanalpunkte
+- Shell/Prozessaktionen
+- Dateioperationen
+- Datenbank-Writes
+- produktive Remote-Aktionen
 
-```text
-Webserver-Seite:
-- remote-modboard/backend/server.js registriert registerAgentRuntime(...).
-- /agent-ws ist vorbereitet und akzeptiert gesicherte Verbindungen, wenn Runtime/Env aktiv ist.
-- /api/remote/agent/status zeigt Verbindung, Heartbeat und Reject-Diagnose.
-- Heartbeat bleibt read-only/in-memory.
-- Keine Aktionen werden ausgefuehrt.
+## Nicht weiter ausbauen
 
-Lokale Streaming-PC-Seite:
-- backend/modules/remote_agent.js ist ab RDAP119 der Streaming-PC-Verbindungsclient-MVP.
-- Verbindung laeuft ausgehend zum Webserver.
-- Verbindungsschluessel wird nur intern genutzt und nicht ausgegeben.
-- Status lokal ueber /api/streaming-pc-connection/status.
-```
-
-## Admin-Modul-Vertrag
-
-```text
-Admin-Fachmodule:
-- registrieren ihre Page
-- bauen/polieren ihren eigenen Inhalt
-- laden eigene Daten, falls noetig
-
-Admin-Fachmodule duerfen NICHT:
-- eigene Admin-Navi-Buttons erzwingen
-- Admin-Reihenfolge selbst steuern
-- fremde Admin-Navi-Eintraege entfernen
-
-Admin-Navigation:
-- zentrale Sortierung/Deduplizierung in users.js
-```
-
-## Sicherheit
-
-```text
-Keine DB-Migration.
-Keine produktiven Writes.
-Keine OBS-/Sound-/Overlay-/Command-Aktionen.
-Keine Shell-/Datei-/Prozesssteuerung.
-Keine freien URLs oder freien Befehle.
-```
+Admin-Notizen sind nicht Fokus. Keine weiteren Notiz-/Navi-/Kosmetik-Steps vor funktionalem Fortschritt der Streaming-PC-Anbindung und Modul-Integration.
