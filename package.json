@@ -11,7 +11,8 @@
     "check:backend": "node tools/check-backend-syntax.js",
     "check:remote": "npm --prefix remote-modboard/backend run check",
     "check:agent": "npm --prefix remote-modboard/stream-pc-agent run check",
-    "test": "npm run check:backend && npm run check:remote && npm run check:agent"
+    "test:smoke": "node tools/test-server-smoke.js",
+    "test": "npm run check:backend && npm run check:remote && npm run check:agent && npm run test:smoke"
   },
   "keywords": [],
   "author": "",

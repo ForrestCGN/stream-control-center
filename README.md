@@ -78,8 +78,10 @@ Danach sind die wichtigsten lokalen Ziele erreichbar:
 
 ## Tests
 
-Der zentrale Offline-Test prueft die JavaScript-Syntax des Haupt-Backends, des
-Remote-Backends und des Stream-PC-Agenten:
+Der zentrale Test prueft die JavaScript-Syntax des Haupt-Backends, des
+Remote-Backends und des Stream-PC-Agenten. Anschliessend startet er den
+Hauptserver kurz mit einer temporaeren Root ohne Module auf einem freien
+Zufallsport und prueft `/api/_status`:
 
 ```powershell
 npm test
@@ -93,8 +95,11 @@ npm run check:remote
 npm run check:agent
 ```
 
-Diese Checks starten keine Dienste und fuehren keine Datenbank- oder Remote-Writes
-aus. Sie ersetzen noch keine vollstaendige Integrations- oder Laufzeit-Test-Suite.
+Die Syntaxchecks starten keine Dienste. Der Smoke-Test verwendet ausschliesslich
+eine temporaere Verzeichnisstruktur, laedt keine Module und fuehrt keine
+Datenbank- oder Remote-Writes aus. Port `8080` und ein bereits laufendes Backend
+bleiben unberuehrt. Die Tests ersetzen noch keine vollstaendige Integrations- oder
+Laufzeit-Test-Suite.
 
 ## Dashboard v2
 
