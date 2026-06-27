@@ -1,7 +1,7 @@
-# Remote-Modboard – aktuelle Roadmap
+# Remote-Modboard - aktuelle Roadmap
 
-Stand: RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD  
-Datum: 2026-06-26  
+Stand: RDAP106_DOCS_CURRENT_STATE_REBUILD  
+Datum: 2026-06-27  
 Projekt: `stream-control-center` / `remote-modboard` / RDAP
 
 ## Arbeitsmodus
@@ -17,8 +17,26 @@ Projekt: `stream-control-center` / `remote-modboard` / RDAP
 - Danach lokale Checks und git status.
 - Nur wenn sauber: stepdone.cmd.
 - stepdone.cmd bedeutet Commit/Push nach GitHub/dev, nicht Webserver-Deploy.
-- Webserver-Deploy nur nach Codeaenderungen in remote-modboard/ und erst nach stepdone.cmd.
+- Webserver-Deploy nur nach Codeaenderungen in remote-modboard/ oder Server-Workflow-Scripts und erst nach stepdone.cmd.
 - Doku-only braucht keinen Webserver-Deploy.
+```
+
+## Neuer Webserver-Deploy-Standard
+
+Ab RDAP104B:
+
+```bash
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
+```
+
+Regeln:
+
+```text
+- als root auf dem Webserver ausfuehren
+- kein sudo
+- kein git pull unter /opt/stream-control-center
+- keine langen manuellen Deploy-Ketten als Standard
+- Deploy-Wrapper macht frischen GitHub/dev-Clone, Deploy-Engine, Readiness und Cleanup
 ```
 
 ## Bisher erreichte Hauptphasen
@@ -30,7 +48,7 @@ Projekt: `stream-control-center` / `remote-modboard` / RDAP
 - Backend-Service fuer Webserver vorbereitet.
 - Status-/Routes-/Health-Basis geschaffen.
 - Service auf Port 3010 etabliert.
-- Deploy-Workflow fuer Webserver ueber frischen GitHub/dev-Clone unter _deploy_tmp festgelegt.
+- Deploy-Workflow fuer Webserver ueber frischen GitHub/dev-Clone festgelegt.
 ```
 
 ### Phase 2: Auth / Session / Login
@@ -72,86 +90,85 @@ Projekt: `stream-control-center` / `remote-modboard` / RDAP
 - technische Normalansicht wurde reduziert.
 ```
 
-### Phase 6: Doku-Konsolidierung
+### Phase 6: Stream-PC Verbindung / Agent-Status read-only
 
 ```text
-- Zentrale Projektuebersicht erstellt.
-- UI-/Designstruktur dokumentiert.
-- Roadmap konsolidiert.
-- project-state Dateien aktualisiert.
-- Historische RDAP-Dateien bleiben erhalten, sind aber nicht mehr die erste Orientierung.
+- Public WSS Heartbeat wurde live bestaetigt.
+- Runtime danach final disabled.
+- Admin / Verbindungen zeigt Stream-PC Verbindung read-only.
+- Offline-Status ist korrekt, solange Agent-Runtime deaktiviert bleibt.
+- Keine Start/Stop/Action Buttons.
+- Keine Agent-Actions.
 ```
 
-## Aktuell naechste Steps
+### Phase 7: Server-Deploy-Workflow-Hardening
 
-### RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
+```text
+- Server-Deploy-Wrapper vorbereitet und live installiert.
+- Backup-/Deploy-Cleanup vorbereitet und live getestet.
+- Neuer Ein-Befehl-Deploy aktiv.
+- Maximal 6 Remote-Modboard-Backups und 6 RDAP-Deploy-Clones werden behalten.
+```
+
+### Phase 8: Doku-Konsolidierung
+
+```text
+- RDAP105: Inventur und Cleanup-Plan.
+- RDAP106: Current-State-Doku neu aufgebaut.
+- docs/current wird auf aktuelle Wahrheit/Startpunkte fokussiert.
+- Historische RDAP/CAN/DASHUI-Dateien bleiben erhalten, aber werden nicht als erste Orientierung genutzt.
+```
+
+## Aktuell naechster Step
+
+```text
+RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+```
 
 Ziel:
 
 ```text
-- Header, aktive Navigation und sichtbares Admin-Notes-Panel sauber synchronisieren.
-- Wenn Admin-Notizen sichtbar sind, darf die Haupt-Kopfzeile nicht User-Detail anzeigen.
-- Keine CSS-Tarnung als Ersatz fuer falschen State.
-- Bestehenden Haupt-Router bevorzugen.
-- Keine parallele Zweitnavigation.
+- weitere Stream-PC-Verbindungsdetails nur read-only planen
+- bestehende Agent-/Status-/UI-Dateien aus GitHub/dev lesen
+- bestehende Admin-/Verbindungen-Seite bevorzugen
+- pruefen, welche Statusfelder sicher angezeigt werden koennen
+- keine Runtime-Aktivierung
+- keine Agent-Actions
+- keine produktiven Writes
 ```
 
-Scope:
+## Danach moegliche Steps
+
+Noch nicht als Freigabe verstehen:
 
 ```text
-remote-modboard/backend/public/assets/remote-modboard.js
-optional remote-modboard/backend/public/assets/rdap28-admin-notes.js
-optional docs/current/* und project-state/*
+RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
+- Nur falls RDAP107 klaren UI-Scope ergibt.
+- Bestehende Admin-/Verbindungen-Seite erweitern.
+- Keine Actions.
+
+RDAP109_AGENT_SECURITY_BOUNDARY_AND_ALLOWLIST_PLAN
+- Nur Plan.
+- Keine Runtime-Aktivierung.
+- Keine Actions.
+
+RDAP110_LOCAL_LAN_MODE_SECURITY_PLAN
+- Online-/Lokalbetrieb sauber trennen.
+- EngelCGN LAN-Zugriff spaeter beruecksichtigen.
 ```
 
-Nicht erlaubt:
+## Mittelfristige Planung
 
 ```text
-- Backend-Route
-- DB-Migration
-- neue Permission
-- Deactivate
-- Delete
-- Community-Read-Freigabe
-- Rollen-/Gruppen-/Permission-Writes
-- Agent-/OBS-/Sound-/Overlay-/Command-Steuerung
-- freie Shell-/Datei-/Prozess-/URL-Ausfuehrung
-- parallele Zweitnavigation
-- neue Schreibbuttons
-- Write-Freigabe nebenbei
-```
-
-### RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
-
-Ziel:
-
-```text
-- Zieluser-Wechsel laedt/zeigt eindeutig Notizen fuer diesen User.
-- Count/Hinweis bezieht sich eindeutig auf den ausgewaehlten User.
-- Keine alten User-Daten in Titel, Count oder Liste stehen lassen.
-```
-
-Scope voraussichtlich:
-
-```text
-remote-modboard/backend/public/assets/rdap28-admin-notes.js
-optional remote-modboard/backend/public/assets/remote-modboard.js
-optional docs/current/* und project-state/*
-```
-
-## Mittelfristige Planung nach Admin-Notes
-
-Reihenfolge bewusst grob, noch nicht als Freigabe zu verstehen:
-
-```text
-1. Admin-Notes State sauber abschliessen.
-2. Admin-User-Read-/Permission-Detail weiter stabilisieren.
-3. Diagnosebereiche besser organisieren.
-4. Rollen-/Gruppen-/Permission-Writes nur nach separatem Sicherheitsplan.
-5. Agent-Konzept konkretisieren.
-6. WSS/EventBus zwischen Webserver und Stream-PC-Agent planen.
-7. Allowlist fuer erlaubte Agent-Aktionen definieren.
-8. OBS-/Sound-/Overlay-/Command-Funktionen nur einzeln und sicher anbinden.
+1. Doku-Current-State stabil halten.
+2. Stream-PC-Verbindungsdetails read-only verbessern.
+3. Admin-/Verbindungen-Seite sauber weiterentwickeln.
+4. Diagnosebereiche besser organisieren.
+5. Rollen-/Gruppen-/Permission-Writes nur nach separatem Sicherheitsplan.
+6. Agent-Konzept weiter konkretisieren.
+7. WSS/EventBus zwischen Webserver und Stream-PC-Agent planen.
+8. Allowlist fuer erlaubte Agent-Aktionen definieren.
+9. OBS-/Sound-/Overlay-/Command-Funktionen nur einzeln und sicher anbinden.
 ```
 
 ## Agent-/Stream-PC-Zielbild spaeter
@@ -180,16 +197,6 @@ Zu beachten:
 - Auth-/Rechte-/Audit-Konzept muss fuer beide Betriebsarten sauber bleiben.
 ```
 
-## Offene Nicht-Code-Aufraeumung
-
-Noch offen, aber nicht Teil von RDAP76B:
-
-```text
-- historische kleine RDAP-Dateien spaeter gezielt nach Archiv/Index ordnen
-- ggf. START_HERE_FOR_NEW_CHAT auf neue zentrale Doku-Basis aktualisieren
-- alten Next-Chat-Prompt-Wildwuchs nicht loeschen, bevor ein Archivplan besteht
-```
-
 ## Harte Grenzen fuer alle kommenden Steps
 
 ```text
@@ -199,4 +206,5 @@ Keine DB-Migration ohne Backup, Vorpruefung und Readback.
 Keine neuen parallelen Systeme, wenn vorhandene Struktur passt.
 Keine Apply-/Patch-/Regex-/Set-Content-Anweisungen fuer Forrest.
 Keine ZIPs ohne echte Repo-Zielpfade.
+Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions ohne separaten Plan.
 ```

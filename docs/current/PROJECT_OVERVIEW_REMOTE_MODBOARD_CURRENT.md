@@ -1,27 +1,30 @@
-# Projektübersicht – Remote-Modboard / RDAP
+# Projektuebersicht - Remote-Modboard / RDAP
 
-Stand: RDAP76B_DOCS_PROJECT_CONSOLIDATION_REMOTE_MODBOARD  
-Datum: 2026-06-26  
+Stand: RDAP106_DOCS_CURRENT_STATE_REBUILD  
+Datum: 2026-06-27  
 Projekt: `stream-control-center` / `remote-modboard` / RDAP  
 Branch: `dev`
 
 ## Zweck
 
-Diese Datei fasst den aktuellen Stand des Remote-Modboards zusammen. Sie ersetzt nicht die historischen Step-Dateien, soll aber ab jetzt als zentrale Orientierung fuer neue Chats, Planung und Umsetzung dienen.
+Diese Datei ist die zentrale aktuelle Orientierung fuer das Remote-Modboard / RDAP.
 
-Das Remote-Modboard ist die geplante externe Moderations- und Admin-Oberflaeche fuer ForrestCGN. Es soll langfristig ausgewaehlten Personen erlauben, bestimmte Stream-, Community- und Verwaltungsfunktionen kontrolliert zu bedienen, ohne dass diese Personen direkten Zugriff auf den Stream-PC, OBS, Server-Shells, Datenbanken oder freie Systembefehle erhalten.
+Sie ersetzt nicht die historischen RDAP-Step-Dateien. Historische Dateien bleiben als Nachweis erhalten, sind aber nicht automatisch aktueller als diese Current-Dateien.
 
-## Warum es gebaut wird
+## Projektziel
 
-Das vorhandene lokale `stream-control-center` steuert bereits viele Bereiche rund um Stream, Overlays, Sounds, Events und Dashboard. Das Remote-Modboard soll darauf aufbauen, aber sauber getrennt und sicherer werden:
+Das Remote-Modboard ist die externe Moderations- und Admin-Oberflaeche fuer ForrestCGN.
+
+Langfristiges Ziel:
 
 ```text
 - Webserver als oeffentliche, abgesicherte Zentrale.
 - Login und Rechtepruefung serverseitig.
-- Remote-Modboard als Webseite fuer berechtigte User.
-- Spaeter Stream-PC-Agent als aktiver Client zum Webserver.
+- Berechtigte User bedienen nur freigegebene Bereiche.
+- Stream-PC verbindet spaeter aktiv per WSS zum Webserver.
 - Keine Portfreigabe am Stream-PC.
-- Keine freien Shell-/Datei-/Prozessbefehle aus der Weboberflaeche.
+- Keine freien Shell-/Datei-/Prozess-/URL-Befehle.
+- OBS-/Sound-/Overlay-/Command-Aktionen nur ueber explizite Allowlist und Audit.
 ```
 
 ## Grundarchitektur
@@ -43,7 +46,7 @@ Stream-PC-Agent im lokalen Netz
 OBS / Sounds / Overlays / Stream-Funktionen
 ```
 
-Aktuell ist vor allem die Webserver-Seite mit Auth-, Rechte-, Admin-User- und Admin-Notes-Basis aufgebaut. Agent-/OBS-/Sound-/Overlay-Steuerung ist weiterhin bewusst nicht produktiv freigegeben.
+Aktuell ist die Webserver-Seite mit Auth-, Session-, Admin-User-, Admin-Notes-, Status- und Agent-Read-only-Basis aufgebaut. Agent-/OBS-/Sound-/Overlay-Steuerung ist nicht produktiv freigegeben.
 
 ## Wichtige Orte
 
@@ -61,10 +64,10 @@ Lokales Live-System:
 D:\Streaming\stramAssets
 
 Remote-Modboard Webserver-Service:
-/opt/stream-control-center/remote-modboard
+ /opt/stream-control-center/remote-modboard
 
 Webserver-Deploy-Arbeitsordner:
-/opt/stream-control-center/_deploy_tmp
+ /opt/stream-control-center/_deploy_tmp
 
 Remote-Modboard Public URL:
 https://mods.forrestcgn.de/
@@ -76,7 +79,14 @@ Systemd-Service:
 scc-remote-modboard.service
 ```
 
-Wichtige Regel: `/opt/stream-control-center` auf dem Webserver ist kein Git-Repository. Deploys laufen aus einem frischen GitHub/dev-Clone unter `_deploy_tmp` ueber `tools/remote-modboard-deploy.sh`.
+Wichtige Regel:
+
+```text
+/opt/stream-control-center ist auf dem Webserver kein Git-Repository.
+Dort kein git pull verwenden.
+Deploys laufen ueber frischen GitHub/dev-Clone und den Wrapper:
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
+```
 
 ## Aktueller Funktionsstand
 
@@ -93,21 +103,42 @@ Bestaetigt:
 - Admin-Notes sind sichtbar.
 - Admin-Notes Create funktioniert.
 - Admin-Notes Update/Speichern funktioniert.
-- Admin-Notes Delete/Deactivate sind weiterhin nicht sichtbar bzw. deaktiviert.
-- Admin-Notes wurden optisch enttechnisiert.
-- Technische Statusbloecke wurden aus der normalen Admin-Notes-Hauptansicht entfernt.
+- Admin-Notes Delete/Deactivate sind deaktiviert.
+- Stream-PC Verbindung ist als Read-only-Status sichtbar.
+- Server-Deploy-Wrapper ist live installiert.
+- Backup-/Deploy-Cleanup ist live installiert und getestet.
 ```
 
-## Admin-Notes aktueller Backend-Stand
+## Aktueller Agent-/Stream-PC-Stand
+
+```text
+Stream-PC-Verbindung:
+- Status in Admin / Verbindungen sichtbar.
+- Transport-Ziel: WSS.
+- Richtung: Stream-PC -> Webserver.
+- Public WSS Heartbeat wurde in RDAP101B erfolgreich bestaetigt.
+- Runtime danach final deaktiviert.
+
+Aktueller Sicherheitszustand:
+- agent.connected=false
+- actionEnabled=false
+- productiveAgentRuntime=false
+- runtime.requestedEnabled=false
+- runtime.effectiveEnabled=false
+- runtime.acceptsAgentConnections=false
+- runtime.heartbeatReceiverEnabled=false
+```
+
+## Admin-Notes Backend-Stand
 
 ```text
 GET  /api/remote/admin/users/admin-notes/read
-POST /api/remote/admin/users/admin-notes/create
+POST /api/remote/admin/users/admin-notes/create      -> confirmed aktiv
 POST /api/remote/admin/users/admin-notes/update      -> confirmed aktiv
 POST /api/remote/admin/users/admin-notes/deactivate  -> disabled
 ```
 
-Create/Update bleiben nur unter serverseitigen Bedingungen moeglich. Das Backend entscheidet weiter ueber Session, Permission, Confirm-Write, Audit, Lock und Readback.
+Create/Update bleiben nur unter serverseitigen Bedingungen moeglich. Das Backend entscheidet ueber Session, Permission, Confirm-Write, Audit, Lock und Readback.
 
 ## Bewusst deaktiviert / verboten
 
@@ -147,8 +178,6 @@ Frontend-Buttons alleine gelten nicht als Sicherheit. Das Backend muss jede prod
 
 ## UI-/Design-Zielbild
 
-Das Remote-Modboard soll wie ein modernes CGN-Dashboard wirken:
-
 ```text
 - dunkler CGN-/Neon-Look
 - violett/blau/cyan Glow
@@ -157,75 +186,21 @@ Das Remote-Modboard soll wie ein modernes CGN-Dashboard wirken:
 - kompakte Status-Chips
 - keine technischen Diagnosebloecke in Normalansichten
 - Admin-Seiten mit menschlichen Labels statt technischen IDs
-- Diagnose spaeter nur einklappbar oder separat
+- Diagnose nur einklappbar oder separat
 ```
 
-Fuer Admin-Notes gilt aktuell als Zielaufbau:
+## Aktuelle Doku-Struktur
+
+Aktuelle Orientierung:
 
 ```text
-1. Seitenheader:
-   Admin-Notizen
-   Rechts: Notizen neu laden | Neue Notiz
-
-2. Zieluser-Auswahl:
-   Kompakt, sichtbar, setzt Kontext fuer alles darunter.
-
-3. Notizen-Liste:
-   Notizen fuer <DisplayName>
-   <n> Notizen geladen
-   Menschlich lesbare Notizkarten.
-
-4. Create:
-   Nur nach Klick auf Neue Notiz sichtbar.
-
-5. Diagnose/Technik:
-   Nicht in Hauptansicht, spaeter hoechstens einklappbar.
-
-6. Router/Header:
-   Sichtbares Panel, Haupt-Header und aktive Navigation muessen zusammenpassen.
-```
-
-## Aktuelle offene Befunde
-
-```text
-1. Admin-Notes Router/Header-State:
-   Wenn Admin-Notizen sichtbar sind, kann der Haupt-Header noch User-Detail anzeigen.
-   Das muss fachlich ueber Router-/Page-State geloest werden, nicht per CSS-Tarnung.
-
-2. Admin-Notes Zieluser-/Count-Kontext:
-   Zieluser-Wechsel muss eindeutig die Notizen fuer genau diesen User laden/anzeigen.
-   Count, Titel und Liste duerfen keine alten User-Daten stehen lassen.
-
-3. Doku-Struktur:
-   Sehr viele kleine RDAP-/Step-/Handoff-Dateien existieren historisch.
-   Diese Datei plus UI-/Roadmap-Datei dienen ab jetzt als aktuelle Orientierung.
-```
-
-## Naechste technische Steps
-
-```text
-RDAP76_ADMIN_NOTES_ROUTER_HEADER_STATE_FIX
-- Header, aktive Navigation und sichtbares Admin-Notes-Panel synchronisieren.
-- Wenn Admin-Notizen sichtbar sind, darf User-Detail nicht aktiv wirken.
-- Frontend-only.
-
-RDAP77_ADMIN_NOTES_SELECTED_USER_RELOAD_AND_COUNT_FIX
-- Zieluser-Wechsel laedt/zeigt eindeutig Notizen fuer diesen User.
-- Count/Hinweis bezieht sich eindeutig auf den ausgewaehlten User.
-- Keine alten User-Daten in Titel, Count oder Liste stehen lassen.
-```
-
-## Doku-Regel ab diesem Stand
-
-Neue Chats sollen nicht mehr blind dutzende historische RDAP-Dateien lesen muessen. Aktuelle Startbasis:
-
-```text
-docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
-docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
+docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/PROJECT_OVERVIEW_REMOTE_MODBOARD_CURRENT.md
-docs/current/REMOTE_MODBOARD_UI_DESIGN_AND_STRUCTURE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_DOCS_CONSOLIDATION.md
+docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
+docs/current/CURRENT_DASHBOARD_STATE.md
+docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
+docs/current/DOCS_STRUCTURE_AND_ARCHIVE_RULES.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -233,4 +208,20 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-Historische Dateien bleiben als Nachweis erhalten, sind aber nicht automatisch aktueller als diese zentrale Zusammenfassung.
+Historische RDAP/CAN/DASHUI-Dateien bleiben erhalten, sollen aber nicht mehr als erste Orientierung verwendet werden.
+
+## Naechster fachlicher Step
+
+```text
+RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+```
+
+Ziel:
+
+```text
+- weitere Stream-PC-Verbindungsdetails nur read-only planen
+- bestehende Admin-/Verbindungen-Seite bevorzugen
+- keine Runtime-Aktivierung
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-/Command-Steuerung
+```
