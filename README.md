@@ -60,8 +60,8 @@ Platzhalter wie `CHANGE_ME` muessen lokal ersetzt oder unbenutzte Integrationen
 deaktiviert bleiben. Echte Secrets, Tokens, Passwoerter und lokale `.env`-Dateien
 duerfen nicht committed werden.
 
-Der Port des Hauptservers ist im aktuellen Code fest auf `8080` gesetzt. Der
-Eintrag `PORT` aus der Beispielkonfiguration ueberschreibt ihn derzeit nicht.
+Der Hauptserver verwendet standardmaessig Port `8080`. Fuer einen abweichenden
+lokalen Port kann `PORT` in der `.env` oder vor dem Start gesetzt werden.
 
 ## Hauptserver starten
 
