@@ -81,9 +81,9 @@
   }
 
   function installDiagnosticsPolish() {
-    if (document.getElementById('rdap112SystemDetailsStyle')) return;
+    if (document.getElementById('rdap113bHideDetailsNavStyle')) return;
     const style = document.createElement('style');
-    style.id = 'rdap112SystemDetailsStyle';
+    style.id = 'rdap113bHideDetailsNavStyle';
     style.textContent = `
       .endpoint{position:relative}
       .endpoint .rdap-diagnostics-human-detail{display:block;margin-top:4px;opacity:.78;padding-right:34px}
@@ -94,6 +94,7 @@
       .rdap-diagnostics-info-grid{margin-top:14px}
       [data-page-panel="routes"] .routeDescription{opacity:.76}
       [data-page-panel="routes"] .routePath{font-weight:800}
+      .nav-group[data-target="nav-system-details"],#nav-system-details{display:none!important}
     `;
     document.head.appendChild(style);
   }
@@ -166,37 +167,13 @@
     else dialog.setAttribute('open', 'open');
   }
 
-  function registerRoutesAsDetailsPage() {
-    if (!window.RemoteModboardModules || typeof window.RemoteModboardModules.registerModule !== 'function') return;
-
-    window.RemoteModboardModules.registerModule({
-      id: 'system-details',
-      label: 'Details',
-      icon: '⋯',
-      order: 35,
-      navSubId: 'nav-system-details'
-    });
-
-    window.RemoteModboardModules.registerPage({
-      moduleId: 'system-details',
-      pageId: 'routes',
-      label: 'System-Routen',
-      title: 'System-Routen',
-      tab: 'Details',
-      section: 'Details',
-      order: 10
-    });
+  function hideRoutesDetailsNavigation() {
+    document.querySelectorAll('.nav-group[data-target="nav-system-details"],#nav-system-details').forEach((node) => node.remove());
   }
 
   function moveRoutesOutOfNormalSystemMenu() {
     document.querySelectorAll('#nav-system .nav-link[data-page="routes"]').forEach((button) => button.remove());
-
-    const systemDetailsGroup = document.querySelector('.nav-group[data-target="nav-system-details"]');
-    const systemDetailsSub = document.getElementById('nav-system-details');
-    if (systemDetailsGroup && systemDetailsSub) {
-      systemDetailsGroup.classList.remove('is-open');
-      systemDetailsSub.classList.remove('is-open');
-    }
+    hideRoutesDetailsNavigation();
   }
 
   function simplifyRoutesPanel() {
@@ -209,9 +186,9 @@
     const cardEyebrow = panel.querySelector('.card-head .cgn-eyebrow');
     const cardTitle = panel.querySelector('.card-head h2');
 
-    if (eyebrow) eyebrow.textContent = 'Details / System-Routen';
+    if (eyebrow) eyebrow.textContent = 'System-Routen';
     if (title) title.textContent = 'System-Routen';
-    if (intro) intro.textContent = 'Nur für Admins und Fehlerdiagnose. Im normalen Streambetrieb ist diese Ansicht nicht nötig.';
+    if (intro) intro.textContent = 'Nur für Admins und Fehlerdiagnose. Diese Ansicht ist nicht in der normalen Navigation sichtbar.';
     if (cardEyebrow) cardEyebrow.textContent = 'Admin-Details';
     if (cardTitle) cardTitle.textContent = 'Erreichbare Schnittstellen';
 
@@ -235,7 +212,6 @@
   }
 
   function installRoutesDecision() {
-    registerRoutesAsDetailsPage();
     moveRoutesOutOfNormalSystemMenu();
     simplifyRoutesPanel();
   }

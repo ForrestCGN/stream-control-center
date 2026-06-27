@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP113_ADMIN_USERS_MODULE_SPLIT  
+Stand: RDAP113B_HIDE_DETAILS_NAV  
 Datum: 2026-06-27
 
 ## Naechster sinnvoller Step

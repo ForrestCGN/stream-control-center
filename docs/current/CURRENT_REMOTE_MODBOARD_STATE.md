@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP113_ADMIN_USERS_MODULE_SPLIT  
+Stand: RDAP113B_HIDE_DETAILS_NAV  
 Datum: 2026-06-27
 
 ## UI-/Produktregel
@@ -10,7 +10,7 @@ Das Modboard ist ein Werkzeug fuer Streambetrieb, Mods und Admins.
 Keine Projekt-Erklaerungen in normalen Ansichten.
 Keine technische Dauerwand.
 Mods/Streamer sehen: OK, Problem, Handlungshinweis.
-Technische Details nur hinter Info oder in Details/Admin-Bereichen.
+Technische Details nur hinter Info oder in Admin-Bereichen.
 ```
 
 ## Strukturstand
@@ -31,7 +31,8 @@ remote-modboard/backend/public/assets/modules/admin/users.js
 ```text
 Keine Agent-Runtime aktiv.
 Keine Agent-Actions aktiv.
-Keine Backend-Aenderung in RDAP113.
-Keine DB-Migration in RDAP113.
+Keine Backend-Aenderung in RDAP113B.
+Keine DB-Migration in RDAP113B.
+System-Routen sind nicht mehr normal in der Navigation sichtbar.
 Admin-Benutzerverwaltung bleibt read-only.
 ```
