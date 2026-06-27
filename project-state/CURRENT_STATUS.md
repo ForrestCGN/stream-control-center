@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX  
+Stand: RDAP113_ADMIN_USERS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Ergebnis
@@ -8,12 +8,9 @@ Datum: 2026-06-27
 ```text
 - RDAP109/RDAP109B: Modboard-UI enttechnisiert; Projekterklaerungen aus der normalen Ansicht entfernt.
 - RDAP110: Uebersicht als eigenes Frontend-Modul ausgelagert.
-- RDAP111: Diagnose als eigenes Frontend-Modul ausgelagert.
-- RDAP111B: Diagnose-Info ist kleines Icon oben rechts in der Kachel statt grossem Button.
-- RDAP112B: GitHub/dev UI-Code mit RDAP112-Doku synchronisiert.
-- Routen werden aus dem normalen System-Menue entfernt und als Details / System-Routen vereinfacht.
-- Diagnose-Hauptansicht bleibt fuer Mods/Streamer einfach: OK, Problem, Bereit.
-- Technische Details liegen nur im Info-Fenster oder im Details/Admin-Bereich.
+- RDAP111/RDAP111B: Diagnose als eigenes Frontend-Modul; Info als kleines Icon, Details im Dialog.
+- RDAP112/RDAP112B: Routen aus normalem System-Menue entfernt und als Details / System-Routen vereinfacht.
+- RDAP113: Admin-Benutzerverwaltung als eigenes Frontend-Modul eingeordnet.
 - Keine Backend-Aenderung, keine DB-Migration, keine Runtime-/Agent-Actions.
 ```
 
@@ -23,5 +20,5 @@ Datum: 2026-06-27
 Keine Projekt-Erklaerungen ins Modboard.
 Keine Technik-Wand fuer Mods/Streamer.
 Bei Fehler: klar sagen, dass Streamer/Admin informiert werden soll.
-Technische Details nur bei Bedarf hinter Info oder Details/Admin-Bereich.
+Technische Details nur bei Bedarf hinter Info oder in Admin-/Details-Bereichen.
 ```

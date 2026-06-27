@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX  
+Stand: RDAP113_ADMIN_USERS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Zuerst lesen
@@ -14,7 +14,7 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP112B.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP113.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -28,7 +28,8 @@ project-state/CHANGELOG.md
 RDAP109/RDAP109B: UI enttechnisiert; Projekterklaerungen aus der normalen Ansicht entfernt.
 RDAP110: Uebersicht als eigenes Frontend-Modul ausgelagert.
 RDAP111/RDAP111B: Diagnose als eigenes Frontend-Modul; Info als kleines Icon, Details im Dialog.
-RDAP112B: Sync-Fix; Routen nicht mehr im normalen System-Menue, Details / System-Routen vereinfacht.
+RDAP112/RDAP112B: Routen nicht mehr im normalen System-Menue; Details / System-Routen vereinfacht.
+RDAP113: Admin-Benutzerverwaltung als eigenes Frontend-Modul eingeordnet.
 ```
 
 ## Arbeitsregel

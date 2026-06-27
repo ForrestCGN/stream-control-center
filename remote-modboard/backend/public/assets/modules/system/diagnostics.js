@@ -240,6 +240,16 @@
     simplifyRoutesPanel();
   }
 
+  function loadAdminUsersModuleScript() {
+    if (document.querySelector('script[data-rdap-admin-users-module="1"]')) return;
+
+    const script = document.createElement('script');
+    script.src = '/assets/modules/admin/users.js';
+    script.defer = true;
+    script.dataset.rdapAdminUsersModule = '1';
+    document.head.appendChild(script);
+  }
+
   function setText(id, value) {
     const node = document.getElementById(id);
     if (node) node.textContent = value == null || value === '' ? '—' : String(value);
@@ -248,10 +258,12 @@
   createDiagnosticsPanel();
   registerPage();
   installRoutesDecision();
+  loadAdminUsersModuleScript();
 
   document.addEventListener('DOMContentLoaded', () => {
     createDiagnosticsPanel();
     registerPage();
     installRoutesDecision();
+    loadAdminUsersModuleScript();
   });
 })();

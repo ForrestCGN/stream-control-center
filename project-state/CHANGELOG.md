@@ -1,23 +1,20 @@
 # CHANGELOG
 
-## 2026-06-27 - RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX
+## 2026-06-27 - RDAP113_ADMIN_USERS_MODULE_SPLIT
 
 ```text
-- RDAP112-Doku und echten GitHub/dev UI-Code synchronisiert.
-- Routen werden aus dem normalen System-Menue entfernt.
-- Routen werden als Details / System-Routen eingeordnet.
-- Routenansicht sprachlich vereinfacht: Admin-/Fehlerdiagnose, keine Aktion fuer Mods noetig.
-- Bestehendes geladenes System-Modul diagnostics.js erweitert; kein Backend-Umbau.
-- Keine Backend-Aenderung.
-- Keine DB-Migration.
-- Keine Agent-/Runtime-Aktivierung.
+- Admin-Benutzerverwaltung als eigenes Frontend-Modul `assets/modules/admin/users.js` eingeordnet.
+- Benutzerverwaltung wird aus dem normalen Admin-Menue entfernt und als eigener Bereich `Benutzer` registriert.
+- Ansicht bleibt read-only; keine neuen Schreibfunktionen.
+- Keine Backend-Aenderung, keine DB-Migration, keine Agent-Actions.
 ```
 
-## 2026-06-27 - RDAP112_SYSTEM_ROUTES_MODULE_DECISION
+## 2026-06-27 - RDAP112/RDAP112B
 
 ```text
-- Entscheidung dokumentiert: Routen gehoeren nicht in das normale System-Menue.
-- Zielbild: Details / System-Routen fuer Admin-/Fehlerdiagnose.
+- Routen aus normalem System-Menue entfernt.
+- Details / System-Routen stark vereinfacht.
+- Doku und UI-Code synchronisiert.
 ```
 
 ## 2026-06-27 - RDAP111B_DIAGNOSTICS_INFO_ICON_AND_DOCS_SYNC

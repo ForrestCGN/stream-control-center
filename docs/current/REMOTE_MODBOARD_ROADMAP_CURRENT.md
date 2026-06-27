@@ -1,33 +1,35 @@
 # REMOTE_MODBOARD_ROADMAP_CURRENT
 
-Stand: RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX  
+Stand: RDAP113_ADMIN_USERS_MODULE_SPLIT  
 Datum: 2026-06-27
 
 ## Aktuelle Richtung
 
 ```text
 Sicheres Modboard, aber fuer Mods/Streamer einfach nutzbar.
-Bereich = eigenes Frontend-Modul bzw. bestehender passender Frontend-Modulbereich.
+Bereich = eigenes Frontend-Modul.
 Shell bleibt Shell.
 Technik nur, wenn sie bei Fehlern hilft.
 ```
 
-## Zuletzt korrigiert
+## Zuletzt erledigt
 
 ```text
-RDAP112B_SYSTEM_ROUTES_MODULE_SYNC_FIX
+RDAP113: Admin-Benutzerverwaltung als eigenes Frontend-Modul eingeordnet.
+Keine neuen Writes.
+Keine DB-Migration.
+Keine Backend-Aenderung.
+```
 
-RDAP112-Doku und echter UI-Code wurden synchronisiert.
-Routen sind nicht relevant fuer den normalen Streambetrieb.
-Der normale System-Bereich zeigt weiter Uebersicht und Diagnose.
-Routen wandern aus dem normalen System-Menue in Details / System-Routen.
-Die Routenansicht wird sprachlich vereinfacht.
+## Naechster sinnvoller Step
+
+```text
+RDAP114_ACCESS_MODULE_SPLIT
 ```
 
 ## Danach
 
 ```text
-Admin-Benutzerverwaltung auslagern.
-Rollen & Rechte auslagern.
+Rollen & Rechte aus Shell/Normalstruktur herausloesen.
 Admin-Notizen weiter produktnah aufraeumen.
 ```
