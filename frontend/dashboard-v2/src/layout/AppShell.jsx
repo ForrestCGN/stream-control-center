@@ -40,8 +40,8 @@ export function AppShell({
                 <span className="view-kicker">{activeModule.sectionTitle}</span>
                 <h1>{activeModule.moduleTitle}</h1>
                 <p>
-                  Dashboard-v2 läuft parallel zum bestehenden Dashboard. Diese Ansicht ist aktuell
-                  ein read-only Prototyp auf Basis des Design-Tests v13.
+                  Der neue lokale Einstieg wird parallel zum bestehenden Dashboard vorbereitet.
+                  Diese Ansicht zeigt ausschließlich freigegebene Read-only-Inhalte.
                 </p>
               </div>
 

@@ -19,7 +19,7 @@ export function Sidebar({ sections, activeRoute, onNavigate }) {
     <aside className="cgn-sidebar" aria-label="Dashboard Navigation">
       <div className="sidebar-head">
         <strong>Navigation</strong>
-        <span>immer nur ein Bereich offen</span>
+        <span>Module werden schrittweise übernommen</span>
       </div>
 
       <nav className="cgn-nav">

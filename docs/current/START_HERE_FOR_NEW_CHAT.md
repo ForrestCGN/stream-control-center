@@ -1,18 +1,18 @@
 # Start hier
 
-Aktueller Stand: Version `0.2.7` - `Lokaler Dashboard-Ersatz geplant`.
+Aktueller Stand: Version `0.2.8` - `Dashboard-v2 Einstieg vorbereitet`.
 
-Geaendert in 0.2.7:
+Geaendert in 0.2.8:
 
 ```text
-Doku-/Plan-Step fuer den lokalen Ersatz des alten Dashboards:
-- lokaler Server auf Port 8080 ist Wahrheit fuer die lokale Oberflaeche
-- neue lokale Oberflaeche soll unter /dashboard-v2 entstehen
-- /dashboard bleibt zuerst stabil/alt und kann spaeter auf /dashboard-v2 zeigen oder ersetzt werden
-- alte Dashboard-Funktionen werden nach und nach uebernommen
-- kritische lokale Module werden einzeln geprueft
-- Start je Modul zuerst read-only, bis Rechte/Sicherheit bewusst freigegeben sind
-- keine Codeaenderung, kein Webserver-Deploy noetig
+Erster lokaler Dashboard-v2 Einstieg:
+- bestehendes React/Vite-Grundgeruest und bestehende Route /dashboard-v2 verwendet
+- lokale Startseite im Modboard-Look vorbereitet
+- Fake-Status und scheinbar aktive Demo-Bedienelemente entfernt
+- noch nicht migrierte Module deaktiviert
+- ausdruecklich read-only, keine Actions oder Writes
+- /dashboard bleibt unveraendert
+- kein Webserver-Deploy noetig
 ```
 
 ## Zentrale Startreihenfolge
@@ -57,7 +57,8 @@ Nicht alte `NEXT_CHAT_PROMPT_*` Dateien als Wahrheit verwenden, wenn eine neuere
 - Lokale Oberflaeche ist als Ersatz fuer das alte lokale Dashboard geplant:
   - lokaler Server: `backend/server.js`, Port `8080`,
   - neue lokale Zieloberflaeche: `/dashboard-v2`,
-  - `/dashboard` bleibt zuerst stabil/alt.
+  - erste lokale Read-only-Startseite ist vorbereitet,
+  - `/dashboard` bleibt stabil/alt.
 
 ## Geparkte Idee
 
@@ -71,7 +72,7 @@ Nicht alte `NEXT_CHAT_PROMPT_*` Dateien als Wahrheit verwenden, wenn eine neuere
 
 - Frontend-Metadaten steuern Anzeige und Navigation, nicht Sicherheit.
 - Backend bleibt fuer Rechte, Scope, Confirm-Write, Audit, Lock, Backup/Rollback und Readback massgeblich.
-- Keine neuen produktiven Writes in Version 0.2.7.
+- Keine neuen produktiven Writes in Version 0.2.8.
 - Keine Agent-Actions.
 - Keine OBS-Steuerung, keine Szenen-/Quellen-/Sound-/Overlay-/Command-Aktionen.
 - Keine Shell-, Datei- oder Prozessaktionen.

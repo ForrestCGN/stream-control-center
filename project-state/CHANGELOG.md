@@ -1,5 +1,19 @@
 # Changelog
 
+## Version 0.2.8 - Dashboard-v2 Einstieg vorbereitet
+
+- Vorhandene React/Vite-Struktur fuer den ersten lokalen Dashboard-v2 Einstieg verwendet.
+- Startseite im bestehenden Modboard-/V13-Look auf den lokalen Einsatz ausgerichtet.
+- Sichtbare Fake-Zustaende fuer Agent, OBS, Sound und Locks entfernt.
+- Scheinbar aktive Suche, Sprache, Benachrichtigung und Konto-Demo entfernt.
+- Lokaler Port und Read-only-Status werden eindeutig angezeigt.
+- Noch nicht migrierte Stream-PC- und Admin-Prototypseiten in der Navigation deaktiviert.
+- Geplante Module bleiben sichtbar, aber nicht bedienbar.
+- Produktions-Build unter `htdocs/dashboard-v2/` aktualisiert.
+- `/dashboard` und Backend-Routen nicht geaendert.
+- Keine DB-Migration, keine produktiven Writes und keine Steuer-/Agent-Actions.
+- Kein Webserver-Deploy noetig; Aenderung betrifft das lokale Dashboard auf Port 8080.
+
 ## Version 0.2.7 - Lokaler Dashboard-Ersatz geplant
 
 - Doku-/Plan-Step fuer den lokalen Ersatz des alten Dashboards erstellt.

@@ -35,32 +35,26 @@ project-state/CHANGELOG.md
 Aktueller bestaetigter Stand:
 
 ```text
-0.2.7 - Lokaler Dashboard-Ersatz geplant
+0.2.8 - Dashboard-v2 Einstieg vorbereitet
 ```
 
 Umgesetzt:
 
-- Doku-/Plan-Step fuer lokalen Ersatz des alten Dashboards.
-- Lokaler Server `backend/server.js` auf Port `8080` ist Wahrheit fuer die lokale Oberflaeche.
-- Neue lokale Zieloberflaeche soll `/dashboard-v2` werden.
-- `/dashboard` bleibt zuerst stabil/alt und kann spaeter auf `/dashboard-v2` zeigen oder ersetzt werden.
-- Alte Dashboard-Funktionen werden nach und nach uebernommen.
-- Kritische lokale Module werden einzeln geprueft: Sounds, Alerts, Texte/Configs, Commands/Channelpoints, OBS, Overlays, lokale Bridges, Uploads/Dateien.
-- Start je Modul zuerst read-only: anzeigen ja, ausloesen/aendern erstmal nein.
-- Keine Codeaenderung, keine DB-Migration, keine Writes, keine Agent-Actions.
+- Bestehende React/Vite-Struktur und lokale Route `/dashboard-v2` verwendet.
+- Erste lokale Startseite im Modboard-Look vorbereitet.
+- Fake-Status und scheinbar aktive Demo-Bedienelemente entfernt.
+- Noch nicht migrierte Module bleiben deaktiviert.
+- `/dashboard` bleibt unveraendert.
+- Keine DB-Migration, keine Writes, keine Agent-Actions.
 
 Vorher bestaetigt:
 
 ```text
-0.2.6 - Online-Modoberflaeche bereinigt
+0.2.7 - Lokaler Dashboard-Ersatz geplant
 ```
 
-- Linke Online-Navigation bereinigt.
-- Kein Hauptmenue `Lokales Dashboard` in der Online-Modoberflaeche.
-- Kein Hauptmenue `Mein Konto` in der linken Navigation.
-- Kein `Routen` unter System.
-- Technische Details bleiben unter `Admin -> Doku / Details`.
-- Konto-/Rechtefunktionen bleiben oben rechts im User-Panel.
+- Lokalen Dashboard-Ersatz und modulweise Read-only-Migration geplant.
+- Lokalen Server auf Port 8080 als Wahrheit festgelegt.
 
 ## Was NICHT gemacht werden darf
 
@@ -77,24 +71,28 @@ Vorher bestaetigt:
 ## Naechster sinnvoller Arbeitsfokus
 
 ```text
-0.2.8 - Dashboard-v2 Shell vorbereitet
+0.2.9 - Erstes lokales Read-only-Modul vorbereitet
 ```
 
 Vor dem Plan unbedingt lesen:
 
 ```text
 backend/server.js
-backend/core/paths.js
-htdocs/dashboard-v2/index.html
+backend/modules/stream_status.js
+backend/modules/live_status_monitor.js
+backend/modules/diagnostics.js
 htdocs/dashboard/index.html
+htdocs/dashboard/modules/live_status_monitor.js
+htdocs/dashboard/modules/diagnostics.js
+frontend/dashboard-v2/src/services/
+frontend/dashboard-v2/src/modules/
 ```
-
-Falls `htdocs/...` im Repo nicht vollstaendig abgebildet ist, mit Forrest klaeren, ob die echten lokalen Dateien aus `D:\Streaming\stramAssets\htdocs\...` hochgeladen/abgeglichen werden muessen.
 
 Moeglicher Inhalt:
 
-- echte bestehende lokale Dashboard-Dateien pruefen,
-- minimale neue `/dashboard-v2` Shell im Modboard-Look planen,
+- bestehende Status-/Diagnosefunktionen und APIs pruefen,
+- ein risikoarmes erstes Modul auswaehlen,
+- vorhandene Daten nur anzeigen,
+- keine parallelen Statuswege bauen,
 - `/dashboard` stabil lassen,
-- keine Aktionen/Writes,
-- erste Startseite read-only.
+- keine Aktionen/Writes.

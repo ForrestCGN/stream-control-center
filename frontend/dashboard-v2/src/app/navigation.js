@@ -7,7 +7,7 @@ export const navigationSections = [
       {
         route: "live.overview",
         title: "Übersicht",
-        subtitle: "Status und Einstieg"
+        subtitle: "Lokaler Einstieg · read-only"
       },
       {
         route: "live.analytics",
@@ -18,7 +18,8 @@ export const navigationSections = [
       {
         route: "live.remoteAgent",
         title: "Stream-PC",
-        subtitle: "Verbindung / read-only"
+        subtitle: "später",
+        disabled: true
       }
     ]
   },
@@ -136,17 +137,20 @@ export const navigationSections = [
       {
         route: "admin.users",
         title: "Benutzer & Rechte",
-        subtitle: "Permissions / read-only"
+        subtitle: "später",
+        disabled: true
       },
       {
         route: "admin.locks",
         title: "Locks",
-        subtitle: "Modell / read-only"
+        subtitle: "später",
+        disabled: true
       },
       {
         route: "admin.audit",
         title: "Audit",
-        subtitle: "Modell / read-only"
+        subtitle: "später",
+        disabled: true
       }
     ]
   }

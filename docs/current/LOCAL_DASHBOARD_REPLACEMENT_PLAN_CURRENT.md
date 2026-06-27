@@ -1,7 +1,7 @@
 # Lokaler Dashboard-Ersatz - Plan
 
 Stand: 2026-06-27  
-Gilt ab: `0.2.7 - Lokaler Dashboard-Ersatz geplant`  
+Gilt ab: `0.2.8 - Dashboard-v2 Einstieg vorbereitet`
 Step: `RDAP130_LOCAL_DASHBOARD_REPLACEMENT_PLAN`
 
 ## Zweck
@@ -148,21 +148,31 @@ keine Firewall-Aenderung
 kein Webserver-Deploy noetig
 ```
 
-## Naechster sinnvoller technischer Schritt
-
-Nach diesem Plan-Step:
+## Aktuell umgesetzt
 
 ```text
-0.2.8 - Dashboard-v2 Shell vorbereitet
+0.2.8 - Dashboard-v2 Einstieg vorbereitet
+```
+
+- bestehende React/Vite-Struktur verwendet
+- erste lokale Startseite im Modboard-Look
+- nur read-only
+- noch nicht migrierte Module deaktiviert
+- `/dashboard` unveraendert
+
+## Naechster sinnvoller technischer Schritt
+
+```text
+0.2.9 - Erstes lokales Read-only-Modul vorbereitet
 ```
 
 Moeglicher Scope:
 
 ```text
-- echte htdocs/dashboard-v2 Dateien lesen
-- aktuelle alte Dashboard-Struktur lesen
-- minimale neue /dashboard-v2 Shell im Modboard-Look planen oder bauen
-- Startseite read-only
-- keine alten Funktionen ersetzen
+- bestehende lokale Statusmodule und APIs lesen
+- ein risikoarmes erstes Statusmodul auswaehlen
+- nur vorhandene Daten anzeigen
+- keine neuen parallelen Statuswege
+- keine Actions oder Writes
 - /dashboard bleibt stabil
 ```

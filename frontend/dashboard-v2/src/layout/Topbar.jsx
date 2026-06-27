@@ -18,28 +18,9 @@ export function Topbar({ activeModule, onToggleSidebar }) {
         </div>
       </div>
 
-      <div className="top-search">
-        <span>⌕</span>
-        <input type="search" placeholder="Suchen: Module, Media, Texte, Logs …" />
-      </div>
-
-      <div className="top-center">
-        <span className="cgn-chip cgn-chip--ok">Agent</span>
-        <span className="cgn-chip cgn-chip--ok">OBS</span>
-        <span className="cgn-chip cgn-chip--info">Sound</span>
-        <span className="cgn-chip cgn-chip--warn">0 Locks</span>
-      </div>
-
       <div className="top-right">
-        <button className="cgn-icon-button cgn-lang" type="button">DE</button>
-        <button className="cgn-icon-button cgn-bell" type="button">🔔<em>3</em></button>
-        <button className="cgn-avatar-button" type="button">
-          <span className="cgn-avatar">F</span>
-          <span className="cgn-avatar-copy">
-            <strong>ForrestCGN</strong>
-            <small>Owner</small>
-          </span>
-        </button>
+        <span className="cgn-chip">Lokal · Port 8080</span>
+        <span className="cgn-chip cgn-chip--info">Read-only</span>
       </div>
     </header>
   );

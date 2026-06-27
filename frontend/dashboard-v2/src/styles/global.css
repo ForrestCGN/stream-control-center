@@ -95,7 +95,7 @@ button {
   z-index: 70;
   height: var(--topbar-h);
   display: grid;
-  grid-template-columns: minmax(230px, .85fr) minmax(190px, .65fr) auto minmax(235px, auto);
+  grid-template-columns: minmax(230px, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 9px 14px;
@@ -627,11 +627,7 @@ button {
 
 @media (max-width: 1180px) {
   .cgn-topbar {
-    grid-template-columns: minmax(230px, 1fr) minmax(180px, .8fr) auto;
-  }
-
-  .top-center {
-    display: none;
+    grid-template-columns: minmax(230px, 1fr) auto;
   }
 
   .view-grid {
@@ -644,11 +640,7 @@ button {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .top-search {
-    display: none;
-  }
-
-  .cgn-avatar-copy {
+  .top-right .cgn-chip:first-child {
     display: none;
   }
 

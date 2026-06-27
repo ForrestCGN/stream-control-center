@@ -3,43 +3,43 @@ import { Card } from "../../components/Card.jsx";
 export function OverviewPage() {
   return (
     <div className="view-grid">
-      <Card title="Dashboard-v2 läuft parallel" eyebrow="Grundsatz">
+      <Card title="Lokaler Dashboard-Einstieg" eyebrow="0.2.8">
         <p>
-          Das bestehende Dashboard bleibt produktiv. Dashboard-v2 wird daneben aufgebaut
-          und übernimmt Module nur schrittweise.
+          Dashboard-v2 läuft auf dem bestehenden lokalen Node/Express-Server. Es wird
+          schrittweise zum Nachfolger des bisherigen Dashboards ausgebaut.
         </p>
 
         <div className="info-list">
-          <InfoRow label="Produktiv" value="http://127.0.0.1:8080/dashboard" />
-          <InfoRow label="Neu geplant" value="http://127.0.0.1:8080/dashboard-v2" />
-          <InfoRow label="Remote-Ziel" value="https://mods.forrestcgn.de" />
+          <InfoRow label="Neuer Einstieg" value="http://127.0.0.1:8080/dashboard-v2/" />
+          <InfoRow label="Bisheriges Dashboard" value="http://127.0.0.1:8080/dashboard/" />
+          <InfoRow label="Betriebsart" value="Lokal · Read-only" />
         </div>
       </Card>
 
-      <Card title="Migrationsregeln" eyebrow="Modul für Modul">
+      <Card title="Sicherer Ausgangspunkt" eyebrow="Aktueller Umfang">
         <ul className="check-list">
-          <li><span>✓</span> jedes Modul zuerst read-only</li>
-          <li><span>✓</span> Schreibfunktionen erst mit Permission, Lock und Audit</li>
-          <li><span>✓</span> altes Dashboard bleibt Fallback</li>
-          <li><span>✓</span> keine dritte Sidebar-Ebene</li>
+          <li><span>✓</span> bestehende React/Vite-Struktur verwendet</li>
+          <li><span>✓</span> bestehender Server auf Port 8080 verwendet</li>
+          <li><span>✓</span> keine produktiven Aktionen vorhanden</li>
+          <li><span>✓</span> bisheriges Dashboard bleibt unverändert</li>
         </ul>
       </Card>
 
-      <Card title="Aktueller Prototypumfang" eyebrow="DASHUI5">
+      <Card title="Oberfläche vorbereitet" eyebrow="Modboard-Look">
         <div className="chip-row">
-          <span className="cgn-chip cgn-chip--ok">V13-Designbasis</span>
-          <span className="cgn-chip cgn-chip--ok">Topbar inline</span>
-          <span className="cgn-chip cgn-chip--ok">Accordion Sidebar</span>
-          <span className="cgn-chip cgn-chip--info">keine produktiven Aktionen</span>
+          <span className="cgn-chip cgn-chip--ok">Startseite</span>
+          <span className="cgn-chip cgn-chip--ok">Topbar</span>
+          <span className="cgn-chip cgn-chip--ok">Navigation</span>
+          <span className="cgn-chip cgn-chip--info">Read-only</span>
         </div>
       </Card>
 
-      <Card title="Noch nicht aktiv" eyebrow="Bewusst nicht enthalten">
+      <Card title="Noch nicht freigegeben" eyebrow="Nächste Schritte separat">
         <ul className="plain-list">
-          <li><span>○</span> kein Login-Zwang</li>
-          <li><span>○</span> keine Schreibaktionen</li>
-          <li><span>○</span> keine OBS-/Sound-/Media-Steuerung</li>
-          <li><span>○</span> keine DB- oder Backend-Änderung</li>
+          <li><span>○</span> keine OBS- oder Overlay-Steuerung</li>
+          <li><span>○</span> keine Sound- oder Media-Aktionen</li>
+          <li><span>○</span> keine Commands oder Prozessaktionen</li>
+          <li><span>○</span> keine Änderungen oder Speicherfunktionen</li>
         </ul>
       </Card>
     </div>
