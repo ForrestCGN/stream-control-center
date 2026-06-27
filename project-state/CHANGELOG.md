@@ -1,31 +1,35 @@
 # Changelog
 
-## RDAP Docs Cleanup 9
+## RDAP Docs Cleanup 10
 
-- Finalen Current-Docs-Rescan nach Cleanup 8 vorbereitet.
-- 13 abgeschlossene Cleanup-/Prompt-Dateien als Archiv-Kandidaten klassifiziert.
-- Zielarchiv: `docs/archive/docs-current-cleanup-9/`.
-- PowerShell-Script `tools/cleanup/rdap-docs-cleanup-9-current-docs-final-rescan.ps1` vorbereitet.
-- Script laeuft standardmaessig als Dry-Run und verschiebt nur mit `-Execute`.
+- Verify-and-Close fuer `docs/current/` vorbereitet.
+- Drei abgeschlossene Cleanup-9-Dateien werden nach `docs/archive/docs-current-cleanup-10/` archiviert.
+- `docs/current/DOCS_CURRENT_FINAL_INDEX.md` als finaler Current-Docs-Index vorbereitet.
+- `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` als normaler RDAP-/Remote-Modboard-Weiterarbeits-Prompt vorbereitet.
 - Erwarteter Endbestand in `docs/current/` nach Execute: 20 Dateien.
 - Keine harten Deletes.
-- Keine automatischen Merges.
+- Keine Code-, DB- oder Webserver-Aenderungen.
+
+## RDAP Docs Cleanup 9
+
+- 13 abgeschlossene Cleanup-/Prompt-Dateien nach `docs/archive/docs-current-cleanup-9/` verschoben.
+- `docs/current/` auf erwartete Current-Doku reduziert.
+- Keine harten Deletes.
 - Keine Code-, DB- oder Webserver-Aenderungen.
 
 ## RDAP Docs Cleanup 8
 
-- Die 40 `REVIEW_MANUALLY`-Dateien einzeln bewertet.
-- 31 Dateien nach `docs/archive/docs-current-cleanup-8/` vorbereitet.
-- 9 Dateien bleiben bewusst in `docs/current/`.
-- Keine Merges, keine Deletes, keine Code-, DB- oder Webserver-Aenderungen.
+- 40 `REVIEW_MANUALLY`-Dateien einzeln bewertet.
+- 31 Dateien nach `docs/archive/docs-current-cleanup-8/` verschoben.
+- 9 Dateien bewusst in `docs/current/` behalten.
+- Keine Merges, keine Deletes.
+- Keine Code-, DB- oder Webserver-Aenderungen.
 
 ## RDAP Docs Cleanup 7
 
-- Exaktes Move-Manifest aus der Cleanup-6-Kategorie `ARCHIVE_OR_MERGE` vorbereitet.
-- Umfang: 1033 Dateien.
-- Zielarchiv: `docs/archive/docs-current-cleanup-7/`.
+- 1033 `ARCHIVE_OR_MERGE`-Dateien nach `docs/archive/docs-current-cleanup-7/` verschoben.
 - Keine harten Deletes.
-- `KEEP_CURRENT` und `REVIEW_MANUALLY` blieben unangetastet.
+- Keine Code-, DB- oder Webserver-Aenderungen.
 
 ## Version 0.1.3
 

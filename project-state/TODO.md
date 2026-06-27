@@ -2,11 +2,10 @@
 
 Stand: 2026-06-27
 
-- Cleanup 9 lokal einspielen und Dry-Run pruefen.
-- Mit `-Execute` nur die 13 exakt dokumentierten abgeschlossenen Cleanup-/Prompt-Dateien nach `docs/archive/docs-current-cleanup-9/` verschieben.
-- Keine Deletes in Cleanup 9.
-- Keine Merges in Cleanup 9.
-- Aktuelle Start-/Master-/Status-/Architektur-Doku nicht anfassen.
+- Cleanup 10 lokal einspielen und Dry-Run pruefen.
+- Mit `-Execute` nur die drei abgeschlossenen Cleanup-9-Dateien nach `docs/archive/docs-current-cleanup-10/` verschieben.
+- Final bestaetigen, dass `docs/current/` genau 20 erwartete Dateien enthaelt.
+- Keine Deletes in Cleanup 10.
 - Optional erzeugte `_handoff`-Reports bewusst committen oder lokal loeschen, nicht untracked liegen lassen.
-- Danach Cleanup 10 vorbereiten: finaler Verify-and-Close fuer `docs/current/`.
+- Danach Docs-Cleanup als abgeschlossen behandeln und normale RDAP-/Remote-Modboard-Weiterarbeit aufnehmen.
 - Technischer Basisstand 0.1.3 bleibt unveraendert: read-only, keine Writes.
