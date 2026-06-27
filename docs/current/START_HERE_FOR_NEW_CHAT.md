@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP117B_CONNECTIONS_NAV_DEDUP  
+Stand: RDAP117C_ADMIN_MODULE_NAV_CONTRACT_FIX  
 Datum: 2026-06-27
 
 ## Zuerst lesen
@@ -14,7 +14,7 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP117B.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP117C.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -25,8 +25,10 @@ project-state/CHANGELOG.md
 ## Aktueller Stand kurz
 
 ```text
-RDAP117: Verbindungen ist als eigenes Admin-Frontend-Modul strukturiert.
-RDAP117B: Doppelte Verbindungen-Eintraege in der Admin-Navigation werden dedupliziert.
+RDAP117C: Admin-Modul-/Navigation-Vertrag korrigiert.
+Admin-Fachmodule registrieren ihre Page und bauen/polieren ihren Inhalt.
+Admin-Fachmodule erzeugen keine eigenen Admin-Navi-Buttons mehr.
+Admin-Navigation wird zentral in users.js sortiert/dedupliziert.
 Keine Backend-Aenderung, keine DB-Migration, keine neuen Writes.
 ```
 

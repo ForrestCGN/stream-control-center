@@ -21,31 +21,6 @@
     });
   }
 
-  function ensureConnectionsInAdminMenu() {
-    const adminSub = document.getElementById('nav-admin');
-    if (!adminSub) return;
-
-    let button = adminSub.querySelector('.nav-link[data-page="connections"]');
-    if (!button) {
-      button = document.createElement('button');
-      button.className = 'nav-link';
-      button.type = 'button';
-      button.dataset.page = PAGE_ID;
-
-      const before = [...adminSub.querySelectorAll('.nav-link[data-page]')]
-        .find((candidate) => Number(candidate.dataset.order || 100) > 30);
-      if (before) adminSub.insertBefore(button, before);
-      else adminSub.appendChild(button);
-    }
-
-    button.dataset.section = 'Admin';
-    button.dataset.title = 'Verbindungen';
-    button.dataset.tab = 'read-only';
-    button.dataset.moduleId = 'admin';
-    button.dataset.order = '30';
-    button.textContent = 'Verbindungen';
-  }
-
   function createConnectionsPanel() {
     const content = document.getElementById('remoteModboardContent') || document.querySelector('.cgn-content');
     if (!content) return null;
@@ -239,7 +214,6 @@
 
   function installConnectionsModule() {
     registerConnectionsPage();
-    ensureConnectionsInAdminMenu();
     createConnectionsPanel();
     startStatusRefresh();
     loadConnectionStatus('initial');

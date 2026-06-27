@@ -1,6 +1,6 @@
 # CURRENT_REMOTE_MODBOARD_STATE
 
-Stand: RDAP117B_CONNECTIONS_NAV_DEDUP  
+Stand: RDAP117C_ADMIN_MODULE_NAV_CONTRACT_FIX  
 Datum: 2026-06-27
 
 ## Navigation
@@ -17,11 +17,21 @@ Admin:
 - Doku / Details
 ```
 
-## RDAP117B
+## Admin-Modul-Vertrag
 
 ```text
-Doppelte Admin-Navigationseintraege mit gleicher data-page werden entfernt.
-Verbindungen darf genau einmal unter Admin sichtbar sein.
+Admin-Fachmodule:
+- registrieren ihre Page
+- bauen/polieren ihren eigenen Inhalt
+- laden eigene Daten, falls noetig
+
+Admin-Fachmodule duerfen NICHT:
+- eigene Admin-Navi-Buttons erzwingen
+- Admin-Reihenfolge selbst steuern
+- fremde Admin-Navi-Eintraege entfernen
+
+Admin-Navigation:
+- zentrale Sortierung/Deduplizierung in users.js
 ```
 
 ## Sicherheit

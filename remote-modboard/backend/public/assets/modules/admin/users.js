@@ -51,37 +51,17 @@
       adminSub.insertBefore(button, adminSub.firstElementChild || null);
     }
 
+    normalizeAdminButton(button, ADMIN_ORDER[0]);
+  }
+
+  function normalizeAdminButton(button, desired) {
+    if (!button || !desired) return;
     button.dataset.section = 'Admin';
-    button.dataset.title = 'Benutzerverwaltung';
-    button.dataset.tab = 'read-only';
+    button.dataset.title = desired.title;
+    button.dataset.tab = desired.tab;
     button.dataset.moduleId = 'admin';
-    button.dataset.order = '10';
-    button.textContent = 'Benutzerverwaltung';
-  }
-
-  function dedupeAdminNavByPage(adminSub, pageId) {
-    const buttons = [...adminSub.querySelectorAll(`.nav-link[data-page="${cssEscape(pageId)}"]`)];
-    if (buttons.length <= 1) return;
-
-    const desired = ADMIN_ORDER.find((item) => item.page === pageId);
-    const keep = buttons.find((button) => Number(button.dataset.order || 100) === (desired ? desired.order : 100)) || buttons[buttons.length - 1];
-
-    buttons.forEach((button) => {
-      if (button !== keep) button.remove();
-    });
-
-    if (desired) {
-      keep.dataset.section = 'Admin';
-      keep.dataset.title = desired.title;
-      keep.dataset.tab = desired.tab;
-      keep.dataset.moduleId = 'admin';
-      keep.dataset.order = String(desired.order);
-      keep.textContent = desired.label;
-    }
-  }
-
-  function dedupeAdminNavigation(adminSub) {
-    ADMIN_ORDER.forEach((item) => dedupeAdminNavByPage(adminSub, item.page));
+    button.dataset.order = String(desired.order);
+    button.textContent = desired.label;
   }
 
   function cleanupAdminNavigation() {
@@ -105,14 +85,7 @@
       }
 
       const desired = ADMIN_ORDER.find((item) => item.page === page || item.label === label);
-      if (!desired) return;
-
-      button.dataset.section = 'Admin';
-      button.dataset.title = desired.title;
-      button.dataset.tab = desired.tab;
-      button.dataset.moduleId = 'admin';
-      button.dataset.order = String(desired.order);
-      button.textContent = desired.label;
+      if (desired) normalizeAdminButton(button, desired);
     });
 
     ensureAdminUsersInAdminMenu();
@@ -123,6 +96,22 @@
       .sort((a, b) => Number(a.dataset.order || 100) - Number(b.dataset.order || 100));
 
     ordered.forEach((button) => adminSub.appendChild(button));
+  }
+
+  function dedupeAdminNavigation(adminSub) {
+    ADMIN_ORDER.forEach((desired) => {
+      const matches = [...adminSub.querySelectorAll('.nav-link[data-page]')]
+        .filter((button) => button.dataset.page === desired.page || button.textContent.trim() === desired.label);
+
+      if (!matches.length) return;
+
+      const keep = matches.find((button) => button.dataset.page === desired.page) || matches[0];
+      normalizeAdminButton(keep, desired);
+
+      matches.forEach((button) => {
+        if (button !== keep) button.remove();
+      });
+    });
   }
 
   function polishAdminUsersPanel() {
@@ -148,10 +137,10 @@
   }
 
   function installStyle() {
-    if (document.getElementById('rdap117bAdminNavCleanupStyle')) return;
+    if (document.getElementById('rdap117cAdminNavContractStyle')) return;
 
     const style = document.createElement('style');
-    style.id = 'rdap117bAdminNavCleanupStyle';
+    style.id = 'rdap117cAdminNavContractStyle';
     style.textContent = `
       .nav-group[data-target="nav-admin-users-management"],#nav-admin-users-management{display:none!important}
       #nav-admin .nav-link[data-page="admin-user-detail"],
@@ -170,8 +159,8 @@
   }
 
   function installAdminNavObserver() {
-    if (document.documentElement.dataset.rdap117bAdminNavObserver === '1') return;
-    document.documentElement.dataset.rdap117bAdminNavObserver = '1';
+    if (document.documentElement.dataset.rdap117cAdminNavObserver === '1') return;
+    document.documentElement.dataset.rdap117cAdminNavObserver = '1';
 
     const nav = document.querySelector('.cgn-nav');
     if (!nav) return;
@@ -200,11 +189,6 @@
     script.defer = true;
     script.dataset.rdapAdminConnectionsModule = '1';
     document.head.appendChild(script);
-  }
-
-  function cssEscape(value) {
-    if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(String(value));
-    return String(value).replace(/[^A-Za-z0-9_-]/g, '\\$&');
   }
 
   function installAdminUsersModule() {

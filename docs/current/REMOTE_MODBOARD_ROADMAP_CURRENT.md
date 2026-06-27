@@ -1,12 +1,13 @@
 # REMOTE_MODBOARD_ROADMAP_CURRENT
 
-Stand: RDAP117B_CONNECTIONS_NAV_DEDUP  
+Stand: RDAP117C_ADMIN_MODULE_NAV_CONTRACT_FIX  
 Datum: 2026-06-27
 
 ## Zuletzt erledigt
 
 ```text
-RDAP117B: Doppelte Verbindungen-Eintraege in Admin-Navigation dedupliziert.
+RDAP117C: Admin-Modul-/Navigation-Vertrag korrigiert.
+Fachmodule erzeugen keine eigenen Admin-Navi-Buttons mehr.
 ```
 
 ## Naechster sinnvoller Step
@@ -18,6 +19,6 @@ RDAP118_ADMIN_NAV_POLISH_AND_VISIBLE_REVIEW
 ## Danach
 
 ```text
-Admin-Navigation/Seiten kurz visuell pruefen und letzte Dopplungen entfernen.
-Spaeter: User-Detail mit Rollenverwaltung als Modal/Fenster inklusive Hover-Infos.
+Kurzer visueller Admin-/System-Review.
+Dann wieder funktionaler Fortschritt statt Navi-Kosmetik.
 ```
