@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP115_ACCESS_MODULE_SPLIT  
+Stand: RDAP115B_REMOVE_ACCESS_NAV_DOC_ONLY  
 Datum: 2026-06-27
 
 ## Zuerst lesen
@@ -14,7 +14,7 @@ docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/CURRENT_DASHBOARD_STATE.md
 docs/current/CURRENT_STREAM_PC_AGENT_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -25,9 +25,10 @@ project-state/CHANGELOG.md
 ## Aktueller Stand kurz
 
 ```text
-RDAP114: Admin-Navigation bereinigt.
-RDAP115: Rollen & Rechte als eigenes Admin-Frontend-Modul strukturiert.
-Weiterhin keine Backend-Aenderung, keine DB-Migration, keine neuen Writes.
+RDAP115B: Rollen & Rechte aus der linken Admin-Navigation entfernt.
+Rollenverwaltung kommt spaeter im User-Detail als eigenes Fenster/Modal.
+Hover/Info pro Rolle ist dort vorgesehen.
+Keine Backend-Aenderung, keine DB-Migration, keine neuen Writes.
 ```
 
 ## Arbeitsregel

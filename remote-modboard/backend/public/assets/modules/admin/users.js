@@ -6,9 +6,8 @@
   const ADMIN_ORDER = [
     { page: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', order: 10 },
     { page: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read-only', order: 20 },
-    { page: 'access', label: 'Rollen & Rechte', title: 'Rollen & Rechte', tab: 'read-only', order: 30 },
-    { page: 'diagnostics', label: 'Sicherheit', title: 'Sicherheit', tab: 'Status', order: 40 },
-    { page: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', order: 50 }
+    { page: 'diagnostics', label: 'Sicherheit', title: 'Sicherheit', tab: 'Status', order: 30 },
+    { page: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', order: 40 }
   ];
 
   const HIDDEN_ADMIN_PAGES = new Set([
@@ -16,7 +15,8 @@
     'user-detail',
     'admin-user',
     'account',
-    'permissions'
+    'permissions',
+    'access'
   ]);
 
   function registerAdminPage() {
@@ -68,7 +68,7 @@
       const page = button.dataset.page || '';
       const label = button.textContent.trim();
 
-      if (HIDDEN_ADMIN_PAGES.has(page) || /^User-Detail$/i.test(label)) {
+      if (HIDDEN_ADMIN_PAGES.has(page) || /^User-Detail$/i.test(label) || /^Rollen\s*&\s*Rechte$/i.test(label)) {
         button.remove();
         return;
       }
@@ -102,31 +102,32 @@
     const intro = panel.querySelector('.page-header p:not(.cgn-eyebrow)');
     if (eyebrow) eyebrow.textContent = 'Admin / Benutzerverwaltung';
     if (title) title.textContent = 'Benutzerverwaltung';
-    if (intro) intro.textContent = 'Admin-Übersicht über bekannte Modboard-Benutzer, Rollen und Sitzungen. Der eigene Account bleibt oben rechts im Profilmenü.';
+    if (intro) intro.textContent = 'Admin-Übersicht über bekannte Modboard-Benutzer, Rollen und Sitzungen. Rollen werden später im User-Detail verwaltet.';
 
     const infoTitle = [...panel.querySelectorAll('.card-head h2')].find((node) => node.textContent.trim() === 'Bearbeiten kommt in den passenden Bereichen' || node.textContent.trim() === 'Bearbeiten bleibt gesperrt');
     if (infoTitle) infoTitle.textContent = 'Bearbeiten bleibt gesperrt';
 
     const infoText = panel.querySelector('.admin-lock-note span');
     if (infoText) {
-      infoText.textContent = 'Diese Admin-Ansicht ist read-only. Schreibfunktionen kommen erst mit separatem Scope, Permission, Confirm-Write, Audit, Lock und Readback.';
+      infoText.textContent = 'Diese Admin-Ansicht ist read-only. Rollenverwaltung kommt später im User-Detail als eigenes Fenster mit Hover-Infos pro Rolle.';
     }
 
     installStyle();
   }
 
   function installStyle() {
-    if (document.getElementById('rdap114AdminNavCleanupStyle')) return;
+    if (document.getElementById('rdap115bAdminNavCleanupStyle')) return;
 
     const style = document.createElement('style');
-    style.id = 'rdap114AdminNavCleanupStyle';
+    style.id = 'rdap115bAdminNavCleanupStyle';
     style.textContent = `
       .nav-group[data-target="nav-admin-users-management"],#nav-admin-users-management{display:none!important}
       #nav-admin .nav-link[data-page="admin-user-detail"],
       #nav-admin .nav-link[data-page="user-detail"],
       #nav-admin .nav-link[data-page="admin-user"],
       #nav-admin .nav-link[data-page="account"],
-      #nav-admin .nav-link[data-page="permissions"]{display:none!important}
+      #nav-admin .nav-link[data-page="permissions"],
+      #nav-admin .nav-link[data-page="access"]{display:none!important}
       [data-page-panel="admin-users"] .page-header p:not(.cgn-eyebrow){max-width:980px}
       [data-page-panel="admin-users"] .admin-lock-note{background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2)}
       [data-page-panel="admin-users"] .admin-lock-note i{background:rgba(255,209,102,.18)}
@@ -136,8 +137,8 @@
   }
 
   function installAdminNavObserver() {
-    if (document.documentElement.dataset.rdap114AdminNavObserver === '1') return;
-    document.documentElement.dataset.rdap114AdminNavObserver = '1';
+    if (document.documentElement.dataset.rdap115bAdminNavObserver === '1') return;
+    document.documentElement.dataset.rdap115bAdminNavObserver = '1';
 
     const nav = document.querySelector('.cgn-nav');
     if (!nav) return;
@@ -148,22 +149,11 @@
     observer.observe(nav, { childList: true, subtree: true });
   }
 
-  function loadAccessModuleScript() {
-    if (document.querySelector('script[data-rdap-access-module="1"]')) return;
-
-    const script = document.createElement('script');
-    script.src = '/assets/modules/admin/access.js';
-    script.defer = true;
-    script.dataset.rdapAccessModule = '1';
-    document.head.appendChild(script);
-  }
-
   function installAdminUsersModule() {
     registerAdminPage();
     cleanupAdminNavigation();
     polishAdminUsersPanel();
     installAdminNavObserver();
-    loadAccessModuleScript();
   }
 
   installAdminUsersModule();

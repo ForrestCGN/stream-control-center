@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-Stand: RDAP115_ACCESS_MODULE_SPLIT  
+Stand: RDAP115B_REMOVE_ACCESS_NAV_DOC_ONLY  
 Datum: 2026-06-27
 
 ## Naechster sinnvoller Step

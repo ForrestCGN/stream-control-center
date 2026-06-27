@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP115_ACCESS_MODULE_SPLIT  
+Stand: RDAP115B_REMOVE_ACCESS_NAV_DOC_ONLY  
 Datum: 2026-06-27
 
 ## Geaendert/neu im aktuellen UI-Strukturblock
@@ -11,7 +11,7 @@ remote-modboard/backend/public/assets/modules/admin/access.js
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/CURRENT_REMOTE_MODBOARD_STATE.md
 docs/current/REMOTE_MODBOARD_ROADMAP_CURRENT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP115B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
