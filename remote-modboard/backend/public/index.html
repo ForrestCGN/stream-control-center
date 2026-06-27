@@ -165,8 +165,8 @@
         </nav>
 
         <div class="sidebar-foot">
-          <span>Design-Test v13 Port</span>
-          <strong>RDAP read-only</strong>
+          <span>ForrestCGN</span>
+          <strong>Modboard</strong>
         </div>
       </aside>
 
@@ -181,48 +181,46 @@
         <section class="rdap-view is-active-view" data-page-panel="overview">
           <section class="page-header module-page-header cgn-card">
             <div>
-              <p class="cgn-eyebrow">Remote Modboard / geschützter Zugriff</p>
-              <h1>Übersicht mit Auth-Gate, Status und Safety-Prüfung.</h1>
-              <p>Zentrale Login-Schicht vorbereitet. Produktive Aktionen bleiben gesperrt, bis Permissions, Locking und Audit vollständig geplant sind.</p>
+              <p class="cgn-eyebrow">Remote Modboard</p>
+              <h1>Übersicht</h1>
+              <p>Alles Wichtige auf einen Blick: Server, Login, Stream-PC und die letzten Aktivitäten.</p>
             </div>
           </section>
 
           <section class="metric-grid">
-            <article class="metric-card cgn-card"><span>Service</span><strong id="statusOk">—</strong><small>Statusroute</small><div class="cgn-progress"><i style="width:92%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Auth</span><strong id="statusAuthEnabled">—</strong><small>Login-Gate</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Login</span><strong id="statusLoginEnabled">—</strong><small>Session</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Writes</span><strong id="statusWriteEnabled">—</strong><small>muss false bleiben</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Server</span><strong id="statusOk">—</strong><small>Remote-Modboard</small><div class="cgn-progress"><i style="width:92%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Login</span><strong id="statusAuthEnabled">—</strong><small>Anmeldung</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Session</span><strong id="statusLoginEnabled">—</strong><small>Benutzerzugriff</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Bearbeiten</span><strong id="statusWriteEnabled">—</strong><small>aktuell nur erlaubte Bereiche</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
           </section>
 
           <section class="page-grid">
             <article class="cgn-card">
-              <div class="card-head"><div><p class="cgn-eyebrow">Safety</p><h2>Schutzregeln</h2></div><span class="cgn-chip cgn-chip--ok">geschützt</span></div>
-              <ul class="security-list" id="securityList"><li><span>Login wird geprüft</span><strong>—</strong></li></ul>
+              <div class="card-head"><div><p class="cgn-eyebrow">Aktivitäten</p><h2>Letzte Änderungen</h2></div><span class="cgn-chip cgn-chip--info">bald</span></div>
+              <div class="module-list">
+                <div class="module-row"><span class="module-icon blue">🧾</span><div><b>Verlauf wird hier sichtbar</b><small>Wer was wann gemacht hat, wird als nächster Produktbereich eingebunden.</small></div></div>
+              </div>
             </article>
             <article class="cgn-card">
-              <div class="card-head"><div><p class="cgn-eyebrow">Build</p><h2>Remote-Modboard</h2></div><span class="cgn-chip cgn-chip--info">read-only</span></div>
-              <div class="kv-grid">
-                <div class="kv-row"><span>moduleBuild</span><strong id="statusModuleBuild">—</strong></div>
-                <div class="kv-row"><span>Design</span><strong>Dashboard v2 Design-Test v13 Port</strong></div>
-                <div class="kv-row"><span>Actions</span><strong class="rdap-readonly-badge">nicht aktiv</strong></div>
+              <div class="card-head"><div><p class="cgn-eyebrow">Schnellzugriff</p><h2>Wichtige Bereiche</h2></div><span class="cgn-chip cgn-chip--ok">bereit</span></div>
+              <div class="module-list">
+                <div class="module-row"><span class="module-icon cyan">👥</span><div><b>Benutzer</b><small>Konten, Rollen und Sitzungen ansehen.</small></div></div>
+                <div class="module-row"><span class="module-icon purple">📝</span><div><b>Admin-Notizen</b><small>Notizen lesen und erlaubte Notizen speichern.</small></div></div>
+                <div class="module-row"><span class="module-icon green">🟢</span><div><b>Diagnose</b><small>Nur öffnen, wenn etwas nicht funktioniert.</small></div></div>
               </div>
             </article>
             <article class="cgn-card span2 chart-card">
-              <div class="card-head"><div><p class="cgn-eyebrow">Nächste Ausbaustufe</p><h2>Aus Diagnose wird später ein echtes Modboard.</h2></div><span class="cgn-chip cgn-chip--warn">geplant</span></div>
-              <div class="module-list">
-                <div class="module-row"><span class="module-icon purple">🔐</span><div><b>Zentraler Login</b><small>forrestcgn.de und mods.forrestcgn.de nutzen dieselbe serverseitige Session-/DB-Wahrheit.</small></div></div>
-                <div class="module-row"><span class="module-icon cyan">👥</span><div><b>Rollen & Rechte</b><small>Owner, Mods und Spezialrollen wie Sound-Profi werden später sichtbar und verwaltbar.</small></div></div>
-                <div class="module-row"><span class="module-icon blue">🧾</span><div><b>Audit & Locks</b><small>Produktive Aktionen erst mit Permission, Locking, Confirm und Audit.</small></div></div>
-              </div>
+              <div class="card-head"><div><p class="cgn-eyebrow">Schutz im Hintergrund</p><h2>Das Modboard bleibt abgesichert.</h2></div><span class="cgn-chip cgn-chip--ok">aktiv</span></div>
+              <p class="access-note">Sicherheits- und Diagnosewerte werden nicht mehr als Dauerwand angezeigt. Wenn etwas nicht funktioniert, zeigt die Diagnose verständliche Hinweise und bei Bedarf technische Details.</p>
             </article>
           </section>
         </section>
 
         <section class="rdap-view" data-page-panel="diagnostics">
-          <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">System / Endpoints</p><h1>Diagnose</h1><p>Read-only Endpoint-Status, Lock-/Audit-Kompatibilität und Schema-Adapter.</p></section>
+          <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Admin / Diagnose</p><h1>Systemstatus</h1><p>Auf einen Blick: grün bedeutet OK. Details helfen nur dann, wenn etwas rot wird.</p></section>
           <section class="page-grid">
-            <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Endpoint-Status</p><h2>API-Prüfungen</h2></div><span class="cgn-chip" id="endpointPill">lädt</span></div><div class="endpoint-grid" id="endpointList"></div></article>
-            <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Lock / Audit</p><h2>Diagnose</h2></div><span class="cgn-chip" id="lockAuditPill">lädt</span></div><div class="kv-grid"><div class="kv-row"><span>schemaAdapterPrepared</span><strong id="schemaAdapterPrepared">—</strong></div><div class="kv-row"><span>locks read</span><strong id="locksRead">—</strong></div><div class="kv-row"><span>locks write</span><strong id="locksWrite">—</strong></div><div class="kv-row"><span>locks missing</span><strong id="locksMissing">—</strong></div><div class="kv-row"><span>audit read</span><strong id="auditRead">—</strong></div><div class="kv-row"><span>audit write</span><strong id="auditWrite">—</strong></div><div class="kv-row"><span>lockAcquireEnabled</span><strong id="lockAcquireEnabled">—</strong></div><div class="kv-row"><span>auditInsertEnabled</span><strong id="auditInsertEnabled">—</strong></div></div></article>
+            <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Status</p><h2>API-Prüfungen</h2></div><span class="cgn-chip" id="endpointPill">lädt</span></div><div class="endpoint-grid" id="endpointList"></div></article>
+            <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Schutzsystem</p><h2>Bearbeitung & Verlauf</h2></div><span class="cgn-chip" id="lockAuditPill">lädt</span></div><div class="kv-grid"><div class="kv-row"><span>Datenmodell</span><strong id="schemaAdapterPrepared">—</strong></div><div class="kv-row"><span>Locks lesen</span><strong id="locksRead">—</strong></div><div class="kv-row"><span>Schreibschutz</span><strong id="locksWrite">—</strong></div><div class="kv-row"><span>Fehlende Felder</span><strong id="locksMissing">—</strong></div><div class="kv-row"><span>Verlauf lesen</span><strong id="auditRead">—</strong></div><div class="kv-row"><span>Verlauf schreiben</span><strong id="auditWrite">—</strong></div><div class="kv-row"><span>Sperre setzen</span><strong id="lockAcquireEnabled">—</strong></div><div class="kv-row"><span>Verlauf speichern</span><strong id="auditInsertEnabled">—</strong></div></div></article>
           </section>
         </section>
 
@@ -238,21 +236,21 @@
 
         <section class="rdap-view" data-page-panel="permissions">
           <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Mein Konto</p><h1>Meine Rechte</h1><p>Persönliche Berechtigungsanzeige für diesen Login. Änderungen gehören später in den Admin-Bereich.</p></section>
-          <section class="page-grid"><article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Berechtigung</p><h2>remote.view</h2></div><span class="cgn-chip cgn-chip--warn">read-only</span></div><div class="kv-grid"><div class="kv-row"><span>remote.view</span><strong id="permissionAllowed">—</strong></div><div class="kv-row"><span>Grund</span><strong id="permissionReason">—</strong></div><div class="kv-row"><span>Hinweis</span><strong>Frontend zeigt nur an. Backend entscheidet.</strong></div></div></article></section>
+          <section class="page-grid"><article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Berechtigung</p><h2>remote.view</h2></div><span class="cgn-chip cgn-chip--warn">read-only</span></div><div class="kv-grid"><div class="kv-row"><span>Modboard ansehen</span><strong id="permissionAllowed">—</strong></div><div class="kv-row"><span>Grund</span><strong id="permissionReason">—</strong></div><div class="kv-row"><span>Hinweis</span><strong>Frontend zeigt nur an. Backend entscheidet.</strong></div></div></article></section>
         </section>
 
         <section class="rdap-view" data-page-panel="access">
           <section class="page-header module-page-header cgn-card">
-            <p class="cgn-eyebrow">Admin / read-only</p>
+            <p class="cgn-eyebrow">Admin</p>
             <h1>Rollen & Rechte</h1>
-            <p>Admin-Übersicht über Zugriff, Übergangs-Allowlist und vorbereitetes Rollen-/Permission-Modell. Es werden keine Rechte geschrieben.</p>
+            <p>Wer darf ins Modboard, welche Rollen sind sichtbar und welche Zugriffe sind aktuell aktiv?</p>
           </section>
 
           <section class="metric-grid">
             <article class="metric-card cgn-card"><span>Login</span><strong id="accessLoggedIn">—</strong><small>Session</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
             <article class="metric-card cgn-card"><span>Dashboard</span><strong id="accessDashboardAllowed">—</strong><small>Zugriff</small><div class="cgn-progress"><i style="width:72%"></i></div></article>
-            <article class="metric-card cgn-card"><span>remote.view</span><strong id="accessPermissionRemoteView">—</strong><small>Permission-Test</small><div class="cgn-progress"><i style="width:64%"></i></div></article>
-            <article class="metric-card cgn-card"><span>DB-Modell</span><strong id="accessSchemaReady">—</strong><small>read-only</small><div class="cgn-progress"><i style="width:58%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Modboard ansehen</span><strong id="accessPermissionRemoteView">—</strong><small>Ansicht</small><div class="cgn-progress"><i style="width:64%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Datenmodell</span><strong id="accessSchemaReady">—</strong><small>nur ansehen</small><div class="cgn-progress"><i style="width:58%"></i></div></article>
           </section>
 
           <section class="page-grid">
@@ -268,15 +266,15 @@
             </article>
 
             <article class="cgn-card">
-              <div class="card-head"><div><p class="cgn-eyebrow">Übergang</p><h2>Allowlist ist nur Startschutz</h2></div><span class="cgn-chip cgn-chip--warn">temporär</span></div>
+              <div class="card-head"><div><p class="cgn-eyebrow">Hinweis</p><h2>Zugriff wird serverseitig geprüft</h2></div><span class="cgn-chip cgn-chip--info">Info</span></div>
               <div class="access-note">
-                <p>Aktuell darf der Dashboard-Zugriff zusätzlich über eine serverseitige Allowlist in der Env begrenzt werden. Das ist sicherer als ein offenes Login, aber keine endgültige Benutzerverwaltung.</p>
-                <p>Später sollen Owner, Mods und Spezialrollen wie Sound-Profi über die gemeinsame Auth-/Session-DB und serverseitige Permissions verwaltet werden.</p>
+                <p>Das Modboard ist nicht öffentlich offen. Der Server entscheidet, wer Zugriff bekommt.</p>
+                <p>Details zur internen Zugriffstechnik gehören nicht in die normale Ansicht und bleiben bei Bedarf in der Diagnose.</p>
               </div>
             </article>
 
             <article class="cgn-card span2">
-              <div class="card-head"><div><p class="cgn-eyebrow">DB-Modell</p><h2>Rollen, Gruppen & Permissions</h2></div><span class="cgn-chip" id="accessModelPill">lädt</span></div>
+              <div class="card-head"><div><p class="cgn-eyebrow">DB-Modell</p><h2>Rollen, Gruppen & Rechte</h2></div><span class="cgn-chip" id="accessModelPill">lädt</span></div>
               <div class="access-columns">
                 <div>
                   <h3>Rollen</h3>
@@ -287,7 +285,7 @@
                   <div class="model-list" id="accessGroupsModel">—</div>
                 </div>
                 <div>
-                  <h3>Permissions</h3>
+                  <h3>Rechte</h3>
                   <div class="model-list" id="accessPermissionsModel">—</div>
                 </div>
               </div>
@@ -310,21 +308,21 @@
 
         <section class="rdap-view" data-page-panel="admin-users">
           <section class="page-header module-page-header cgn-card">
-            <p class="cgn-eyebrow">Admin / read-only</p>
+            <p class="cgn-eyebrow">Admin</p>
             <h1>Benutzerverwaltung</h1>
-            <p>Admin-Übersicht über vorhandene Dashboard-User, Rollen, Gruppen und Sessions. Dieser Step zeigt nur an und schreibt keine Rechte.</p>
+            <p>Benutzer, Rollen und Sitzungen im Überblick. Technische Daten bleiben in Details.</p>
           </section>
 
           <section class="metric-grid">
-            <article class="metric-card cgn-card"><span>User</span><strong id="adminCountUsers">—</strong><small>dashboard_users</small><div class="cgn-progress"><i style="width:62%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Sessions</span><strong id="adminCountSessions">—</strong><small>dashboard_sessions</small><div class="cgn-progress"><i style="width:46%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Rollen</span><strong id="adminCountRoles">—</strong><small>dashboard_roles</small><div class="cgn-progress"><i style="width:58%"></i></div></article>
-            <article class="metric-card cgn-card"><span>Permissions</span><strong id="adminCountPermissions">—</strong><small>read-only</small><div class="cgn-progress"><i style="width:54%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Benutzer</span><strong id="adminCountUsers">—</strong><small>Konten</small><div class="cgn-progress"><i style="width:62%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Sitzungen</span><strong id="adminCountSessions">—</strong><small>angemeldet</small><div class="cgn-progress"><i style="width:46%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Rollen</span><strong id="adminCountRoles">—</strong><small>sichtbar</small><div class="cgn-progress"><i style="width:58%"></i></div></article>
+            <article class="metric-card cgn-card"><span>Permissions</span><strong id="adminCountPermissions">—</strong><small>nur ansehen</small><div class="cgn-progress"><i style="width:54%"></i></div></article>
           </section>
 
           <section class="page-grid">
             <article class="cgn-card span2">
-              <div class="card-head"><div><p class="cgn-eyebrow">User</p><h2>Bekannte Dashboard-User</h2></div><span class="cgn-chip" id="adminUsersPill">lädt</span></div>
+              <div class="card-head"><div><p class="cgn-eyebrow">Benutzer</p><h2>Bekannte Modboard-Benutzer</h2></div><span class="cgn-chip" id="adminUsersPill">lädt</span></div>
               <div class="admin-user-table" id="adminUsersList">—</div>
             </article>
 
@@ -339,12 +337,12 @@
             </article>
 
             <article class="cgn-card span2">
-              <div class="card-head"><div><p class="cgn-eyebrow">Sicherheit</p><h2>Keine Schreibverwaltung in diesem Step</h2></div><span class="cgn-chip cgn-chip--warn">gesperrt</span></div>
+              <div class="card-head"><div><p class="cgn-eyebrow">Info</p><h2>Bearbeiten kommt in den passenden Bereichen</h2></div><span class="cgn-chip cgn-chip--info">Hinweis</span></div>
               <div class="admin-lock-note">
                 <i>!</i>
                 <div>
                   <strong>Nur Übersicht</strong>
-                  <span>User freigeben/sperren, Rollen vergeben, Sessions widerrufen und Audit-Aktionen kommen später als eigener Write-Scope mit Owner/Admin-Prüfung, Confirm, Locking und Audit.</span>
+                  <span>Diese Ansicht ist zum Überblick gedacht. Änderungen werden später dort eingebaut, wo sie wirklich gebraucht werden.</span>
                 </div>
               </div>
             </article>
@@ -352,9 +350,9 @@
         </section>
 
         <section class="rdap-view" data-page-panel="modules">
-          <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Module</p><h1>Module</h1><p>Platzhalter im echten Dashboard-v2-Look. Steuerung bleibt deaktiviert.</p></section>
+          <section class="page-header module-page-header cgn-card"><p class="cgn-eyebrow">Module</p><h1>Module</h1><p>Spätere Arbeitsbereiche für Stream- und Mod-Funktionen.</p></section>
           <section class="page-grid">
-            <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Read-only Platzhalter</p><h2>Modulbereiche</h2></div><span class="cgn-chip cgn-chip--warn">keine Actions</span></div><div class="module-list"><div class="module-row"><span class="module-icon purple">OBS</span><div><b>OBS</b><small>Noch keine Steuerung.</small></div></div><div class="module-row"><span class="module-icon cyan">SND</span><div><b>Sound</b><small>Noch keine Steuerung.</small></div></div><div class="module-row"><span class="module-icon blue">OVR</span><div><b>Overlays</b><small>Noch keine Steuerung.</small></div></div><div class="module-row"><span class="module-icon green">CMD</span><div><b>Commands</b><small>Noch keine Steuerung.</small></div></div></div></article>
+            <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Bereiche</p><h2>Geplante Modboard-Funktionen</h2></div><span class="cgn-chip cgn-chip--info">bald</span></div><div class="module-list"><div class="module-row"><span class="module-icon purple">OBS</span><div><b>OBS</b><small>Noch keine Steuerung.</small></div></div><div class="module-row"><span class="module-icon cyan">SND</span><div><b>Sound</b><small>Noch keine Steuerung.</small></div></div><div class="module-row"><span class="module-icon blue">OVR</span><div><b>Overlays</b><small>Noch keine Steuerung.</small></div></div><div class="module-row"><span class="module-icon green">CMD</span><div><b>Commands</b><small>Noch keine Steuerung.</small></div></div></div></article>
           </section>
         </section>
 

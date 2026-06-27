@@ -13,14 +13,14 @@ const endpoints = {
 };
 
 const endpointLabels = {
-  status: 'Status',
+  status: 'Serverstatus',
   routes: 'Routen',
-  authMe: 'Auth/me',
-  loginPlan: 'Login-Plan',
-  authModel: 'Auth-Modell',
-  permission: 'Permission remote.view',
-  lockAudit: 'Lock-/Audit',
-  schemaAdapter: 'Schema-Adapter',
+  authMe: 'Mein Login',
+  loginPlan: 'Login-System',
+  authModel: 'Benutzer & Rollen',
+  permission: 'Rechteprüfung',
+  lockAudit: 'Schutzsystem',
+  schemaAdapter: 'Datenmodell',
   syncTwitchProfile: 'Profil aktualisieren'
 };
 
@@ -822,10 +822,10 @@ function renderScenes(authMe, status, loginPlan) {
 function renderStatus(result) {
   const body = (result && result.body) || {};
   const auth = body.auth || {};
-  setValue('statusOk', body.ok);
-  setValue('statusAuthEnabled', auth.enabled);
-  setValue('statusLoginEnabled', auth.loginEnabled);
-  setValue('statusWriteEnabled', body.writeEnabled);
+  setText('statusOk', body.ok ? 'Online' : 'Problem');
+  setText('statusAuthEnabled', auth.enabled ? 'Aktiv' : 'Problem');
+  setText('statusLoginEnabled', auth.loginEnabled ? 'Bereit' : 'Problem');
+  setText('statusWriteEnabled', body.writeEnabled ? 'Aktiv' : 'Geschützt');
   setText('statusModuleBuild', body.moduleBuild || '—');
 }
 
@@ -839,7 +839,7 @@ function renderQuickStatus(results) {
   setChip('quickService', results.status && results.status.ok, results.status && results.status.ok ? 'Service online' : 'Service prüfen');
   setChip('quickLogin', authMe.dashboardAccess === true, authMe.dashboardAccess ? 'Login freigegeben' : (authMe.loggedIn ? 'Login gesperrt' : 'Login nötig'));
   setChip('quickOAuth', oauth.effectiveEnabled === true, oauth.effectiveEnabled ? 'OAuth aktiv' : 'OAuth gated');
-  setChip('quickAgent', agent.actionsEnabled === false, 'Agent disabled');
+  setChip('quickAgent', agent.connected === true, agent.connected ? 'Stream-PC online' : 'Stream-PC offline');
 }
 
 function renderSecurity(status, lockAudit, loginPlan) {
@@ -848,14 +848,10 @@ function renderSecurity(status, lockAudit, loginPlan) {
   const loginBody = (loginPlan && loginPlan.body) || {};
   const agent = statusBody.agent || {};
   const items = [
-    ['Zentrale Login-Schicht vorbereitet', Boolean(loginBody.centralAuth && loginBody.centralAuth.prepared)],
-    ['Gemeinsame DB-Session-Wahrheit geplant', Boolean(loginBody.centralAuth && loginBody.centralAuth.sharedDatabasePlanned)],
-    ['Dashboard-Zugriff serverseitig geprüft', true],
-    ['Login-Gate aktiv', true],
-    ['Access-Denied für nicht freigeschaltete User', true],
-    ['Remote-Writes disabled', statusBody.writeEnabled === false && lockBody.writeEnabled === false],
-    ['Agent-Actions disabled', agent.actionsEnabled === false || lockBody.agentActionsEnabled === false],
-    ['OBS/Sound/Overlay/Commands disabled', true]
+    ['Login wird vom Server geprüft', Boolean(loginBody.centralAuth && loginBody.centralAuth.prepared)],
+    ['Nur freigegebene Benutzer kommen ins Modboard', true],
+    ['Änderungen werden serverseitig geprüft', statusBody.writeEnabled === false || lockBody.writeEnabled === false],
+    ['Stream-PC-Aktionen sind noch nicht aktiv', agent.actionsEnabled === false || lockBody.agentActionsEnabled === false]
   ];
 
   const list = byId('securityList');
@@ -872,15 +868,15 @@ function renderLockAudit(lockAudit, schemaAdapter) {
   const schemaBody = (schemaAdapter && schemaAdapter.body) || body;
   const locks = body.locks || {};
   const audit = body.audit || {};
-  setChip('lockAuditPill', lockAudit && lockAudit.ok, lockAudit && lockAudit.ok ? 'read-only ok' : 'prüfen');
-  setValue('schemaAdapterPrepared', schemaBody.schemaAdapterPrepared);
-  setValue('locksRead', getNested(locks, ['adapter', 'compatibleForRead']));
-  setValue('locksWrite', getNested(locks, ['adapter', 'compatibleForWrite']));
+  setChip('lockAuditPill', lockAudit && lockAudit.ok, lockAudit && lockAudit.ok ? 'OK' : 'Problem');
+  setText('schemaAdapterPrepared', schemaBody.schemaAdapterPrepared ? 'OK' : 'Problem');
+  setText('locksRead', getNested(locks, ['adapter', 'compatibleForRead']) ? 'OK' : 'Problem');
+  setText('locksWrite', getNested(locks, ['adapter', 'compatibleForWrite']) ? 'Bereit' : 'Geschützt');
   setText('locksMissing', formatList(getNested(locks, ['adapter', 'missingForWrite'])));
-  setValue('auditRead', getNested(audit, ['adapter', 'compatibleForRead']));
-  setValue('auditWrite', getNested(audit, ['adapter', 'compatibleForWrite']));
-  setValue('lockAcquireEnabled', body.lockAcquireEnabled);
-  setValue('auditInsertEnabled', body.auditInsertEnabled);
+  setText('auditRead', getNested(audit, ['adapter', 'compatibleForRead']) ? 'OK' : 'Problem');
+  setText('auditWrite', getNested(audit, ['adapter', 'compatibleForWrite']) ? 'Bereit' : 'Geschützt');
+  setText('lockAcquireEnabled', body.lockAcquireEnabled ? 'Aktiv' : 'Nicht aktiv');
+  setText('auditInsertEnabled', body.auditInsertEnabled ? 'Aktiv' : 'Nicht aktiv');
 }
 
 function renderRoutes(result) {
@@ -1113,15 +1109,16 @@ function formatCount(value) {
 function renderEndpoints(results) {
   const values = Object.entries(results || {});
   const okCount = values.filter(([, result]) => result.ok).length;
-  setChip('endpointPill', okCount === values.length, `${okCount}/${values.length} ok`);
+  setChip('endpointPill', okCount === values.length, okCount === values.length ? `${okCount}/${values.length} OK` : `${values.length - okCount} Problem(e)`);
   const endpointList = byId('endpointList');
   if (!endpointList) return;
   endpointList.innerHTML = values.map(([key, result]) => {
     const label = endpointLabels[key] || key;
-    const status = result.httpStatus || 'fetch';
     const cls = result.ok ? 'endpoint ok' : 'endpoint bad';
-    const detail = result.error || (result.body && result.body.error) || (result.ok ? 'ok' : 'prüfen');
-    return `<div class="${cls}"><span>${escapeHtml(label)}</span><strong>HTTP ${escapeHtml(status)}</strong><small>${escapeHtml(detail)}</small></div>`;
+    const detail = result.ok
+      ? `Details: HTTP ${result.httpStatus || 200}`
+      : `Problem: ${result.error || (result.body && result.body.error) || `HTTP ${result.httpStatus || 0}`}`;
+    return `<div class="${cls}"><span>${escapeHtml(label)}</span><strong>${result.ok ? 'OK' : 'Problem'}</strong><small>${escapeHtml(detail)}</small></div>`;
   }).join('');
 }
 
@@ -1134,7 +1131,7 @@ function renderErrors(results) {
   setText('errorText', failed.map(([key, result]) => {
     const label = endpointLabels[key] || key;
     const detail = result.error || (result.body && result.body.error) || `HTTP ${result.httpStatus || 0}`;
-    return `${label}: ${detail}`;
+    return `${label}: Problem seit letzter Prüfung. Details: ${detail}`;
   }).join(' · '));
   setHidden('errorBox', false);
 }
@@ -1179,8 +1176,8 @@ function bindOptional(id, eventName, handler) {
 }
 
 function formatValue(value) {
-  if (value === true) return 'true';
-  if (value === false) return 'false';
+  if (value === true) return 'OK';
+  if (value === false) return 'Nein';
   if (value == null || value === '') return '—';
   return String(value);
 }
