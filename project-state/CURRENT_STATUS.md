@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Stand: RDAP104B_REMOTE_MODBOARD_SERVER_DEPLOY_WRAPPER_LIVE_CONFIRMED  
+Stand: RDAP105_DOCS_INVENTORY_AND_CLEANUP_PLAN  
 Datum: 2026-06-27  
 Projekt: `stream-control-center` / Remote-Modboard / RDAP
 
@@ -12,32 +12,7 @@ RDAP102: Stream-PC Verbindungsstatus UI-Plan dokumentiert.
 RDAP103: Read-only UI-Kachel fuer Stream-PC Verbindung vorbereitet und live sichtbar.
 RDAP104: Server-Deploy-Wrapper und Backup-/Deploy-Cleanup vorbereitet.
 RDAP104B: Server-Deploy-Wrapper und Cleanup live bestaetigt.
-```
-
-## RDAP103 Live-Befund
-
-```text
-Admin / Verbindungen sichtbar.
-Stream-PC Verbindung sichtbar.
-Status: offline.
-Heartbeat: keine aktive Meldung.
-Actions: deaktiviert.
-Transport: WSS.
-Portfreigabe Stream-PC: nein.
-Sicherheitsgrenzen sichtbar OK.
-```
-
-Offline ist korrekt, weil die Agent-Runtime final deaktiviert bleibt.
-
-## RDAP104 Ergebnis
-
-```text
-Neue Server-Hilfsscripte:
-- tools/server/remote-modboard-deploy-step.sh
-- tools/server/remote-modboard-cleanup-backups.sh
-
-Erweiterte Deploy-Engine:
-- tools/remote-modboard-deploy.sh installiert Server-Hilfsscripte nach /opt/stream-control-center/tools/server
+RDAP105: Doku-Inventur und Cleanup-Plan erstellt.
 ```
 
 ## RDAP104B Live-Bestaetigung
@@ -64,6 +39,22 @@ Service/API:
 
 ```bash
 bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP_NAME dev
+```
+
+## RDAP105 Doku-Inventur
+
+```text
+Snapshot-Befund:
+- stream-control-center.zip: 3380 Eintraege
+- docs/current: ca. 1435 Dateien
+- project-state: ca. 1248 Dateien
+- project-state/archive: ca. 996 Dateien
+- Markdown-Dateien gesamt: ca. 3244
+
+Bewertung:
+- docs/current ist zu voll fuer echten Current-Fokus.
+- project-state ist zu laut fuer schnelle Orientierung.
+- historische Dokus sollen erhalten bleiben, aber klarer als Archiv behandelt werden.
 ```
 
 ## Finaler Sicherheitszustand
@@ -99,5 +90,5 @@ Keine Rohpayload-Ausgabe.
 ## Naechster empfohlener Step
 
 ```text
-RDAP105_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+RDAP106_DOCS_CURRENT_STATE_REBUILD
 ```

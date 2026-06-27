@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP104B_REMOTE_MODBOARD_SERVER_DEPLOY_WRAPPER_LIVE_CONFIRMED  
+Stand: RDAP105_DOCS_INVENTORY_AND_CLEANUP_PLAN  
 Datum: 2026-06-27
 
 ## Erledigt/vorbereitet
@@ -32,24 +32,34 @@ RDAP104B:
 - Bash-Syntaxchecks sauber.
 - Cleanup live ausgefuehrt.
 - Neuer Deploy-Standard aktiv.
+
+RDAP105:
+- Doku-Inventur und Cleanup-Plan erstellt.
+- docs/current/project-state Ueberfuellung erkannt.
+- Doku-Aufraeumung vor weiteren Features priorisiert.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP105_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+RDAP106_DOCS_CURRENT_STATE_REBUILD
 ```
 
-## Offen / pruefen
+## Offen / pruefen in RDAP106
 
 ```text
-- Welche weiteren Stream-PC-Verbindungsdetails sicher read-only in der UI sichtbar sein sollen.
-- Welche vorhandenen Felder aus /api/remote/agent/status dafuer geeignet sind.
-- Ob bestehende Admin-/Verbindungen-Seite dafuer erweitert werden kann.
+- Welche docs/current-Dateien wirklich aktuelle Start-/Truth-Dateien bleiben.
+- Welche RDAP/CAN/DASHUI-Dokus nur historisch sind.
+- Welche zentralen Current-State-Dateien neu aufgebaut werden.
+- Ob zuerst nur neue Index-/Strukturdateien erstellt werden, ohne Dateien zu verschieben.
+- Welche alten Dateien spaeter nach docs/archive/... wandern duerfen.
 ```
 
 ## Danach
 
 ```text
-Nach RDAP105-Plan: optional read-only UI-Erweiterung, aber nur ohne Runtime-Aktivierung und ohne Agent-Actions.
+RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN:
+- weitere Stream-PC-Verbindungsdetails nur read-only planen
+- keine Runtime-Aktivierung
+- keine Agent-Actions
 ```

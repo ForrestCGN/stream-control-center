@@ -1,6 +1,6 @@
 # START_HERE_FOR_NEW_CHAT
 
-Stand: RDAP104B_REMOTE_MODBOARD_SERVER_DEPLOY_WRAPPER_LIVE_CONFIRMED  
+Stand: RDAP105_DOCS_INVENTORY_AND_CLEANUP_PLAN  
 Datum: 2026-06-27
 
 ## Bitte zuerst lesen
@@ -9,10 +9,9 @@ Datum: 2026-06-27
 docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
 docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
 docs/current/RDAP_WORKFLOW_DEPLOY_STANDARD_UPDATE_2026-06-25.md
-docs/current/RDAP103_STREAM_PC_CONNECTION_STATUS_UI_READONLY_CARD.md
-docs/current/RDAP104_REMOTE_MODBOARD_SERVER_DEPLOY_WRAPPER_AND_BACKUP_CLEANUP.md
 docs/current/RDAP104B_REMOTE_MODBOARD_SERVER_DEPLOY_WRAPPER_LIVE_CONFIRMED.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP104B.md
+docs/current/RDAP105_DOCS_INVENTORY_AND_CLEANUP_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_AFTER_RDAP105.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -25,8 +24,8 @@ project-state/CHANGELOG.md
 ```text
 RDAP101B: Public WSS Heartbeat live bestaetigt; Runtime danach final disabled.
 RDAP103: Stream-PC Verbindung Read-only-Kachel live sichtbar; Status offline korrekt.
-RDAP104: Server-Deploy-Wrapper und Backup-/Deploy-Cleanup vorbereitet.
 RDAP104B: Wrapper und Cleanup live bestaetigt; neuer Ein-Befehl-Deploy aktiv.
+RDAP105: Doku-Inventur und Cleanup-Plan erstellt; Doku-Aufraeumung wird vor weiteren Features priorisiert.
 ```
 
 ## Neuer Webserver-Deploy-Standard
@@ -48,16 +47,15 @@ Wichtig:
 ## Naechster Entscheid
 
 ```text
-RDAP105_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN
+RDAP106_DOCS_CURRENT_STATE_REBUILD
 ```
 
 Empfehlung:
 
 ```text
-Naechste Stream-PC-Verbindungsdetails nur read-only planen.
-Keine Runtime-Aktivierung.
-Keine Agent-Actions.
-Keine OBS-/Sound-/Overlay-/Command-Steuerung.
+Zuerst zentrale aktuelle Doku neu aufbauen.
+Historische RDAP/CAN/DASHUI-Dateien nicht loeschen, sondern sauber als Archiv behandeln.
+Feature-Step Stream-PC-Verbindungsdetails danach wieder aufnehmen.
 ```
 
 ## Arbeitsweise
