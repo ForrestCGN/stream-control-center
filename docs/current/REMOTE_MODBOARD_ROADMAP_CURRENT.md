@@ -1,14 +1,14 @@
-# Remote-Modboard Roadmap – aktuell nach RDAP121
+# Remote-Modboard Roadmap – aktuell nach Version 0.1.1
 
 ## Erledigt
 
-- RDAP119: Streaming-PC-Verbindung Client MVP.
-- RDAP120: Verbindung sichtbar und verständlich im Dashboard.
-- RDAP121: Komponentenstatus read-only über Heartbeat sichtbar.
+- Version 0.1.0: Streaming-PC-Verbindung Client MVP.
+- Version 0.1.0 Dashboard-Anzeige: Verbindung sichtbar und verständlich im Dashboard.
+- Version 0.1.1: Komponentenstatus read-only über Heartbeat sichtbar.
 
 ## Nächster sinnvoller Schritt
 
-`RDAP122_FIRST_SAFE_MODULE_ACTION_PLAN`
+`VERSION_0_1_3_FIRST_SAFE_MODULE_ACTION_PLAN`
 
 Ziel:
 - erste echte Modul-Anbindung auswählen

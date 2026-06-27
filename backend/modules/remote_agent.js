@@ -15,9 +15,9 @@ try {
 }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.1';
-const MODULE_BUILD = 'RDAP121_STREAMING_PC_COMPONENT_STATUS_READONLY';
-const STATUS_API_VERSION = 'rdap121_streaming_pc_component_status.v1';
+const MODULE_VERSION = '0.1.2';
+const MODULE_BUILD = 'VERSION_0_1_2_STREAMING_PC_COMPONENT_STATUS_TEXT_CLEANUP';
+const STATUS_API_VERSION = 'streaming_pc_component_status.v0.1.2';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -187,7 +187,7 @@ const LOCK_MODEL = Object.freeze({
   saveRequiresValidLock: true,
   sharedReadWhileLocked: true,
   notes: [
-    'RDAP119 setzt keine produktiven Locks.',
+    'Version 0.1.2 setzt keine produktiven Locks.',
     'Speichern soll spaeter nur mit gueltigem Lock und passender Resource-Version erlaubt sein.',
     'Owner/Admin duerfen Locks spaeter uebernehmen; jede Uebernahme ist auditpflichtig.'
   ]
@@ -221,7 +221,7 @@ const AUDIT_MODEL = Object.freeze({
   ],
   sources: ['dashboard-local', 'remote-modboard', 'webserver', 'streaming-pc'],
   notes: [
-    'RDAP119 schreibt noch keine Audit-Daten.',
+    'Version 0.1.2 schreibt noch keine Audit-Daten.',
     'Produktive Aenderungen muessen spaeter auditpflichtig sein.',
     'Sensible Werte duerfen nur maskiert oder zusammengefasst im Audit landen.'
   ]
@@ -398,7 +398,7 @@ function connectStreamingPc(config) {
     ws.on('close', () => handleClose(config, 'socket_close'));
     ws.on('error', (err) => handleError(config, err));
     ws.on('message', () => {
-      // RDAP119 client ignores inbound data. No commands/actions are accepted.
+      // Version 0.1.2 client ignores inbound data. No commands/actions are accepted.
     });
   } catch (err) {
     handleError(config, err);
@@ -525,7 +525,7 @@ function buildComponentStatus(config) {
       reachable: null,
       status: 'not_checked',
       checkedAt: now,
-      detail: 'RDAP121 liest OBS noch nicht aktiv aus'
+      detail: 'Version 0.1.2 liest OBS noch nicht aktiv aus'
     },
     streamerbot: {
       available: false,
@@ -533,7 +533,7 @@ function buildComponentStatus(config) {
       reachable: null,
       status: 'not_checked',
       checkedAt: now,
-      detail: 'RDAP121 liest Streamer.bot noch nicht aktiv aus'
+      detail: 'Version 0.1.2 liest Streamer.bot noch nicht aktiv aus'
     },
     actionsEnabled: false,
     productiveActionsEnabled: false,
@@ -609,7 +609,7 @@ function buildStatusResponse() {
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
     warnings: [
-      'RDAP121 sendet Heartbeats plus sicheren Komponentenstatus vom Streaming-PC zum Webserver.',
+      'Version 0.1.2 sendet Heartbeats plus sicheren Komponentenstatus vom Streaming-PC zum Webserver.',
       'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.',
       'OBS, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.',
       'Verbindungsschluessel wird nie in Status, UI oder Logs ausgegeben. Komponentenstatus ist read-only und enthaelt keine Secrets, Pfade oder Prozesslisten.'
@@ -659,7 +659,7 @@ function buildConnectionStatus() {
 
 function buildPermissionsModelResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'permissions.rdap119.v1',
+    modelApiVersion: 'permissions.streaming_pc.v0.1.2',
     permissionDecisionRule: 'roles are presets; groups are markers; concrete permission keys and module matrix grants decide',
     twitchRolesAreNotDashboardRoles: true,
     rolesAreSeparateFromGroups: true,
@@ -711,7 +711,7 @@ function buildPermissionsModelResponse() {
 
 function buildLocksStatusResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'locks.rdap119.v1',
+    modelApiVersion: 'locks.streaming_pc.v0.1.2',
     locks: clonePlain(LOCK_MODEL),
     activeLocks: [],
     summary: {
@@ -721,7 +721,7 @@ function buildLocksStatusResponse() {
       takeoverPendingCount: 0
     },
     warnings: [
-      'RDAP119 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.',
+      'Version 0.1.2 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.',
       'Produktives Speichern darf spaeter nur mit gueltigem Lock und Resource-Version erfolgen.'
     ]
   });
@@ -729,7 +729,7 @@ function buildLocksStatusResponse() {
 
 function buildAuditModelResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'audit.rdap119.v1',
+    modelApiVersion: 'audit.streaming_pc.v0.1.2',
     audit: clonePlain(AUDIT_MODEL),
     summary: {
       enabled: false,
@@ -737,7 +737,7 @@ function buildAuditModelResponse() {
       retentionConfigurable: true
     },
     warnings: [
-      'RDAP119 schreibt noch keine Audit-Events.',
+      'Version 0.1.2 schreibt noch keine Audit-Events.',
       'Produktive Remote-/Dashboard-Aktionen muessen spaeter Audit schreiben, bevor sie als fertig gelten.'
     ]
   });
@@ -774,7 +774,7 @@ function buildRoutesResponse() {
       {
         method: 'GET',
         path: '/api/remote-agent/routes',
-        description: 'Read-only Routenuebersicht fuer RDAP119.'
+        description: 'Read-only Routenuebersicht fuer Version 0.1.2.'
       }
     ]
   });

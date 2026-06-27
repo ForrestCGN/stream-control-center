@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## RDAP121_STREAMING_PC_COMPONENT_STATUS_READONLY
+## VERSION_0_1_2_STREAMING_PC_COMPONENT_STATUS_TEXT_CLEANUP
 
 - Streaming-PC Heartbeat erweitert um sicheren Komponentenstatus.
 - Webserver speichert Komponentenstatus nur in-memory/read-only.

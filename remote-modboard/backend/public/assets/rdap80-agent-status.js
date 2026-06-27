@@ -153,7 +153,7 @@
             <div class="kv-row"><span>Steuerung aktiv</span><strong id="agentRuntimeActionsEnabled">—</strong></div>
             <div class="kv-row"><span>produktive Steuerung</span><strong id="agentRuntimeProductive">—</strong></div>
           </div>
-          <div class="rdap120-connection-notice">RDAP120 zeigt die Verbindung sichtbar. Steuerbefehle bleiben aus und werden nicht ausgeführt.</div>
+          <div class="rdap120-connection-notice">Version 0.1.2 zeigt die Verbindung sichtbar. Steuerbefehle bleiben aus und werden nicht ausgeführt.</div>
         </article>
 
         <article class="cgn-card span2">
@@ -275,7 +275,7 @@
       chip.textContent = viewState.chip;
     }
 
-    setText('agentStatusNotice', `RDAP120: Streaming-PC-Verbindung sichtbar geladen (${reason || 'auto'}). Verbindung ja, Steuerung nein.`);
+    setText('agentStatusNotice', `Version 0.1.2: Streaming-PC-Verbindung sichtbar geladen (${reason || 'auto'}). Verbindung ja, Steuerung nein.`);
     updateQuickConnectionChip(viewState.quickChip, viewState.ok);
   }
 
@@ -311,11 +311,11 @@
 
     setText('componentObsStatus', obs.status || 'noch nicht geprüft');
     setText('componentObsReachable', formatReachable(obs.reachable));
-    setText('componentObsDetail', obs.detail || 'RDAP121 liest OBS noch nicht aktiv aus');
+    setText('componentObsDetail', obs.detail || 'Version 0.1.2 liest OBS noch nicht aktiv aus');
 
     setText('componentStreamerbotStatus', streamerbot.status || 'noch nicht geprüft');
     setText('componentStreamerbotReachable', formatReachable(streamerbot.reachable));
-    setText('componentStreamerbotDetail', streamerbot.detail || 'RDAP121 liest Streamer.bot noch nicht aktiv aus');
+    setText('componentStreamerbotDetail', streamerbot.detail || 'Version 0.1.2 liest Streamer.bot noch nicht aktiv aus');
   }
 
   function formatComponentState(component) {

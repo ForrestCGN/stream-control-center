@@ -1,9 +1,9 @@
-# Current Remote-Modboard State – RDAP121
+# Current Remote-Modboard State – Version 0.1.1
 
 ## Verbindung Streaming-PC ↔ Webserver
 
 Der Webserver akzeptiert die gesicherte ausgehende Verbindung vom Streaming-PC über `/agent-ws`.
-Der Streaming-PC sendet Heartbeats und ab RDAP121 einen sicheren Komponentenstatus.
+Der Streaming-PC sendet Heartbeats und ab Version 0.1.1 einen sicheren Komponentenstatus.
 
 Sichtbar im Dashboard:
 - Streaming-PC online/offline
