@@ -2,34 +2,33 @@
 
 Stand: 2026-06-27
 
-Aktueller bestaetigter Stand nach lokalem Einspielen/Tests dieses Steps:
+Aktueller vorbereiteter Stand dieses Steps:
 
 ```text
-v0.2.9 - Dashboard-v2 Navigation angeglichen
+v0.2.10 - Stream-PC Status read-only vorbereitet
 ```
 
 Geaendert:
 
 ```text
-Lokale Dashboard-v2 Navigation:
-- sichtbare Grundstruktur an das Online-Modboard angeglichen.
-- System, Module und Admin als gemeinsame Strukturbasis verwendet.
-- lokale Zukunftsbereiche Aktionen, Loyalty, Media und Overlays bleiben erhalten.
-- Online-Unterpunkte sind als geplante, deaktivierte Menuepunkte sichtbar.
-- nur System -> Uebersicht ist aktiv.
-- keine Online-Adminfunktion kopiert oder freigeschaltet.
+Lokale Dashboard-v2 System-Seite:
+- Menuepunkt System -> Stream-PC aktiviert.
+- Neue Read-only-Seite fuer lokalen Stream-PC Status vorbereitet.
+- Ausschliesslich bestehende GET-Routen verwendet:
+  - /api/_status
+  - /api/stream-status/current
+  - /api/diag/ws
+- Server-, Modul-, Routen-, WebSocket- und gecachter Streamstatus sichtbar.
+- Keine Refresh-, Test-, Log-, Session- oder Schreibroute aufgerufen.
+- Keine Buttons, Actions oder Steuerfunktionen.
 - /dashboard bleibt unveraendert.
 ```
 
 Vorher bestaetigt:
 
 ```text
-v0.2.8 - Dashboard-v2 Einstieg vorbereitet
+v0.2.9 - Dashboard-v2 Navigation angeglichen
 ```
-
-- Erste lokale Startseite im Modboard-Look vorbereitet.
-- Fake-Zustaende und scheinbar aktive Demo-Bedienelemente entfernt.
-- Noch nicht migrierte Module deaktiviert.
 
 Nicht geaendert:
 

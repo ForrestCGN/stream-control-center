@@ -1,5 +1,5 @@
 import { OverviewPage } from "../modules/overview/OverviewPage.jsx";
-import { RemoteAgentPage } from "../modules/remote-agent/RemoteAgentPage.jsx";
+import { StreamPcStatusPage } from "../modules/stream-pc/StreamPcStatusPage.jsx";
 import { AdminUsersPage } from "../modules/admin/AdminUsersPage.jsx";
 import { AdminLocksPage } from "../modules/admin/AdminLocksPage.jsx";
 import { AdminAuditPage } from "../modules/admin/AdminAuditPage.jsx";
@@ -23,15 +23,15 @@ export const moduleRegistry = {
   "system.streamPc": {
     id: "system.streamPc",
     sectionTitle: "System",
-    moduleTitle: "Stream-PC Verbindung",
-    activeTabTitle: "Übersicht",
+    moduleTitle: "Stream-PC Status",
+    activeTabTitle: "Read-only",
     migrationStatus: "read_only",
-    component: RemoteAgentPage,
+    component: StreamPcStatusPage,
     tabs: [
       { id: "overview", title: "Übersicht", active: true },
-      { id: "heartbeat", title: "Heartbeat", disabled: true },
-      { id: "requests", title: "Requests", disabled: true },
-      { id: "audit", title: "Audit", disabled: true }
+      { id: "modules", title: "Module", disabled: true },
+      { id: "websocket", title: "WebSocket", disabled: true },
+      { id: "stream", title: "Streamstatus", disabled: true }
     ]
   },
 

@@ -1,8 +1,7 @@
 # Lokaler Dashboard-Ersatz - Plan
 
 Stand: 2026-06-27  
-Gilt ab: `0.2.9 - Dashboard-v2 Navigation angeglichen`
-Step: `RDAP130_LOCAL_DASHBOARD_REPLACEMENT_PLAN`
+Gilt ab: `0.2.10 - Stream-PC Status read-only vorbereitet`
 
 ## Zweck
 
@@ -25,7 +24,7 @@ backend/server.js
 Port: 8080
 ```
 
-Die neue lokale Oberflaeche soll unter diesem lokalen Server entstehen:
+Die neue lokale Oberflaeche entsteht unter:
 
 ```text
 /dashboard-v2
@@ -33,58 +32,9 @@ Die neue lokale Oberflaeche soll unter diesem lokalen Server entstehen:
 
 `/dashboard-v2` wird die neue Oberflaeche. `/dashboard` bleibt zuerst stabil/alt und kann spaeter auf `/dashboard-v2` zeigen oder ersetzt werden.
 
-## Aktueller lokaler Server-Stand
-
-Der lokale Server liefert aktuell bereits aus:
-
-```text
-/dashboard
-/dashboard-v2
-/overlays
-/assets
-/alerts
-/data
-/public
-```
-
-Die Pfade liegen unter:
-
-```text
-D:\Streaming\stramAssets\htdocs
-```
-
-Der Repo-Pfad fuer den lokalen Server ist:
-
-```text
-backend/server.js
-backend/core/paths.js
-```
-
-## Online/Lokal-Trennung
-
-Online bleibt getrennt:
-
-```text
-mods.forrestcgn.de
-remote-modboard/backend
-interner Port 3010
-Runtime online
-```
-
-Lokal ist der Ersatz fuer das alte Dashboard:
-
-```text
-Streaming-PC
-backend/server.js
-Port 8080
-/dashboard-v2
-```
-
-Es wird keine neue Fantasie-Struktur gebaut. Die Remote-Modboard-UI/Optik/Modulidee darf als Vorlage dienen, aber lokale Einbindung muss zum bestehenden 8080-Server passen.
-
 ## Migrationsregel
 
-Die alten Dashboard-Funktionen werden nach und nach uebernommen, aehnlich wie beim Online-Modboard.
+Die alten Dashboard-Funktionen werden nach und nach uebernommen.
 
 Reihenfolge je Modul:
 
@@ -109,7 +59,22 @@ Commands: Liste anzeigen ja; Command aendern erstmal nein.
 Texte/Configs: anzeigen ja; speichern erstmal nein.
 ```
 
-Das ist nur die Start-Sicherheitsstufe. Funktionen koennen spaeter einzeln freigegeben werden.
+## Aktuell umgesetzt
+
+```text
+0.2.10 - Stream-PC Status read-only vorbereitet
+```
+
+- `System -> Stream-PC` in `/dashboard-v2` aktiviert.
+- Neue lokale Read-only-Statusseite vorbereitet.
+- Nur bestehende sichere GET-Routen verwendet:
+  - `/api/_status`
+  - `/api/stream-status/current`
+  - `/api/diag/ws`
+- Server-, Modul-, Routen-, WebSocket- und gecachter Streamstatus werden angezeigt.
+- Keine Refresh-/Test-/Log-/Session-/Schreibrouten.
+- Keine Buttons, Actions oder Steuerfunktionen.
+- `/dashboard` bleibt unveraendert.
 
 ## Kritische lokale Module
 
@@ -130,10 +95,10 @@ Keine dieser Funktionen wird pauschal freigeschaltet.
 
 ## Sicherheitsgrenze
 
-Nicht Bestandteil dieses Plan-Steps:
+Nicht Bestandteil von 0.2.10:
 
 ```text
-keine Codeaenderung
+keine Backend-Aenderung
 keine DB-Migration
 keine neuen produktiven Writes
 keine Agent-Actions
@@ -148,31 +113,18 @@ keine Firewall-Aenderung
 kein Webserver-Deploy noetig
 ```
 
-## Aktuell umgesetzt
-
-```text
-0.2.9 - Dashboard-v2 Navigation angeglichen
-```
-
-- System, Module und Admin an die Online-Struktur angeglichen
-- lokale Zukunftsbereiche beibehalten
-- nur System -> Uebersicht aktiv
-- alle weiteren Menuepunkte deaktiviert
-- `/dashboard` unveraendert
-
 ## Naechster sinnvoller technischer Schritt
 
 ```text
-0.2.10 - Stream-PC Status read-only vorbereitet
+0.2.11 - Moduluebersicht read-only vorbereiten
 ```
 
 Moeglicher Scope:
 
 ```text
-- vorhandenen Stream-PC-Menuepunkt aktivieren
-- nur `/api/_status`, `/api/stream-status/current` und `/api/diag/ws` lesen
-- Server-, WebSocket- und gecachten Streamstatus anzeigen
-- keine Refresh-, Test- oder Log-Routen
-- keine Actions oder Writes
+- vorhandenen Menuepunkt Module -> Moduluebersicht aktivieren
+- nur sichere bestehende Status-/Diagnose-Daten lesen
+- geladene lokale Module und geplante Migrationsbereiche anzeigen
+- keine Modul-Actions, keine Reloads, keine Tests, keine Writes
 - /dashboard bleibt stabil
 ```

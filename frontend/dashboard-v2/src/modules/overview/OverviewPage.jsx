@@ -3,7 +3,7 @@ import { Card } from "../../components/Card.jsx";
 export function OverviewPage() {
   return (
     <div className="view-grid">
-      <Card title="Lokaler Dashboard-Einstieg" eyebrow="0.2.9">
+      <Card title="Lokaler Dashboard-Einstieg" eyebrow="0.2.10">
         <p>
           Dashboard-v2 läuft auf dem bestehenden lokalen Node/Express-Server. Es wird
           schrittweise zum Nachfolger des bisherigen Dashboards ausgebaut.
@@ -20,17 +20,17 @@ export function OverviewPage() {
         <ul className="check-list">
           <li><span>✓</span> bestehende React/Vite-Struktur verwendet</li>
           <li><span>✓</span> bestehender Server auf Port 8080 verwendet</li>
-          <li><span>✓</span> keine produktiven Aktionen vorhanden</li>
+          <li><span>✓</span> Stream-PC Status read-only vorbereitet</li>
           <li><span>✓</span> bisheriges Dashboard bleibt unverändert</li>
         </ul>
       </Card>
 
-      <Card title="Navigation angeglichen" eyebrow="Modboard-Struktur">
+      <Card title="Aktiver Read-only Bereich" eyebrow="System">
         <div className="chip-row">
-          <span className="cgn-chip cgn-chip--ok">System</span>
-          <span className="cgn-chip cgn-chip--ok">Module</span>
-          <span className="cgn-chip cgn-chip--ok">Admin</span>
-          <span className="cgn-chip cgn-chip--info">Read-only</span>
+          <span className="cgn-chip cgn-chip--ok">Übersicht</span>
+          <span className="cgn-chip cgn-chip--ok">Stream-PC</span>
+          <span className="cgn-chip cgn-chip--info">nur GET</span>
+          <span className="cgn-chip cgn-chip--warn">keine Actions</span>
         </div>
       </Card>
 

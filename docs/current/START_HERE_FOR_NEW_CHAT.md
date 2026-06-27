@@ -1,17 +1,20 @@
 # Start hier
 
-Aktueller Stand: Version `0.2.9` - `Dashboard-v2 Navigation angeglichen`.
+Aktueller Stand: Version `0.2.10` - `Stream-PC Status read-only vorbereitet`.
 
-Geaendert in 0.2.9:
+Geaendert in 0.2.10:
 
 ```text
-Lokale Dashboard-v2 Navigation:
-- System, Module und Admin an die Online-Struktur angeglichen
-- lokale Zukunftsbereiche Aktionen, Loyalty, Media und Overlays beibehalten
-- sichtbare Unterpunkte nur als deaktivierte Planung aufgenommen
-- nur System -> Uebersicht aktiv
-- keine Online-Adminfunktion kopiert
-- keine Actions oder Writes
+Lokale Dashboard-v2 System-Seite:
+- Menuepunkt System -> Stream-PC aktiviert
+- neue Read-only-Seite fuer lokalen Stream-PC Status vorbereitet
+- ausschliesslich bestehende GET-Routen genutzt:
+  - /api/_status
+  - /api/stream-status/current
+  - /api/diag/ws
+- Server-, Modul-, Routen-, WebSocket- und gecachter Streamstatus sichtbar
+- keine Refresh-, Test-, Log-, Session- oder Schreibroute aufgerufen
+- keine Buttons, Actions oder Steuerfunktionen
 - /dashboard bleibt unveraendert
 - kein Webserver-Deploy noetig
 ```
@@ -50,15 +53,11 @@ Nicht alte `NEXT_CHAT_PROMPT_*` Dateien als Wahrheit verwenden, wenn eine neuere
 
 - Remote-Modboard UI ist modularisiert.
 - Modul-Metadaten, Sprachdateien und Runtime-Scope sind vorbereitet.
-- Online-Modoberflaeche ist bereinigt:
-  - System zeigt `Uebersicht` und `Diagnose`.
-  - Module zeigt `Moduluebersicht`.
-  - Admin zeigt `Benutzerverwaltung`, `Admin-Notizen`, `Verbindungen`, `Doku / Details` sowie bestehende Admin-Unterseiten.
-  - Konto-/Rechtefunktionen bleiben im User-Panel oben rechts.
+- Online-Modoberflaeche ist bereinigt.
 - Lokale Oberflaeche ist als Ersatz fuer das alte lokale Dashboard geplant:
   - lokaler Server: `backend/server.js`, Port `8080`,
   - neue lokale Zieloberflaeche: `/dashboard-v2`,
-  - erste lokale Read-only-Startseite und Navigation sind vorbereitet,
+  - erste lokale Read-only-Startseite, Navigation und Stream-PC Status sind vorbereitet,
   - `/dashboard` bleibt stabil/alt.
 
 ## Geparkte Idee
@@ -73,7 +72,7 @@ Nicht alte `NEXT_CHAT_PROMPT_*` Dateien als Wahrheit verwenden, wenn eine neuere
 
 - Frontend-Metadaten steuern Anzeige und Navigation, nicht Sicherheit.
 - Backend bleibt fuer Rechte, Scope, Confirm-Write, Audit, Lock, Backup/Rollback und Readback massgeblich.
-- Keine neuen produktiven Writes in Version 0.2.9.
+- Keine neuen produktiven Writes in Version 0.2.10.
 - Keine Agent-Actions.
 - Keine OBS-Steuerung, keine Szenen-/Quellen-/Sound-/Overlay-/Command-Aktionen.
 - Keine Shell-, Datei- oder Prozessaktionen.

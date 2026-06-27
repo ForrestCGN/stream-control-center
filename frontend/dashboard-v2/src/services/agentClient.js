@@ -1,5 +1,38 @@
 import { apiRequest } from './apiClient.js';
 
+export async function getLocalStreamPcStatus() {
+  const [server, stream, websocket] = await Promise.all([
+    readStatusEndpoint('/api/_status', 'Serverstatus'),
+    readStatusEndpoint('/api/stream-status/current', 'Streamstatus'),
+    readStatusEndpoint('/api/diag/ws', 'WebSocket-Status')
+  ]);
+
+  return {
+    server: server.data,
+    stream: stream.data,
+    websocket: websocket.data,
+    errors: [server.error, stream.error, websocket.error].filter(Boolean)
+  };
+}
+
+export function getLocalStreamPcStatusFallback() {
+  return {
+    server: null,
+    stream: null,
+    websocket: null,
+    errors: []
+  };
+}
+
+async function readStatusEndpoint(path, label) {
+  try {
+    return { data: await apiRequest(path), error: '' };
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    return { data: null, error: `${label}: ${message}` };
+  }
+}
+
 export async function getRemoteAgentStatus() {
   return apiRequest('/api/remote-agent/status');
 }

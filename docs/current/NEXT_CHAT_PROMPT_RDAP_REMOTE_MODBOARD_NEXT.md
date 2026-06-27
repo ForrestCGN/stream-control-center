@@ -32,30 +32,23 @@ project-state/CHANGELOG.md
 
 ## Aktueller Stand
 
-Aktueller bestaetigter Stand:
+Aktueller vorbereiteter Stand:
 
 ```text
-0.2.9 - Dashboard-v2 Navigation angeglichen
+0.2.10 - Stream-PC Status read-only vorbereitet
 ```
 
 Umgesetzt:
 
-- System, Module und Admin an die Online-Struktur angeglichen.
-- Lokale Zukunftsbereiche Aktionen, Loyalty, Media und Overlays beibehalten.
-- Sichtbare Unterpunkte bleiben deaktiviert.
-- Nur System -> Uebersicht ist aktiv.
-- Keine Online-Adminfunktion kopiert oder freigeschaltet.
+- `System -> Stream-PC` in `/dashboard-v2` aktiviert.
+- Neue lokale Read-only-Seite fuer Stream-PC Status vorbereitet.
+- Nur bestehende GET-Routen genutzt: `/api/_status`, `/api/stream-status/current`, `/api/diag/ws`.
+- Server-, Modul-, Routen-, WebSocket- und gecachter Streamstatus sichtbar.
+- Keine Refresh-/Test-/Log-/Session-/Schreibrouten.
+- Keine Buttons, Actions oder Steuerfunktionen.
 - `/dashboard` bleibt unveraendert.
 - Keine DB-Migration, keine Writes, keine Agent-Actions.
-
-Vorher bestaetigt:
-
-```text
-0.2.8 - Dashboard-v2 Einstieg vorbereitet
-```
-
-- Erste lokale Startseite im Modboard-Look vorbereitet.
-- Fake-Zustaende und Demo-Bedienelemente entfernt.
+- Kein Webserver-Deploy noetig.
 
 ## Was NICHT gemacht werden darf
 
@@ -72,27 +65,26 @@ Vorher bestaetigt:
 ## Naechster sinnvoller Arbeitsfokus
 
 ```text
-0.2.10 - Stream-PC Status read-only vorbereitet
+0.2.11 - Moduluebersicht read-only vorbereiten
 ```
 
 Vor dem Plan unbedingt lesen:
 
 ```text
 backend/server.js
-backend/modules/stream_status.js
 backend/modules/diagnostics.js
+frontend/dashboard-v2/src/app/navigation.js
+frontend/dashboard-v2/src/app/moduleRegistry.js
 frontend/dashboard-v2/src/services/apiClient.js
-frontend/dashboard-v2/src/services/agentClient.js
-frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
-frontend/dashboard-v2/src/services/
-frontend/dashboard-v2/src/modules/
+frontend/dashboard-v2/src/services/localStatusClient.js
+frontend/dashboard-v2/src/modules/stream-pc/StreamPcStatusPage.jsx
 ```
 
 Moeglicher Inhalt:
 
-- vorhandenen Menuepunkt System -> Stream-PC aktivieren,
-- nur bestehende sichere GET-Routen verwenden,
-- Server-, WebSocket- und gecachten Streamstatus anzeigen,
+- vorhandenen Menuepunkt `Module -> Moduluebersicht` aktivieren,
+- nur bestehende sichere lokale Status-/Diagnose-Daten lesen,
+- geladene lokale Module und geplante Migrationsbereiche anzeigen,
 - keine parallelen Statuswege bauen,
 - `/dashboard` stabil lassen,
 - keine Aktionen/Writes.
