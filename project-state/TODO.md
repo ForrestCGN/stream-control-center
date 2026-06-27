@@ -1,56 +1,32 @@
 # TODO
 
-Stand: RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN  
+Stand: RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI  
 Datum: 2026-06-27
 
 ## Erledigt/vorbereitet
 
 ```text
-RDAP101B:
-- Public WSS Heartbeat live bestaetigt.
-- Runtime final disabled.
-
-RDAP103:
-- Vorhandene Verbindungen-Seite erweitert.
-- Stream-PC Verbindung read-only sichtbar.
-- Keine Actions/Start/Stop Buttons.
-
-RDAP104B:
-- Server-Deploy-Wrapper auf Webserver vorhanden.
-- Cleanup-Script auf Webserver vorhanden.
-- Neuer Deploy-Standard aktiv.
-
-RDAP106:
-- zentrale Current-State-Doku neu aufgebaut.
-
-RDAP107:
-- sichere zusaetzliche Read-only-Verbindungsdetails geplant.
-- Ziel-UI fuer RDAP108 festgelegt.
-- keine Code-/UI-/Backend-Aenderung.
+RDAP108:
+- Bestehende Admin-/Verbindungen-Seite erweitert.
+- Nur Frontend-Datei geaendert.
+- Zusätzliche sichere Read-only-Felder sichtbar gemacht.
+- Technische Diagnose einklappbar.
+- Keine Backend-/Runtime-/Action-Aenderung.
 ```
 
 ## Naechster Schritt
 
 ```text
-RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
+RDAP108B_STREAM_PC_CONNECTION_READONLY_UI_LIVE_CONFIRM
 ```
 
-## Offen / pruefen in RDAP108
+## Offen / pruefen in RDAP108B
 
 ```text
-- Bestehende Seite Admin / Verbindungen erweitern.
-- Runtime-Gates sichtbar machen.
-- Transportdetails sichtbar machen.
-- Heartbeat-Details besser gruppieren.
-- Sicherheitsgrenzen sichtbarer machen.
-- Technische Diagnose nur einklappbar oder untergeordnet anzeigen.
-- Keine Secrets, Rohpayloads, Env-/Pfad-/Prozess-/Dateilisten anzeigen.
-```
-
-## Spaeter
-
-```text
-- Agent-Allowlist und Sicherheitsgrenzen separat planen.
-- Lokalen LAN-Betrieb mit EngelCGN sauber planen.
-- Archive-Index fuer historische RDAP/CAN/DASHUI-Dateien planen.
+- Webserver-Deploy nach stepdone.
+- Browser: Admin / Verbindungen.
+- Neue Runtime-Gates und Transportdetails sichtbar.
+- Diagnose einklappbar.
+- Keine Secrets/Rohpayloads sichtbar.
+- API-Status weiterhin actionEnabled=false und productiveAgentRuntime=false.
 ```

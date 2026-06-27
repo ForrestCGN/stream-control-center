@@ -1,6 +1,6 @@
 # Remote-Modboard - aktuelle Roadmap
 
-Stand: RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN  
+Stand: RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI  
 Datum: 2026-06-27  
 Projekt: `stream-control-center` / `remote-modboard` / RDAP
 
@@ -18,7 +18,6 @@ Projekt: `stream-control-center` / `remote-modboard` / RDAP
 - Nur wenn sauber: stepdone.cmd.
 - stepdone.cmd bedeutet Commit/Push nach GitHub/dev, nicht Webserver-Deploy.
 - Webserver-Deploy nur nach Codeaenderungen in remote-modboard/ oder Server-Workflow-Scripts und erst nach stepdone.cmd.
-- Doku-only braucht keinen Webserver-Deploy.
 ```
 
 ## Neuer Webserver-Deploy-Standard
@@ -39,25 +38,22 @@ bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh STEP
 7. Server-Deploy-Workflow-Hardening
 8. Doku-Konsolidierung
 9. Stream-PC-Verbindungsdetails read-only geplant
+10. Stream-PC-Verbindungsdetails UI frontend-only erweitert
 ```
 
 ## Aktuell naechster Step
 
 ```text
-RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
+RDAP108B_STREAM_PC_CONNECTION_READONLY_UI_LIVE_CONFIRM
 ```
 
 Ziel:
 
 ```text
-- bestehende Admin-/Verbindungen-Seite erweitern
-- sichere zusaetzliche Read-only-Felder anzeigen
-- keine neue Parallelseite
-- vorhandene GET /api/remote/agent/status Daten nutzen
-- moeglichst nur remote-modboard/backend/public/assets/rdap80-agent-status.js anfassen
-- keine Runtime-Aktivierung
-- keine Agent-Actions
-- keine produktiven Writes
+- RDAP108 nach stepdone auf Webserver deployen.
+- Admin / Verbindungen im Browser pruefen.
+- /api/remote/agent/status kontrollieren.
+- Sicherstellen, dass Runtime/Actions weiterhin disabled sind.
 ```
 
 ## Danach moegliche Steps
@@ -75,29 +71,12 @@ RDAP110_LOCAL_LAN_MODE_SECURITY_PLAN
 - EngelCGN LAN-Zugriff spaeter beruecksichtigen.
 ```
 
-## Mittelfristige Planung
+## Harte Grenzen
 
 ```text
-1. Doku-Current-State stabil halten.
-2. Stream-PC-Verbindungsdetails read-only verbessern.
-3. Admin-/Verbindungen-Seite sauber weiterentwickeln.
-4. Diagnosebereiche besser organisieren.
-5. Rollen-/Gruppen-/Permission-Writes nur nach separatem Sicherheitsplan.
-6. Agent-Konzept weiter konkretisieren.
-7. WSS/EventBus zwischen Webserver und Stream-PC-Agent planen.
-8. Allowlist fuer erlaubte Agent-Aktionen definieren.
-9. OBS-/Sound-/Overlay-/Command-Funktionen nur einzeln und sicher anbinden.
-```
-
-## Harte Grenzen fuer alle kommenden Steps
-
-```text
-Keine Funktionalitaet entfernen.
 Keine produktiven Writes ohne expliziten Scope.
 Keine DB-Migration ohne Backup, Vorpruefung und Readback.
 Keine neuen parallelen Systeme, wenn vorhandene Struktur passt.
-Keine Apply-/Patch-/Regex-/Set-Content-Anweisungen fuer Forrest.
-Keine ZIPs ohne echte Repo-Zielpfade.
 Keine Agent-/OBS-/Sound-/Overlay-/Command-Actions ohne separaten Plan.
 Keine Access-Key-/Token-/Header-/Cookie-Anzeige.
 Keine Env-/Pfad-/Datei-/Prozesslisten.

@@ -1,6 +1,6 @@
 # CURRENT_STREAM_PC_AGENT_STATE
 
-Stand: RDAP107_STREAM_PC_CONNECTION_READONLY_DETAILS_PLAN  
+Stand: RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI  
 Datum: 2026-06-27  
 Projekt: `stream-control-center` / Remote-Modboard / Stream-PC-Agent
 
@@ -8,47 +8,13 @@ Projekt: `stream-control-center` / Remote-Modboard / Stream-PC-Agent
 
 Diese Datei beschreibt den aktuellen Stream-PC-Agent-/WSS-/Runtime-Stand kompakt und sicher.
 
-## Zielbild
-
-```text
-- Stream-PC verbindet aktiv zum Webserver.
-- Verbindung per WSS.
-- Keine eingehende Portfreigabe am Stream-PC.
-- Webserver prueft Login, Rechte und erlaubte Aktionen.
-- Agent fuehrt spaeter nur Allowlist-Actions aus.
-- Keine freie Shell.
-- Keine freie Datei-/Prozess-/URL-Ausfuehrung.
-```
-
 ## Bisher bestaetigt
 
-RDAP101B:
-
 ```text
-- Public WSS Heartbeat live bestaetigt.
-- Gueltiger Heartbeat ueber wss://mods.forrestcgn.de/agent-ws bestaetigt.
-- Runtime danach final wieder deaktiviert.
-- Keine Actions.
-- Keine Secrets im Chat/Git/Doku.
-```
-
-RDAP103:
-
-```text
-- Admin / Verbindungen zeigt Stream-PC Verbindung read-only.
-- Status offline ist korrekt, weil Runtime final disabled.
-- Actions deaktiviert.
-- Transport: WSS.
-- Portfreigabe Stream-PC: nein.
-```
-
-RDAP107:
-
-```text
-- sichere zusaetzliche Read-only-Verbindungsdetails geplant.
-- bestehende Seite Admin / Verbindungen bleibt Ziel.
-- bestehende API GET /api/remote/agent/status bleibt Datenquelle.
-- Umsetzungsstep wird RDAP108.
+RDAP101B: Public WSS Heartbeat live bestaetigt; Runtime danach final disabled.
+RDAP103: Admin / Verbindungen zeigt Stream-PC Verbindung read-only.
+RDAP107: zusaetzliche sichere Read-only-Verbindungsdetails geplant.
+RDAP108: bestehende Admin-/Verbindungen-Seite frontend-only erweitert.
 ```
 
 ## Aktueller Sicherheitszustand
@@ -65,21 +31,26 @@ productiveAgentRuntime=false
 
 ## Aktuelle UI-Anzeige
 
-```text
 Bereich:
+
+```text
 Admin / Verbindungen
+```
 
-Kachel:
-Stream-PC Verbindung
+In RDAP108 erweitert um:
 
-Status:
-offline / keine aktive Meldung
-
-Aktionen:
-deaktiviert
-
-Reload:
-nur Read-only Status neu laden
+```text
+- Agent-Version
+- Protokoll
+- Heartbeat-Seq
+- Heartbeat-Alter
+- Stale nach
+- Offline nach
+- Runtime-Gates
+- Transportdetails
+- Heartbeat-Speicherung / DB-Write / Heartbeat-Actions
+- einklappbare technische Diagnose ohne Secrets
+- Warnings ohne Rohpayloads
 ```
 
 ## Read-only Datenquelle
@@ -88,65 +59,17 @@ nur Read-only Status neu laden
 GET /api/remote/agent/status
 ```
 
-## Sichere Felder fuer RDAP108
+## Geaenderte Datei in RDAP108
 
 ```text
-agent.connected
-agent.connectionState
-agent.reason
-agent.lastHeartbeatAt
-agent.heartbeatAgeMs
-agent.heartbeatSeq
-agent.stale
-agent.agentName
-agent.agentVersion
-agent.protocolVersion
-agent.expectedAgentId
-agent.expectedAgentName
-agent.expectedHeartbeatProtocolVersion
-
-runtime.requestedEnabled
-runtime.acceptBuildEnabled
-runtime.effectiveEnabled
-runtime.acceptsAgentConnections
-runtime.heartbeatReceiverEnabled
-runtime.actionsEnabled
-runtime.productiveAgentRuntime
-
-transport.plannedTransport
-transport.plannedDirection
-transport.plannedWsPath
-transport.streamPcPublicPortRequired
-transport.incomingInternetConnectionToStreamPcRequired
-transport.dynamicStreamPcIpAllowed
-
-heartbeat.heartbeatInMemoryOnly
-heartbeat.persistsHeartbeatToDatabase
-heartbeat.databaseWriteEnabled
-heartbeat.plannedHeartbeatIntervalMs
-heartbeat.staleAfterMs
-heartbeat.offlineAfterMs
-
-safety.*
-warnings[]
-statusApiVersion
-moduleBuild
-generatedAt
-loadedAt
+remote-modboard/backend/public/assets/rdap80-agent-status.js
 ```
 
-## Diagnose nur vorsichtig / einklappbar
+## Nicht geaendert in RDAP108
 
 ```text
-rejectCount
-lastRejectAt
-lastRejectReason
-lastRejectHasAgentIdHeader
-lastRejectHasProtocolHeader
-lastRejectAgentIdHint
-lastRejectProtocolHint
-lastRejectAccessKeyConfigured
-lastRejectConnectionProofCompared
+remote-modboard/backend/src/routes/agent-status.routes.js
+remote-modboard/backend/src/services/agent-status.service.js
 ```
 
 ## Strikt nicht anzeigen
@@ -185,15 +108,5 @@ rohe IP-Adressen
 ## Naechster fachlicher Step
 
 ```text
-RDAP108_STREAM_PC_CONNECTION_READONLY_DETAILS_UI
-```
-
-Ziel:
-
-```text
-- bestehende Admin-/Verbindungen-Seite erweitern
-- zusaetzliche sichere Read-only-Felder anzeigen
-- keine neue Parallelseite
-- keine Actions
-- keine Runtime-Aktivierung
+RDAP108B_STREAM_PC_CONNECTION_READONLY_UI_LIVE_CONFIRM
 ```

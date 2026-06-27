@@ -64,6 +64,13 @@
         <article class="metric-card cgn-card"><span>Actions</span><strong id="agentActionsEnabled">—</strong><small id="agentActionsDetail">muss disabled bleiben</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
       </section>
 
+      <section class="metric-grid rdap108-connection-detail-metrics">
+        <article class="metric-card cgn-card"><span>Agent-Version</span><strong id="agentVersion">—</strong><small id="agentProtocolVersion">Protokoll —</small></article>
+        <article class="metric-card cgn-card"><span>Heartbeat-Seq</span><strong id="agentHeartbeatSeq">—</strong><small id="agentHeartbeatAge">Alter —</small></article>
+        <article class="metric-card cgn-card"><span>Stale nach</span><strong id="agentStaleAfter">—</strong><small id="agentOfflineAfter">Offline nach —</small></article>
+        <article class="metric-card cgn-card"><span>Runtime-Gate</span><strong id="agentRuntimeGateState">—</strong><small id="agentRuntimeGateDetail">muss disabled bleiben</small></article>
+      </section>
+
       <section class="page-grid rdap80-connections-grid">
         <article class="cgn-card">
           <div class="card-head"><div><p class="cgn-eyebrow">Transport</p><h2>Geplante Verbindung</h2></div><span class="cgn-chip cgn-chip--info">WSS</span></div>
@@ -72,6 +79,8 @@
             <div class="kv-row"><span>Transport</span><strong id="agentPlannedTransport">—</strong></div>
             <div class="kv-row"><span>WS-Pfad</span><strong id="agentPlannedWsPath">—</strong></div>
             <div class="kv-row"><span>Portfreigabe Stream-PC</span><strong id="agentPublicPortRequired">—</strong></div>
+            <div class="kv-row"><span>Eingehende Internetverbindung</span><strong id="agentIncomingInternetRequired">—</strong></div>
+            <div class="kv-row"><span>Dynamische Stream-PC-IP</span><strong id="agentDynamicIpAllowed">—</strong></div>
           </div>
         </article>
 
@@ -87,8 +96,42 @@
             <div class="kv-row"><span>Runtime</span><strong id="agentRuntimeEnabled">—</strong></div>
             <div class="kv-row"><span>Heartbeat Receiver</span><strong id="agentHeartbeatReceiver">—</strong></div>
             <div class="kv-row"><span>Speicherung</span><strong id="agentHeartbeatStorage">—</strong></div>
+            <div class="kv-row"><span>DB-Write</span><strong id="agentHeartbeatDbWrite">—</strong></div>
+            <div class="kv-row"><span>Heartbeat-Actions</span><strong id="agentHeartbeatActions">—</strong></div>
           </div>
           <div class="rdap80-connections-notice" id="agentStatusNotice">Noch nicht geladen.</div>
+        </article>
+
+        <article class="cgn-card span2">
+          <div class="card-head"><div><p class="cgn-eyebrow">Runtime-Gates</p><h2>Aktivierung bleibt blockiert</h2></div><span class="cgn-chip cgn-chip--warn">disabled</span></div>
+          <div class="kv-grid">
+            <div class="kv-row"><span>requestedEnabled</span><strong id="agentRuntimeRequested">—</strong></div>
+            <div class="kv-row"><span>acceptBuildEnabled</span><strong id="agentRuntimeAcceptBuild">—</strong></div>
+            <div class="kv-row"><span>effectiveEnabled</span><strong id="agentRuntimeEffective">—</strong></div>
+            <div class="kv-row"><span>acceptsAgentConnections</span><strong id="agentRuntimeAcceptsConnections">—</strong></div>
+            <div class="kv-row"><span>heartbeatReceiverEnabled</span><strong id="agentRuntimeHeartbeatReceiver">—</strong></div>
+            <div class="kv-row"><span>actionsEnabled</span><strong id="agentRuntimeActionsEnabled">—</strong></div>
+            <div class="kv-row"><span>productiveAgentRuntime</span><strong id="agentRuntimeProductive">—</strong></div>
+          </div>
+          <div class="rdap80-connections-notice">Alle Runtime-Gates muessen disabled bleiben, bis ein separater Aktivierungsplan existiert.</div>
+        </article>
+
+        <article class="cgn-card span2">
+          <details class="rdap108-diagnostics">
+            <summary><span>Technische Diagnose</span><strong>read-only, ohne Secrets</strong></summary>
+            <div class="kv-grid">
+              <div class="kv-row"><span>ModuleBuild</span><strong id="agentModuleBuild">—</strong></div>
+              <div class="kv-row"><span>generatedAt</span><strong id="agentGeneratedAt">—</strong></div>
+              <div class="kv-row"><span>loadedAt</span><strong id="agentLoadedAt">—</strong></div>
+              <div class="kv-row"><span>Reject Count</span><strong id="agentRejectCount">—</strong></div>
+              <div class="kv-row"><span>Letzter Reject</span><strong id="agentLastRejectAt">—</strong></div>
+              <div class="kv-row"><span>Reject Reason</span><strong id="agentLastRejectReason">—</strong></div>
+              <div class="kv-row"><span>Agent-ID Header</span><strong id="agentRejectHasAgentIdHeader">—</strong></div>
+              <div class="kv-row"><span>Protocol Header</span><strong id="agentRejectHasProtocolHeader">—</strong></div>
+              <div class="kv-row"><span>Secrets exposed</span><strong id="agentRejectSecretsExposed">—</strong></div>
+            </div>
+            <ul class="security-list rdap108-warning-list" id="agentWarningList"><li><span>Warnings</span><strong>—</strong></li></ul>
+          </details>
         </article>
       </section>
     `;
@@ -138,9 +181,11 @@
 
   function renderAgentStatus(body, reason) {
     const agent = (body && body.agent) || {};
+    const runtime = (body && body.runtime) || {};
     const heartbeat = (body && body.heartbeat) || {};
     const transport = (body && body.transport) || {};
     const safety = (body && body.safety) || {};
+    const rejectDiagnostic = (body && body.rejectDiagnostic) || {};
 
     const connected = agent.connected === true;
     const stale = agent.stale === true;
@@ -159,11 +204,27 @@
     setText('agentPlannedDirection', formatDirection(transport.plannedDirection));
     setText('agentPlannedTransport', String(transport.plannedTransport || 'wss').toUpperCase());
     setText('agentPlannedWsPath', transport.plannedWsPath || '/agent-ws');
-    setText('agentPublicPortRequired', transport.streamPcPublicPortRequired === true ? 'ja' : 'nein');
+    setText('agentPublicPortRequired', formatYesNo(transport.streamPcPublicPortRequired === true));
+    setText('agentIncomingInternetRequired', formatYesNo(transport.incomingInternetConnectionToStreamPcRequired === true));
+    setText('agentDynamicIpAllowed', formatYesNo(transport.dynamicStreamPcIpAllowed === true));
     setText('agentStatusApiVersion', body.statusApiVersion || '—');
-    setText('agentRuntimeEnabled', agent.enabled === true || (body.runtime && body.runtime.effectiveEnabled === true) ? 'temporär aktiv' : 'deaktiviert');
+    setText('agentRuntimeEnabled', agent.enabled === true || runtime.effectiveEnabled === true ? 'temporär aktiv' : 'deaktiviert');
     setText('agentHeartbeatReceiver', heartbeat.heartbeatReceiverEnabled === true ? 'aktiv' : 'deaktiviert');
     setText('agentHeartbeatStorage', heartbeat.lastHeartbeatPayloadStored === true || heartbeat.persistsHeartbeatToDatabase === true ? 'prüfen' : 'in-memory / keine Payload-Speicherung');
+    setText('agentHeartbeatDbWrite', heartbeat.databaseWriteEnabled === true || heartbeat.heartbeatPersistsToDatabase === true ? 'prüfen' : 'nein');
+    setText('agentHeartbeatActions', heartbeat.heartbeatExecutesActions === true || heartbeat.heartbeatAcceptsCommands === true || heartbeat.heartbeatAcceptsCapabilities === true ? 'prüfen' : 'nein');
+
+    setText('agentVersion', agent.agentVersion || '—');
+    setText('agentProtocolVersion', agent.protocolVersion ? `Protokoll ${agent.protocolVersion}` : 'Protokoll —');
+    setText('agentHeartbeatSeq', agent.heartbeatSeq !== undefined && agent.heartbeatSeq !== null ? agent.heartbeatSeq : '—');
+    setText('agentHeartbeatAge', Number.isFinite(agent.heartbeatAgeMs) ? `Alter ${formatDuration(agent.heartbeatAgeMs)}` : 'Alter —');
+    setText('agentStaleAfter', Number.isFinite(heartbeat.staleAfterMs) ? formatDuration(heartbeat.staleAfterMs) : '—');
+    setText('agentOfflineAfter', Number.isFinite(heartbeat.offlineAfterMs) ? `Offline nach ${formatDuration(heartbeat.offlineAfterMs)}` : 'Offline nach —');
+    setText('agentRuntimeGateState', runtime.effectiveEnabled === true ? 'aktiv' : 'deaktiviert');
+    setText('agentRuntimeGateDetail', runtime.acceptsAgentConnections === true ? 'nimmt Verbindungen an' : 'nimmt keine Verbindungen an');
+
+    renderRuntimeGates(runtime, body);
+    renderDiagnostics(body, rejectDiagnostic);
 
     setProgressState('agentConnectionProgress', viewState.ok ? 'ok' : 'warn', viewState.ok ? 78 : 8);
     setProgressState('agentHeartbeatProgress', connected && !stale ? 'ok' : 'warn', connected && !stale ? 70 : 8);
@@ -239,6 +300,40 @@
     }).join('');
   }
 
+
+  function renderRuntimeGates(runtime, body) {
+    setText('agentRuntimeRequested', formatEnabled(runtime.requestedEnabled));
+    setText('agentRuntimeAcceptBuild', formatEnabled(runtime.acceptBuildEnabled));
+    setText('agentRuntimeEffective', formatEnabled(runtime.effectiveEnabled));
+    setText('agentRuntimeAcceptsConnections', formatEnabled(runtime.acceptsAgentConnections));
+    setText('agentRuntimeHeartbeatReceiver', formatEnabled(runtime.heartbeatReceiverEnabled));
+    setText('agentRuntimeActionsEnabled', formatEnabled(runtime.actionsEnabled || body.actionEnabled));
+    setText('agentRuntimeProductive', formatEnabled(runtime.productiveAgentRuntime || body.productiveAgentRuntime));
+  }
+
+  function renderDiagnostics(body, rejectDiagnostic) {
+    setText('agentModuleBuild', body && body.moduleBuild ? body.moduleBuild : '—');
+    setText('agentGeneratedAt', body && body.generatedAt ? formatDate(body.generatedAt) : '—');
+    setText('agentLoadedAt', body && body.loadedAt ? formatDate(body.loadedAt) : '—');
+    setText('agentRejectCount', Number.isFinite(rejectDiagnostic.rejectCount) ? rejectDiagnostic.rejectCount : 0);
+    setText('agentLastRejectAt', rejectDiagnostic.lastRejectAt ? formatDate(rejectDiagnostic.lastRejectAt) : '—');
+    setText('agentLastRejectReason', rejectDiagnostic.lastRejectReason || '—');
+    setText('agentRejectHasAgentIdHeader', formatYesNo(rejectDiagnostic.lastRejectHasAgentIdHeader === true));
+    setText('agentRejectHasProtocolHeader', formatYesNo(rejectDiagnostic.lastRejectHasProtocolHeader === true));
+    setText('agentRejectSecretsExposed', rejectDiagnostic.rejectSecretsExposed === true ? 'prüfen' : 'nein');
+    renderWarnings(body && Array.isArray(body.warnings) ? body.warnings : []);
+  }
+
+  function renderWarnings(warnings) {
+    const list = document.getElementById('agentWarningList');
+    if (!list) return;
+    if (!warnings.length) {
+      list.innerHTML = '<li><span>Warnings</span><strong>—</strong></li>';
+      return;
+    }
+    list.innerHTML = warnings.map((warning) => `<li><span>${escapeHtml(warning)}</span><strong>Info</strong></li>`).join('');
+  }
+
   function renderError(result) {
     setText('agentStatusNotice', `Verbindungsstatus konnte nicht geladen werden: ${escapePlain(result.error || `HTTP ${result.httpStatus || 0}`)}`);
     setText('agentConnectionState', 'prüfen');
@@ -270,7 +365,13 @@
       .rdap80-connections-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
       .rdap80-connections-grid .span2{grid-column:1/-1}
       .rdap80-connections-notice{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(27,216,255,.08);border:1px solid rgba(27,216,255,.18);color:var(--muted);font-size:13px;line-height:1.35}
-      @media (max-width:900px){.rdap80-connections-header{flex-direction:column}.rdap80-connections-header-actions{justify-content:flex-start}.rdap80-connections-grid .span2{grid-column:auto}}
+      .rdap108-diagnostics summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none}
+      .rdap108-diagnostics summary::-webkit-details-marker{display:none}
+      .rdap108-diagnostics summary span{font-weight:800}
+      .rdap108-diagnostics summary strong{font-size:12px;color:var(--muted);font-weight:700}
+      .rdap108-diagnostics[open] summary{margin-bottom:14px}
+      .rdap108-warning-list{margin-top:12px}
+      @media (max-width:900px){.rdap80-connections-header{flex-direction:column}.rdap80-connections-header-actions{justify-content:flex-start}.rdap80-connections-grid .span2{grid-column:auto}.rdap108-diagnostics summary{align-items:flex-start;flex-direction:column}}
     `;
     document.head.appendChild(style);
   }
@@ -308,6 +409,14 @@
   function formatDirection(value) {
     if (value === 'stream-pc-agent-to-webserver') return 'Stream-PC → Webserver';
     return value || 'Stream-PC → Webserver';
+  }
+
+  function formatEnabled(value) {
+    return value === true ? 'aktiv' : 'deaktiviert';
+  }
+
+  function formatYesNo(value) {
+    return value === true ? 'ja' : 'nein';
   }
 
   function escapePlain(value) {
