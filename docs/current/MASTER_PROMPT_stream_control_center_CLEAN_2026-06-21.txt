@@ -1,6 +1,6 @@
 MASTER-PROMPT – ForrestCGN / stream-control-center
 
-Stand: 2026-06-27 (Basis 2026-06-21, gestrafft nach RDAP/Remote-Modboard-Workflow und Versionierungsregeln)
+Stand: 2026-06-27 (Basis 2026-06-21, gestrafft nach RDAP/Remote-Modboard-Workflow, Versionierungsregeln und zentraler Langzeit-TODO-Liste)
 Zweck: Verbindlicher Arbeitsstandard für neue Chats, Modul-Arbeiten, Dashboard, Communication/EventBus, Live-Status, Dokumentation, Cleanup, Versionierung, Security und Abschlussroutinen.
 
 Du arbeitest mit ForrestCGN am Projekt `stream-control-center`.
@@ -166,6 +166,7 @@ docs/current/CURRENT_CHAT_HANDOFF_EXAMPLE.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
+project-state/PARKED_TODOS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 ```
@@ -703,12 +704,15 @@ $out = Join-Path $logDir "TESTNAME_$stamp.txt"
 11. TODO / Dokumentation / Abschluss
 ================================================================================
 
-Alles, was bewusst aufgeschoben oder „für später“ festgehalten wird, muss in `project-state/TODO.md`.
-TODOs dürfen erst entfernt werden, wenn sie erledigt, getestet und dokumentiert sind.
+`project-state/TODO.md` bleibt kurz und aktiv.
+`project-state/PARKED_TODOS.md` ist die zentrale Langzeit-Merkstelle fuer bewusst geparkte Punkte.
+Neue geparkte Punkte dort eintragen, nicht in alten Handoff-Dateien verstecken.
+Erledigte Langzeitpunkte abhaken oder mit Datum in einen erledigt-Abschnitt verschieben.
+TODOs duerfen erst entfernt werden, wenn sie erledigt, getestet und dokumentiert sind.
 NEXT_STEPS ersetzt TODO nicht.
 
 Bei jedem Doku-/Arbeitsabschluss prüfen:
-- Wurde etwas auf später verschoben?
+- Wurde etwas auf spaeter verschoben oder gehoert es in `project-state/PARKED_TODOS.md`?
 - Gibt es offene Tests?
 - Gibt es bekannte Einschränkungen?
 - Gibt es temporäre Workarounds?
@@ -716,7 +720,8 @@ Bei jedem Doku-/Arbeitsabschluss prüfen:
 - Gibt es fehlende Modul-Doku?
 - Gibt es Live-Checks, die noch ausstehen?
 
-Wenn ja: in `project-state/TODO.md` aufnehmen oder aktualisieren.
+Wenn kurzfristig/aktiv: in `project-state/TODO.md` aufnehmen oder aktualisieren.
+Wenn langfristig/geparkt: in `project-state/PARKED_TODOS.md` aufnehmen oder aktualisieren.
 
 Jedes aktive Modul muss eine aktuelle Modul-Doku haben, soweit das Modul relevant/produktiv genutzt wird.
 Typische Pfade:
@@ -744,6 +749,7 @@ Bei jedem abgeschlossenen Arbeitsstand prüfen und aktualisieren:
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
+project-state/PARKED_TODOS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 docs/current/CURRENT_CHAT_HANDOFF_[THEMA].md
@@ -951,7 +957,8 @@ Bitte im neuen Chat zuerst bereitstellen oder lesen:
 2. project-state/CURRENT_STATUS.md
 3. project-state/NEXT_STEPS.md
 4. project-state/TODO.md
-5. project-state/FILES.md
+5. project-state/PARKED_TODOS.md
+6. project-state/FILES.md
 6. relevante Datei aus docs/current/*.md
 7. relevante Modul-Doku aus docs/modules/*.md
 8. betroffene echte Projektdateien aus D:\Git\stream-control-center

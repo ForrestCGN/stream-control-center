@@ -12,8 +12,9 @@ Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer Forrest
 - Lokal: `installstep.cmd` aus `D:\Git\stream-control-center`.
 - Danach Checks und `git status`.
 - Nur wenn sauber/nachvollziehbar: `stepdone.cmd`.
+- `stepdone.cmd` bedeutet Commit/Push nach GitHub/dev, nicht Webserver-Deploy.
 - Webserver-Deploy nur bei Code-/Remote-Modboard-Aenderungen, nicht bei Doku-only.
-- Nutzerkommunikation mit Version und deutschem Buildnamen. Interne RDAP-Step-IDs nur fuer ZIP/Commit/Deploy verwenden.
+- Nutzerkommunikation mit Version und deutschem Buildnamen. Interne RDAP-Step-IDs nur fuer ZIP/Commit/Deploy/Handoff verwenden.
 
 ## Pflicht-Startdateien wirklich lesen
 
@@ -24,6 +25,7 @@ docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
+project-state/PARKED_TODOS.md
 project-state/FILES.md
 project-state/CHANGELOG.md
 docs/current/MODULE_REGISTRATION_RULES_CURRENT.md
@@ -67,6 +69,7 @@ Umgesetzt:
 - Runtime-Scope `local` fuer diese Seiten.
 - Sprachkeys Deutsch/Englisch.
 - Status-API meldet lokale Dashboard-Seiten als vorbereitet.
+- Doku wurde zentralisiert: `project-state/PARKED_TODOS.md` ist die Langzeit-Merkstelle; `project-state/TODO.md` bleibt kurz und aktiv.
 
 Geparkte Idee:
 
@@ -74,6 +77,7 @@ Geparkte Idee:
 - Nicht sofort bauen.
 - Spaeteres Zielbild: lokal aendern -> pruefen -> vormerken -> freigeben -> online uebernehmen.
 - Kein Blind-Auto-Sync fuer kritische Bereiche.
+- Weitere geparkte Punkte stehen in `project-state/PARKED_TODOS.md`.
 
 ## Was NICHT gemacht werden darf
 

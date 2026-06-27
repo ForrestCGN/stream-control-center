@@ -1,5 +1,16 @@
 # Changelog
 
+## DOKU - Projektstatus und Langzeit-TODOs zentralisiert
+
+- Master-Prompt um zentrale Langzeit-TODO-Regel ergaenzt.
+- `project-state/PARKED_TODOS.md` als zentrale Langzeit-Merkstelle aufgenommen.
+- `project-state/TODO.md` wieder kurz und aktiv gehalten.
+- `docs/current/START_HERE_FOR_NEW_CHAT.md` auf zentrale Startreihenfolge mit `PARKED_TODOS.md` aktualisiert.
+- `docs/current/RDAP_EXAKTE_ARBEITSWEISE_2026-06-25_RDAP28_WORKFLOW.md` gestrafft: RDAP-Spezialregeln behalten, alte Historien ausgelagert.
+- `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` auf zentrale TODO-/Parked-TODO-Struktur aktualisiert.
+- Ueberholte RDAP104-Next-/Workflow-Dateien als historisch markiert und nach `docs/archive/` kopiert.
+- Doku-only: keine Codeaenderung, kein Webserver-Deploy noetig.
+
 ## RDAP128 - Handoff nach Version 0.2.5
 
 - Live-Bestaetigung fuer `0.2.5 - Lokales Dashboard vorbereitet` dokumentiert.
