@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check src/app.js && node --check src/routes/status.routes.js && node --check src/routes/routes.routes.js && node --check src/routes/auth.routes.js && node --check src/routes/admin-audit.routes.js && node --check src/routes/admin-users.routes.js && node --check src/routes/admin-mini-write-foundation.routes.js && node --check src/routes/agent-status.routes.js && node --check src/services/config.service.js && node --check src/services/db-health.service.js && node --check src/services/auth-session.service.js && node --check src/services/twitch-oauth.service.js && node --check src/services/admin-audit.service.js && node --check src/services/admin-users.service.js && node --check src/services/admin-mini-write-foundation.service.js && node --check src/services/agent-status.service.js && node --check src/services/agent-runtime.service.js"
+    "check": "node scripts/check-syntax.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

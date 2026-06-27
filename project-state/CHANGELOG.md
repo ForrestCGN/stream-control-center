@@ -1,21 +1,27 @@
 # Changelog
 
+## RDAP TODO Rescue 2 Final TODO Close
+
+- `project-state/TODO.md` bereinigt: Rescue-2-Einspiel-/Pruefpunkt aus den offenen Aufgaben entfernt und als abgeschlossen dokumentiert.
+- `project-state/NEXT_STEPS.md`, `CURRENT_STATUS.md` und `FILES.md` auf Abschlussstand gesetzt.
+- TODO-Struktur final festgelegt: aktive Kurzfristpunkte in `TODO.md`, Langzeit-/Parkpunkte in `PARKED_TODOS.md`.
+- Keine Code-, DB- oder Webserver-Aenderungen.
+
 ## RDAP TODO Rescue 2
 
-- In Rescue 1 markierte Archivquellen gezielt gelesen.
-- `project-state/PARKED_TODOS.md` um belegte Langzeitpunkte aus Diagnose-Standardisierung, Sound-Verlauf, EVS-Textspiel/EventBus und Tagebuch/Todo-Admin-Routen ergaenzt.
-- Reine alte Step-/CAN-Install-/Deploy-Reste bewusst nicht reaktiviert.
-- `project-state/TODO.md` bleibt aktive Kurzfristliste.
+- In Rescue 1 markierte Archivquellen gezielt ausgewertet.
+- `PARKED_TODOS.md` um belegte Langzeitpunkte ergaenzt.
+- Erledigte/abgeloeste reine CAN-/STEP-Install-/Deploy-Reste bewusst nicht reaktiviert.
 - Keine Code-, DB- oder Webserver-Aenderungen.
 
 ## RDAP TODO Rescue 1
 
-- `project-state/TODO.md` wieder als aktive Kurzfristliste hergestellt.
+- `project-state/TODO.md` wieder als kurze aktive TODO-Liste hergestellt.
 - `project-state/PARKED_TODOS.md` als zentrale Langzeit-Merkstelle angelegt.
-- Erste belegte alte Parkpunkte aus Master-TODO, TODO-Rescue-Report, EventSound, VIP, StreamEvents, RDAP43 und LAN rekonstruiert.
+- Belegte alte Parkpunkte aus Master-TODO, Rescue-Report, EventSound, VIP, StreamEvents, RDAP43 und Lokal/LAN rekonstruiert.
+- Keine Code-, DB- oder Webserver-Aenderungen.
 
-## RDAP Docs Cleanup 10
+## RDAP Docs Cleanup Final Status Fix
 
-- Docs-Cleanup 5 bis 10 abgeschlossen.
-- `docs/current/` bereinigt und finaler Current-Index erstellt.
-- Normaler RDAP-/Remote-Modboard-Weiterarbeits-Prompt erstellt.
+- Project-State von Cleanup-10-vorbereitet auf Cleanup-10-abgeschlossen korrigiert.
+- Keine Code-, DB- oder Webserver-Aenderungen.

@@ -15,7 +15,6 @@ project-state/PARKED_TODOS.md
 ## Aktuell / naechster Fokus
 
 - [ ] `project-state/PARKED_TODOS.md` als zentrale Langzeit-Merkstelle behalten und bei jedem neuen geparkten Punkt aktualisieren.
-- [ ] Rescue 2 lokal einspielen und pruefen.
 - [ ] Naechsten RDAP-/Remote-Modboard-Step anhand `docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md` planen.
 - [ ] Vor jedem Code-Step echte Dateien aus GitHub/dev lesen.
 - [ ] Bestehende Module/Services/Routes bevorzugen; keine parallelen Strukturen bauen.
@@ -36,3 +35,8 @@ project-state/PARKED_TODOS.md
 - [ ] Kein Webserver-Deploy bei Doku-only.
 - [ ] `_handoff`-Reports nicht dauerhaft untracked liegen lassen; erzeugte lokale Reports bewusst loeschen oder committen.
 - [ ] Technischer Basisstand 0.1.3 bleibt unveraendert: read-only, keine Writes, bis ein expliziter Write-Step geplant und freigegeben ist.
+
+## Zuletzt abgeschlossen
+
+- [x] RDAP TODO Rescue 1: aktive Kurzfrist-TODO und zentrale Langzeit-Merkstelle `PARKED_TODOS.md` getrennt.
+- [x] RDAP TODO Rescue 2: markierte Archivquellen gezielt ausgewertet und `PARKED_TODOS.md` ergaenzt.
