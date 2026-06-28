@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.20B - Agent Heartbeat slim + OBS Live-State read-only
+
+- Heartbeat absichtlich verkleinert: Verbindung + minimaler Komponentenstatus.
+- OBS-Inventar wird nicht mehr im Heartbeat gesendet.
+- Schneller OBS-Live-State bleibt separater WSS-Message-Typ `live_state`.
+- Ziel: Webserver trennt Agent nicht mehr wegen `heartbeat_payload_too_large`.
+- Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
+
 ## 0.2.20 - Agent OBS Live-State read-only vorbereitet
 
 - Separaten read-only Agent-WSS Message-Typ `live_state` vorbereitet.

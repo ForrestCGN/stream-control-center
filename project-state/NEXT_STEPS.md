@@ -1,6 +1,6 @@
 # Next Steps
 
-Nach `0.2.20`:
+Nach `0.2.20B`:
 
 ```text
 0.2.21 - OBS Allowlist-/Rechte-Modell read-only planen/vorbereiten

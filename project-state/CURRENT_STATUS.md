@@ -2,7 +2,7 @@
 
 Stand: 2026-06-28
 
-Aktuell: `0.2.20 - Agent OBS Live-State read-only vorbereitet`.
+Aktuell: `0.2.20B - Agent Heartbeat slim + OBS Live-State read-only`.
 
 Umgesetzt:
 
@@ -11,6 +11,7 @@ Umgesetzt:
 - Aktuelle OBS-Szene wird prominent angezeigt.
 - Lokaler Live-Scene-Refresh bleibt ueber /api/remote-agent/obs/live/status moeglich.
 - Stream-PC-Agent kann OBS-Live-State read-only ueber bestehende Agent-WSS-Verbindung senden.
+- Heartbeat ist schlank und enthaelt kein OBS-Inventar, damit Webserver-WSS stabil bleibt.
 - Neuer Online-Endpunkt: /api/remote/agent/obs/live/status.
 - Webserver speichert Live-State nur in Memory.
 - Inventar bleibt langsam/manuell.

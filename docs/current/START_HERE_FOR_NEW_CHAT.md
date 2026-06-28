@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.20 - Agent OBS Live-State read-only vorbereitet`.
+Aktueller Stand: `0.2.20B - Agent Heartbeat slim + OBS Live-State read-only` .
 
 Verbindlich:
 
@@ -14,7 +14,7 @@ Keine zweite lokale UI, keine separate lokale Navigation, kein eigenes lokales D
 
 0.2.19 richtete die OBS-Seite als spaetere Mod-Bedienflaeche read-only aus.
 
-0.2.20 erweitert den bestehenden Agent-WSS-Pfad um schnellen OBS-Live-State read-only:
+0.2.20 erweitert den bestehenden Agent-WSS-Pfad um schnellen OBS-Live-State read-only. 0.2.20B slimmt den Heartbeat, damit Live-Daten separat schnell laufen und der Webserver die Verbindung nicht wegen zu grossem Heartbeat trennt:
 
 ```text
 - Stream-PC sendet `type: live_state` ueber die bestehende Agent-WSS-Verbindung.
@@ -22,6 +22,7 @@ Keine zweite lokale UI, keine separate lokale Navigation, kein eigenes lokales D
 - Webserver speichert Live-State nur in Memory.
 - Online-Endpunkt: GET /api/remote/agent/obs/live/status.
 - Lokaler Endpunkt bleibt: GET /api/remote-agent/obs/live/status.
+- Heartbeat bleibt klein: Verbindung + minimaler Komponentenstatus, kein OBS-Inventar.
 - Inventar bleibt langsam/manuell; Bedienstatus ist schnell.
 - UI nutzt online zuerst den Webserver-Live-State und lokal den lokalen Live-Endpunkt.
 - Es gibt weiterhin keine OBS-Steuerung, keine Agent-Actions und keine Writes.

@@ -24,14 +24,14 @@ remote-modboard/backend/public/assets/modules/system/obs.js
 Aktueller Stand:
 
 ```text
-0.2.20 - Agent OBS Live-State read-only vorbereitet
+0.2.20B - Agent Heartbeat slim + OBS Live-State read-only
 ```
 
 Wichtig:
 
 ```text
 Inventar langsam, Bedienstatus schnell.
-Stream-PC pusht OBS-Live-State read-only ueber bestehende Agent-WSS-Verbindung.
+Stream-PC pusht OBS-Live-State read-only ueber bestehende Agent-WSS-Verbindung. Heartbeat ist absichtlich klein und enthaelt kein OBS-Inventar.
 Online-Endpunkt: /api/remote/agent/obs/live/status.
 Lokal bleibt: /api/remote-agent/obs/live/status.
 Live-State ist Memory-only, streng sanitisiert, keine Commands, keine Actions, keine Secrets.

@@ -1,6 +1,6 @@
 # Local Dashboard Replacement Plan Current
 
-Stand: 0.2.20
+Stand: 0.2.20B
 
 0.2.19 richtete die lokale/remote OBS-Seite als spaetere Mod-Bedienflaeche aus:
 
@@ -14,13 +14,14 @@ Stand: 0.2.20
 - Rollen-/Rechte-Zielbild sichtbar vorbereitet
 ```
 
-0.2.20 setzt die Entscheidung `Inventar langsam, Bedienstatus schnell` technisch fuer online um:
+0.2.20/0.2.20B setzt die Entscheidung `Inventar langsam, Bedienstatus schnell` technisch fuer online um:
 
 ```text
 - lokaler Live-Status bleibt ueber /api/remote-agent/obs/live/status
 - Stream-PC sendet schnellen read-only Live-State ueber bestehende Agent-WSS-Verbindung
 - Webserver haelt Live-State nur in Memory
 - Online-UI nutzt /api/remote/agent/obs/live/status fuer aktuelle Szene
+- Heartbeat bleibt klein und transportiert kein OBS-Inventar
 - Inventar bleibt langsam/manuell und online ohne lokale OBS-Daten leer/placeholder
 ```
 

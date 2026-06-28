@@ -14,9 +14,9 @@ let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.6';
-const MODULE_BUILD = 'RDAP_0.2.20_AGENT_OBS_LIVE_STATE_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_obs_live_state_0220.v1';
+const MODULE_VERSION = '0.1.6B';
+const MODULE_BUILD = 'RDAP_0.2.20B_AGENT_HEARTBEAT_SLIM_LIVE_STATE_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_obs_live_state_0220b.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -367,20 +367,60 @@ function clearReconnectTimer() { if (reconnectTimer) clearTimeout(reconnectTimer
 function sendHeartbeat(config) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   CONNECTION_STATE.heartbeatSeq += 1;
-  const componentStatus = buildComponentStatus(config);
-  const payload = { type: 'heartbeat', protocolVersion: HEARTBEAT_PROTOCOL_VERSION, agentId: config.agentId, seq: CONNECTION_STATE.heartbeatSeq, agentVersion: MODULE_VERSION, componentStatus };
+  const now = new Date().toISOString();
+  const componentStatus = buildSlimComponentStatus(now);
+  const payload = {
+    type: 'heartbeat',
+    protocolVersion: HEARTBEAT_PROTOCOL_VERSION,
+    agentId: config.agentId,
+    seq: CONNECTION_STATE.heartbeatSeq,
+    agentVersion: MODULE_VERSION,
+    componentStatus
+  };
   try {
     ws.send(JSON.stringify(payload));
-    const now = new Date().toISOString();
     CONNECTION_STATE.lastHeartbeatAt = now;
     CONNECTION_STATE.lastSeenAt = now;
     CONNECTION_STATE.connectionState = 'connected';
-    CONNECTION_STATE.reason = 'heartbeat_sent';
+    CONNECTION_STATE.reason = 'heartbeat_sent_slim';
     CONNECTION_STATE.componentStatus = componentStatus;
     CONNECTION_STATE.componentStatusUpdatedAt = now;
     CONNECTION_STATE.actionsEnabled = false;
     CONNECTION_STATE.productiveActionsEnabled = false;
   } catch (err) { handleError(config, err); }
+}
+
+function buildSlimComponentStatus(now) {
+  return {
+    protocolVersion: COMPONENT_STATUS_PROTOCOL_VERSION,
+    collectedAt: now,
+    localDashboard: { available: true, reachable: true, status: 'available' },
+    localServer: { available: true, reachable: true, status: 'running', port: 8080 },
+    obs: buildSlimObsComponentStatus(),
+    streamerbot: { available: false, reachable: null, status: 'not_checked' },
+    actionsEnabled: false,
+    productiveActionsEnabled: false,
+    noCommands: true,
+    noShellOrProcessActions: true,
+    noFileWrite: true,
+    noDatabaseWrite: true,
+    rawPayloadStored: false
+  };
+}
+
+function buildSlimObsComponentStatus() {
+  const liveState = CONNECTION_STATE.liveState && CONNECTION_STATE.liveState.obs ? CONNECTION_STATE.liveState.obs : buildObsLiveState({}).obs;
+  return {
+    available: liveState.connected === true || liveState.detected === true,
+    reachable: liveState.reachable === true ? true : (liveState.connected === true ? true : null),
+    status: liveState.connected === true ? 'connected' : (liveState.detected === true ? 'detected' : 'not_reported'),
+    currentScene: safeText(liveState.currentScene || liveState.currentProgramSceneName || '', 160) || null,
+    liveStatePrepared: true,
+    inventoryInHeartbeat: false,
+    inventorySource: 'separate_slow_local_status',
+    readOnly: true,
+    controlEnabled: false
+  };
 }
 
 function sendLiveState(config) {
@@ -802,7 +842,7 @@ function buildStatusResponse() {
     remoteTarget: { publicDashboardUrl: 'https://mods.forrestcgn.de', remoteWsUrl: state.remoteWsUrl, plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws', plannedWsPath: state.wsPath, streamPcPublicPortRequired: false, outgoingConnectionOnly: true },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
-    warnings: ['Version 0.1.6 sendet Heartbeats plus sicheren Komponentenstatus und separaten read-only OBS-Live-State ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS_WS_URL und OBS_WS_PASSWORD werden als lokale .env-Aliase erkannt; Inventar nutzt die bestehende obs_shared-Verbindung.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
+    warnings: ['Version 0.1.6B sendet schlanke Heartbeats plus separaten read-only OBS-Live-State ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS_WS_URL und OBS_WS_PASSWORD werden als lokale .env-Aliase erkannt; Inventar bleibt separat langsam und wird nicht im Heartbeat gesendet.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
 }
