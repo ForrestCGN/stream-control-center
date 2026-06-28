@@ -6,8 +6,8 @@ const http = require("http");
 const express = require("express");
 
 const MODULE_NAME = "local_remote_modboard_adapter";
-const MODULE_VERSION = "0.2.13";
-const MODULE_BUILD = "RDAP_0_2_13_OBS_READONLY_FOUNDATION";
+const MODULE_VERSION = "0.2.14B";
+const MODULE_BUILD = "RDAP_0_2_14B_OBS_LABEL_FIX";
 const API_PREFIX = "/api/remote";
 
 const MODULE_META = {
@@ -43,6 +43,10 @@ function getRemotePublicDir() {
 
 function getRemoteAssetsDir() {
   return path.join(getRemotePublicDir(), "assets");
+}
+
+function getDashboardV2AssetsDir() {
+  return path.join(getProjectRoot(), "htdocs", "dashboard-v2", "assets");
 }
 
 function getRemoteAssetsUpstream() {
@@ -170,7 +174,7 @@ function summarizeObsStatusFromRemoteAgentResult(result) {
     name: obs && obs.name ? String(obs.name) : "OBS",
     port: obs && obs.port ? obs.port : 4455,
     checkedAt: obs && obs.checkedAt ? String(obs.checkedAt) : "",
-    detail: obs && obs.detail ? String(obs.detail) : "OBS wird in 0.2.13 nur ueber remote_agent-Komponentenstatus gelesen.",
+    detail: obs && obs.detail ? String(obs.detail) : "OBS wird read-only ueber remote_agent-Komponentenstatus gelesen.",
     readOnly: true,
     controlEnabled: false,
     noAuthenticationAttempt: obs ? obs.noAuthenticationAttempt !== false : true,
@@ -203,7 +207,7 @@ function obsModelPayload(obsStatus, remoteAgent) {
       sources: [],
       audioSources: [],
       currentScene: null,
-      note: "0.2.13 legt die OBS-read-only Grundlage. Szenen-/Quellen-Inventar wird noch nicht aktiv per OBS-WebSocket gelesen."
+      note: "0.2.14B zeigt die OBS-read-only Grundlage in der Remote-Modboard-UI. Szenen-/Quellen-Inventar wird noch nicht aktiv per OBS-WebSocket gelesen."
     },
     plannedReadOnlyEndpoints: [
       `${API_PREFIX}/local-dashboard/obs/status`,
@@ -230,7 +234,7 @@ function obsModelPayload(obsStatus, remoteAgent) {
       noDatabaseWrite: true,
       noShellOrProcessActions: true
     },
-    note: "OBS ist als erstes Modul sinnvoll. 0.2.13 macht nur Status/Modell sichtbar und fuehrt keine OBS-Aktion aus."
+    note: "OBS ist als erstes Modul sinnvoll. 0.2.14B korrigiert die OBS-Labels und zeigt Status/Modell in der UI sichtbar und fuehrt keine OBS-Aktion aus."
   };
 }
 
@@ -683,6 +687,14 @@ function writeBlockedPayload(req) {
 
 function mountRemoteAssetFiles(app, remoteAssetsDir) {
   const staticOptions = { index: false, dotfiles: "deny", fallthrough: true };
+  const dashboardAssetsDir = getDashboardV2AssetsDir();
+
+  // Local /dashboard-v2 asset overrides win first. This keeps the real Remote-Modboard UI,
+  // but lets local foundation steps expose local-only read-only pages before online deploy.
+  app.use("/assets/modules", express.static(path.join(dashboardAssetsDir, "modules"), staticOptions));
+  app.use("/assets/languages", express.static(path.join(dashboardAssetsDir, "languages"), staticOptions));
+  app.use("/dashboard-v2/assets/modules", express.static(path.join(dashboardAssetsDir, "modules"), staticOptions));
+  app.use("/dashboard-v2/assets/languages", express.static(path.join(dashboardAssetsDir, "languages"), staticOptions));
 
   app.use("/assets/modules", express.static(path.join(remoteAssetsDir, "modules"), staticOptions));
   app.use("/assets/languages", express.static(path.join(remoteAssetsDir, "languages"), staticOptions));
@@ -691,8 +703,12 @@ function mountRemoteAssetFiles(app, remoteAssetsDir) {
 
   function sendLocalOrRedirect(localName, assetName) {
     return (req, res) => {
+      const dashboardFile = path.join(dashboardAssetsDir, localName);
+      if (fs.existsSync(dashboardFile)) return res.sendFile(dashboardFile);
+
       const file = path.join(remoteAssetsDir, localName);
       if (fs.existsSync(file)) return res.sendFile(file);
+
       return redirectRemoteAsset(req, res, assetName || localName);
     };
   }
@@ -794,5 +810,5 @@ module.exports.init = function init(ctx = {}) {
   app.get(`${API_PREFIX}/*`, (req, res) => res.json(localPlaceholderPayload(req)));
   app.all(`${API_PREFIX}/*`, (req, res) => res.status(405).json(writeBlockedPayload(req)));
 
-  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; obsReadOnly=prepared; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
+  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; obsReadOnly=prepared; obsUi=visible; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
 };
