@@ -1,53 +1,36 @@
-# Local Dashboard Replacement Plan - Current
+# Local Dashboard Replacement Plan Current
 
-Stand: 2026-06-28
+Stand: 2026-06-28, `0.2.17`.
 
-Aktueller Stand: `0.2.16B - Routes-Summary OBS inventorySourcePrepared angeglichen`.
+Remote-Modboard bleibt die einzige UI-Wahrheit. Lokales Dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 
-Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale Dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
+## 0.2.17
 
-## Aktueller OBS-Stand
-
-OBS ist im Remote-Modboard sichtbar und read-only.
-
-0.2.15 hat die Inventarstruktur vorbereitet:
+Der lokale `remote_agent` kann OBS-Inventar read-only lesen, aber nur wenn lokal explizit aktiviert:
 
 ```text
-inventory.prepared: true
-inventory.active: false
-scenes: []
-sources: []
-audioSources: []
-counts: { scenes: 0, sources: 0, audioSources: 0, total: 0 }
+STREAMING_PC_OBS_INVENTORY_READ_ENABLED=true
+STREAMING_PC_OBS_PASSWORD=<optional, nur falls OBS Auth verlangt>
 ```
 
-0.2.16 bereitet die lokale OBS-Inventarquelle read-only vor:
+Default: deaktiviert.
+
+Read-only Requests:
 
 ```text
-inventory.sourcePrepared: true
-inventory.sourceMode: local_adapter_remote_agent_component_status
-inventory.sourceRoute: /api/remote-agent/status
-inventory.sourceField: componentStatus.obs.inventory
-inventory.sourceActive: false
+GetSceneList
+GetInputList
+GetInputMute
+GetCurrentProgramScene
 ```
 
-Die UI zeigt weiterhin den Inventarbereich fuer Szenen, Quellen und Audio. Der lokale Adapter kann spaeter read-only Inventarlisten aus `remote_agent`-Komponentenstatus anzeigen, sobald der Agent diese Daten separat liefert. Aktuell wird keine echte OBS-Inventar-Abfrage aktiviert.
-
-## Sicherheitsgrenzen
+Keine Steuerung:
 
 ```text
-keine OBS-Kommandos
-keine OBS-WebSocket-Requests im Online-Backend
-keine Agent-Actions
 keine Szenenwechsel
-keine Mute-/Unmute-Aktionen
-keine Quellen-Sichtbarkeit aendern
+keine Mutes setzen
+keine Source-Visibility setzen
 keine Media-Steuerung
-keine Shell-/Datei-/Prozess-Actions
-keine DB-Migration
-keine produktiven Writes
+keine Agent-Actions
+keine Writes
 ```
-
-## Naechste Richtung
-
-Als naechster Code-Step kann eine echte lokale OBS-Inventar-Abfrage read-only separat geplant werden. Diese muss klar getrennt bleiben von OBS-Steuerung und Agent-Actions.

@@ -1,41 +1,22 @@
 # Next Steps
 
-Stand: 2026-06-28
-
-Naechster sinnvoller Code-Step nach `0.2.16`:
+Nach `0.2.17`:
 
 ```text
-0.2.17 - echte lokale OBS-Inventar-Abfrage read-only separat planen
+0.2.18 - lokalen OBS-Inventar-Read testen und UI/Adapter nur falls noetig angleichen
 ```
 
-Ziel:
+Vorher lokal testen:
+
+```powershell
+$env:STREAMING_PC_OBS_INVENTORY_READ_ENABLED="true"
+# optional:
+$env:STREAMING_PC_OBS_PASSWORD="..."
+```
+
+Dann pruefen:
 
 ```text
-- Echte lokale OBS-Inventardaten nur read-only lesen.
-- Vorher remote_agent und OBS-WebSocket-Zugriff separat pruefen.
-- Status-/Modellstruktur aus 0.2.16 weiterverwenden.
-- Keine Steuerbuttons.
-- Keine Szenenwechsel.
-- Keine Mute-/Unmute-Aktionen.
-- Keine Quellen-Sichtbarkeit aendern.
-- Keine Media-Steuerung.
-- Keine produktiven Writes.
-- Keine Agent-Actions ohne separates Action-Modell.
+/api/remote-agent/status -> streamingPcConnection.componentStatus.obs.inventory
+/api/remote/local-dashboard/obs/status -> inventory.counts
 ```
-
-Vor dem naechsten Code-Step zuerst echte Dateien aus GitHub/dev lesen, insbesondere:
-
-```text
-remote-modboard/backend/src/routes/obs-readonly.routes.js
-remote-modboard/backend/src/routes/status.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/public/assets/modules/system/obs.js
-htdocs/dashboard-v2/assets/modules/system/obs.js
-backend/modules/local_remote_modboard_adapter.js
-backend/modules/remote_agent.js
-```
-
-Spaeter separat planen: Navigation in Richtung Live / Control / Loyalty / Community / System / Admin, ohne grossen Umbau im OBS-Inventar-Step.
-
-
-Nach 0.2.16B kann separat geplant werden: echte lokale OBS-Inventar-Abfrage read-only, weiterhin ohne Steuer-Actions.

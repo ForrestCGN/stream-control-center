@@ -1,29 +1,16 @@
 # TODO
 
-Stand: 2026-06-28
+Erledigt:
+- 0.2.16B Routes-Summary OBS inventorySourcePrepared angeglichen.
+- 0.2.17 lokale OBS-Inventarabfrage read-only im remote_agent vorbereitet.
 
-## Erledigt
+Offen:
+- Lokalen Inventory-Read mit OBS testen.
+- Danach UI/Adapter nur falls noetig angleichen.
 
-```text
-0.2.14C - OBS read-only Online-Status-Fix
-0.2.15 - OBS Inventar read-only vorbereitet
-0.2.16B - Routes-Summary OBS inventorySourcePrepared angeglichen
-```
-
-## Naechster sinnvoller Punkt
-
-```text
-0.2.17 - echte lokale OBS-Inventar-Abfrage read-only separat planen
-```
-
-## Sicherheitsregeln fuer den naechsten OBS-Step
-
-- Keine OBS-Steuerung.
-- Keine Szenenwechsel.
-- Keine Mute-/Unmute-Aktionen.
-- Keine Quellen-Sichtbarkeit aendern.
-- Keine Media-Steuerung.
-- Keine Agent-Actions ohne separates Action-Modell.
-- Keine produktiven Writes.
-- Keine DB-Migration.
-- Keine Shell-/Datei-/Prozess-Actions.
+Weiterhin verboten ohne separaten Plan:
+- OBS-Steuerung
+- Agent-Actions
+- produktive Writes
+- DB-Migration
+- Shell/File/Process-Actions
