@@ -1,16 +1,37 @@
 # Current Status
 
-Aktuell: `0.2.22D - Local OBS Inventory Endpoint read-only`.
+Stand: 2026-06-28
+
+Aktuell: `0.2.22E - Local/Online OBS Status Parity read-only, fast gut`.
+
+Umgesetzt und bestaetigt:
 
 ```text
-Online Inventory-Sync funktioniert: Szenen/Quellen/Audio kommen an.
-0.2.22D korrigiert lokalen Inventory-Endpunkt und UI-Datenquelle.
-Live-State bleibt schnell, Inventory bleibt separat.
-Keine OBS-Steuerung.
+- Stream-PC-Agent ist per WSS verbunden.
+- Heartbeat ist schlank und stabil.
+- Live-State sendet aktuelle OBS-Szene schnell.
+- Inventory-Sync sendet Szenen/Quellen/Audio separat, nicht im Heartbeat.
+- Online Inventory: 19 Szenen, 48 Quellen, 35 Audioquellen.
+- Lokales Inventory: 19 Szenen, 48 Quellen, 35 Audioquellen.
+- currentScene: Live Gameplay Forrest&Engel.
+- Lokal/online Status-Parity fuer Live/Wartet vorbereitet.
 ```
 
+Noch offen:
 
-0.2.22D: UI setzt Live-Status bei getrenntem/stale Agent ohne Reload auf Wartet zurueck. Keine OBS-Steuerung.
+```text
+- Mehrere echte Situationen testen: OBS an/aus, Agent an/aus, OBS-Neustart, Webserver-Neustart, Szenenwechsel.
+- Pruefen, ob Live -> Wartet/Offline lokal und online ohne Reload sauber wirkt.
+- Mod-Ansicht sprachlich vereinfachen: keine Diagnosebegriffe fuer Mods.
+```
 
+Weiterhin verboten:
 
-Aktuell bestaetigt/vorbereitet: 0.2.22E Local/Online Status Parity read-only. Lokal und online sollen Live/Offline/Wartet gleich aktualisieren.
+```text
+keine OBS-Steuerung
+keine Agent-Actions
+keine produktiven Writes
+keine DB-Migration
+keine Shell-/Datei-/Prozess-Actions
+keine freien OBS requestType Payloads
+```

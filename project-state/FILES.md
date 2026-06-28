@@ -1,13 +1,19 @@
 # Files
 
-0.2.22D geaendert:
+0.2.22E relevante Dateien:
 
 ```text
 backend/modules/remote_agent.js
-remote-modboard/backend/server.js
+remote-modboard/backend/src/services/agent-runtime.service.js
 remote-modboard/backend/src/routes/obs-readonly.routes.js
+remote-modboard/backend/server.js
 remote-modboard/backend/public/assets/modules/system/obs.js
 htdocs/dashboard-v2/assets/modules/system/obs.js
+```
+
+Doku-/Status-Dateien:
+
+```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
 docs/current/LOCAL_DASHBOARD_REPLACEMENT_PLAN_CURRENT.md
@@ -18,5 +24,8 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
+Hinweis:
 
-0.2.22E geaendert: server.js und beide OBS-UI-Dateien plus Doku/State.
+```text
+0.2.22E war ein UI/Status-Parity-Step. Fuer neue Codearbeit wieder echte Dateien aus GitHub/dev lesen.
+```

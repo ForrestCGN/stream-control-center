@@ -1,12 +1,27 @@
 # Next Steps
 
-Nach 0.2.22D:
+Nach `0.2.22E`:
 
 ```text
-- Sichttest lokal und online: Szenen/Audio nicht mehr 0, wenn Inventory da ist.
-- Danach erst naechster echter Bedienvorbereitungs-Step.
-- Keine OBS-Actions vor separater Freigabe.
+1. Sichttest mit echten Situationen:
+   - OBS an/aus
+   - Agent an/aus
+   - Szenenwechsel
+   - OBS-Neustart
+   - Webserver-Neustart
+   - lokal vs online
+   - Reload vs ohne Reload
+   - Inventory-Sync nach ca. 30s
+
+2. Danach entscheiden:
+   - kleiner Mod-UX-/Text-Fix fuer OBS-Seite
+   - oder naechster read-only Bedienvorbereitungs-Step
 ```
 
+Nicht tun:
 
-Nach 0.2.22E: Sichttest lokal und online fuer Live -> Wartet ohne Reload.
+```text
+Keine OBS-Actions aktivieren.
+Keine UI-Kosmetik statt fehlender Daten.
+Keine grossen Daten in Heartbeat/Live-State packen.
+```
