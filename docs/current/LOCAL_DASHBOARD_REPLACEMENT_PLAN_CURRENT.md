@@ -5,10 +5,10 @@ Stand: 2026-06-28
 ## Aktueller Stand
 
 ```text
-0.2.10I - Modboard Online/Lokal Architekturregel dokumentiert
+0.2.11 - Runtime-Profil / Agent-Executor / User-Rechte-Sync Foundation vorbereitet
 ```
 
-0.2.10H hat die Remote-Asset-Pfade fuer `/dashboard-v2` repariert. 0.2.10I ist Doku-only und haelt die Architekturentscheidung fest.
+0.2.10H hat die Remote-Asset-Pfade fuer `/dashboard-v2` repariert. 0.2.10I hat die Architekturentscheidung dokumentiert. 0.2.11 macht diese Architektur lokal als Runtime-Profil pruefbar.
 
 ## Zielregel UI
 
@@ -106,30 +106,34 @@ Konfliktregel fuer spaetere Umsetzung:
 - Jede Rechteaenderung braucht Actor, Timestamp, Quelle, Revision und Audit.
 ```
 
-## 0.2.10H
+## 0.2.11 Foundation
 
-0.2.10G zeigte nacktes HTML, weil die echte Remote-Modboard-App `/assets/...` referenziert, der lokale Server aber `/assets` auf `htdocs/assets` mappt.
-
-0.2.10H repariert das ueber den lokalen Adapter:
+Neue read-only Diagnose-/Profil-Endpunkte:
 
 ```text
-/assets/remote-modboard.css
-/assets/remote-modboard.js
-/assets/runtime-profile.js
-/assets/languages/*
-/assets/modules/*
-/dashboard-v2/assets/*
+GET /api/remote/local-dashboard/runtime-profile
+GET /api/remote/local-dashboard/architecture
 ```
 
-Wenn lokale Remote-Modboard-Assets vorhanden sind, werden sie lokal geliefert. Wenn nicht, wird auf `https://mods.forrestcgn.de/assets/...` weitergeleitet.
+Ziel:
+
+```text
+- Runtime-Profil lokal pruefbar machen,
+- UI-Quelle "Remote-Modboard" explizit melden,
+- Agent-Executor als vorbereitet/geplant markieren,
+- User/Rechte-Sync als vorbereitet/geplant markieren,
+- aktive Writes und Stream-PC-Actions weiterhin blockieren.
+```
+
+0.2.11 aktiviert noch nichts Produktives. Es erzeugt nur eine klare technische Grundlage fuer die naechsten Steps.
 
 ## Sicherheitsgrenzen
 
 - keine zweite lokale UI,
-- keine DB-Migration in 0.2.10I,
-- keine produktiven Writes in 0.2.10I,
-- keine neuen Agent-Actions in 0.2.10I,
-- keine OBS-/Sound-/Overlay-/Command-Steuerung in 0.2.10I,
+- keine DB-Migration,
+- keine produktiven Writes,
+- keine neuen aktiven Agent-Actions,
+- keine OBS-/Sound-/Overlay-/Command-Steuerung,
 - keine Shell-/Datei-/Prozess-Actions,
 - `/dashboard` bleibt unveraendert,
-- kein Webserver-Deploy fuer Doku-only.
+- kein Webserver-Deploy noetig.

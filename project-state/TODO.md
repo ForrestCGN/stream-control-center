@@ -2,10 +2,10 @@
 
 Stand: 2026-06-28
 
-- [ ] `0.2.10H` lokal installieren und Node neu starten, falls noch nicht passiert.
+- [ ] `0.2.11` lokal installieren und Node neu starten.
+- [ ] `node --check .\backend\modules\local_remote_modboard_adapter.js`.
+- [ ] `/api/remote/local-dashboard/runtime-profile` pruefen.
 - [ ] `/api/remote/local-dashboard/adapter/status` pruefen.
-- [ ] `/dashboard-v2/` Sichttest: keine nackte HTML-Seite, Remote-Modboard-Optik sichtbar.
-- [ ] Falls sichtbar passend: `stepdone.cmd` fuer 0.2.10H.
-- [ ] `0.2.10I` Doku-only einspielen und `stepdone.cmd`, wenn Doku passt.
-- [ ] Danach `0.2.11` planen: Runtime-Profil, Agent als zentraler Executor, User/Rechte-Sync.
-- [ ] Keine zweite lokale UI mehr bauen.
+- [ ] `/dashboard-v2/` Sichttest: Remote-Modboard-Optik weiterhin sichtbar.
+- [ ] Wenn sauber: `stepdone.cmd`.
+- [ ] Danach erst `0.2.12` Agent-Executor-Schnittstelle diagnostisch/read-only planen.

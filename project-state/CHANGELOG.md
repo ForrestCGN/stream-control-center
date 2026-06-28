@@ -1,14 +1,17 @@
 # Changelog
 
-## Version 0.2.10I - Modboard Online/Lokal Architekturregel dokumentiert
+## Version 0.2.11 - Runtime-Profil / Agent-Executor / User-Rechte-Sync Foundation vorbereitet
 
-- Doku-only: Architekturentscheidung fuer Online-/Lokalbetrieb festgehalten.
-- Zielbild dokumentiert: eine UI, zwei Zugangswege, ein Agent als zentraler Executor fuer Streaming-PC-Aktionen.
-- Zugangsregel dokumentiert:
-  - Mods immer ueber `https://mods.forrestcgn.de/`,
-  - Forrest/Engel zuhause lokal ueber `/dashboard-v2`,
-  - Forrest/Engel unterwegs online ueber `https://mods.forrestcgn.de/`.
-- UI-Regel verschaerft: Remote-Modboard ist einzige UI-Wahrheit; lokales Dashboard-v2 ist dieselbe App im lokalen Runtime-Profil.
-- Agent-Regel dokumentiert: Alles, was den Streaming-PC aktiv betrifft, laeuft am Ende ueber den Stream-PC-Agent.
-- User/Rechte-Sync dokumentiert: lokale und online Aenderungen werden synchronisiert; Sperren/Entzug wirken online sofort.
-- Keine Codeaenderung, keine DB-Migration, keine produktiven Writes, keine neuen Agent-/OBS-/Sound-/Overlay-/Command-Actions.
+- Lokaler Remote-Modboard-Adapter von `0.2.10H` auf `0.2.11` angehoben.
+- Neue read-only Endpunkte:
+  - `GET /api/remote/local-dashboard/runtime-profile`
+  - `GET /api/remote/local-dashboard/architecture`
+- Runtime-Profil meldet jetzt explizit:
+  - UI-Quelle `remote-modboard`,
+  - keine zweite lokale UI,
+  - Agent-Executor vorbereitet/geplant, aber nicht aktiv,
+  - User/Rechte-Sync vorbereitet/geplant, aber nicht aktiv,
+  - Writes und aktive Stream-PC-Actions blockiert.
+- `/api/remote/status`, `/api/remote/routes` und `/api/remote/local-dashboard/adapter/status` enthalten Hinweise auf das Runtime-Profil.
+- Keine DB-Migration, keine produktiven Writes, keine aktiven Agent-/OBS-/Sound-/Overlay-/Command-Actions.
+- `/dashboard` bleibt unveraendert.

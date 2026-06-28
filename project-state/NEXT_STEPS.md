@@ -2,27 +2,28 @@
 
 Stand: 2026-06-28
 
-Naechster Schritt nach `0.2.10I`:
+Naechster Schritt nach `0.2.11`:
 
 ```text
-0.2.10H lokal abschliessen: Sichttest und stepdone, wenn passend.
+0.2.11 lokal testen und abschliessen.
 ```
 
 Pruefen:
 
 ```text
-- CSS/JS laden sichtbar, keine nackte HTML-Seite.
-- Dashboard-Szene wird angezeigt, nicht Login-Szene.
-- Topbar/Sidebar/Layout entsprechen Remote-Modboard.
-- /api/remote/local-dashboard/adapter/status zeigt assetFallback local-files oder upstream-redirect.
+- node --check .\backend\modules\local_remote_modboard_adapter.js
+- /api/remote/local-dashboard/runtime-profile liefert ok=true.
+- /api/remote/local-dashboard/runtime-profile zeigt ui.source=remote-modboard.
+- agentExecutor.status=planned und active=false.
+- rightsSync.status=planned und active=false.
+- safety/readOnly bleibt true.
+- /dashboard-v2/ zeigt weiter Remote-Modboard-Optik.
 ```
 
-Danach nicht mehr lokale UI nachbauen.
-
-## Naechste fachliche Planung
+Danach sinnvoll:
 
 ```text
-0.2.11 - Architekturgrundlage fuer Runtime-Profil/Agent-Executor/User-Rechte-Sync vorbereiten
+0.2.12 - Agent-Executor-Schnittstelle diagnostisch/read-only vorbereiten
 ```
 
 Dabei beachten:

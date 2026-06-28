@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.10I - Modboard Online/Lokal Architekturregel dokumentiert`.
+Aktueller Stand: `0.2.11 - Runtime-Profil / Agent-Executor / User-Rechte-Sync Foundation vorbereitet`.
 
 Verbindlich:
 
@@ -48,4 +48,20 @@ Der lokale Stand wird ueber den Agent nachgezogen, sobald verbunden.
 
 0.2.10I ist Doku-only. Es dokumentiert die Zielarchitektur: eine UI, zwei Zugangswege, Agent als zentraler Executor, Rechte/User-Sync zwischen Online und Lokal.
 
-Weiterarbeit: Erst 0.2.10H Sichttest/stepdone abschliessen. Danach keine neue lokale UI bauen, sondern Module nur noch runtime-faehig fuer Online und Lokal planen.
+## Stand 0.2.11
+
+0.2.11 ist ein Foundation-Step. Der lokale Adapter liefert jetzt ein pruefbares Runtime-Profil:
+
+```text
+GET /api/remote/local-dashboard/runtime-profile
+GET /api/remote/local-dashboard/architecture
+```
+
+Das Profil zeigt:
+- UI-Quelle: Remote-Modboard,
+- lokales Dashboard-v2: lokales Runtime-Profil,
+- Agent-Executor: vorbereitet/geplant, aber nicht aktiv,
+- User/Rechte-Sync: vorbereitet/geplant, aber nicht aktiv,
+- Writes und aktive Stream-PC-Actions: weiterhin blockiert.
+
+Weiterarbeit: Erst 0.2.11 lokal testen und `stepdone.cmd`. Danach Agent-Executor-Schnittstelle nur diagnostisch/read-only planen.
