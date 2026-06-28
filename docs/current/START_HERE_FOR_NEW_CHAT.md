@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.14C - OBS read-only Online-Status-Fix`.
+Aktueller Stand: `0.2.15 - OBS Inventar read-only vorbereitet`.
 
 Verbindlich:
 
@@ -35,25 +35,50 @@ Keine zweite lokale UI, keine separate lokale Navigation, kein eigenes lokales D
 - Keine Writes.
 ```
 
+0.2.15 bereitete die OBS-Inventarstruktur read-only vor:
+
+```text
+- /api/remote/local-dashboard/obs/status liefert inventory.prepared=true.
+- /api/remote/local-dashboard/obs/model liefert dieselbe Inventarstruktur.
+- inventory.active=false.
+- counts fuer scenes/sources/audioSources vorhanden.
+- scenes/sources/audioSources sind leer vorbereitet.
+- UI zeigt Inventarbereich fuer Szenen / Quellen / Audio.
+- Keine echte OBS-Inventar-Abfrage.
+- Keine OBS-WebSocket-Requests.
+- Keine OBS-Kommandos.
+- Keine Agent-Actions.
+- Keine Writes.
+```
+
 ## Online geprüft
 
 Auf dem Webserver erfolgreich geprüft:
 
 ```text
 GET /api/remote/status
-- version: 0.2.14C
-- stepRef: RDAP_0.2.14C_OBS_READONLY_ONLINE_STATUS_FIX
+- version: 0.2.15
+- stepRef: RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED
 - obsPage vorhanden
+- inventoryReadOnlyPrepared: true
 
 GET /api/remote/local-dashboard/obs/status
+- moduleVersion: 0.2.15
+- statusApiVersion: rdap_obs_inventory_readonly_0215.v1
 - readOnly: true
-- status: readonly_online_placeholder
+- inventory.prepared: true
+- inventory.active: false
+- inventory.counts vorhanden
 - noObsRequestSent: true
-- noAgentActionExecution: true
+- obsWebSocketRequestsEnabled: false
+- actionsEnabled: false
+- controlEnabled: false
 
-GET /api/remote/routes
-- /api/remote/local-dashboard/obs/status vorhanden
-- /api/remote/local-dashboard/obs/model vorhanden
+GET /api/remote/local-dashboard/obs/model
+- moduleVersion: 0.2.15
+- readOnly: true
+- inventory.prepared: true
+- inventory.active: false
 ```
 
-Weiterarbeit: Naechster Code-Step ist sinnvoll `0.2.15 - OBS Inventar read-only vorbereiten`.
+Weiterarbeit: Naechster sinnvoller Code-Step ist `0.2.16 - lokale OBS-Inventarquelle read-only planen/vorbereiten`, aber nur nach erneutem Lesen echter Dateien und Plan vor `go`.

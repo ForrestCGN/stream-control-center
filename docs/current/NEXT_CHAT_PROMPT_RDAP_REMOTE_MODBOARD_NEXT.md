@@ -13,11 +13,14 @@ Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer Forrest
 - Nur wenn sauber/nachvollziehbar: `stepdone.cmd`.
 - `stepdone.cmd` bedeutet Commit/Push nach GitHub/dev, nicht Webserver-Deploy.
 - Webserver-Deploy nur bei Code-/Remote-Modboard-Aenderungen, nicht bei Doku-only.
+- Webserver ist root; kein sudo.
+- Standard-Webserver-Deploy: `cd /opt/stream-control-center && bash tools/server/remote-modboard-deploy-step.sh <STEP_NAME> dev`.
+- Nach dem Deploy-Script keinen extra manuellen Restart, ausser als separater Diagnosefall.
 
 ## Aktueller Stand
 
 ```text
-0.2.14C - OBS read-only Online-Status-Fix
+0.2.15 - OBS Inventar read-only vorbereitet
 ```
 
 ## Wichtig
@@ -37,6 +40,19 @@ OBS ist sichtbar und bleibt read-only.
 - `/api/remote/local-dashboard/obs/status` liefert read-only Online-Placeholder.
 - Webserver-Deploy wurde ausgefuehrt und erfolgreich geprueft.
 
+0.2.15:
+- OBS-Inventarstruktur read-only vorbereitet.
+- `/api/remote/local-dashboard/obs/status` und `/model` liefern `inventory` mit `scenes`, `sources`, `audioSources`, `groups`, `counts`, `capabilities`.
+- `inventory.prepared=true`, `inventory.active=false`.
+- Szenen/Quellen/Audio sind leer vorbereitet.
+- UI zeigt Inventarbereich fuer Szenen / Quellen / Audio.
+- Es gibt weiterhin keine echte OBS-Inventar-Abfrage.
+- `noObsRequestSent=true`.
+- `obsWebSocketRequestsEnabled=false`.
+- `actionsEnabled=false`.
+- `controlEnabled=false`.
+- Webserver-Deploy wurde ausgefuehrt und erfolgreich geprueft.
+
 Keine grosse Navigation neu bauen. Die alte grobe Zielstruktur kann spaeter separat geplant werden:
 
 ```text
@@ -50,12 +66,13 @@ OBS ist aktuell unter System sichtbar. Wenn spaeter verschoben wird, dann eher k
 ## Naechster sinnvoller Step
 
 ```text
-0.2.15 - OBS Inventar read-only vorbereiten
+0.2.16 - lokale OBS-Inventarquelle read-only vorbereiten/planen
 ```
 
-Ziel:
-- Szenen/Quellen/Audio read-only vorbereiten.
-- Weiterhin keine Steuerung.
+Zielidee:
+- Echte lokale OBS-Inventardaten nur read-only vorbereiten.
+- Vorher genau klaeren, ob die Daten vom lokalen Dashboard/Adapter oder vom Streaming-PC-Agent kommen.
+- Keine Steuerung.
 - Keine Szenenwechsel.
 - Keine Mutes.
 - Keine Quellen-Sichtbarkeit aendern.

@@ -2,17 +2,18 @@
 
 Stand: 2026-06-28
 
-Naechster sinnvoller Code-Step nach `0.2.14C`:
+Naechster sinnvoller Code-Step nach `0.2.15`:
 
 ```text
-0.2.15 - OBS Inventar read-only vorbereiten
+0.2.16 - lokale OBS-Inventarquelle read-only vorbereiten/planen
 ```
 
 Ziel:
 
 ```text
-- Szenen/Quellen/Audio read-only vorbereiten.
-- Status-/Modellstruktur fuer OBS-Inventar sauber erweitern.
+- Echte lokale OBS-Inventardaten nur read-only vorbereiten.
+- Vorher entscheiden, ob Quelle lokaler Adapter oder Streaming-PC-Agent ist.
+- Status-/Modellstruktur aus 0.2.15 weiterverwenden.
 - Keine Steuerbuttons.
 - Keine Szenenwechsel.
 - Keine Mute-/Unmute-Aktionen.

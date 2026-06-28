@@ -1,18 +1,22 @@
 # Changelog
 
-## Version 0.2.14C - OBS read-only Online-Status-Fix
+## 2026-06-28 - 0.2.15 OBS Inventar read-only vorbereitet
 
-- Online-Backend-Status mit der sichtbaren OBS-read-only UI synchronisiert.
-- `/api/remote/status` enthaelt OBS als `obsPage` in `moduleMetadata.pages`.
-- `/api/remote/routes` enthaelt `/api/remote/local-dashboard/obs/status` und `/api/remote/local-dashboard/obs/model`.
-- Neue Online-read-only OBS-Placeholder-Routen ergaenzt.
-- `server.js` meldet `0.2.14C` und `RDAP_0.2.14C_OBS_READONLY_ONLINE_STATUS_FIX`.
-- Webserver-Deploy wurde erfolgreich geprueft.
-- Keine OBS-Kommandos, keine Agent-Actions, keine Writes.
+- OBS-Inventarstruktur in `/api/remote/local-dashboard/obs/status` vorbereitet.
+- OBS-Inventarstruktur in `/api/remote/local-dashboard/obs/model` vorbereitet.
+- `inventory.prepared=true`, `inventory.active=false`.
+- Gruppen/Counts fuer Szenen, Quellen und Audio vorbereitet.
+- UI zeigt Inventarbereich fuer Szenen / Quellen / Audio.
+- Webserver-Deploy ausgefuehrt und erfolgreich geprueft.
 
-## Version 0.2.14B - OBS read-only UI Label-Fix
+Nicht geaendert:
 
-- OBS-Seite bleibt read-only sichtbar.
-- Roh angezeigte Label-/Title-Keys fuer OBS korrigiert.
-- Keine grosse Navigation neu gebaut.
-- Keine OBS-Kommandos, keine Agent-Actions, keine Writes.
+```text
+keine echte OBS-Inventar-Abfrage
+keine OBS-WebSocket-Requests
+keine OBS-Kommandos
+keine Agent-Actions
+keine DB-Migration
+keine Writes
+keine Navigation neu gebaut
+```

@@ -1,82 +1,43 @@
-# Lokaler Dashboard-Ersatz - aktueller Plan
+# Local Dashboard Replacement Plan - Current
 
 Stand: 2026-06-28
 
-## Aktueller Stand
+Aktueller Stand: `0.2.15 - OBS Inventar read-only vorbereitet`.
+
+Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale Dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
+
+## Aktueller OBS-Stand
+
+OBS ist im Remote-Modboard sichtbar und read-only.
+
+0.2.15 hat die Inventarstruktur vorbereitet:
 
 ```text
-0.2.14C - OBS read-only Online-Status-Fix
+inventory.prepared: true
+inventory.active: false
+scenes: []
+sources: []
+audioSources: []
+counts: { scenes: 0, sources: 0, audioSources: 0, total: 0 }
 ```
 
-## UI-Regel
+Die UI zeigt den Inventarbereich fuer Szenen, Quellen und Audio, aber ohne echte OBS-Abfrage.
+
+## Sicherheitsgrenzen
 
 ```text
-Remote-Modboard = UI-Wahrheit.
-Dashboard-v2 lokal = dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
+keine OBS-Kommandos
+keine OBS-WebSocket-Requests im Online-Backend
+keine Agent-Actions
+keine Szenenwechsel
+keine Mute-/Unmute-Aktionen
+keine Quellen-Sichtbarkeit aendern
+keine Media-Steuerung
+keine Shell-/Datei-/Prozess-Actions
+keine DB-Migration
+keine produktiven Writes
 ```
 
-Keine zweite lokale UI. Keine grosse Navigation neu bauen.
+## Naechste Richtung
 
-## OBS
-
-OBS ist als erstes fachliches Modul vorbereitet.
-
-0.2.13:
-
-```text
-/api/remote/local-dashboard/obs/status
-/api/remote/local-dashboard/obs/model
-```
-
-0.2.14:
-
-```text
-OBS read-only in der UI sichtbar.
-```
-
-0.2.14B:
-
-```text
-OBS-Label/Title korrigiert, damit keine Rohkeys wie page.system.obs.label angezeigt werden.
-```
-
-0.2.14C:
-
-```text
-Online-Backend-Status und Routes wurden mit der sichtbaren OBS-read-only UI synchronisiert.
-```
-
-Online geprüft:
-
-```text
-/api/remote/status enthaelt obsPage.
-/api/remote/routes enthaelt OBS Status/Model.
-/api/remote/local-dashboard/obs/status liefert read-only Placeholder.
-```
-
-## Sicherheit
-
-- read-only,
-- keine OBS-Kommandos,
-- keine Szenenwechsel,
-- kein Mute/Unmute,
-- keine Quellen-Sichtbarkeit,
-- keine Media-Steuerung,
-- keine Agent-Actions,
-- keine Shell-/Datei-/Prozess-Actions,
-- keine DB-Migration,
-- keine produktiven Writes.
-
-## Naechster sinnvoller Code-Step
-
-```text
-0.2.15 - OBS Inventar read-only vorbereiten
-```
-
-Ziel spaeter:
-- Szenen/Quellen/Audio read-only vorbereiten,
-- weiterhin keine Steuerung,
-- keine Szenenwechsel,
-- keine Mutes,
-- keine Writes,
-- keine Agent-Actions ohne separates Action-Modell.
+Als naechster Code-Step kann eine lokale read-only OBS-Inventarquelle vorbereitet werden. Vorher muss entschieden werden, ob die Quelle ueber den lokalen Adapter oder ueber den Streaming-PC-Agent laufen soll.

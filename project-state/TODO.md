@@ -1,15 +1,28 @@
-# TODO - aktive Kurzfrist-Aufgaben
+# TODO
 
 Stand: 2026-06-28
 
-- [x] `0.2.14B` lokal installieren und Node neu starten.
-- [x] Syntax-Checks ausfuehren.
-- [x] `/dashboard-v2/` Sichttest: OBS-Labels sind keine Rohkeys mehr.
-- [x] `/api/remote/local-dashboard/obs/status` pruefen.
-- [x] `stepdone.cmd` fuer 0.2.14B.
-- [x] Webserver-Deploy fuer 0.2.14B ausfuehren.
-- [x] Mischstand erkannt: UI sichtbar, Online-Backend-Status/Routes noch alt.
-- [x] `0.2.14C` lokal testen und per `stepdone.cmd` nach GitHub/dev bringen.
-- [x] Webserver-Deploy fuer `0.2.14C` ausfuehren.
-- [x] Online pruefen: Status, OBS-Statusroute, Routes.
-- [ ] Naechsten Code-Step planen: `0.2.15 - OBS Inventar read-only vorbereiten`.
+## Erledigt
+
+```text
+0.2.14C - OBS read-only Online-Status-Fix
+0.2.15 - OBS Inventar read-only vorbereitet
+```
+
+## Naechster sinnvoller Punkt
+
+```text
+0.2.16 - lokale OBS-Inventarquelle read-only vorbereiten/planen
+```
+
+## Sicherheitsregeln fuer den naechsten OBS-Step
+
+- Keine OBS-Steuerung.
+- Keine Szenenwechsel.
+- Keine Mute-/Unmute-Aktionen.
+- Keine Quellen-Sichtbarkeit aendern.
+- Keine Media-Steuerung.
+- Keine Agent-Actions ohne separates Action-Modell.
+- Keine produktiven Writes.
+- Keine DB-Migration.
+- Keine Shell-/Datei-/Prozess-Actions.

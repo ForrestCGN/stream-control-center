@@ -5,39 +5,41 @@ Stand: 2026-06-28
 Aktueller getesteter Stand:
 
 ```text
-0.2.14C - OBS read-only Online-Status-Fix
+0.2.15 - OBS Inventar read-only vorbereitet
 ```
 
 ## Ergebnis
 
-0.2.14C korrigiert den Mischstand nach 0.2.14B:
+0.2.15 erweitert den erfolgreichen 0.2.14C Stand um eine vorbereitete OBS-Inventarstruktur.
 
-```text
-Frontend/UI war bereits neu genug und zeigte OBS.
-Online-Backend-Status und Routes kannten OBS aber noch nicht.
-```
-
-Jetzt ist online geprueft:
+Online geprueft:
 
 ```text
 /api/remote/status
-- version: 0.2.14C
-- stepRef: RDAP_0.2.14C_OBS_READONLY_ONLINE_STATUS_FIX
-- moduleBuild: RDAP_0.2.14C_OBS_READONLY_ONLINE_STATUS_FIX
+- version: 0.2.15
+- stepRef: RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED
+- moduleBuild: RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED
 - obsPage vorhanden
+- inventoryReadOnlyPrepared: true
 
 /api/remote/local-dashboard/obs/status
-- module: remote_obs_readonly
-- moduleVersion: 0.2.14C
-- statusApiVersion: rdap_obs_readonly_online_status_0214c.v1
+- moduleVersion: 0.2.15
+- statusApiVersion: rdap_obs_inventory_readonly_0215.v1
 - readOnly: true
-- status: readonly_online_placeholder
-- noObsRequestSent: true
-- noAgentActionExecution: true
+- inventory.prepared: true
+- inventory.active: false
+- groups fuer scenes/sources/audioSources vorhanden
+- counts vorhanden
+- obs.noObsRequestSent: true
+- inventory.capabilities.obsWebSocketRequestsEnabled: false
+- inventory.capabilities.actionsEnabled: false
+- inventory.capabilities.controlEnabled: false
 
-/api/remote/routes
-- /api/remote/local-dashboard/obs/status vorhanden
-- /api/remote/local-dashboard/obs/model vorhanden
+/api/remote/local-dashboard/obs/model
+- moduleVersion: 0.2.15
+- readOnly: true
+- inventory.prepared: true
+- inventory.active: false
 ```
 
 OBS bleibt sichtbar und read-only.
@@ -49,6 +51,7 @@ OBS bleibt sichtbar und read-only.
 - keine DB-Migration,
 - keine produktiven Writes,
 - keine Agent-Actions,
+- keine echte OBS-Inventar-Abfrage,
 - keine OBS-WebSocket-Kommandos durch das Online-Backend,
 - kein Szenenwechsel,
 - kein Mute/Unmute,
