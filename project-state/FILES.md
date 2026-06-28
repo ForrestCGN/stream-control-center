@@ -17,3 +17,6 @@ project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
 ```
+
+
+0.2.22E geaendert: server.js und beide OBS-UI-Dateien plus Doku/State.

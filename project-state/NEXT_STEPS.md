@@ -7,3 +7,6 @@ Nach 0.2.22D:
 - Danach erst naechster echter Bedienvorbereitungs-Step.
 - Keine OBS-Actions vor separater Freigabe.
 ```
+
+
+Nach 0.2.22E: Sichttest lokal und online fuer Live -> Wartet ohne Reload.

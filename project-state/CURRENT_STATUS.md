@@ -11,3 +11,6 @@ Keine OBS-Steuerung.
 
 
 0.2.22D: UI setzt Live-Status bei getrenntem/stale Agent ohne Reload auf Wartet zurueck. Keine OBS-Steuerung.
+
+
+Aktuell bestaetigt/vorbereitet: 0.2.22E Local/Online Status Parity read-only. Lokal und online sollen Live/Offline/Wartet gleich aktualisieren.

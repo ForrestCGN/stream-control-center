@@ -14,3 +14,6 @@ Bestaetigt/zu beachten:
 - UI darf keine falschen 0-Werte aus leerem Status anzeigen.
 - Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
 ```
+
+
+Aktueller Zusatzstand: 0.2.22E - Local/Online Status Parity read-only. Lokal und online gleiche OBS-Status-/Refresh-Logik; keine OBS-Steuerung.

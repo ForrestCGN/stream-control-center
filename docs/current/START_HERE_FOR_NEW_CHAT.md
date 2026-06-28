@@ -30,3 +30,8 @@ Keine Writes.
 Keine DB-Migration.
 Keine freien OBS-Payloads.
 ```
+
+
+## 0.2.22E
+
+Lokale und Online-OBS-Seite nutzen dieselbe Anzeige-Logik fuer Live/Offline/Wartet. Lokal wird der lokale Live-Endpunkt zuerst genutzt, online der Webserver-Endpunkt.

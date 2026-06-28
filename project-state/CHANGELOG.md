@@ -18,3 +18,11 @@
 
 - Webserver-Receiver verarbeitet mehrere WebSocket-Frames pro TCP-Chunk.
 - Online Inventory bestaetigt: Szenen/Quellen/Audio kommen an.
+
+
+## 0.2.22E - Local/Online Status Parity read-only
+
+- Lokale OBS-Seite nutzt lokalen Live-Endpunkt zuerst.
+- Online-OBS-Seite nutzt Webserver-Live-Endpunkt zuerst.
+- Gleiche Live/Offline/Wartet-Logik fuer lokal und online.
+- Keine OBS-Steuerung, keine Writes.

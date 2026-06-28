@@ -8,10 +8,10 @@
   const LOCAL_INVENTORY_ENDPOINT = '/api/remote-agent/obs/inventory/status';
   const ONLINE_LIVE_ENDPOINT = '/api/remote/agent/obs/live/status';
   const LOCAL_LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
-  const STEP_LABEL = '0.2.22D';
+  const STEP_LABEL = '0.2.22E';
   const LOCAL_LIVE_REFRESH_MS = 250;
   const ONLINE_LIVE_REFRESH_MS = 1000;
-  let activeLiveRefreshMs = ONLINE_LIVE_REFRESH_MS;
+  let activeLiveRefreshMs = getInitialLiveRefreshMs();
   const LIVE_REFRESH_HIDDEN_MS = 2000;
   const FULL_REFRESH_MS = 30000;
   const OBS_ALLOWLIST_MODEL = Object.freeze({
@@ -26,6 +26,7 @@
   let liveRefreshTimer = null;
   let liveRefreshRunning = false;
   let lastInventory = null;
+  let lastLiveAvailable = false;
 
   function registerPage() {
     if (!window.RemoteModboardModules || typeof window.RemoteModboardModules.registerPage !== 'function') return;
@@ -195,9 +196,16 @@
     loading = false;
   }
 
+  function isLocalRuntime() {
+    return location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+  }
+
+  function getInitialLiveRefreshMs() {
+    return isLocalRuntime() ? LOCAL_LIVE_REFRESH_MS : ONLINE_LIVE_REFRESH_MS;
+  }
+
   function getInventoryCandidates() {
-    const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
-    return isLocal ? [LOCAL_INVENTORY_ENDPOINT, ONLINE_INVENTORY_ENDPOINT, ENDPOINT] : [ONLINE_INVENTORY_ENDPOINT, LOCAL_INVENTORY_ENDPOINT, ENDPOINT];
+    return isLocalRuntime() ? [LOCAL_INVENTORY_ENDPOINT, ONLINE_INVENTORY_ENDPOINT, ENDPOINT] : [ONLINE_INVENTORY_ENDPOINT, LOCAL_INVENTORY_ENDPOINT, ENDPOINT];
   }
 
   function hasInventoryData(body) {
@@ -329,11 +337,20 @@
   }
 
 
+  function getLiveCandidates() {
+    return isLocalRuntime()
+      ? [
+        { url: LOCAL_LIVE_ENDPOINT, label: 'Lokal Live', intervalMs: LOCAL_LIVE_REFRESH_MS },
+        { url: ONLINE_LIVE_ENDPOINT, label: 'Online Live', intervalMs: ONLINE_LIVE_REFRESH_MS }
+      ]
+      : [
+        { url: ONLINE_LIVE_ENDPOINT, label: 'Online Live', intervalMs: ONLINE_LIVE_REFRESH_MS },
+        { url: LOCAL_LIVE_ENDPOINT, label: 'Lokal Live', intervalMs: LOCAL_LIVE_REFRESH_MS }
+      ];
+  }
+
   async function loadObsLiveStatus() {
-    const candidates = [
-      { url: ONLINE_LIVE_ENDPOINT, label: 'Online Live', intervalMs: ONLINE_LIVE_REFRESH_MS },
-      { url: LOCAL_LIVE_ENDPOINT, label: 'Lokal Live', intervalMs: LOCAL_LIVE_REFRESH_MS }
-    ];
+    const candidates = getLiveCandidates();
 
     for (const candidate of candidates) {
       const result = await getJson(candidate.url);
@@ -384,6 +401,7 @@
     setText('obsLiveState', sourceLabel ? `${sourceLabel} · Auto ${activeLiveRefreshMs}ms` : `Auto ${activeLiveRefreshMs}ms`);
     const currentCard = document.querySelector('[data-page-panel="obs"] .rdap-obs-current');
     if (currentCard) currentCard.classList.toggle('is-live', Boolean(currentScene && currentScene !== '—'));
+    lastLiveAvailable = Boolean(currentScene && currentScene !== '—');
     if (currentScene && currentScene !== '—') {
       setChip('obsStatusPill', true, 'OBS live verbunden');
       setText('obsConnectionText', 'Live verbunden');
@@ -397,11 +415,12 @@
     setText('obsConnectionText', 'Wartet');
     const currentCard = document.querySelector('[data-page-panel="obs"] .rdap-obs-current');
     if (currentCard) currentCard.classList.remove('is-live');
+    lastLiveAvailable = false;
   }
 
   function getCurrentSceneFromLiveCache() {
     const node = document.getElementById('obsCurrentScene');
-    return node && node.textContent && node.textContent !== '—' ? node.textContent : '';
+    return lastLiveAvailable && node && node.textContent && node.textContent !== '—' ? node.textContent : '';
   }
 
   function getItemName(item) {

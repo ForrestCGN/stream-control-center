@@ -13,3 +13,6 @@ Inventory-Sync: Szenen/Quellen/Audio separat read-only.
 ```
 
 Weiter verboten: OBS-Steuerung, Agent-Actions, Writes, DB-Migration, freie OBS-Payloads.
+
+
+0.2.22E: Lokale und Online-OBS-Seite zeigen Live/Offline/Wartet nach gleicher Logik.

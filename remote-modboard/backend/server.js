@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.22D';
-const BUILD_NAME = 'OBS Live Disconnect Refresh Readonly';
-const STEP_REF = 'RDAP_0.2.22D_OBS_LIVE_DISCONNECT_REFRESH_READONLY';
+const APP_VERSION = '0.2.22E';
+const BUILD_NAME = 'OBS Local Online Status Parity Readonly';
+const STEP_REF = 'RDAP_0.2.22E_LOCAL_ONLINE_STATUS_PARITY_READONLY';
 const MODULE_BUILD = STEP_REF;
 
 async function main() {
