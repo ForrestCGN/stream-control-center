@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.11 - Runtime-Profil / Agent-Executor / User-Rechte-Sync Foundation vorbereitet`.
+Aktueller Stand: `0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet`.
 
 Verbindlich:
 
@@ -40,28 +40,15 @@ Sperren/Entzug von Rechten muessen online sofort wirken.
 Der lokale Stand wird ueber den Agent nachgezogen, sobald verbunden.
 ```
 
-## Stand 0.2.10H
+## Stand 0.2.12
 
-0.2.10H repariert den Fehler aus 0.2.10G, bei dem CSS/JS nicht geladen wurden. Der lokale Adapter liefert oder leitet Remote-Modboard-Assets fuer `/assets/...` und `/dashboard-v2/assets/...` weiter.
-
-## Stand 0.2.10I
-
-0.2.10I ist Doku-only. Es dokumentiert die Zielarchitektur: eine UI, zwei Zugangswege, Agent als zentraler Executor, Rechte/User-Sync zwischen Online und Lokal.
-
-## Stand 0.2.11
-
-0.2.11 ist ein Foundation-Step. Der lokale Adapter liefert jetzt ein pruefbares Runtime-Profil:
+0.2.12 erweitert den lokalen Remote-Modboard-Adapter um read-only Agent-Executor-Diagnose:
 
 ```text
-GET /api/remote/local-dashboard/runtime-profile
-GET /api/remote/local-dashboard/architecture
+GET /api/remote/local-dashboard/agent-executor/status
+GET /api/remote/local-dashboard/agent-executor/handshake
 ```
 
-Das Profil zeigt:
-- UI-Quelle: Remote-Modboard,
-- lokales Dashboard-v2: lokales Runtime-Profil,
-- Agent-Executor: vorbereitet/geplant, aber nicht aktiv,
-- User/Rechte-Sync: vorbereitet/geplant, aber nicht aktiv,
-- Writes und aktive Stream-PC-Actions: weiterhin blockiert.
+Diese Routen lesen nur den vorhandenen lokalen Agent-Status aus `/api/remote-agent/status`. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt.
 
-Weiterarbeit: Erst 0.2.11 lokal testen und `stepdone.cmd`. Danach Agent-Executor-Schnittstelle nur diagnostisch/read-only planen.
+Weiterarbeit: Erst 0.2.12 lokal testen/stepdone. Danach `0.2.13 - User/Rechte-Sync Statusmodell read-only vorbereiten`.

@@ -12,61 +12,39 @@ Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer Forrest
 - Danach Checks und `git status`.
 - Nur wenn sauber/nachvollziehbar: `stepdone.cmd`.
 - `stepdone.cmd` bedeutet Commit/Push nach GitHub/dev, nicht Webserver-Deploy.
-- Webserver-Deploy nur bei Code-/Remote-Modboard-Aenderungen, nicht bei Doku-only.
+- Webserver-Deploy nur bei Code-/Remote-Modboard-Aenderungen, nicht bei Doku-only/lokalen Dashboard-Steps.
 
 ## Aktueller Stand
 
 ```text
-0.2.11 - Runtime-Profil / Agent-Executor / User-Rechte-Sync Foundation vorbereitet
+0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet
 ```
 
-## Harte Architekturregel
+## Verbindliche Architektur
 
 ```text
-Eine UI.
-Zwei Zugangswege.
-Ein Agent als zentraler Executor fuer Streaming-PC-Aktionen.
-Synchronisierte User/Rechte zwischen Online und Lokal.
+Remote-Modboard ist die einzige UI-Wahrheit.
+Dashboard-v2 lokal ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
+Mods nutzen immer https://mods.forrestcgn.de/.
+Forrest/Engel nutzen zuhause lokal und unterwegs online.
+Alles, was den Streaming-PC aktiv betrifft, laeuft am Ende ueber den Agent.
+User/Rechte duerfen lokal und online geaendert werden und muessen synchronisiert werden.
+Sperren/Entzug wirken online sofort.
 ```
 
-```text
-Mods:
-immer https://mods.forrestcgn.de/
-
-Forrest/Engel zuhause:
-lokal am Streaming-PC/LAN ueber /dashboard-v2
-
-Forrest/Engel unterwegs:
-online ueber https://mods.forrestcgn.de/
-```
-
-## 0.2.11
-
-0.2.11 erweitert nur den lokalen Adapter. Neue read-only Endpunkte:
+## 0.2.12 pruefen
 
 ```text
-GET /api/remote/local-dashboard/runtime-profile
-GET /api/remote/local-dashboard/architecture
-```
-
-Sie melden:
-- Runtime `local`,
-- UI-Quelle `remote-modboard`,
-- Agent-Executor vorbereitet/geplant, aber nicht aktiv,
-- User/Rechte-Sync vorbereitet/geplant, aber nicht aktiv,
-- Writes/OBS/Sound/Overlay/Command/Shell/File/Process weiterhin blockiert.
-
-## Naechster Schritt
-
-Lokal testen:
-
-```text
-http://127.0.0.1:8080/api/remote/local-dashboard/runtime-profile
-http://127.0.0.1:8080/api/remote/local-dashboard/adapter/status
+http://127.0.0.1:8080/api/remote/local-dashboard/agent-executor/status
+http://127.0.0.1:8080/api/remote/local-dashboard/agent-executor/handshake
+http://127.0.0.1:8080/api/remote-agent/status
 http://127.0.0.1:8080/dashboard-v2/
 ```
 
-Wenn sauber: `stepdone.cmd`.
+0.2.12 ist diagnostic-only. Keine Agent-Kommandos, keine Writes, keine OBS-/Sound-/Overlay-/Command-Actions.
 
-Danach sinnvoll:
-`0.2.12 - Agent-Executor-Schnittstelle diagnostisch/read-only vorbereiten`.
+## Naechster sinnvoller Step
+
+```text
+0.2.13 - User/Rechte-Sync Statusmodell read-only vorbereiten
+```

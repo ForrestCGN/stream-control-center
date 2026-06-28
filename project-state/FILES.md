@@ -2,7 +2,7 @@
 
 Stand: 2026-06-28
 
-## Geaendert in Version 0.2.11 - Runtime-Profil / Agent-Executor / User-Rechte-Sync Foundation vorbereitet
+## Geaendert in Version 0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet
 
 ```text
 backend/modules/local_remote_modboard_adapter.js

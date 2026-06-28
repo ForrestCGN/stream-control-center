@@ -5,23 +5,19 @@ Stand: 2026-06-28
 ## Aktueller Stand
 
 ```text
-0.2.11 - Runtime-Profil / Agent-Executor / User-Rechte-Sync Foundation vorbereitet
+0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet
 ```
 
-0.2.10H hat die Remote-Asset-Pfade fuer `/dashboard-v2` repariert. 0.2.10I hat die Architekturentscheidung dokumentiert. 0.2.11 macht diese Architektur lokal als Runtime-Profil pruefbar.
+0.2.10H hat die Remote-Asset-Pfade fuer `/dashboard-v2` repariert. 0.2.10I hat die Architekturentscheidung festgehalten. 0.2.11 hat Runtime-Profil/Agent-Sync-Foundation vorbereitet. 0.2.12 macht den Agent-Executor-Weg read-only diagnostisch sichtbar.
 
 ## Zielregel UI
-
-```text
-Das lokale Dashboard-v2 soll optisch und strukturell eine exakte Kopie des Remote-Modboards sein.
-```
-
-Nicht lokal nachbauen. Nicht angleichen. Nicht zweite UI pflegen.
 
 ```text
 Remote-Modboard = UI-Wahrheit.
 Dashboard-v2 lokal = dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 ```
+
+Nicht lokal nachbauen. Nicht angleichen. Nicht zweite UI pflegen.
 
 Abweichungen sind nur erlaubt bei:
 
@@ -54,18 +50,6 @@ Mods bekommen keinen direkten Zugriff auf den Streaming-PC.
 Alles, was den Streaming-PC aktiv betrifft, laeuft am Ende ueber den Stream-PC-Agent.
 ```
 
-Beispiele:
-
-```text
-- Sound stoppen,
-- Sound testen,
-- OBS-Aktion,
-- Overlay-/Alert-/Command-nahe Aktion,
-- lokale Modul-Config schreiben,
-- Datei/Asset im erlaubten Modulbereich aendern,
-- Streamer.bot/OBS/lokalen Node-Controller ansprechen.
-```
-
 Online-Weg:
 
 ```text
@@ -80,22 +64,36 @@ Dashboard-v2 lokal -> lokaler Server/Adapter -> Agent -> Streaming-PC-Aktion
 
 Der Agent ist der zentrale Executor. Keine freien Shell-/Datei-/Prozessbefehle.
 
+## 0.2.12 Agent-Executor Diagnose
+
+Neue read-only Diagnose-Routen:
+
+```text
+GET /api/remote/local-dashboard/agent-executor/status
+GET /api/remote/local-dashboard/agent-executor/handshake
+```
+
+Diese Routen lesen diagnostisch den bestehenden lokalen Agent-Status aus:
+
+```text
+GET /api/remote-agent/status
+```
+
+Sie zeigen vorbereitet/diagnostic-only:
+
+```text
+- ob `remote_agent.js` geladen ist,
+- ob der Agent konfiguriert/verbunden ist,
+- welche sichere Route spaeter als zentraler Executor dient,
+- dass Actions weiterhin deaktiviert sind.
+```
+
 ## Zielregel User/Rechte Sync
 
 ```text
 User/Rechte duerfen lokal und online geaendert werden.
 Beide Seiten synchronisieren sich.
 Sperren/Entzug von Rechten muessen online sofort wirken.
-```
-
-Praktisch:
-
-```text
-- Forrest/Engel arbeiten meistens lokal.
-- Forrest/Engel duerfen unterwegs online Rechte/User aendern.
-- Boss-Mods duerfen online gekuendigte Mods sperren/Rechte entziehen, wenn ihre Rolle das erlaubt.
-- Online-Sperren wirken sofort auf dem Webserver.
-- Der lokale Stand wird ueber den Agent nachgezogen, sobald verbunden.
 ```
 
 Konfliktregel fuer spaetere Umsetzung:
@@ -106,33 +104,12 @@ Konfliktregel fuer spaetere Umsetzung:
 - Jede Rechteaenderung braucht Actor, Timestamp, Quelle, Revision und Audit.
 ```
 
-## 0.2.11 Foundation
-
-Neue read-only Diagnose-/Profil-Endpunkte:
-
-```text
-GET /api/remote/local-dashboard/runtime-profile
-GET /api/remote/local-dashboard/architecture
-```
-
-Ziel:
-
-```text
-- Runtime-Profil lokal pruefbar machen,
-- UI-Quelle "Remote-Modboard" explizit melden,
-- Agent-Executor als vorbereitet/geplant markieren,
-- User/Rechte-Sync als vorbereitet/geplant markieren,
-- aktive Writes und Stream-PC-Actions weiterhin blockieren.
-```
-
-0.2.11 aktiviert noch nichts Produktives. Es erzeugt nur eine klare technische Grundlage fuer die naechsten Steps.
-
-## Sicherheitsgrenzen
+## Sicherheitsgrenzen 0.2.12
 
 - keine zweite lokale UI,
 - keine DB-Migration,
 - keine produktiven Writes,
-- keine neuen aktiven Agent-Actions,
+- keine Agent-Kommandos,
 - keine OBS-/Sound-/Overlay-/Command-Steuerung,
 - keine Shell-/Datei-/Prozess-Actions,
 - `/dashboard` bleibt unveraendert,

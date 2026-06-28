@@ -2,11 +2,12 @@
 
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
 const express = require("express");
 
 const MODULE_NAME = "local_remote_modboard_adapter";
-const MODULE_VERSION = "0.2.11";
-const MODULE_BUILD = "RDAP_0_2_11_RUNTIME_PROFILE_AGENT_SYNC_FOUNDATION";
+const MODULE_VERSION = "0.2.12";
+const MODULE_BUILD = "RDAP_0_2_12_AGENT_EXECUTOR_DIAGNOSTIC_HANDSHAKE";
 const API_PREFIX = "/api/remote";
 
 const MODULE_META = {
@@ -63,6 +64,138 @@ function redirectRemoteAsset(req, res, assetPath) {
 
 function getLoadedModules(ctx = {}) {
   return typeof ctx.getLoadedModules === "function" ? ctx.getLoadedModules() : [];
+}
+
+function getLocalHttpPort() {
+  const parsed = Number.parseInt(process.env.PORT || "", 10);
+  if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65535) return parsed;
+  return 8080;
+}
+
+function fetchLocalJson(pathname, timeoutMs = 900) {
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const options = {
+      hostname: "127.0.0.1",
+      port: getLocalHttpPort(),
+      path: pathname,
+      method: "GET",
+      timeout: timeoutMs,
+      headers: {
+        "Accept": "application/json",
+        "X-SCC-Local-Dashboard-Adapter": MODULE_VERSION
+      }
+    };
+
+    const req = http.request(options, (res) => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => {
+        body += chunk;
+        if (body.length > 250000) req.destroy(new Error("local_json_response_too_large"));
+      });
+      res.on("end", () => {
+        const durationMs = Date.now() - startedAt;
+        try {
+          const json = body ? JSON.parse(body) : null;
+          resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, statusCode: res.statusCode, durationMs, json });
+        } catch (err) {
+          resolve({ ok: false, statusCode: res.statusCode, durationMs, error: "local_json_parse_failed" });
+        }
+      });
+    });
+
+    req.on("timeout", () => {
+      req.destroy(new Error("local_agent_status_timeout"));
+    });
+    req.on("error", (err) => {
+      resolve({ ok: false, statusCode: 0, durationMs: Date.now() - startedAt, error: err && err.message ? String(err.message).slice(0, 160) : "local_agent_status_error" });
+    });
+    req.end();
+  });
+}
+
+function summarizeRemoteAgentStatus(result) {
+  const json = result && result.json && typeof result.json === "object" ? result.json : null;
+  const connection = json && (json.connection || json.streamingPcConnection || json.status || {});
+  const streamingPcConnection = json && json.streamingPcConnection && typeof json.streamingPcConnection === "object" ? json.streamingPcConnection : {};
+  const componentStatus = streamingPcConnection.componentStatus || (json && json.componentStatus) || null;
+
+  return {
+    ok: Boolean(result && result.ok && json && json.ok !== false),
+    checked: true,
+    checkedAt: nowIso(),
+    sourceRoute: "/api/remote-agent/status",
+    httpStatusCode: result ? result.statusCode : 0,
+    durationMs: result ? result.durationMs : 0,
+    module: json && json.module ? json.module : "remote_agent",
+    moduleVersion: json && json.moduleVersion ? json.moduleVersion : "",
+    moduleBuild: json && json.moduleBuild ? json.moduleBuild : "",
+    configured: Boolean(connection.configured || streamingPcConnection.configured),
+    enabled: Boolean(connection.enabled || streamingPcConnection.enabled),
+    connected: Boolean(connection.connected || streamingPcConnection.connected),
+    connectionState: String(connection.connectionState || streamingPcConnection.connectionState || "unknown"),
+    reason: String(connection.reason || streamingPcConnection.reason || result.error || ""),
+    lastHeartbeatAt: String(connection.lastHeartbeatAt || streamingPcConnection.lastHeartbeatAt || ""),
+    heartbeatSeq: Number(connection.heartbeatSeq || streamingPcConnection.heartbeatSeq || 0),
+    componentStatusAvailable: Boolean(componentStatus),
+    actionsEnabled: false,
+    productiveActionsEnabled: false,
+    safeReadOnly: true
+  };
+}
+
+async function agentExecutorDiagnosticPayload(ctx = {}) {
+  const loadedModules = getLoadedModules(ctx);
+  const remoteAgentLoaded = loadedModules.includes("remote_agent.js");
+  const statusResult = await fetchLocalJson("/api/remote-agent/status");
+  const remoteAgent = summarizeRemoteAgentStatus(statusResult);
+
+  return {
+    ok: true,
+    service: "remote-modboard",
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    statusApiVersion: "local_remote_modboard_adapter.agent_executor_diagnostic.v1",
+    generatedAt: nowIso(),
+    runtimeMode: "local",
+    localDashboard: true,
+    readOnly: true,
+    prepared: true,
+    active: false,
+    status: "diagnostic_only",
+    remoteAgentLoaded,
+    remoteAgent,
+    executorModel: {
+      centralExecutor: "remote_agent",
+      localPath: "Dashboard-v2 lokal -> lokaler Server/Adapter -> remote_agent -> Streaming-PC-Aktion",
+      onlinePath: "Modboard online -> Webserver -> remote_agent -> Streaming-PC-Aktion",
+      handshakePrepared: true,
+      handshakeActive: remoteAgent.connected === true,
+      actionQueuePrepared: false,
+      commandAcceptanceEnabled: false,
+      productiveActionsEnabled: false
+    },
+    safety: {
+      readOnly: true,
+      noAgentActionExecution: true,
+      noStreamingPcActionExecution: true,
+      noSoundControl: true,
+      noObsControl: true,
+      noOverlayControl: true,
+      noCommandControl: true,
+      noFileWrite: true,
+      noDatabaseWrite: true,
+      noShellOrProcessActions: true
+    },
+    routes: [
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/status`, readOnly: true },
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true },
+      { method: "GET", path: "/api/remote-agent/status", readOnly: true, source: "remote_agent" }
+    ],
+    note: "0.2.12 liest nur den bestehenden remote_agent-Status und macht den geplanten Agent-Executor-Weg diagnostisch sichtbar. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt."
+  };
 }
 
 function localUser() {
@@ -122,7 +255,9 @@ function localArchitecturePayload(ctx = {}) {
     agentExecutor: {
       prepared: true,
       active: false,
-      status: "planned",
+      status: "diagnostic_only",
+      diagnosticEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/status`,
+      handshakeEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/handshake`,
       centralExecutor: true,
       requiredForStreamingPcActions: true,
       localPath: "Dashboard-v2 lokal -> lokaler Server/Adapter -> Agent -> Streaming-PC-Aktion",
@@ -138,7 +273,7 @@ function localArchitecturePayload(ctx = {}) {
         "shell",
         "productiveWrite"
       ],
-      note: "0.2.11 bereitet nur Status/Profil vor. Es aktiviert keine Agent-Actions."
+      note: "0.2.12 bereitet Agent-Executor-Diagnose/Handshake vor. Es aktiviert keine Agent-Actions."
     },
     rightsSync: {
       prepared: true,
@@ -247,6 +382,7 @@ function localStatusPayload(ctx = {}) {
     runtimeProfile: {
       uiSource: architecture.ui.source,
       agentExecutor: architecture.agentExecutor.status,
+      agentExecutorEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/status`,
       rightsSync: architecture.rightsSync.status,
       writeActions: "disabled"
     },
@@ -278,7 +414,9 @@ function localRoutesPayload(ctx = {}) {
       { method: "GET", path: `${API_PREFIX}/lock-audit/schema-adapter/status`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/adapter/status`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/runtime-profile`, readOnly: true },
-      { method: "GET", path: `${API_PREFIX}/local-dashboard/architecture`, readOnly: true }
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/architecture`, readOnly: true },
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/status`, readOnly: true },
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true }
     ],
     localSafety: localSafetyPayload(),
     loadedModules: getLoadedModules(ctx),
@@ -497,6 +635,8 @@ module.exports.init = function init(ctx = {}) {
 
   app.get(`${API_PREFIX}/local-dashboard/runtime-profile`, (req, res) => res.json(localArchitecturePayload(ctx)));
   app.get(`${API_PREFIX}/local-dashboard/architecture`, (req, res) => res.json(localArchitecturePayload(ctx)));
+  app.get(`${API_PREFIX}/local-dashboard/agent-executor/status`, async (req, res) => res.json(await agentExecutorDiagnosticPayload(ctx)));
+  app.get(`${API_PREFIX}/local-dashboard/agent-executor/handshake`, async (req, res) => res.json(await agentExecutorDiagnosticPayload(ctx)));
 
   app.get(`${API_PREFIX}/local-dashboard/adapter/status`, (req, res) => res.json({
     ok: true,
@@ -515,7 +655,8 @@ module.exports.init = function init(ctx = {}) {
     agentExecutor: {
       prepared: true,
       active: false,
-      status: "planned"
+      status: "diagnostic_only",
+      diagnosticEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/status`
     },
     rightsSync: {
       prepared: true,
@@ -531,5 +672,5 @@ module.exports.init = function init(ctx = {}) {
   app.get(`${API_PREFIX}/*`, (req, res) => res.json(localPlaceholderPayload(req)));
   app.all(`${API_PREFIX}/*`, (req, res) => res.status(405).json(writeBlockedPayload(req)));
 
-  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
+  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
 };

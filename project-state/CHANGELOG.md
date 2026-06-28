@@ -1,17 +1,12 @@
 # Changelog
 
-## Version 0.2.11 - Runtime-Profil / Agent-Executor / User-Rechte-Sync Foundation vorbereitet
+## Version 0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet
 
-- Lokaler Remote-Modboard-Adapter von `0.2.10H` auf `0.2.11` angehoben.
-- Neue read-only Endpunkte:
-  - `GET /api/remote/local-dashboard/runtime-profile`
-  - `GET /api/remote/local-dashboard/architecture`
-- Runtime-Profil meldet jetzt explizit:
-  - UI-Quelle `remote-modboard`,
-  - keine zweite lokale UI,
-  - Agent-Executor vorbereitet/geplant, aber nicht aktiv,
-  - User/Rechte-Sync vorbereitet/geplant, aber nicht aktiv,
-  - Writes und aktive Stream-PC-Actions blockiert.
-- `/api/remote/status`, `/api/remote/routes` und `/api/remote/local-dashboard/adapter/status` enthalten Hinweise auf das Runtime-Profil.
-- Keine DB-Migration, keine produktiven Writes, keine aktiven Agent-/OBS-/Sound-/Overlay-/Command-Actions.
+- Lokalen Remote-Modboard-Adapter auf `0.2.12` angehoben.
+- Neue read-only Routen ergaenzt:
+  - `GET /api/remote/local-dashboard/agent-executor/status`
+  - `GET /api/remote/local-dashboard/agent-executor/handshake`
+- Die neuen Routen lesen diagnostisch den bestehenden lokalen Agent-Status aus `/api/remote-agent/status`.
+- Der geplante Agent-Executor-Weg wird sichtbar dokumentiert: lokal und online fuehren Streaming-PC-Aktionen spaeter ueber den Agent aus.
+- Keine Agent-Kommandos, keine Writes, keine OBS-/Sound-/Overlay-/Command-Steuerung aktiviert.
 - `/dashboard` bleibt unveraendert.
