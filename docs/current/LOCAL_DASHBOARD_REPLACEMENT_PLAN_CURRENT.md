@@ -2,7 +2,7 @@
 
 Stand: 2026-06-28
 
-Aktueller Stand: `0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet`.
+Aktueller Stand: `0.2.16B - Routes-Summary OBS inventorySourcePrepared angeglichen`.
 
 Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale Dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 

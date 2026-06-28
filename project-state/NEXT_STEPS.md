@@ -36,3 +36,6 @@ backend/modules/remote_agent.js
 ```
 
 Spaeter separat planen: Navigation in Richtung Live / Control / Loyalty / Community / System / Admin, ohne grossen Umbau im OBS-Inventar-Step.
+
+
+Nach 0.2.16B kann separat geplant werden: echte lokale OBS-Inventar-Abfrage read-only, weiterhin ohne Steuer-Actions.

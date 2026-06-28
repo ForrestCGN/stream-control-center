@@ -5,25 +5,26 @@ Stand: 2026-06-28
 Aktueller getesteter Stand:
 
 ```text
-0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet
+0.2.16B - Routes-Summary OBS inventorySourcePrepared angeglichen
 ```
 
 ## Ergebnis
 
-0.2.16 erweitert den erfolgreichen 0.2.15 Stand um eine vorbereitete lokale OBS-Inventarquelle.
+0.2.16B erweitert den erfolgreichen 0.2.16 Stand nur um die fehlende OBS-Routes-Summary-Alias-Markierung.
 
 Geplant/zu pruefen nach Webserver-Deploy:
 
 ```text
 /api/remote/status
-- version: 0.2.16
-- stepRef: RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED
-- moduleBuild: RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED
+- version: 0.2.16B
+- stepRef: RDAP_0.2.16B_ROUTES_OBS_INVENTORY_SOURCE_SUMMARY_FIX
+- moduleBuild: RDAP_0.2.16B_ROUTES_OBS_INVENTORY_SOURCE_SUMMARY_FIX
 - obsPage vorhanden
 - obsLocalInventorySourcePrepared: true
+- obsInventorySourcePrepared: true
 
 /api/remote/local-dashboard/obs/status
-- moduleVersion: 0.2.16
+- moduleVersion: 0.2.16B
 - statusApiVersion: rdap_obs_local_inventory_source_0216.v1
 - readOnly: true
 - inventory.prepared: true
@@ -39,7 +40,7 @@ Geplant/zu pruefen nach Webserver-Deploy:
 - inventory.capabilities.controlEnabled: false
 
 /api/remote/local-dashboard/obs/model
-- moduleVersion: 0.2.16
+- moduleVersion: 0.2.16B
 - readOnly: true
 - inventory.prepared: true
 - inventory.sourcePrepared: true

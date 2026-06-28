@@ -20,7 +20,7 @@ Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer Forrest
 ## Aktueller Stand
 
 ```text
-0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet
+0.2.16B - Routes-Summary OBS inventorySourcePrepared angeglichen
 ```
 
 ## Wichtig

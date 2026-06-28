@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet`.
+Aktueller Stand: `0.2.16B - Routes-Summary OBS inventorySourcePrepared angeglichen`.
 
 Verbindlich:
 
@@ -72,13 +72,14 @@ Nach Webserver-Deploy pruefen:
 
 ```text
 GET /api/remote/status
-- version: 0.2.16
-- stepRef: RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED
+- version: 0.2.16B
+- stepRef: RDAP_0.2.16B_ROUTES_OBS_INVENTORY_SOURCE_SUMMARY_FIX
 - obsPage vorhanden
 - obsLocalInventorySourcePrepared: true
+- obsInventorySourcePrepared: true
 
 GET /api/remote/local-dashboard/obs/status
-- moduleVersion: 0.2.16
+- moduleVersion: 0.2.16B
 - statusApiVersion: rdap_obs_local_inventory_source_0216.v1
 - readOnly: true
 - inventory.prepared: true
@@ -92,7 +93,7 @@ GET /api/remote/local-dashboard/obs/status
 - inventory.capabilities.controlEnabled: false
 
 GET /api/remote/local-dashboard/obs/model
-- moduleVersion: 0.2.16
+- moduleVersion: 0.2.16B
 - readOnly: true
 - inventory.prepared: true
 - inventory.sourcePrepared: true

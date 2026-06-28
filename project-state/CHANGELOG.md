@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-06-28 - 0.2.16B Routes-Summary OBS inventorySourcePrepared angeglichen
+
+- `/api/remote/routes` meldet unter `.obsReadOnly.inventorySourcePrepared=true`.
+- Alias `.obsReadOnly.inventorySourceMode=local_adapter_remote_agent_component_status` ergaenzt.
+- `/api/remote/status` erhaelt zusaetzlich `.moduleMetadata.obsInventorySourcePrepared=true`.
+- Keine neue OBS-Funktion, keine echte Inventar-Abfrage, keine OBS-/Agent-Actions.
+
 ## 2026-06-28 - 0.2.16 lokale OBS-Inventarquelle read-only vorbereitet
 
 - Lokale OBS-Inventarquelle read-only vorbereitet.

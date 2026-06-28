@@ -7,7 +7,7 @@ Stand: 2026-06-28
 ```text
 0.2.14C - OBS read-only Online-Status-Fix
 0.2.15 - OBS Inventar read-only vorbereitet
-0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet
+0.2.16B - Routes-Summary OBS inventorySourcePrepared angeglichen
 ```
 
 ## Naechster sinnvoller Punkt
