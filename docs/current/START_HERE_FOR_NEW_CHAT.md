@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereitet`.
+Aktueller Stand: `0.2.22 - OBS Inventory-Sync read-only vorbereitet`.
 
 Verbindlich:
 
@@ -18,29 +18,27 @@ Keine zweite lokale UI.
 ```text
 - Stream-PC-Agent verbindet per WSS mit dem Webserver.
 - Heartbeat ist schlank und stabil.
-- Schneller OBS-Live-State ist vom Heartbeat getrennt.
-- OBS-Live-State wird ca. alle 500 ms gesendet.
+- OBS-Live-State ist vom Heartbeat getrennt.
 - Webserver empfaengt aktuelle OBS-Program-Szene in Memory.
-- Online-Route liefert active=true und currentScene.
-- UI nutzt Online-Live-State fuer aktuelle Szene.
+- Online-Route /api/remote/agent/obs/live/status liefert active=true und currentScene.
 ```
 
-## Neu vorbereitet in 0.2.21
+## Neuer Stand 0.2.22
 
 ```text
-- OBS-Allowlist-/Rechte-Modell read-only vorbereitet.
-- Produktive Szenen ohne fuehrenden `_` bleiben sichtbare Basis.
-- Spaeter schaltbar wird nur, was explizit in einer Allowlist steht.
-- Rechte-Zielbild vorbereitet: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility, obs.admin.diagnostics.
-- UI zeigt Freigabezustand nur als read-only Vorschau.
+- OBS-Szenen, Quellen und Audioquellen werden separat als Inventory-Sync ueber Agent-WSS vorbereitet.
+- Inventory-Sync ist nicht im Heartbeat.
+- Inventory-Sync ist nicht im schnellen Live-State.
+- Webserver speichert die Listen nur in Memory.
+- UI kann echte OBS-Listen anzeigen, sobald der Stream-PC-Agent sie geliefert hat.
 ```
 
 ## Datenklassen
 
 ```text
 Heartbeat = klein/stabil, Verbindung, alle ca. 30s.
-Live-State = schnelle kleine Daten, z. B. aktuelle OBS-Szene, alle ca. 250-500ms.
-Inventory = groessere Listen, langsam/manuell, z. B. Szenen/Quellen/Audioquellen.
+Live-State = schnelle kleine Daten, aktuelle OBS-Szene, alle ca. 250-500ms.
+Inventory-Sync = Szenen/Quellen/Audioquellen, separat/langsamer, z. B. ca. 30s.
 ```
 
 ## Sicherheitsgrenzen
@@ -53,8 +51,7 @@ Keine DB-Migration.
 Keine Shell-/Datei-/Prozess-Actions.
 Keine freien OBS requestType Payloads.
 Webserver baut keine OBS-WebSocket-Verbindung auf.
-Live-State wird nur in Memory gehalten.
-0.2.21 ist weiterhin read-only.
+Live-State und Inventory-Sync werden nur in Memory gehalten.
 ```
 
 ## Wichtige Routen
@@ -74,12 +71,10 @@ Online Webserver:
 GET /api/remote/status
 GET /api/remote/routes
 GET /api/remote/agent/obs/live/status
+GET /api/remote/agent/obs/inventory/status
 GET /api/remote/local-dashboard/obs/status
-GET /api/remote/local-dashboard/obs/model
 ```
 
 ## Naechster sinnvoller Step
 
-`0.2.22 - OBS Control-Preflight read-only`.
-
-Noch keine echten OBS-Actions. Erst pruefen/anzeigen, welche spaeteren Control-Ziele erlaubt waeren, inklusive Safety, Lock-/Audit-Zielbild und UI-Zustand.
+0.2.22 lokal/online testen: Inventory-Sync muss echte Szenen/Audio/Quellen liefern. Danach UI-Freigabe-/Allowlist-Darstellung verfeinern. Noch keine echten OBS-Actions.

@@ -14,13 +14,14 @@ let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.6B';
-const MODULE_BUILD = 'RDAP_0.2.20C_AGENT_LIVE_STATE_SCENE_MAPPING_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_obs_live_state_0220b.v1';
+const MODULE_VERSION = '0.1.7';
+const MODULE_BUILD = 'RDAP_0.2.22_OBS_INVENTORY_SYNC_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_obs_inventory_sync_0222.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
 const LIVE_STATE_PROTOCOL_VERSION = 'rdap-agent-live-state.v1';
+const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const DEFAULT_REMOTE_WS_URL = 'wss://mods.forrestcgn.de/agent-ws';
 const LOADED_AT = new Date().toISOString();
 
@@ -53,6 +54,7 @@ const CAPABILITIES = Object.freeze({
   obsInventorySharedConnection: true,
   obsLiveStateRead: true,
   obsLiveStatePush: true,
+  obsInventorySyncPush: true,
   obsControl: false,
   soundControl: false,
   overlayControl: false,
@@ -203,12 +205,21 @@ const CONNECTION_STATE = {
   liveStateUpdatedAt: null,
   liveState: null,
   liveStateSendErrorAt: null,
-  liveStateSendError: null
+  liveStateSendError: null,
+  inventorySyncProtocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
+  inventorySyncSeq: 0,
+  inventorySyncIntervalMs: 30000,
+  lastInventorySyncAt: null,
+  inventorySyncUpdatedAt: null,
+  inventorySync: null,
+  inventorySyncSendErrorAt: null,
+  inventorySyncSendError: null
 };
 
 let ws = null;
 let heartbeatTimer = null;
 let liveStateTimer = null;
+let inventorySyncTimer = null;
 let reconnectTimer = null;
 let started = false;
 
@@ -268,6 +279,7 @@ function readConnectionConfig() {
     accessKey: readString('STREAMING_PC_CONNECTION_KEY', readString('AGENT_ACCESS_KEY', '')),
     heartbeatIntervalMs: readInt('STREAMING_PC_HEARTBEAT_INTERVAL_MS', readInt('AGENT_HEARTBEAT_INTERVAL_MS', 30000), 5000, 300000),
     liveStateIntervalMs: readInt('STREAMING_PC_OBS_LIVE_STATE_INTERVAL_MS', readInt('AGENT_OBS_LIVE_STATE_INTERVAL_MS', 500), 250, 5000),
+    inventorySyncIntervalMs: readInt('STREAMING_PC_OBS_INVENTORY_SYNC_INTERVAL_MS', readInt('AGENT_OBS_INVENTORY_SYNC_INTERVAL_MS', 30000), 10000, 300000),
     reconnectDelayMs: readInt('STREAMING_PC_RECONNECT_DELAY_MS', readInt('AGENT_RECONNECT_DELAY_MS', 5000), 1000, 300000)
   };
 }
@@ -281,6 +293,7 @@ function applyConnectionConfig(config) {
   CONNECTION_STATE.agentName = safeAgentName(config.agentName);
   CONNECTION_STATE.heartbeatIntervalMs = config.heartbeatIntervalMs;
   CONNECTION_STATE.liveStateIntervalMs = config.liveStateIntervalMs;
+  CONNECTION_STATE.inventorySyncIntervalMs = config.inventorySyncIntervalMs;
   CONNECTION_STATE.reconnectDelayMs = config.reconnectDelayMs;
   CONNECTION_STATE.keyConfigured = Boolean(config.accessKey);
   CONNECTION_STATE.keyExposed = false;
@@ -325,13 +338,16 @@ function handleOpen(config) {
   CONNECTION_STATE.productiveActionsEnabled = false;
   startHeartbeatTimer(config);
   startLiveStateTimer(config);
+  startInventorySyncTimer(config);
   sendHeartbeat(config);
   sendLiveState(config);
+  setTimeout(() => sendInventorySync(config, 'initial'), 1000).unref?.();
 }
 
 function handleClose(config, reason) {
   stopHeartbeatTimer();
   stopLiveStateTimer();
+  stopInventorySyncTimer();
   CONNECTION_STATE.connected = false;
   CONNECTION_STATE.connectionState = CONNECTION_STATE.enabled ? 'reconnecting' : 'disabled';
   CONNECTION_STATE.reason = safeReason(reason || 'socket_close');
@@ -361,6 +377,12 @@ function startLiveStateTimer(config) {
   if (liveStateTimer && typeof liveStateTimer.unref === 'function') liveStateTimer.unref();
 }
 function stopLiveStateTimer() { if (liveStateTimer) clearInterval(liveStateTimer); liveStateTimer = null; }
+function startInventorySyncTimer(config) {
+  stopInventorySyncTimer();
+  inventorySyncTimer = setInterval(() => sendInventorySync(config, 'timer'), config.inventorySyncIntervalMs);
+  if (inventorySyncTimer && typeof inventorySyncTimer.unref === 'function') inventorySyncTimer.unref();
+}
+function stopInventorySyncTimer() { if (inventorySyncTimer) clearInterval(inventorySyncTimer); inventorySyncTimer = null; }
 function scheduleReconnect(config) { clearReconnectTimer(); CONNECTION_STATE.reconnectCount += 1; reconnectTimer = setTimeout(() => connectStreamingPc(config), config.reconnectDelayMs); if (reconnectTimer && typeof reconnectTimer.unref === 'function') reconnectTimer.unref(); }
 function clearReconnectTimer() { if (reconnectTimer) clearTimeout(reconnectTimer); reconnectTimer = null; }
 
@@ -453,6 +475,100 @@ function sendLiveState(config) {
     CONNECTION_STATE.liveStateSendError = err && err.message ? safeError(err.message) : 'live_state_send_failed';
     handleError(config, err);
   }
+}
+
+
+async function sendInventorySync(config, reason) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  CONNECTION_STATE.inventorySyncSeq += 1;
+  try {
+    const inventory = await buildObsInventorySyncSnapshot(config, reason || 'manual');
+    const payload = {
+      type: 'inventory_sync',
+      protocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
+      agentId: config.agentId,
+      seq: CONNECTION_STATE.inventorySyncSeq,
+      collectedAt: inventory.checkedAt,
+      inventory: buildInventoryTransportPayload(inventory)
+    };
+    const json = JSON.stringify(payload);
+    if (Buffer.byteLength(json, 'utf8') > 60000) {
+      payload.inventory = buildInventoryTransportPayload(inventory, { compact: true });
+    }
+    ws.send(JSON.stringify(payload));
+    const now = new Date().toISOString();
+    CONNECTION_STATE.lastInventorySyncAt = now;
+    CONNECTION_STATE.inventorySyncUpdatedAt = now;
+    CONNECTION_STATE.inventorySync = payload.inventory;
+    CONNECTION_STATE.lastSeenAt = now;
+    CONNECTION_STATE.connectionState = 'connected';
+    CONNECTION_STATE.reason = 'inventory_sync_sent';
+    CONNECTION_STATE.inventorySyncSendErrorAt = null;
+    CONNECTION_STATE.inventorySyncSendError = null;
+  } catch (err) {
+    CONNECTION_STATE.inventorySyncSendErrorAt = new Date().toISOString();
+    CONNECTION_STATE.inventorySyncSendError = err && err.message ? safeError(err.message) : 'inventory_sync_failed';
+  }
+}
+
+async function buildObsInventorySyncSnapshot(config, reason) {
+  const checkedAt = new Date().toISOString();
+  if (!obsSharedModule || typeof obsSharedModule.getSharedObs !== 'function') {
+    return preparedInventory(checkedAt, 'obs_shared_unavailable', false, 'OBS-Liste konnte noch nicht gelesen werden.', readObsStatusConfig());
+  }
+  const shared = obsSharedModule.getSharedObs(process.env, console);
+  if (!shared || typeof shared.call !== 'function') {
+    return preparedInventory(checkedAt, 'obs_shared_call_unavailable', false, 'OBS-Liste konnte noch nicht gelesen werden.', readObsStatusConfig());
+  }
+  const inventory = await collectObsInventoryFromShared(shared, readObsStatusConfig());
+  inventory.syncReason = safeReason(reason || 'timer');
+  return inventory;
+}
+
+function buildInventoryTransportPayload(inventory, options = {}) {
+  const source = inventory && typeof inventory === 'object' && !Array.isArray(inventory) ? inventory : {};
+  const compact = options.compact === true;
+  const scenes = sanitizeInventoryItems(source.scenes || (source.groups && source.groups.scenes && source.groups.scenes.items), compact ? 120 : 250, 'scene');
+  const sources = sanitizeInventoryItems(source.sources || (source.groups && source.groups.sources && source.groups.sources.items), compact ? 160 : 500, 'source');
+  const audioSources = sanitizeInventoryItems(source.audioSources || (source.groups && source.groups.audioSources && source.groups.audioSources.items), compact ? 120 : 250, 'audio');
+  return {
+    prepared: true,
+    active: source.active === true,
+    status: safeReason(source.status || (source.active ? 'readonly_inventory_available' : 'not_ready')),
+    checkedAt: safeText(source.checkedAt || new Date().toISOString(), 40),
+    currentScene: safeText(source.currentScene || '', 160) || null,
+    scenes,
+    sources,
+    audioSources,
+    groups: {
+      scenes: { prepared: true, active: source.active === true, count: scenes.length, items: scenes },
+      sources: { prepared: true, active: source.active === true, count: sources.length, items: sources },
+      audioSources: { prepared: true, active: source.active === true, count: audioSources.length, items: audioSources }
+    },
+    counts: { scenes: scenes.length, sources: sources.length, audioSources: audioSources.length, total: scenes.length + sources.length + audioSources.length },
+    source: 'agent-wss-inventory-sync',
+    readOnly: true,
+    actionsEnabled: false,
+    controlEnabled: false,
+    compact: compact === true
+  };
+}
+
+function sanitizeInventoryItems(items, limit, fallbackType) {
+  const list = Array.isArray(items) ? items : [];
+  return list.slice(0, limit).map((item) => {
+    const source = item && typeof item === 'object' && !Array.isArray(item) ? item : { name: item };
+    const name = safeText(source.name || source.label || source.id || '', 140);
+    if (!name) return null;
+    return {
+      name,
+      label: safeText(source.label || name, 140),
+      id: safeText(source.id || name, 160),
+      type: safeText(source.type || source.kind || fallbackType || 'item', 80),
+      muted: typeof source.muted === 'boolean' ? source.muted : null,
+      readOnly: true
+    };
+  }).filter(Boolean);
 }
 
 function buildLiveStateTransportObs(obs) {
@@ -847,14 +963,14 @@ function buildStatusResponse() {
   const state = buildConnectionStatus();
   return buildBaseResponse({
     displayName: 'Streaming-PC Verbindung',
-    status: { connected: state.connected, connectionState: state.connectionState, reason: state.reason, lastSeenAt: state.lastSeenAt, connectedSince: state.connectedSince, lastHeartbeatAt: state.lastHeartbeatAt, heartbeatSeq: state.heartbeatSeq, heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt), lastLiveStateAt: state.lastLiveStateAt, liveStateSeq: state.liveStateSeq, liveStateAgeMs: calculateHeartbeatAgeMs(state.lastLiveStateAt), reconnectCount: state.reconnectCount, stale: isHeartbeatStale(state.lastHeartbeatAt) },
+    status: { connected: state.connected, connectionState: state.connectionState, reason: state.reason, lastSeenAt: state.lastSeenAt, connectedSince: state.connectedSince, lastHeartbeatAt: state.lastHeartbeatAt, heartbeatSeq: state.heartbeatSeq, heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt), lastLiveStateAt: state.lastLiveStateAt, liveStateSeq: state.liveStateSeq, lastInventorySyncAt: state.lastInventorySyncAt, inventorySyncSeq: state.inventorySyncSeq, inventorySyncAgeMs: calculateHeartbeatAgeMs(state.lastInventorySyncAt), liveStateAgeMs: calculateHeartbeatAgeMs(state.lastLiveStateAt), reconnectCount: state.reconnectCount, stale: isHeartbeatStale(state.lastHeartbeatAt) },
     streamingPcConnection: state,
     agent: { agentId: state.agentId, agentName: state.agentName, agentVersion: state.agentVersion, protocolVersion: state.protocolVersion, heartbeatProtocolVersion: state.heartbeatProtocolVersion, liveStateProtocolVersion: state.liveStateProtocolVersion, expectedAgentId: 'stream-pc-main', expectedAgentName: 'Forrest Stream-PC' },
     host: { dashboardServer: 'local-stream-control-center', hostname: safeHostname(), platform: process.platform, nodeVersion: process.version, processUptimeSec: Math.floor(process.uptime()), localTime: now },
     remoteTarget: { publicDashboardUrl: 'https://mods.forrestcgn.de', remoteWsUrl: state.remoteWsUrl, plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws', plannedWsPath: state.wsPath, streamPcPublicPortRequired: false, outgoingConnectionOnly: true },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
-    warnings: ['Version 0.1.6B sendet schlanke Heartbeats plus separaten read-only OBS-Live-State ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS_WS_URL und OBS_WS_PASSWORD werden als lokale .env-Aliase erkannt; Inventar bleibt separat langsam und wird nicht im Heartbeat gesendet.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
+    warnings: ['Version 0.1.7 sendet schlanke Heartbeats plus separaten read-only OBS-Live-State und OBS-Inventory-Sync ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS-Listen werden separat langsam als Inventory-Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
 }
@@ -881,6 +997,14 @@ function buildConnectionStatus() {
     liveStateProtocolVersion: CONNECTION_STATE.liveStateProtocolVersion,
     liveStateSeq: CONNECTION_STATE.liveStateSeq,
     liveStateIntervalMs: CONNECTION_STATE.liveStateIntervalMs,
+    inventorySyncProtocolVersion: CONNECTION_STATE.inventorySyncProtocolVersion,
+    inventorySyncSeq: CONNECTION_STATE.inventorySyncSeq,
+    inventorySyncIntervalMs: CONNECTION_STATE.inventorySyncIntervalMs,
+    lastInventorySyncAt: CONNECTION_STATE.lastInventorySyncAt,
+    inventorySyncUpdatedAt: CONNECTION_STATE.inventorySyncUpdatedAt,
+    inventorySync: CONNECTION_STATE.inventorySync,
+    inventorySyncSendErrorAt: CONNECTION_STATE.inventorySyncSendErrorAt,
+    inventorySyncSendError: CONNECTION_STATE.inventorySyncSendError,
     lastLiveStateAt: CONNECTION_STATE.lastLiveStateAt,
     liveStateUpdatedAt: CONNECTION_STATE.liveStateUpdatedAt,
     liveState: CONNECTION_STATE.liveState || buildObsLiveState({}),
@@ -938,6 +1062,7 @@ function buildRoutesResponse() {
       { method: 'GET', path: '/api/streaming-pc-connection/status', description: 'Lesbarer Alias fuer Streaming-PC Verbindung. Keine Aktionen.' },
       { method: 'GET', path: '/api/remote-agent/obs/inventory/status', description: 'Kompakte read-only OBS-Inventar-/ENV-Diagnose. Keine OBS-Steuerung.' },
       { method: 'GET', path: '/api/remote-agent/obs/live/status', description: 'Lokaler read-only OBS-Live-Status ueber bestehende obs_shared-Instanz. Keine OBS-Steuerung.' },
+      { method: 'GET', path: '/api/remote-agent/obs/inventory/status', description: 'Lokale OBS-Listen read-only. Werden online separat per Inventory-Sync gesendet, nicht im Heartbeat.' },
       { method: 'GET', path: '/api/remote-agent/permissions/model', description: 'Read-only Rollen-/Permission-Modell. Keine User-/Grant-Schreiboperation.' },
       { method: 'GET', path: '/api/remote-agent/locks/status', description: 'Read-only Lock-Modell und aktueller Null-Status. Keine Lock-Schreiboperation.' },
       { method: 'GET', path: '/api/remote-agent/audit/model', description: 'Read-only Audit-Modell fuer spaetere produktive Aktionen. Keine Audit-Schreiboperation.' },
@@ -947,7 +1072,7 @@ function buildRoutesResponse() {
 }
 
 function buildSafetyBlock() {
-  return { noSoundControl: true, noObsControl: true, noOverlayControl: true, noMediaWrite: true, noTextConfigWrite: true, noCommandsOrChannelpoints: true, noDatabaseWrite: true, noFileWrite: true, noShellOrProcessActions: true, noAgentActionExecution: true, noStreamingPcActionExecution: true, heartbeatOnly: false, liveStateReadOnlyPush: true, outgoingConnectionOnly: true, obsInventoryReadOnly: true, obsLiveStateReadOnly: true, obsInventoryEnvDiagnostic: true, obsInventorySharedConnection: true };
+  return { noSoundControl: true, noObsControl: true, noOverlayControl: true, noMediaWrite: true, noTextConfigWrite: true, noCommandsOrChannelpoints: true, noDatabaseWrite: true, noFileWrite: true, noShellOrProcessActions: true, noAgentActionExecution: true, noStreamingPcActionExecution: true, heartbeatOnly: false, liveStateReadOnlyPush: true, inventorySyncReadOnlyPush: true, obsInventorySyncReadOnlyPush: true, outgoingConnectionOnly: true, obsInventoryReadOnly: true, obsLiveStateReadOnly: true, obsInventorySyncReadOnly: true, obsInventoryEnvDiagnostic: true, obsInventorySharedConnection: true };
 }
 
 function readString(name, fallback) { const value = process.env[name]; if (typeof value !== 'string') return fallback; const trimmed = value.trim(); return trimmed || fallback; }

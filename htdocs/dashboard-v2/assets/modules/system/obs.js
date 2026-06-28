@@ -6,7 +6,7 @@
   const ENDPOINT = '/api/remote/local-dashboard/obs/status';
   const ONLINE_LIVE_ENDPOINT = '/api/remote/agent/obs/live/status';
   const LOCAL_LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
-  const STEP_LABEL = '0.2.21';
+  const STEP_LABEL = '0.2.22';
   const LOCAL_LIVE_REFRESH_MS = 250;
   const ONLINE_LIVE_REFRESH_MS = 1000;
   let activeLiveRefreshMs = ONLINE_LIVE_REFRESH_MS;
@@ -57,7 +57,7 @@
         <div>
           <p class="cgn-eyebrow">OBS / Mod-Bedienfläche</p>
           <h1>OBS Bedienung</h1>
-          <p>Vorbereitete Mod-Ansicht für spätere OBS-Bedienung. Die aktuelle Szene wird schnell aktualisiert; Rechte und Allowlist sind nur als read-only Modell sichtbar.</p>
+          <p>OBS-Ansicht für Mods: aktuelle Szene live, Szenen und Audio als echte read-only Liste. Steuern bleibt noch gesperrt.</p>
         </div>
         <div class="rdap-obs-header-actions">
           <span class="cgn-chip" id="obsStatusPill">lädt</span>
@@ -68,20 +68,20 @@
       <section class="rdap-obs-topline">
         <article class="cgn-card rdap-obs-current"><span>Aktuelle Szene</span><strong id="obsCurrentScene">—</strong><small id="obsLiveState">Live-Status</small></article>
         <article class="cgn-card rdap-obs-mini"><span>OBS</span><strong id="obsConnectionText">—</strong><small>Verbindung</small></article>
-        <article class="cgn-card rdap-obs-mini"><span>Szenen</span><strong id="obsProductiveSceneCount">0</strong><small id="obsInternalSceneText">interne ausgeblendet</small></article>
-        <article class="cgn-card rdap-obs-mini"><span>Audio</span><strong id="obsAudioCount">0</strong><small id="obsAudioHiddenText">relevant</small></article>
+        <article class="cgn-card rdap-obs-mini"><span>Szenen</span><strong id="obsProductiveSceneCount">—</strong><small id="obsInternalSceneText">Liste lädt</small></article>
+        <article class="cgn-card rdap-obs-mini"><span>Audio</span><strong id="obsAudioCount">—</strong><small id="obsAudioHiddenText">Liste lädt</small></article>
       </section>
 
       <section class="rdap-obs-board">
         <article class="cgn-card rdap-obs-scenes-card">
           <div class="card-head"><div><p class="cgn-eyebrow">Szenen</p><h2>Produktive Szenen</h2></div><span class="cgn-chip cgn-chip--info">${STEP_LABEL} Live</span></div>
-          <p class="rdap-obs-detail">Kompakte Mod-Ansicht wie in OBS: produktive Szenen ohne <code>_</code> bleiben sichtbar. Schaltbar wird später nur, was zusätzlich explizit freigegeben ist.</p>
+          <p class="rdap-obs-detail">Produktive Szenen werden als echte OBS-Liste angezeigt. Wechseln bleibt gesperrt, bis eine Freigabe aktiv ist.</p>
           <div class="rdap-obs-scene-list" id="obsProductiveSceneList"><p>lädt…</p></div>
         </article>
 
         <article class="cgn-card rdap-obs-audio-card">
           <div class="card-head"><div><p class="cgn-eyebrow">Audio</p><h2>Audiomixer</h2></div><span class="cgn-chip cgn-chip--info">Anzeige</span></div>
-          <p class="rdap-obs-detail">Nur relevante Audioquellen in der Mod-Ansicht. Interne <code>_</code>-Quellen gehören später in Admin / Diagnose oder in eine explizite Allowlist.</p>
+          <p class="rdap-obs-detail">Relevante Audioquellen werden angezeigt. Stummschalten bleibt gesperrt, bis eine Freigabe aktiv ist.</p>
           <div class="rdap-obs-audio-list" id="obsAudioList"><p>lädt…</p></div>
           <p class="rdap-obs-detail" id="obsAudioMore"></p>
         </article>
@@ -89,8 +89,8 @@
 
       <section class="rdap-obs-secondary-grid">
         <article class="cgn-card rdap-obs-source-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Quellen</p><h2>Technik später in Diagnose</h2></div><span class="cgn-chip cgn-chip--info" id="obsSourcePill">0 Quellen</span></div>
-          <p class="rdap-obs-detail">Die komplette Quellenliste ist Technikmaterial. Für Mods werden später nur freigegebene Quellen bedienbar.</p>
+          <div class="card-head"><div><p class="cgn-eyebrow">Quellen</p><h2>Quellen-Übersicht</h2></div><span class="cgn-chip cgn-chip--info" id="obsSourcePill">—</span></div>
+          <p class="rdap-obs-detail">Quellen werden nur angezeigt. Sichtbarkeit ändern bleibt gesperrt, bis eine Freigabe aktiv ist.</p>
           <div class="rdap-obs-source-list" id="obsSourcePreview"><p>lädt…</p></div>
         </article>
 
@@ -102,7 +102,7 @@
             <span><b>obs.audio.mute</b><small>nur Allowlist, noch aus</small></span>
             <span><b>obs.source.visibility</b><small>nur Allowlist, noch aus</small></span>
           </div>
-          <p class="rdap-obs-detail">${STEP_LABEL}: Rechte- und Allowlist-Modell read-only. Keine Buttons, keine OBS-Kommandos, keine Agent-Actions.</p>
+          <p class="rdap-obs-detail">${STEP_LABEL}: OBS-Listen kommen read-only vom Stream-PC. Keine Buttons, keine OBS-Kommandos, keine Agent-Actions.</p>
         </article>
       </section>
     `;
@@ -197,25 +197,26 @@
     const sources = Array.isArray(inventory.sources) ? inventory.sources : ((inventory.groups && inventory.groups.sources && inventory.groups.sources.items) || []);
     const audioSources = Array.isArray(inventory.audioSources) ? inventory.audioSources : ((inventory.groups && inventory.groups.audioSources && inventory.groups.audioSources.items) || []);
     lastInventory = inventory;
-    const currentScene = getCurrentSceneFromInventory(inventory) || '—';
+    const currentScene = getCurrentSceneFromInventory(inventory) || getCurrentSceneFromLiveCache() || '—';
     const productiveScenes = scenes.filter(isProductiveScene);
     const internalSceneCount = Math.max(0, scenes.length - productiveScenes.length);
     const visibleAudio = audioSources.filter(isRelevantAudio);
     const hiddenAudioCount = Math.max(0, audioSources.length - visibleAudio.length);
-    const reachable = obs.reachable === true || obs.status === 'reachable' || inventory.active === true;
+    const hasInventory = inventory.active === true || productiveScenes.length > 0 || visibleAudio.length > 0 || sources.length > 0;
+    const reachable = obs.reachable === true || obs.status === 'reachable' || obs.status === 'live_connected' || inventory.active === true || Boolean(currentScene && currentScene !== '—');
 
-    setChip('obsStatusPill', result && result.ok && reachable, reachable ? 'OBS verbunden' : 'OBS nicht verbunden');
-    renderLiveScene(currentScene, 'Inventar/Status');
-    setText('obsConnectionText', reachable ? 'Verbunden' : 'Nicht verbunden');
-    setText('obsProductiveSceneCount', productiveScenes.length);
-    setText('obsInternalSceneText', `${internalSceneCount} interne ausgeblendet`);
-    setText('obsAudioCount', visibleAudio.length);
-    setText('obsAudioHiddenText', hiddenAudioCount ? `${hiddenAudioCount} interne ausgeblendet` : 'relevant');
-    setText('obsSourcePill', `${sources.length || 0} Quellen`);
+    setChip('obsStatusPill', result && result.ok && reachable, reachable ? 'OBS live verbunden' : 'OBS wartet');
+    renderLiveScene(currentScene, hasInventory ? 'OBS Liste' : 'Live');
+    setText('obsConnectionText', reachable ? 'Live verbunden' : 'Wartet');
+    setText('obsProductiveSceneCount', hasInventory ? productiveScenes.length : '—');
+    setText('obsInternalSceneText', hasInventory ? `${internalSceneCount} interne ausgeblendet` : 'Liste lädt');
+    setText('obsAudioCount', hasInventory ? visibleAudio.length : '—');
+    setText('obsAudioHiddenText', hasInventory ? (hiddenAudioCount ? `${hiddenAudioCount} interne ausgeblendet` : 'bereit') : 'Liste lädt');
+    setText('obsSourcePill', hasInventory ? `${sources.length || 0} Quellen` : 'Liste lädt');
 
-    renderProductiveScenes(productiveScenes, currentScene);
-    renderAudioList(visibleAudio, hiddenAudioCount);
-    renderSourcePreview(sources);
+    renderProductiveScenes(productiveScenes, currentScene, hasInventory);
+    renderAudioList(visibleAudio, hiddenAudioCount, hasInventory);
+    renderSourcePreview(sources, hasInventory);
   }
 
   function isProductiveScene(item) {
@@ -237,12 +238,12 @@
     return true;
   }
 
-  function renderProductiveScenes(items, currentScene) {
+  function renderProductiveScenes(items, currentScene, hasInventory) {
     const node = document.getElementById('obsProductiveSceneList');
     if (!node) return;
     const list = Array.isArray(items) ? items : [];
     if (!list.length) {
-      node.innerHTML = '<p class="rdap-obs-detail">Keine produktiven Szenen gelesen.</p>';
+      node.innerHTML = `<p class="rdap-obs-detail">${hasInventory ? 'Keine produktiven Szenen in der Freigabe-Liste.' : 'Szenenliste lädt…'}</p>`;
       return;
     }
     node.innerHTML = list.map((item) => {
@@ -253,14 +254,14 @@
     }).join('');
   }
 
-  function renderAudioList(items, hiddenCount) {
+  function renderAudioList(items, hiddenCount, hasInventory) {
     const node = document.getElementById('obsAudioList');
     const more = document.getElementById('obsAudioMore');
     if (!node) return;
     const list = Array.isArray(items) ? items : [];
     if (!list.length) {
-      node.innerHTML = '<p class="rdap-obs-detail">Keine relevanten Audioquellen gelesen.</p>';
-      if (more) more.textContent = hiddenCount ? `${hiddenCount} interne Audioquellen ausgeblendet. Details später in Admin / Diagnose.` : '';
+      node.innerHTML = `<p class="rdap-obs-detail">${hasInventory ? 'Keine relevanten Audioquellen in der Freigabe-Liste.' : 'Audioliste lädt…'}</p>`;
+      if (more) more.textContent = hasInventory && hiddenCount ? `${hiddenCount} interne Audioquellen ausgeblendet.` : '';
       return;
     }
     const visible = list.slice(0, 10);
@@ -275,19 +276,19 @@
     if (more) more.textContent = `${extra}${hiddenCount ? `${hiddenCount} interne Audioquellen ausgeblendet.` : ''}`.trim();
   }
 
-  function renderSourcePreview(items) {
+  function renderSourcePreview(items, hasInventory) {
     const node = document.getElementById('obsSourcePreview');
     if (!node) return;
     const list = Array.isArray(items) ? items : [];
     if (!list.length) {
-      node.innerHTML = '<p class="rdap-obs-detail">Keine Quellen gelesen.</p>';
+      node.innerHTML = `<p class="rdap-obs-detail">${hasInventory ? 'Keine Quellen in der Anzeige-Liste.' : 'Quellenliste lädt…'}</p>`;
       return;
     }
     const visible = list.filter(item => !getItemName(item).trim().startsWith('_')).slice(0, 8);
     const base = visible.length ? visible : list.slice(0, 8);
     const rows = base.map((item) => `<div class="obs-source-row"><span>${escapeHtml(getItemName(item))}</span><small>${escapeHtml(getItemType(item, 'source'))}</small></div>`).join('');
     const restCount = Math.max(0, list.length - base.length);
-    const rest = restCount ? `<div class="rdap-obs-more">+ ${restCount} weitere Quellen. Details später in Admin / Diagnose.</div>` : '';
+    const rest = restCount ? `<div class="rdap-obs-more">+ ${restCount} weitere Quellen. </div>` : '';
     node.innerHTML = rows + rest;
   }
 
@@ -330,6 +331,15 @@
     setText('obsLiveState', sourceLabel ? `${sourceLabel} · Auto ${activeLiveRefreshMs}ms` : `Auto ${activeLiveRefreshMs}ms`);
     const currentCard = document.querySelector('[data-page-panel="obs"] .rdap-obs-current');
     if (currentCard) currentCard.classList.toggle('is-live', Boolean(currentScene && currentScene !== '—'));
+    if (currentScene && currentScene !== '—') {
+      setChip('obsStatusPill', true, 'OBS live verbunden');
+      setText('obsConnectionText', 'Live verbunden');
+    }
+  }
+
+  function getCurrentSceneFromLiveCache() {
+    const node = document.getElementById('obsCurrentScene');
+    return node && node.textContent && node.textContent !== '—' ? node.textContent : '';
   }
 
   function getItemName(item) {

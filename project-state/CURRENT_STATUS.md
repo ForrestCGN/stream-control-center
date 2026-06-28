@@ -2,27 +2,16 @@
 
 Stand: 2026-06-28
 
-Aktuell: `0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereitet`.
+Aktuell: `0.2.22 - OBS Inventory-Sync read-only vorbereitet`.
 
-Umgesetzt und bestaetigt aus 0.2.20C:
-
-```text
-- Stream-PC-Agent verbindet per WSS mit dem Webserver.
-- Heartbeat ist schlank und wird nicht mehr wegen payload_too_large abgelehnt.
-- Schneller Live-State ist vom Heartbeat getrennt.
-- Lokaler Live-State liest OBS korrekt.
-- Webserver empfaengt aktuelle OBS-Program-Szene.
-- Online-Endpoint /api/remote/agent/obs/live/status liefert active=true.
-- UI kann Online-Live-Szene anzeigen.
-```
-
-Neu in 0.2.21:
+Umgesetzt:
 
 ```text
-- OBS-Allowlist-Modell read-only vorbereitet.
-- Rechte-Modell fuer spaetere OBS-Bedienung read-only vorbereitet.
-- UI zeigt spaetere Bedienbarkeit als Modell: erlaubt/nicht freigegeben/read-only.
-- Keine pauschale Aussage mehr: jede produktive Szene sei spaeter schaltbar.
+- Stream-PC-Agent sendet weiterhin schlanke Heartbeats.
+- OBS-Live-State bleibt separat schnell.
+- OBS-Szenen, Quellen und Audioquellen werden als separater Inventory-Sync vorbereitet.
+- Webserver empfaengt Inventory-Sync nur in Memory.
+- OBS-Mod-Seite kann echte Listen anzeigen, ohne technische 0-Werte als angebliche OBS-Leere zu verwenden.
 ```
 
 Weiterhin verboten:

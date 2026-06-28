@@ -1,6 +1,6 @@
 # Local Dashboard Replacement Plan Current
 
-Stand: `0.2.21`
+Stand: `0.2.22`
 
 Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale `dashboard-v2` ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 
@@ -12,32 +12,15 @@ Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale `dashboard-v2` ist di
 0.2.20B: Heartbeat abgespeckt; Live-State separat schnell gehalten.
 0.2.20C: Scene-Mapping korrigiert; Online-Live-Szene bestaetigt.
 0.2.21: OBS-Allowlist-/Rechte-Modell read-only vorbereitet.
+0.2.22: OBS-Szenen/Audio/Quellen als separater Inventory-Sync read-only vorbereitet.
 ```
 
 ## Datenmodell fuer Lokal/Online
 
 ```text
-Heartbeat:
-- klein
-- stabil
-- Verbindung/Agent-Zustand
-- ca. alle 30 Sekunden
-
-Live-State:
-- schnell
-- aktuelle OBS-Szene und spaeter weitere kleine Live-Werte
-- ca. alle 250-500 ms
-- online nur in Memory
-
-Inventory:
-- groessere Listen
-- Szenen, Quellen, Audioquellen
-- langsam/manuell oder selten
-
-Allowlist/Rechte:
-- Modell fuer spaetere Bedienbarkeit
-- aktuell read-only
-- keine OBS-Kommandos
+Heartbeat: klein/stabil, Verbindung, ca. alle 30 Sekunden.
+Live-State: schnell, aktuelle OBS-Szene, ca. alle 250-500 ms.
+Inventory-Sync: Szenen, Quellen, Audioquellen, separat/langsamer, nur Memory.
 ```
 
 ## Grenzen
@@ -53,4 +36,4 @@ Webserver baut keine OBS-WebSocket-Verbindung auf.
 
 ## Naechster Ausbau
 
-OBS Control-Preflight read-only vorbereiten. Echte Steuerung erst spaeter in einem separat freigegebenen Control-Step.
+Inventory-Sync testen und Mod-UI danach weiter vereinfachen. Echte Steuerung erst spaeter in einem separat freigegebenen Control-Step.

@@ -3,23 +3,28 @@
 const crypto = require('crypto');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.20C_AGENT_LIVE_STATE_SCENE_MAPPING_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_live_state_scene_mapping_runtime_0220c.v1';
+const MODULE_BUILD = 'RDAP_0.2.22_OBS_INVENTORY_SYNC_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_obs_inventory_sync_runtime_0222.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
 const LIVE_STATE_PROTOCOL_VERSION = 'rdap-agent-live-state.v1';
+const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
 const MAX_HEARTBEAT_PAYLOAD_BYTES = 4096;
 const MAX_LIVE_STATE_PAYLOAD_BYTES = 2048;
+const MAX_INVENTORY_SYNC_PAYLOAD_BYTES = 65536;
 const PLANNED_HEARTBEAT_INTERVAL_MS = 30000;
 const PLANNED_LIVE_STATE_INTERVAL_MS = 500;
+const PLANNED_INVENTORY_SYNC_INTERVAL_MS = 30000;
 const LIVE_STATE_STALE_AFTER_MS = 5000;
 const LIVE_STATE_OFFLINE_AFTER_MS = 15000;
 const STALE_AFTER_MS = 90000;
 const OFFLINE_AFTER_MS = 120000;
+
+const FORBIDDEN_INVENTORY_SYNC_FIELDS = new Set(['capabilities', 'commands', 'requestedActions', 'actionQueue', 'env', 'paths', 'tokens', 'secrets', 'shell', 'stdout', 'stderr', 'configDump', 'processList', 'fileList']);
 
 const FORBIDDEN_LIVE_STATE_FIELDS = new Set(['capabilities', 'commands', 'requestedActions', 'actionQueue', 'env', 'paths', 'tokens', 'secrets', 'shell', 'stdout', 'stderr', 'configDump', 'processList', 'fileList']);
 
@@ -63,6 +68,29 @@ const EMPTY_COMPONENT_STATUS = Object.freeze({
   noFileWrite: true,
   noDatabaseWrite: true,
   rawPayloadStored: false
+});
+
+const EMPTY_OBS_INVENTORY_SYNC = Object.freeze({
+  prepared: true,
+  readOnly: true,
+  protocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
+  source: 'agent-wss-inventory-sync',
+  available: false,
+  active: false,
+  status: 'not_reported',
+  checkedAt: null,
+  receivedAt: null,
+  currentScene: null,
+  scenes: [],
+  sources: [],
+  audioSources: [],
+  groups: {
+    scenes: { prepared: true, active: false, count: 0, items: [] },
+    sources: { prepared: true, active: false, count: 0, items: [] },
+    audioSources: { prepared: true, active: false, count: 0, items: [] }
+  },
+  counts: { scenes: 0, sources: 0, audioSources: 0, total: 0 },
+  safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
 });
 
 const CONNECTION_STATE = {
@@ -119,7 +147,21 @@ const CONNECTION_STATE = {
   liveStateRejectCount: 0,
   lastLiveStateRejectAt: null,
   lastLiveStateRejectReason: null,
-  lastLiveStatePayloadStored: false
+  lastLiveStatePayloadStored: false,
+  inventorySyncReceiverPrepared: true,
+  inventorySyncInMemoryOnly: true,
+  inventorySyncPersistsToDatabase: false,
+  inventorySyncExecutesActions: false,
+  inventorySyncAcceptsCommands: false,
+  inventorySyncProtocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
+  inventorySync: clonePlain(EMPTY_OBS_INVENTORY_SYNC),
+  inventorySyncUpdatedAt: null,
+  lastInventorySyncAt: null,
+  inventorySyncSeq: null,
+  inventorySyncRejectCount: 0,
+  lastInventorySyncRejectAt: null,
+  lastInventorySyncRejectReason: null,
+  lastInventorySyncPayloadStored: false
 };
 
 const REJECT_DIAGNOSTIC = {
@@ -237,6 +279,9 @@ function getAgentRuntimeConfig(config = {}) {
     liveStateReceiverPrepared: true,
     liveStateProtocolVersion: LIVE_STATE_PROTOCOL_VERSION,
     plannedLiveStateIntervalMs: PLANNED_LIVE_STATE_INTERVAL_MS,
+    inventorySyncReceiverPrepared: true,
+    inventorySyncProtocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
+    plannedInventorySyncIntervalMs: PLANNED_INVENTORY_SYNC_INTERVAL_MS,
     acceptsAgentConnections: effectiveEnabled,
     actionsEnabled: false,
     productiveAgentRuntime: false,
@@ -273,6 +318,8 @@ function buildRegistrationSummary(input = {}) {
     obsLiveStateReceiverPrepared: true,
     obsLiveStateInMemoryOnly: true,
     obsLiveStateRoute: '/api/remote/agent/obs/live/status',
+    obsInventorySyncReceiverPrepared: true,
+    obsInventorySyncRoute: '/api/remote/agent/obs/inventory/status',
     actionEnabled: false,
     productiveAgentRuntime: false,
     noAgentActions: true,
@@ -428,8 +475,9 @@ function handleSocketData(socket, chunk, details = {}) {
 }
 
 function processHeartbeatText(text, details = {}) {
-  if (Buffer.byteLength(text, 'utf8') > MAX_HEARTBEAT_PAYLOAD_BYTES) {
-    recordHeartbeatReject('heartbeat_payload_too_large');
+  const payloadBytes = Buffer.byteLength(text, 'utf8');
+  if (payloadBytes > MAX_INVENTORY_SYNC_PAYLOAD_BYTES) {
+    recordHeartbeatReject('agent_payload_too_large');
     return;
   }
 
@@ -442,7 +490,15 @@ function processHeartbeatText(text, details = {}) {
   }
 
   if (payload && payload.type === 'live_state') {
-    processLiveStatePayload(payload, details, Buffer.byteLength(text, 'utf8'));
+    processLiveStatePayload(payload, details, payloadBytes);
+    return;
+  }
+  if (payload && payload.type === 'inventory_sync') {
+    processInventorySyncPayload(payload, details, payloadBytes);
+    return;
+  }
+  if (payloadBytes > MAX_HEARTBEAT_PAYLOAD_BYTES) {
+    recordHeartbeatReject('heartbeat_payload_too_large');
     return;
   }
 
@@ -573,6 +629,95 @@ function sanitizeLiveObs(input) {
   };
 }
 
+
+function processInventorySyncPayload(payload, details = {}, payloadBytes = 0) {
+  if (payloadBytes > MAX_INVENTORY_SYNC_PAYLOAD_BYTES) {
+    recordInventorySyncReject('inventory_sync_payload_too_large');
+    return;
+  }
+  const validation = validateInventorySyncPayload(payload, details);
+  if (!validation.ok) {
+    recordInventorySyncReject(validation.reason);
+    return;
+  }
+  const now = new Date().toISOString();
+  CONNECTION_STATE.lastSeenAt = now;
+  CONNECTION_STATE.lastInventorySyncAt = now;
+  CONNECTION_STATE.inventorySyncSeq = validation.seq;
+  CONNECTION_STATE.inventorySync = validation.inventory;
+  CONNECTION_STATE.inventorySyncUpdatedAt = now;
+  CONNECTION_STATE.connectionState = 'connected';
+  CONNECTION_STATE.lastInventorySyncRejectReason = null;
+  CONNECTION_STATE.lastInventorySyncPayloadStored = false;
+  CONNECTION_STATE.actionsEnabled = false;
+  CONNECTION_STATE.productiveAgentRuntime = false;
+  CONNECTION_STATE.inventorySyncExecutesActions = false;
+  CONNECTION_STATE.inventorySyncAcceptsCommands = false;
+}
+
+function validateInventorySyncPayload(payload, details = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { ok: false, reason: 'invalid_inventory_sync_json' };
+  for (const key of Object.keys(payload)) {
+    if (FORBIDDEN_INVENTORY_SYNC_FIELDS.has(key)) return { ok: false, reason: 'inventory_sync_forbidden_fields' };
+  }
+  const allowedTop = new Set(['type', 'protocolVersion', 'agentId', 'seq', 'collectedAt', 'inventory']);
+  for (const key of Object.keys(payload)) {
+    if (!allowedTop.has(key)) return { ok: false, reason: 'inventory_sync_unexpected_field' };
+  }
+  if (payload.type !== 'inventory_sync') return { ok: false, reason: 'unsupported_inventory_sync_type' };
+  if (payload.protocolVersion !== INVENTORY_SYNC_PROTOCOL_VERSION) return { ok: false, reason: 'unsupported_inventory_sync_protocol' };
+  const expectedAgentId = details.agentId || CONNECTION_STATE.agentId || 'stream-pc-main';
+  if (payload.agentId !== expectedAgentId) return { ok: false, reason: 'inventory_sync_agent_mismatch' };
+  const seq = Number(payload.seq);
+  if (!Number.isFinite(seq) || seq < 1 || Math.floor(seq) !== seq) return { ok: false, reason: 'inventory_sync_seq_invalid' };
+  const collectedAt = safeIsoOrNull(payload.collectedAt) || new Date().toISOString();
+  const inventory = sanitizeInventorySync(payload.inventory, collectedAt, expectedAgentId, seq);
+  return { ok: true, seq, inventory };
+}
+
+function sanitizeInventorySync(input, collectedAt, agentId, seq) {
+  const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const scenes = sanitizeInventoryItems(source.scenes || (source.groups && source.groups.scenes && source.groups.scenes.items), 250, 'scene');
+  const sources = sanitizeInventoryItems(source.sources || (source.groups && source.groups.sources && source.groups.sources.items), 500, 'source');
+  const audioSources = sanitizeInventoryItems(source.audioSources || (source.groups && source.groups.audioSources && source.groups.audioSources.items), 250, 'audio');
+  const active = source.active === true || scenes.length > 0 || sources.length > 0 || audioSources.length > 0;
+  const currentScene = safeLabel(source.currentScene || '') || (CONNECTION_STATE.liveState && CONNECTION_STATE.liveState.currentScene) || null;
+  return {
+    prepared: true,
+    readOnly: true,
+    protocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
+    source: 'agent-wss-inventory-sync',
+    agentId,
+    seq,
+    available: active,
+    active,
+    status: active ? 'readonly_inventory_available' : safeStatus(source.status || 'not_ready'),
+    checkedAt: safeIsoOrNull(source.checkedAt) || collectedAt,
+    receivedAt: new Date().toISOString(),
+    currentScene,
+    scenes,
+    sources,
+    audioSources,
+    groups: {
+      scenes: { prepared: true, active, count: scenes.length, items: scenes },
+      sources: { prepared: true, active, count: sources.length, items: sources },
+      audioSources: { prepared: true, active, count: audioSources.length, items: audioSources }
+    },
+    counts: { scenes: scenes.length, sources: sources.length, audioSources: audioSources.length, total: scenes.length + sources.length + audioSources.length },
+    safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
+  };
+}
+
+function sanitizeInventoryItems(items, limit, fallbackType) {
+  const list = Array.isArray(items) ? items : [];
+  return list.slice(0, limit).map((item) => {
+    const source = item && typeof item === 'object' && !Array.isArray(item) ? item : { name: item };
+    const name = safeLabel(source.name || source.label || source.id || '');
+    if (!name) return null;
+    return { name, label: safeLabel(source.label || name), id: safeLabel(source.id || name), type: safeStatus(source.type || source.kind || fallbackType || 'item'), muted: typeof source.muted === 'boolean' ? source.muted : null, readOnly: true };
+  }).filter(Boolean);
+}
+
 function sanitizeComponentStatus(input, fallbackCollectedAt) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return clonePlain(EMPTY_COMPONENT_STATUS);
 
@@ -629,7 +774,7 @@ function decodeClientWebSocketFrame(chunk) {
   } else if (length === 127) {
     return { ok: false, reason: 'heartbeat_payload_too_large', closeSocket: true };
   }
-  if (length > MAX_HEARTBEAT_PAYLOAD_BYTES) return { ok: false, reason: 'heartbeat_payload_too_large', closeSocket: true };
+  if (length > MAX_INVENTORY_SYNC_PAYLOAD_BYTES) return { ok: false, reason: 'agent_payload_too_large', closeSocket: true };
   if (chunk.length < offset + 4 + length) return { ok: false, reason: 'invalid_websocket_frame' };
 
   const mask = chunk.subarray(offset, offset + 4);
@@ -683,6 +828,11 @@ function clearConnectionState(reason) {
   CONNECTION_STATE.liveStateAgeMs = null;
   CONNECTION_STATE.liveStateStale = false;
   CONNECTION_STATE.lastLiveStatePayloadStored = false;
+  CONNECTION_STATE.inventorySync = clonePlain(EMPTY_OBS_INVENTORY_SYNC);
+  CONNECTION_STATE.inventorySyncUpdatedAt = null;
+  CONNECTION_STATE.lastInventorySyncAt = null;
+  CONNECTION_STATE.inventorySyncSeq = null;
+  CONNECTION_STATE.lastInventorySyncPayloadStored = false;
   activeSocket = null;
 }
 
@@ -732,6 +882,15 @@ function recordLiveStateReject(reason) {
   CONNECTION_STATE.lastLiveStateRejectAt = new Date().toISOString();
   CONNECTION_STATE.lastLiveStateRejectReason = safeReason(reason || 'live_state_rejected');
   CONNECTION_STATE.lastLiveStatePayloadStored = false;
+  CONNECTION_STATE.actionsEnabled = false;
+  CONNECTION_STATE.productiveAgentRuntime = false;
+}
+
+function recordInventorySyncReject(reason) {
+  CONNECTION_STATE.inventorySyncRejectCount += 1;
+  CONNECTION_STATE.lastInventorySyncRejectAt = new Date().toISOString();
+  CONNECTION_STATE.lastInventorySyncRejectReason = safeReason(reason || 'inventory_sync_rejected');
+  CONNECTION_STATE.lastInventorySyncPayloadStored = false;
   CONNECTION_STATE.actionsEnabled = false;
   CONNECTION_STATE.productiveAgentRuntime = false;
 }
@@ -858,6 +1017,18 @@ function buildAgentConnectionSummary() {
     lastLiveStateRejectReason: CONNECTION_STATE.lastLiveStateRejectReason,
     lastLiveStatePayloadStored: false,
     liveState: clonePlain(CONNECTION_STATE.liveState || buildEmptyLiveState()),
+    inventorySyncReceiverPrepared: true,
+    inventorySyncInMemoryOnly: true,
+    inventorySyncPersistsToDatabase: false,
+    inventorySyncProtocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
+    plannedInventorySyncIntervalMs: PLANNED_INVENTORY_SYNC_INTERVAL_MS,
+    lastInventorySyncAt: CONNECTION_STATE.lastInventorySyncAt,
+    inventorySyncSeq: CONNECTION_STATE.inventorySyncSeq,
+    inventorySyncRejectCount: CONNECTION_STATE.inventorySyncRejectCount,
+    lastInventorySyncRejectAt: CONNECTION_STATE.lastInventorySyncRejectAt,
+    lastInventorySyncRejectReason: CONNECTION_STATE.lastInventorySyncRejectReason,
+    lastInventorySyncPayloadStored: false,
+    inventorySync: clonePlain(CONNECTION_STATE.inventorySync || EMPTY_OBS_INVENTORY_SYNC),
     componentStatus: clonePlain(CONNECTION_STATE.componentStatus || EMPTY_COMPONENT_STATUS),
     componentStatusUpdatedAt: CONNECTION_STATE.componentStatusUpdatedAt,
     componentStatusInMemoryOnly: true,
@@ -957,6 +1128,35 @@ function buildAgentObsLiveStatusResponse() {
     obs: clonePlain(liveState.obs || buildEmptyLiveState().obs),
     currentScene: liveState.currentScene || null,
     currentProgramSceneName: liveState.currentProgramSceneName || null,
+    safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false, inMemoryOnly: true, persistsToDatabase: false }
+  };
+}
+
+
+function buildAgentObsInventoryStatusResponse() {
+  updateDerivedHeartbeatState();
+  const connected = CONNECTION_STATE.connected === true;
+  const inventory = clonePlain(CONNECTION_STATE.inventorySync || EMPTY_OBS_INVENTORY_SYNC);
+  const active = connected && inventory && (inventory.active === true || (inventory.counts && Number(inventory.counts.total) > 0));
+  return {
+    ok: true,
+    service: 'remote-modboard',
+    module: MODULE,
+    moduleBuild: MODULE_BUILD,
+    statusApiVersion: 'rdap_agent_obs_inventory_sync_status_0222.v1',
+    route: '/api/remote/agent/obs/inventory/status',
+    generatedAt: new Date().toISOString(),
+    readOnly: true,
+    prepared: true,
+    active,
+    status: active ? 'inventory_available' : (connected ? 'connected_inventory_pending' : 'agent_offline'),
+    agent: { connected, connectionState: CONNECTION_STATE.connectionState, agentId: CONNECTION_STATE.agentId, agentName: CONNECTION_STATE.agentName, lastSeenAt: CONNECTION_STATE.lastSeenAt, lastInventorySyncAt: CONNECTION_STATE.lastInventorySyncAt, inventorySyncSeq: CONNECTION_STATE.inventorySyncSeq },
+    inventory,
+    scenes: inventory.scenes || [],
+    sources: inventory.sources || [],
+    audioSources: inventory.audioSources || [],
+    counts: inventory.counts || { scenes: 0, sources: 0, audioSources: 0, total: 0 },
+    currentScene: inventory.currentScene || (CONNECTION_STATE.liveState && CONNECTION_STATE.liveState.currentScene) || null,
     safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false, inMemoryOnly: true, persistsToDatabase: false }
   };
 }
@@ -1115,5 +1315,6 @@ module.exports = {
   buildRegistrationSummary,
   buildAgentConnectionSummary,
   buildAgentObsLiveStatusResponse,
+  buildAgentObsInventoryStatusResponse,
   buildRejectDiagnosticSummary
 };

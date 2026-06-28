@@ -1,27 +1,25 @@
 # Next Steps
 
-Nach `0.2.21`:
+Nach `0.2.22`:
 
 ```text
-0.2.22 - OBS Control-Preflight read-only
+0.2.22 testen: Inventory-Sync muss online echte Szenen/Audio/Quellen anzeigen.
 ```
 
-Ziel:
+Checks:
 
 ```text
-- keine echten OBS-Actions
-- pro spaeterem Ziel nur anzeigen, ob es nach Rechte-/Allowlist-Modell theoretisch bedienbar waere
-- Safety-Checks fuer Szene/Audio/Quelle vorbereiten
-- Lock-/Audit-Zielbild fuer spaetere Bedienung konkretisieren
-- UI bleibt ohne echte Steuerbuttons
+- Agent verbunden
+- Live-State active=true
+- Inventory-Sync active=true
+- Szenenliste > 0
+- Audio/Quellen plausibel
 ```
 
-Dabei beachten:
+Danach:
 
 ```text
-Heartbeat klein lassen.
-Live-State nur fuer schnelle kleine Daten nutzen.
-Inventory langsam/groesser lassen.
-Keine grossen Daten in den Heartbeat packen.
-Keine freien OBS-Payloads einfuehren.
+- Mod-UI weiter vereinfachen
+- Allowlist/Freigabe-Anzeige verfeinern
+- noch keine OBS-Actions aktivieren
 ```

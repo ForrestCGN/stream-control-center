@@ -14,7 +14,6 @@ Verbindliche Arbeitsweise:
 - Auf explizites go warten.
 - Keine Code-/ZIP-Erstellung vor go.
 - Bestehende Module/Services/Dateien bevorzugen.
-- Keine parallelen Strukturen erfinden.
 - ZIPs muessen echte Repo-Zielpfade enthalten.
 - Forrest legt ZIPs in den Downloads-Ordner.
 - Lokal: cd D:\Git\stream-control-center; .\installstep.cmd "$env:USERPROFILE\Downloads\<ZIP>.zip" "<Beschreibung>"
@@ -33,9 +32,6 @@ project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
 backend/modules/remote_agent.js
-backend/modules/obs_shared.js
-backend/modules/local_remote_modboard_adapter.js
-backend/modules/obs_live_status.js
 remote-modboard/backend/server.js
 remote-modboard/backend/src/services/agent-runtime.service.js
 remote-modboard/backend/src/routes/obs-readonly.routes.js
@@ -46,28 +42,15 @@ htdocs/dashboard-v2/assets/modules/system/obs.js
 Aktueller Stand:
 
 ```text
-0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereitet.
-```
-
-Bestaetigt:
-
-```text
-- Stream-PC-Agent ist per WSS verbunden.
-- Heartbeat ist schlank und stabil.
-- Live-State ist vom Heartbeat getrennt.
-- OBS aktuelle Szene kommt online an.
-- /api/remote/agent/obs/live/status liefert active=true, status=live_scene_available, currentScene.
-- UI zeigt Online-Live-Szene.
-- OBS-Allowlist-/Rechte-Modell ist read-only vorbereitet.
+0.2.22 - OBS Inventory-Sync read-only vorbereitet.
 ```
 
 Architektur:
 
 ```text
 Heartbeat = klein/stabil, Verbindung, ca. 30s.
-Live-State = schnelle kleine Daten, aktuell OBS-Szene, ca. 500ms.
-Inventory = langsam/groesser, Szenen/Quellen/Audioquellen.
-Allowlist/Rechte = Modell fuer spaetere Bedienbarkeit, aktuell read-only.
+Live-State = schnelle Daten, aktuell OBS-Szene, ca. 500ms.
+Inventory-Sync = Szenen/Quellen/Audioquellen, separat/langsamer, nicht im Heartbeat.
 ```
 
 Sicherheitsgrenzen:
@@ -85,14 +68,5 @@ Webserver baut keine OBS-WebSocket-Verbindung auf.
 Naechster sinnvoller Step:
 
 ```text
-0.2.22 - OBS Control-Preflight read-only.
-```
-
-Ziel 0.2.22:
-
-```text
-- noch keine OBS-Actions aktivieren
-- pro Ziel anzeigen, ob es nach Modell theoretisch bedienbar waere
-- Safety-/Lock-/Audit-Zielbild fuer spaetere Control-Actions vorbereiten
-- keine freien OBS requestType Payloads
+0.2.22 testen und ggf. Inventory-Sync/UI glätten. Noch keine OBS-Actions aktivieren.
 ```

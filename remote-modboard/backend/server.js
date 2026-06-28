@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.21';
-const BUILD_NAME = 'OBS Allowlist Rights Model Readonly';
-const STEP_REF = 'RDAP_0.2.21_OBS_ALLOWLIST_RIGHTS_MODEL_READONLY';
+const APP_VERSION = '0.2.22';
+const BUILD_NAME = 'OBS Inventory Sync Readonly';
+const STEP_REF = 'RDAP_0.2.22_OBS_INVENTORY_SYNC_READONLY';
 const MODULE_BUILD = STEP_REF;
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
   const app = createApp({ config, moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] v${APP_VERSION} - ${BUILD_NAME} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' obsAllowlistRightsModelPrepared=true obsLiveStateReadOnlyPrepared=true obsInventoryUiDisplayPrepared=true actions=false remoteWritesControlled=true');
+    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' obsInventorySyncReadOnlyPrepared=true obsAllowlistRightsModelPrepared=true obsLiveStateReadOnlyPrepared=true obsInventoryUiDisplayPrepared=true actions=false remoteWritesControlled=true');
   });
 
   registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
