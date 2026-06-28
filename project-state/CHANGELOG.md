@@ -1,12 +1,13 @@
 # Changelog
 
-## Version 0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet
+## Version 0.2.13 - OBS read-only Grundlage vorbereitet
 
-- Lokalen Remote-Modboard-Adapter auf `0.2.12` angehoben.
-- Neue read-only Routen ergaenzt:
-  - `GET /api/remote/local-dashboard/agent-executor/status`
-  - `GET /api/remote/local-dashboard/agent-executor/handshake`
-- Die neuen Routen lesen diagnostisch den bestehenden lokalen Agent-Status aus `/api/remote-agent/status`.
-- Der geplante Agent-Executor-Weg wird sichtbar dokumentiert: lokal und online fuehren Streaming-PC-Aktionen spaeter ueber den Agent aus.
-- Keine Agent-Kommandos, keine Writes, keine OBS-/Sound-/Overlay-/Command-Steuerung aktiviert.
+- OBS als erstes fachliches Modul read-only vorbereitet.
+- Neue lokale Adapter-Routen:
+  - `GET /api/remote/local-dashboard/obs/status`
+  - `GET /api/remote/local-dashboard/obs/model`
+- OBS-Status wird nur aus dem bestehenden `remote_agent`-/Komponentenstatus gelesen.
+- OBS-Inventar fuer Szenen/Quellen/Audioquellen ist vorbereitet, aber noch nicht aktiv ausgelesen.
+- `/api/remote/status`, Runtime-Profil und Adapterstatus melden `obsModule: readonly_foundation`.
+- Keine OBS-Steuerung, keine Agent-Actions, keine produktiven Writes, keine DB-Migration.
 - `/dashboard` bleibt unveraendert.

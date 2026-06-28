@@ -2,26 +2,44 @@
 
 Stand: 2026-06-28
 
-Naechster Schritt nach `0.2.12`:
+Naechster Schritt nach `0.2.13`:
 
 ```text
-0.2.13 - User/Rechte-Sync Statusmodell read-only vorbereiten
+0.2.13 lokal testen und stepdone, wenn passend.
 ```
 
-Vorher lokal pruefen:
+Pruefen:
 
 ```text
-/api/remote/local-dashboard/agent-executor/status
-/api/remote/local-dashboard/agent-executor/handshake
-/api/remote-agent/status
-/dashboard-v2/
+- /api/remote/local-dashboard/obs/status liefert moduleVersion 0.2.13.
+- OBS-Status kommt aus remote_agent-Komponentenstatus.
+- safety zeigt obsControlEnabled false / noAgentActionExecution true.
+- /api/remote/status zeigt obsModule readonly_foundation.
+- /dashboard-v2 bleibt sichtbar und unveraendert.
 ```
 
-Dabei beachten:
+Danach:
 
 ```text
-- Agent-Executor bleibt diagnostic-only.
-- Keine Streaming-PC-Aktionen aktivieren.
-- Keine Sound-/OBS-/Overlay-/Command-Steuerung.
-- Keine Writes.
+0.2.14 - OBS Inventar read-only vorbereiten
+```
+
+Ziel 0.2.14:
+
+```text
+- aktuelle Szene read-only,
+- Szenenliste read-only,
+- Quellenliste read-only,
+- Audioquellen read-only,
+- weiterhin keine Steuerung.
+```
+
+Nicht tun:
+
+```text
+- keine Szenenwechsel,
+- keine Mutes,
+- keine Quellen-Sichtbarkeit aendern,
+- keine produktiven Agent-Actions,
+- keine parallele lokale UI bauen.
 ```

@@ -2,7 +2,7 @@
 
 Stand: 2026-06-28
 
-## Geaendert in Version 0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet
+## Geaendert in Version 0.2.13 - OBS read-only Grundlage vorbereitet
 
 ```text
 backend/modules/local_remote_modboard_adapter.js

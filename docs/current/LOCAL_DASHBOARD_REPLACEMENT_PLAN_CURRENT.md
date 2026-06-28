@@ -5,19 +5,23 @@ Stand: 2026-06-28
 ## Aktueller Stand
 
 ```text
-0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet
+0.2.13 - OBS read-only Grundlage vorbereitet
 ```
 
-0.2.10H hat die Remote-Asset-Pfade fuer `/dashboard-v2` repariert. 0.2.10I hat die Architekturentscheidung festgehalten. 0.2.11 hat Runtime-Profil/Agent-Sync-Foundation vorbereitet. 0.2.12 macht den Agent-Executor-Weg read-only diagnostisch sichtbar.
+0.2.10H hat die Remote-Asset-Pfade fuer `/dashboard-v2` repariert. 0.2.10I dokumentiert die Online/Lokal-Architektur. 0.2.11/0.2.12 haben Runtime-Profil und Agent-Executor-Diagnose vorbereitet. 0.2.13 setzt OBS als erstes fachliches Modul read-only auf.
 
 ## Zielregel UI
+
+```text
+Das lokale Dashboard-v2 soll optisch und strukturell eine exakte Kopie des Remote-Modboards sein.
+```
+
+Nicht lokal nachbauen. Nicht angleichen. Nicht zweite UI pflegen.
 
 ```text
 Remote-Modboard = UI-Wahrheit.
 Dashboard-v2 lokal = dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 ```
-
-Nicht lokal nachbauen. Nicht angleichen. Nicht zweite UI pflegen.
 
 Abweichungen sind nur erlaubt bei:
 
@@ -64,36 +68,22 @@ Dashboard-v2 lokal -> lokaler Server/Adapter -> Agent -> Streaming-PC-Aktion
 
 Der Agent ist der zentrale Executor. Keine freien Shell-/Datei-/Prozessbefehle.
 
-## 0.2.12 Agent-Executor Diagnose
-
-Neue read-only Diagnose-Routen:
-
-```text
-GET /api/remote/local-dashboard/agent-executor/status
-GET /api/remote/local-dashboard/agent-executor/handshake
-```
-
-Diese Routen lesen diagnostisch den bestehenden lokalen Agent-Status aus:
-
-```text
-GET /api/remote-agent/status
-```
-
-Sie zeigen vorbereitet/diagnostic-only:
-
-```text
-- ob `remote_agent.js` geladen ist,
-- ob der Agent konfiguriert/verbunden ist,
-- welche sichere Route spaeter als zentraler Executor dient,
-- dass Actions weiterhin deaktiviert sind.
-```
-
 ## Zielregel User/Rechte Sync
 
 ```text
 User/Rechte duerfen lokal und online geaendert werden.
 Beide Seiten synchronisieren sich.
 Sperren/Entzug von Rechten muessen online sofort wirken.
+```
+
+Praktisch:
+
+```text
+- Forrest/Engel arbeiten meistens lokal.
+- Forrest/Engel duerfen unterwegs online Rechte/User aendern.
+- Boss-Mods duerfen online gekuendigte Mods sperren/Rechte entziehen, wenn ihre Rolle das erlaubt.
+- Online-Sperren wirken sofort auf dem Webserver.
+- Der lokale Stand wird ueber den Agent nachgezogen, sobald verbunden.
 ```
 
 Konfliktregel fuer spaetere Umsetzung:
@@ -104,13 +94,44 @@ Konfliktregel fuer spaetere Umsetzung:
 - Jede Rechteaenderung braucht Actor, Timestamp, Quelle, Revision und Audit.
 ```
 
-## Sicherheitsgrenzen 0.2.12
+## OBS read-only Grundlage 0.2.13
+
+OBS ist als erstes echtes Modul sinnvoll, weil Szenen, Quellen, Audio, Media und Overlay-Quellen daran haengen.
+
+0.2.13 aktiviert noch keine OBS-Steuerung. Es macht nur read-only sichtbar:
+
+```text
+/api/remote/local-dashboard/obs/status
+/api/remote/local-dashboard/obs/model
+```
+
+Quelle ist der bestehende `remote_agent`-Status:
+
+```text
+/api/remote-agent/status
+```
+
+Sicherheitsgrenzen in 0.2.13:
+
+```text
+- keine OBS-WebSocket-Kommandos durch den lokalen Adapter,
+- kein Szenenwechsel,
+- kein Mute/Unmute,
+- keine Quellen-Sichtbarkeit aendern,
+- keine Media-Steuerung,
+- keine Agent-Actions,
+- keine Writes,
+- kein DB-/Datei-/Shell-/Prozess-Zugriff.
+```
+
+Szenen-/Quellen-Inventar ist vorbereitet, aber noch leer/read-only. Das aktive Auslesen von Szenen/Quellen kommt erst in einem spaeteren, eigenen Step.
+
+## Sicherheitsgrenzen
 
 - keine zweite lokale UI,
-- keine DB-Migration,
 - keine produktiven Writes,
-- keine Agent-Kommandos,
+- keine neuen Agent-Actions,
 - keine OBS-/Sound-/Overlay-/Command-Steuerung,
 - keine Shell-/Datei-/Prozess-Actions,
 - `/dashboard` bleibt unveraendert,
-- kein Webserver-Deploy noetig.
+- kein Webserver-Deploy fuer lokale Dashboard-v2-/Doku-Steps.

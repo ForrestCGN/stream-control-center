@@ -6,8 +6,8 @@ const http = require("http");
 const express = require("express");
 
 const MODULE_NAME = "local_remote_modboard_adapter";
-const MODULE_VERSION = "0.2.12";
-const MODULE_BUILD = "RDAP_0_2_12_AGENT_EXECUTOR_DIAGNOSTIC_HANDSHAKE";
+const MODULE_VERSION = "0.2.13";
+const MODULE_BUILD = "RDAP_0_2_13_OBS_READONLY_FOUNDATION";
 const API_PREFIX = "/api/remote";
 
 const MODULE_META = {
@@ -16,7 +16,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "local-dashboard-adapter",
   category: "dashboard-v2",
-  description: "Local compatibility adapter so /dashboard-v2 can run the real Remote-Modboard frontend shell on port 8080. Provides local runtime-profile diagnostics and blocks productive writes/actions.",
+  description: "Local compatibility adapter so /dashboard-v2 can run the real Remote-Modboard frontend shell on port 8080. Provides local runtime-profile, agent-executor and OBS read-only diagnostics and blocks productive writes/actions.",
   routesPrefix: [
     API_PREFIX,
     "/assets/remote-modboard.css",
@@ -82,7 +82,7 @@ function fetchLocalJson(pathname, timeoutMs = 900) {
       method: "GET",
       timeout: timeoutMs,
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
         "X-SCC-Local-Dashboard-Adapter": MODULE_VERSION
       }
     };
@@ -145,11 +145,106 @@ function summarizeRemoteAgentStatus(result) {
   };
 }
 
+async function getRemoteAgentStatusSummary() {
+  const statusResult = await fetchLocalJson("/api/remote-agent/status");
+  return {
+    result: statusResult,
+    summary: summarizeRemoteAgentStatus(statusResult)
+  };
+}
+
+function getComponentStatusFromRemoteAgentResult(result) {
+  const json = result && result.json && typeof result.json === "object" ? result.json : null;
+  if (!json) return null;
+  const streamingPcConnection = json.streamingPcConnection && typeof json.streamingPcConnection === "object" ? json.streamingPcConnection : {};
+  return streamingPcConnection.componentStatus || json.componentStatus || null;
+}
+
+function summarizeObsStatusFromRemoteAgentResult(result) {
+  const componentStatus = getComponentStatusFromRemoteAgentResult(result);
+  const obs = componentStatus && componentStatus.obs && typeof componentStatus.obs === "object" ? componentStatus.obs : null;
+  return {
+    available: Boolean(obs && obs.available !== false),
+    status: obs && obs.status ? String(obs.status) : "not_available",
+    reachable: obs && Object.prototype.hasOwnProperty.call(obs, "reachable") ? obs.reachable : null,
+    name: obs && obs.name ? String(obs.name) : "OBS",
+    port: obs && obs.port ? obs.port : 4455,
+    checkedAt: obs && obs.checkedAt ? String(obs.checkedAt) : "",
+    detail: obs && obs.detail ? String(obs.detail) : "OBS wird in 0.2.13 nur ueber remote_agent-Komponentenstatus gelesen.",
+    readOnly: true,
+    controlEnabled: false,
+    noAuthenticationAttempt: obs ? obs.noAuthenticationAttempt !== false : true,
+    noObsRequestSent: obs ? obs.noObsRequestSent !== false : true,
+    lastError: obs && obs.lastError ? String(obs.lastError) : null
+  };
+}
+
+function obsModelPayload(obsStatus, remoteAgent) {
+  return {
+    ok: true,
+    service: "remote-modboard",
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    statusApiVersion: "local_remote_modboard_adapter.obs_readonly.v1",
+    generatedAt: nowIso(),
+    runtimeMode: "local",
+    localDashboard: true,
+    readOnly: true,
+    prepared: true,
+    active: false,
+    status: "readonly_foundation",
+    remoteAgent,
+    obs: obsStatus,
+    inventory: {
+      prepared: true,
+      active: false,
+      scenes: [],
+      sources: [],
+      audioSources: [],
+      currentScene: null,
+      note: "0.2.13 legt die OBS-read-only Grundlage. Szenen-/Quellen-Inventar wird noch nicht aktiv per OBS-WebSocket gelesen."
+    },
+    plannedReadOnlyEndpoints: [
+      `${API_PREFIX}/local-dashboard/obs/status`,
+      `${API_PREFIX}/local-dashboard/obs/model`
+    ],
+    plannedActionsStillDisabled: [
+      "obs.scene.switch",
+      "obs.source.visibility.set",
+      "obs.input.mute.set",
+      "obs.media.stop",
+      "obs.refresh"
+    ],
+    safety: {
+      readOnly: true,
+      obsControlEnabled: false,
+      sceneSwitchEnabled: false,
+      sourceVisibilityEnabled: false,
+      muteControlEnabled: false,
+      mediaControlEnabled: false,
+      noObsRequestSentByAdapter: true,
+      noAgentActionExecution: true,
+      noStreamingPcActionExecution: true,
+      noFileWrite: true,
+      noDatabaseWrite: true,
+      noShellOrProcessActions: true
+    },
+    note: "OBS ist als erstes Modul sinnvoll. 0.2.13 macht nur Status/Modell sichtbar und fuehrt keine OBS-Aktion aus."
+  };
+}
+
+async function localObsReadOnlyPayload() {
+  const remote = await getRemoteAgentStatusSummary();
+  const obsStatus = summarizeObsStatusFromRemoteAgentResult(remote.result);
+  return obsModelPayload(obsStatus, remote.summary);
+}
+
 async function agentExecutorDiagnosticPayload(ctx = {}) {
   const loadedModules = getLoadedModules(ctx);
   const remoteAgentLoaded = loadedModules.includes("remote_agent.js");
-  const statusResult = await fetchLocalJson("/api/remote-agent/status");
-  const remoteAgent = summarizeRemoteAgentStatus(statusResult);
+  const remote = await getRemoteAgentStatusSummary();
+  const remoteAgent = remote.summary;
 
   return {
     ok: true,
@@ -177,6 +272,11 @@ async function agentExecutorDiagnosticPayload(ctx = {}) {
       commandAcceptanceEnabled: false,
       productiveActionsEnabled: false
     },
+    obsReadOnly: {
+      prepared: true,
+      endpoint: `${API_PREFIX}/local-dashboard/obs/status`,
+      actionEnabled: false
+    },
     safety: {
       readOnly: true,
       noAgentActionExecution: true,
@@ -192,9 +292,10 @@ async function agentExecutorDiagnosticPayload(ctx = {}) {
     routes: [
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/status`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true },
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/status`, readOnly: true },
       { method: "GET", path: "/api/remote-agent/status", readOnly: true, source: "remote_agent" }
     ],
-    note: "0.2.12 liest nur den bestehenden remote_agent-Status und macht den geplanten Agent-Executor-Weg diagnostisch sichtbar. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt."
+    note: "0.2.13 liest nur den bestehenden remote_agent-Status und OBS-Komponentenstatus. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt."
   };
 }
 
@@ -273,7 +374,16 @@ function localArchitecturePayload(ctx = {}) {
         "shell",
         "productiveWrite"
       ],
-      note: "0.2.12 bereitet Agent-Executor-Diagnose/Handshake vor. Es aktiviert keine Agent-Actions."
+      note: "0.2.13 bereitet Agent-Executor-Diagnose und OBS-read-only Grundlage vor. Es aktiviert keine Agent-Actions."
+    },
+    obsModule: {
+      prepared: true,
+      active: false,
+      status: "readonly_foundation",
+      statusEndpoint: `${API_PREFIX}/local-dashboard/obs/status`,
+      modelEndpoint: `${API_PREFIX}/local-dashboard/obs/model`,
+      controlEnabled: false,
+      note: "OBS ist als erstes fachliches Modul vorgesehen. 0.2.13 ist nur read-only Grundlage."
     },
     rightsSync: {
       prepared: true,
@@ -383,6 +493,8 @@ function localStatusPayload(ctx = {}) {
       uiSource: architecture.ui.source,
       agentExecutor: architecture.agentExecutor.status,
       agentExecutorEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/status`,
+      obsModule: architecture.obsModule.status,
+      obsEndpoint: `${API_PREFIX}/local-dashboard/obs/status`,
       rightsSync: architecture.rightsSync.status,
       writeActions: "disabled"
     },
@@ -416,7 +528,9 @@ function localRoutesPayload(ctx = {}) {
       { method: "GET", path: `${API_PREFIX}/local-dashboard/runtime-profile`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/architecture`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/status`, readOnly: true },
-      { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true }
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true },
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/status`, readOnly: true },
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/model`, readOnly: true }
     ],
     localSafety: localSafetyPayload(),
     loadedModules: getLoadedModules(ctx),
@@ -637,6 +751,8 @@ module.exports.init = function init(ctx = {}) {
   app.get(`${API_PREFIX}/local-dashboard/architecture`, (req, res) => res.json(localArchitecturePayload(ctx)));
   app.get(`${API_PREFIX}/local-dashboard/agent-executor/status`, async (req, res) => res.json(await agentExecutorDiagnosticPayload(ctx)));
   app.get(`${API_PREFIX}/local-dashboard/agent-executor/handshake`, async (req, res) => res.json(await agentExecutorDiagnosticPayload(ctx)));
+  app.get(`${API_PREFIX}/local-dashboard/obs/status`, async (req, res) => res.json(await localObsReadOnlyPayload()));
+  app.get(`${API_PREFIX}/local-dashboard/obs/model`, async (req, res) => res.json(await localObsReadOnlyPayload()));
 
   app.get(`${API_PREFIX}/local-dashboard/adapter/status`, (req, res) => res.json({
     ok: true,
@@ -658,6 +774,12 @@ module.exports.init = function init(ctx = {}) {
       status: "diagnostic_only",
       diagnosticEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/status`
     },
+    obsModule: {
+      prepared: true,
+      active: false,
+      status: "readonly_foundation",
+      statusEndpoint: `${API_PREFIX}/local-dashboard/obs/status`
+    },
     rightsSync: {
       prepared: true,
       active: false,
@@ -672,5 +794,5 @@ module.exports.init = function init(ctx = {}) {
   app.get(`${API_PREFIX}/*`, (req, res) => res.json(localPlaceholderPayload(req)));
   app.all(`${API_PREFIX}/*`, (req, res) => res.status(405).json(writeBlockedPayload(req)));
 
-  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
+  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; obsReadOnly=prepared; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
 };

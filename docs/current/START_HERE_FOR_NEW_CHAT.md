@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.12 - Agent-Executor Diagnose/Handshake vorbereitet`.
+Aktueller Stand: `0.2.13 - OBS read-only Grundlage vorbereitet`.
 
 Verbindlich:
 
@@ -42,13 +42,24 @@ Der lokale Stand wird ueber den Agent nachgezogen, sobald verbunden.
 
 ## Stand 0.2.12
 
-0.2.12 erweitert den lokalen Remote-Modboard-Adapter um read-only Agent-Executor-Diagnose:
+0.2.12 macht den Agent-Executor-Weg diagnostisch sichtbar:
 
 ```text
-GET /api/remote/local-dashboard/agent-executor/status
-GET /api/remote/local-dashboard/agent-executor/handshake
+/api/remote/local-dashboard/agent-executor/status
+/api/remote/local-dashboard/agent-executor/handshake
 ```
 
-Diese Routen lesen nur den vorhandenen lokalen Agent-Status aus `/api/remote-agent/status`. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt.
+Der lokale Adapter sieht den bestehenden `remote_agent`; der Agent ist per WSS mit dem Webserver verbunden. Aktionen bleiben deaktiviert.
 
-Weiterarbeit: Erst 0.2.12 lokal testen/stepdone. Danach `0.2.13 - User/Rechte-Sync Statusmodell read-only vorbereiten`.
+## Stand 0.2.13
+
+0.2.13 bereitet OBS als erstes fachliches Modul read-only vor:
+
+```text
+/api/remote/local-dashboard/obs/status
+/api/remote/local-dashboard/obs/model
+```
+
+Diese Routen lesen nur den bestehenden `remote_agent`-/Komponentenstatus und machen OBS-Erreichbarkeit/OBS-Modell sichtbar. Es werden keine OBS-WebSocket-Befehle gesendet, keine Szenen gewechselt, keine Quellen/Mutes veraendert und keine Agent-Actions ausgefuehrt.
+
+Weiterarbeit: Erst lokale Smoke-Tests und `stepdone`. Danach `0.2.14 - OBS Inventar read-only planen/vorbereiten` oder `OBS Action-Envelope disabled`.
