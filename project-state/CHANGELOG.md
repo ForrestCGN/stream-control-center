@@ -1,12 +1,12 @@
 # Changelog
 
-## 2026-06-28 - 0.2.17
+## 0.2.18D - OBS-Inventar read-only ueber obs_shared vorbereitet
 
-`RDAP_0.2.17_LOCAL_OBS_INVENTORY_READONLY_AGENT`
-
-- Lokale OBS-Inventarabfrage read-only im `remote_agent` vorbereitet.
-- `remote_agent` Version 0.1.4.
-- Aktivierung nur per `STREAMING_PC_OBS_INVENTORY_READ_ENABLED=true`.
-- OBS-Passwort optional, wird nicht ausgegeben.
-- Webserver bleibt OBS-Placeholder und sendet keine OBS-WebSocket-Requests.
+- remote_agent auf 0.1.5D gesetzt.
+- `OBS_WS_URL` und `OBS_WS_PASSWORD` als lokale .env-Aliase ergaenzt.
+- `OBS_WS_URL` aktiviert den lokalen read-only Inventar-Read automatisch.
+- Neuer kompakter Diagnose-Endpunkt: `/api/remote-agent/obs/inventory/status`.
+- Online-Remote-Modboard auf 0.2.18D gesetzt.
 - Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
+
+- Fix: fehlende sanitizeLocalHost-Helper-Funktion im remote_agent ergaenzt.

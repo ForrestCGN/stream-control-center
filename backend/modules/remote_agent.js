@@ -9,13 +9,14 @@ try { WebSocket = require('ws'); } catch (err) { WebSocket = null; }
 let net = null;
 try { net = require('net'); } catch (err) { net = null; }
 
-let crypto = null;
-try { crypto = require('crypto'); } catch (err) { crypto = null; }
+
+let obsSharedModule = null;
+try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.4';
-const MODULE_BUILD = 'VERSION_0_1_4_STREAMING_PC_OBS_INVENTORY_READONLY';
-const STATUS_API_VERSION = 'streaming_pc_obs_inventory_status.v0.1.4';
+const MODULE_VERSION = '0.1.5D';
+const MODULE_BUILD = 'VERSION_0_1_5D_STREAMING_PC_OBS_INVENTORY_SHARED_CONNECTION';
+const STATUS_API_VERSION = 'streaming_pc_obs_inventory_status.v0.1.5';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -28,7 +29,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'remote-dashboard',
-  description: 'Streaming-PC connection client with read-only local component status and optional OBS inventory read. No productive actions.',
+  description: 'Streaming-PC connection client with read-only local component status, optional OBS inventory read and OBS env diagnostics. No productive actions.',
   routesPrefix: ['/api/remote-agent', '/api/streaming-pc-connection'],
   bus: { registered: false, heartbeat: true, emits: [], listens: [] },
   legacy: false
@@ -47,6 +48,8 @@ const CAPABILITIES = Object.freeze({
   obsStatusRead: true,
   obsInventoryRead: true,
   obsInventoryReadOnly: true,
+  obsInventoryEnvDiagnostic: true,
+  obsInventorySharedConnection: true,
   obsControl: false,
   soundControl: false,
   overlayControl: false,
@@ -69,18 +72,7 @@ const ROLES = Object.freeze([
 ]);
 
 const GROUP_MARKERS = Object.freeze([
-  {
-    key: 'sound_profi',
-    label: 'Sound-Profi',
-    type: 'group_marker',
-    purpose: 'Fachliche Markierung fuer Personen, die spaeter gezielt Sound-, Media-, Command- und Kanalpunkte-Bereiche bearbeiten duerfen.',
-    grantsPermissionsByItself: false,
-    isDashboardRole: false,
-    permissionSource: 'modulePermissionMatrix',
-    permissionTargetModel: 'target_type + target_key',
-    criticalLimits: ['keine Rolle', 'kein globales Permission-Preset', 'keine System-/Security-/Owner-Rechte', 'keine freien Dateipfade', 'keine Datenbankmigrationen'],
-    plannedAllowedAreas: ['media', 'sound', 'sound-commands', 'channelpoints-sound-media']
-  }
+  { key: 'sound_profi', label: 'Sound-Profi', type: 'group_marker', purpose: 'Fachliche Markierung fuer Personen, die spaeter gezielt Sound-, Media-, Command- und Kanalpunkte-Bereiche bearbeiten duerfen.', grantsPermissionsByItself: false, isDashboardRole: false, permissionSource: 'modulePermissionMatrix', permissionTargetModel: 'target_type + target_key', criticalLimits: ['keine Rolle', 'kein globales Permission-Preset', 'keine System-/Security-/Owner-Rechte', 'keine freien Dateipfade', 'keine Datenbankmigrationen'], plannedAllowedAreas: ['media', 'sound', 'sound-commands', 'channelpoints-sound-media'] }
 ]);
 
 const PERMISSIONS = Object.freeze([
@@ -132,7 +124,7 @@ const LOCK_MODEL = Object.freeze({
   versionCheckRequired: true,
   saveRequiresValidLock: true,
   sharedReadWhileLocked: true,
-  notes: ['Version 0.1.4 setzt keine produktiven Locks.', 'Speichern soll spaeter nur mit gueltigem Lock und passender Resource-Version erlaubt sein.']
+  notes: ['Version 0.1.5D setzt keine produktiven Locks.', 'Speichern soll spaeter nur mit gueltigem Lock und passender Resource-Version erlaubt sein.']
 });
 
 const AUDIT_MODEL = Object.freeze({
@@ -142,7 +134,7 @@ const AUDIT_MODEL = Object.freeze({
   minimumFields: ['auditId', 'timestamp', 'actorUserId', 'actorDisplayName', 'source', 'action', 'permission', 'resourceKey', 'oldValueSummary', 'newValueSummary', 'status', 'requestId', 'correlationId'],
   plannedEventTypes: ['permission.check', 'locks.create', 'locks.heartbeat', 'locks.release', 'locks.takeover', 'resource.save.requested', 'resource.save.succeeded', 'resource.save.failed', 'streaming_pc.connection.started', 'streaming_pc.connection.heartbeat', 'streaming_pc.connection.failed', 'streaming_pc.action.requested', 'streaming_pc.action.accepted', 'streaming_pc.action.rejected', 'streaming_pc.action.failed'],
   sources: ['dashboard-local', 'remote-modboard', 'webserver', 'streaming-pc'],
-  notes: ['Version 0.1.4 schreibt noch keine Audit-Daten.', 'Produktive Aenderungen muessen spaeter auditpflichtig sein.']
+  notes: ['Version 0.1.5D schreibt noch keine Audit-Daten.', 'Produktive Aenderungen muessen spaeter auditpflichtig sein.']
 });
 
 const OBS_STATUS_STATE = {
@@ -214,13 +206,14 @@ function init(ctx) {
 
   registerGet(app, '/api/remote-agent/status', (req, res) => { void req; res.json(buildStatusResponse()); });
   registerGet(app, '/api/streaming-pc-connection/status', (req, res) => { void req; res.json(buildStatusResponse()); });
+  registerGet(app, '/api/remote-agent/obs/inventory/status', (req, res) => { void req; res.json(buildObsInventoryStatusResponse()); });
   registerGet(app, '/api/remote-agent/permissions/model', (req, res) => { void req; res.json(buildPermissionsModelResponse()); });
   registerGet(app, '/api/remote-agent/locks/status', (req, res) => { void req; res.json(buildLocksStatusResponse()); });
   registerGet(app, '/api/remote-agent/audit/model', (req, res) => { void req; res.json(buildAuditModelResponse()); });
   registerGet(app, '/api/remote-agent/routes', (req, res) => { void req; res.json(buildRoutesResponse()); });
 
   startStreamingPcConnectionClient();
-  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client with read-only OBS inventory model registered. actions=false.`);
+  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client with read-only OBS inventory env diagnostic registered. actions=false.`);
 }
 
 function registerGet(app, routePath, handler) {
@@ -298,7 +291,7 @@ function connectStreamingPc(config) {
     ws.on('open', () => handleOpen(config));
     ws.on('close', () => handleClose(config, 'socket_close'));
     ws.on('error', (err) => handleError(config, err));
-    ws.on('message', () => { /* Version 0.1.4 ignores inbound data. No commands/actions are accepted. */ });
+    ws.on('message', () => { /* Version 0.1.5D ignores inbound data. No commands/actions are accepted. */ });
   } catch (err) {
     handleError(config, err);
     handleClose(config, 'connect_exception');
@@ -368,6 +361,7 @@ function sendHeartbeat(config) {
 }
 
 function buildComponentStatus(config) {
+  void config;
   const now = new Date().toISOString();
   const localDashboardUrl = readString('STREAMING_PC_LOCAL_DASHBOARD_URL', 'http://192.168.16.200:8080/dashboard');
   return {
@@ -376,7 +370,7 @@ function buildComponentStatus(config) {
     localDashboard: { available: true, name: 'Lokales Dashboard', reachable: true, status: 'available', url: sanitizeLocalUrl(localDashboardUrl), checkedAt: now, detail: 'lokale Dashboard-Adresse hinterlegt' },
     localServer: { available: true, name: 'Lokaler Dashboard-Server', reachable: true, status: 'running', port: 8080, checkedAt: now, detail: 'dieser Node-Server liefert den Heartbeat' },
     obs: buildObsStatus(now),
-    streamerbot: { available: false, name: 'Streamer.bot', reachable: null, status: 'not_checked', checkedAt: now, detail: 'Version 0.1.4 liest Streamer.bot noch nicht aktiv aus' },
+    streamerbot: { available: false, name: 'Streamer.bot', reachable: null, status: 'not_checked', checkedAt: now, detail: 'Version 0.1.5D liest Streamer.bot noch nicht aktiv aus' },
     actionsEnabled: false,
     productiveActionsEnabled: false,
     noCommands: true,
@@ -395,23 +389,63 @@ function buildObsStatus(now) {
 }
 
 function readObsStatusConfig() {
+  const urlConfig = readObsUrlConfig();
   const enabled = readBoolean('STREAMING_PC_OBS_STATUS_ENABLED', readBoolean('OBS_STATUS_ENABLED', true));
-  const host = sanitizeLocalHost(readString('STREAMING_PC_OBS_HOST', readString('OBS_WEBSOCKET_HOST', '127.0.0.1')));
-  const port = safePort(readInt('STREAMING_PC_OBS_PORT', readInt('OBS_WEBSOCKET_PORT', 4455), 1, 65535));
-  const inventoryReadEnabled = readBoolean('STREAMING_PC_OBS_INVENTORY_READ_ENABLED', readBoolean('OBS_INVENTORY_READ_ENABLED', false));
-  const password = readString('STREAMING_PC_OBS_PASSWORD', readString('OBS_WEBSOCKET_PASSWORD', ''));
-  return { enabled, host, port, inventoryReadEnabled, password };
+  const host = sanitizeLocalHost(readString('STREAMING_PC_OBS_HOST', readString('OBS_WEBSOCKET_HOST', urlConfig.host)));
+  const port = safePort(readInt('STREAMING_PC_OBS_PORT', readInt('OBS_WEBSOCKET_PORT', urlConfig.port), 1, 65535));
+  const inventoryReadEnabled = readBoolean('STREAMING_PC_OBS_INVENTORY_READ_ENABLED', readBoolean('OBS_INVENTORY_READ_ENABLED', readBoolean('OBS_WS_INVENTORY_READ_ENABLED', Boolean(process.env.OBS_WS_URL))));
+  const password = readStringAllowBlank('STREAMING_PC_OBS_PASSWORD', readStringAllowBlank('OBS_WEBSOCKET_PASSWORD', readStringAllowBlank('OBS_WS_PASSWORD', '')));
+  return {
+    enabled,
+    host,
+    port,
+    url: `ws://${host}:${port}`,
+    urlSource: urlConfig.source,
+    inventoryReadEnabled,
+    inventoryReadEnabledSource: resolveInventoryReadEnabledSource(inventoryReadEnabled),
+    password,
+    passwordConfigured: Boolean(password),
+    passwordSource: resolvePasswordSource(password)
+  };
+}
+
+function readObsUrlConfig() {
+  const raw = readString('STREAMING_PC_OBS_WS_URL', readString('OBS_WEBSOCKET_URL', readString('OBS_WS_URL', 'ws://127.0.0.1:4455')));
+  try {
+    const url = new URL(raw);
+    const protocolOk = url.protocol === 'ws:' || url.protocol === 'wss:';
+    const host = protocolOk ? sanitizeLocalHost(url.hostname) : '127.0.0.1';
+    const port = protocolOk ? safePort(url.port ? Number(url.port) : 4455) : 4455;
+    return { raw: '', host, port, protocol: protocolOk ? url.protocol : 'ws:', source: envNamePresent('STREAMING_PC_OBS_WS_URL') || envNamePresent('OBS_WEBSOCKET_URL') || envNamePresent('OBS_WS_URL') || 'default' };
+  } catch (err) {
+    return { raw: '', host: '127.0.0.1', port: 4455, protocol: 'ws:', source: 'default_invalid_url_fallback' };
+  }
+}
+
+function resolveInventoryReadEnabledSource(enabled) {
+  if (envNamePresent('STREAMING_PC_OBS_INVENTORY_READ_ENABLED')) return 'STREAMING_PC_OBS_INVENTORY_READ_ENABLED';
+  if (envNamePresent('OBS_INVENTORY_READ_ENABLED')) return 'OBS_INVENTORY_READ_ENABLED';
+  if (envNamePresent('OBS_WS_INVENTORY_READ_ENABLED')) return 'OBS_WS_INVENTORY_READ_ENABLED';
+  if (enabled && envNamePresent('OBS_WS_URL')) return 'OBS_WS_URL_present_auto_enabled';
+  return 'default_false';
+}
+
+function resolvePasswordSource(password) {
+  if (envNamePresent('STREAMING_PC_OBS_PASSWORD')) return password ? 'STREAMING_PC_OBS_PASSWORD' : 'STREAMING_PC_OBS_PASSWORD_blank';
+  if (envNamePresent('OBS_WEBSOCKET_PASSWORD')) return password ? 'OBS_WEBSOCKET_PASSWORD' : 'OBS_WEBSOCKET_PASSWORD_blank';
+  if (envNamePresent('OBS_WS_PASSWORD')) return password ? 'OBS_WS_PASSWORD' : 'OBS_WS_PASSWORD_blank';
+  return 'not_set';
 }
 
 function buildObsStatusSnapshot(now, config) {
   const inventory = buildObsInventorySnapshot(now, config);
   if (!config.enabled) {
-    return { available: false, name: 'OBS', reachable: null, status: 'disabled', port: config.port, checkedAt: now, detail: 'OBS-Status-Lesen ist lokal deaktiviert', readOnly: true, controlEnabled: false, noAuthenticationAttempt: true, noObsRequestSent: true, noObsInventoryRequestSent: true, inventory };
+    return { available: false, name: 'OBS', reachable: null, status: 'disabled', port: config.port, checkedAt: now, detail: 'OBS-Status-Lesen ist lokal deaktiviert', readOnly: true, controlEnabled: false, noAuthenticationAttempt: true, noObsRequestSent: true, noObsInventoryRequestSent: true, inventory, config: buildObsConfigDiagnostic(config) };
   }
   const reachable = OBS_STATUS_STATE.reachable;
   const status = reachable === true ? 'reachable' : reachable === false ? 'not_reachable' : (OBS_STATUS_STATE.checkInFlight ? 'checking' : 'not_checked');
   const detail = reachable === true
-    ? (inventory.active ? 'OBS-WebSocket-Port ist erreichbar; Inventar wurde read-only gelesen; keine OBS-Aktion ausgefuehrt' : 'OBS-WebSocket-Port ist lokal erreichbar; es wurde keine OBS-Aktion ausgefuehrt')
+    ? (inventory.active ? 'OBS-WebSocket-Port ist erreichbar; Inventar wurde read-only ueber obs_shared gelesen; keine OBS-Aktion ausgefuehrt' : 'OBS-WebSocket-Port ist lokal erreichbar; es wurde keine OBS-Aktion ausgefuehrt')
     : reachable === false ? 'OBS-WebSocket-Port ist lokal nicht erreichbar oder OBS-WebSocket ist aus' : 'OBS-Erreichbarkeit wird per lokalem TCP-Port geprueft; Inventar-Read ist separat abgesichert';
   return {
     available: true,
@@ -427,19 +461,41 @@ function buildObsStatusSnapshot(now, config) {
     noObsRequestSent: !config.inventoryReadEnabled,
     noObsInventoryRequestSent: !config.inventoryReadEnabled,
     inventory,
+    config: buildObsConfigDiagnostic(config),
     lastError: OBS_STATUS_STATE.lastError || null
+  };
+}
+
+function buildObsConfigDiagnostic(config) {
+  return {
+    enabled: Boolean(config.enabled),
+    host: config.host,
+    port: config.port,
+    url: `ws://${config.host}:${config.port}`,
+    urlSource: config.urlSource,
+    inventoryReadEnabled: Boolean(config.inventoryReadEnabled),
+    inventoryReadEnabledSource: config.inventoryReadEnabledSource,
+    acceptedEnvNames: {
+      url: ['STREAMING_PC_OBS_WS_URL', 'OBS_WEBSOCKET_URL', 'OBS_WS_URL'],
+      password: ['STREAMING_PC_OBS_PASSWORD', 'OBS_WEBSOCKET_PASSWORD', 'OBS_WS_PASSWORD'],
+      inventoryReadEnabled: ['STREAMING_PC_OBS_INVENTORY_READ_ENABLED', 'OBS_INVENTORY_READ_ENABLED', 'OBS_WS_INVENTORY_READ_ENABLED', 'OBS_WS_URL present auto-enable']
+    },
+    passwordConfigured: Boolean(config.passwordConfigured),
+    passwordSource: config.passwordSource,
+    passwordExposed: false,
+    secretsExposed: false
   };
 }
 
 function buildObsInventorySnapshot(now, config) {
   const stored = OBS_STATUS_STATE.inventory && typeof OBS_STATUS_STATE.inventory === 'object' ? OBS_STATUS_STATE.inventory : null;
-  if (!config.enabled) return preparedInventory(now, 'disabled', false, 'OBS-Status ist deaktiviert.');
-  if (!config.inventoryReadEnabled) return preparedInventory(now, 'read_disabled', false, 'OBS-Inventar-Read ist vorbereitet, aber per STREAMING_PC_OBS_INVENTORY_READ_ENABLED nicht aktiviert.');
-  if (stored) return stored;
-  return preparedInventory(now, OBS_STATUS_STATE.inventoryCheckInFlight ? 'checking' : 'not_checked', false, 'OBS-Inventar-Read ist aktiviert; erste read-only Abfrage laeuft oder steht noch aus.');
+  if (!config.enabled) return preparedInventory(now, 'disabled', false, 'OBS-Status ist deaktiviert.', config);
+  if (!config.inventoryReadEnabled) return preparedInventory(now, 'read_disabled', false, 'OBS-Inventar-Read ist vorbereitet, aber nicht aktiviert. Akzeptiert: STREAMING_PC_OBS_INVENTORY_READ_ENABLED=true, OBS_INVENTORY_READ_ENABLED=true oder OBS_WS_URL gesetzt.', config);
+  if (stored) return { ...stored, config: buildObsConfigDiagnostic(config) };
+  return preparedInventory(now, OBS_STATUS_STATE.inventoryCheckInFlight ? 'checking' : 'not_checked', false, 'OBS-Inventar-Read ist aktiviert; erste read-only Abfrage laeuft oder steht noch aus.', config);
 }
 
-function preparedInventory(now, status, active, note) {
+function preparedInventory(now, status, active, note, config = {}) {
   return {
     prepared: true,
     active: Boolean(active),
@@ -461,10 +517,13 @@ function preparedInventory(now, status, active, note) {
       audioInventoryReadPrepared: true,
       currentSceneReadPrepared: true,
       realObsInventoryReadActive: false,
-      obsWebSocketRequestsEnabled: false,
+      obsWebSocketRequestsEnabled: false, obsSharedConnectionUsed: false,
       actionsEnabled: false,
       controlEnabled: false
     },
+    config: buildObsConfigDiagnostic(config),
+    disabledReason: status === 'read_disabled' ? 'inventory_read_env_not_enabled_or_url_missing' : null,
+    nextStep: status === 'read_disabled' ? 'Setze OBS_WS_URL=ws://127.0.0.1:4455 oder STREAMING_PC_OBS_INVENTORY_READ_ENABLED=true vor dem Node-Start.' : null,
     noSecretExposed: true,
     noControlActions: true,
     note
@@ -505,13 +564,13 @@ function scheduleObsReachabilityCheck(config, now) {
 }
 
 function scheduleObsInventoryRead(config, now) {
-  if (!config.enabled || !config.inventoryReadEnabled || OBS_STATUS_STATE.inventoryCheckInFlight || !WebSocket || !crypto) return;
+  if (!config.enabled || !config.inventoryReadEnabled || OBS_STATUS_STATE.inventoryCheckInFlight || !obsSharedModule || typeof obsSharedModule.getSharedObs !== 'function') return;
   const last = OBS_STATUS_STATE.inventoryCheckedAt ? Date.parse(OBS_STATUS_STATE.inventoryCheckedAt) : 0;
-  if (Number.isFinite(last) && Date.now() - last < 15000) return;
+  if (Number.isFinite(last) && Date.now() - last < 30000) return;
   OBS_STATUS_STATE.inventoryCheckInFlight = true;
   readObsInventory(config)
     .then((inventory) => {
-      OBS_STATUS_STATE.inventory = inventory;
+      OBS_STATUS_STATE.inventory = { ...inventory, config: buildObsConfigDiagnostic(config) };
       OBS_STATUS_STATE.inventoryCheckedAt = inventory.checkedAt || new Date().toISOString();
       OBS_STATUS_STATE.inventoryLastError = null;
       OBS_STATUS_STATE.inventoryCheckInFlight = false;
@@ -522,7 +581,7 @@ function scheduleObsInventoryRead(config, now) {
     })
     .catch((err) => {
       const checkedAt = new Date().toISOString();
-      OBS_STATUS_STATE.inventory = preparedInventory(checkedAt, safeObsInventoryErrorStatus(err), false, safeError(err && err.message ? err.message : 'obs_inventory_read_failed'));
+      OBS_STATUS_STATE.inventory = preparedInventory(checkedAt, safeObsInventoryErrorStatus(err), false, safeError(err && err.message ? err.message : 'obs_inventory_read_failed'), config);
       OBS_STATUS_STATE.inventoryCheckedAt = checkedAt;
       OBS_STATUS_STATE.inventoryLastError = OBS_STATUS_STATE.inventory.note;
       OBS_STATUS_STATE.inventoryCheckInFlight = false;
@@ -531,119 +590,73 @@ function scheduleObsInventoryRead(config, now) {
 }
 
 function readObsInventory(config) {
-  return new Promise((resolve, reject) => {
-    const url = `ws://${config.host}:${config.port}`;
-    const obsWs = new WebSocket(url, { handshakeTimeout: 2500 });
-    let identified = false;
-    let finished = false;
-    const pending = new Map();
-    let seq = 0;
-    const timer = setTimeout(() => finishReject(new Error('obs_inventory_read_timeout')), 4500);
-    if (timer && typeof timer.unref === 'function') timer.unref();
-
-    function finishResolve(value) {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      try { obsWs.close(); } catch (err) { /* ignore */ }
-      resolve(value);
-    }
-    function finishReject(err) {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      try { obsWs.close(); } catch (closeErr) { /* ignore */ }
-      reject(err);
-    }
-    function sendOp(op, d) { obsWs.send(JSON.stringify({ op, d })); }
-    function request(requestType, requestData) {
-      return new Promise((res, rej) => {
-        const requestId = `rdap-${Date.now()}-${++seq}`;
-        pending.set(requestId, { res, rej, requestType });
-        sendOp(6, { requestType, requestId, requestData: requestData || {} });
-      });
-    }
-    async function collect() {
-      try {
-        const sceneList = await request('GetSceneList');
-        const inputList = await request('GetInputList');
-        const currentScene = await request('GetCurrentProgramScene').catch(() => ({}));
-        const inputs = Array.isArray(inputList.inputs) ? inputList.inputs : [];
-        const audioItems = [];
-        for (const input of inputs.slice(0, 80)) {
-          const kind = String(input.inputKind || input.kind || '').toLowerCase();
-          const name = String(input.inputName || input.name || '').trim();
-          const isAudio = /audio|wasapi|pulse|alsa|coreaudio|dshow_input|browser_source/.test(kind);
-          if (!name || !isAudio) continue;
-          let muted = null;
-          try {
-            const mute = await request('GetInputMute', { inputName: name });
-            muted = Object.prototype.hasOwnProperty.call(mute, 'inputMuted') ? Boolean(mute.inputMuted) : null;
-          } catch (err) { muted = null; }
-          audioItems.push({ name: safeText(name, 140), label: safeText(name, 140), id: safeText(name, 140), type: safeText(input.inputKind || 'audio', 80), muted, readOnly: true });
-        }
-        const scenes = (Array.isArray(sceneList.scenes) ? sceneList.scenes : []).map(scene => ({ name: safeText(scene.sceneName || scene.name, 140), label: safeText(scene.sceneName || scene.name, 140), id: safeText(scene.sceneUuid || scene.sceneName || scene.name, 160), type: 'scene', readOnly: true })).filter(item => item.name).slice(0, 250);
-        const sources = inputs.map(input => ({ name: safeText(input.inputName || input.name, 140), label: safeText(input.inputName || input.name, 140), id: safeText(input.inputUuid || input.inputName || input.name, 160), type: safeText(input.inputKind || 'input', 80), readOnly: true })).filter(item => item.name).slice(0, 500);
-        const checkedAt = new Date().toISOString();
-        const inventory = {
-          prepared: true,
-          active: true,
-          status: 'readonly_inventory_available',
-          checkedAt,
-          currentScene: safeText(currentScene.currentProgramSceneName || sceneList.currentProgramSceneName || '', 140) || null,
-          scenes,
-          sources,
-          audioSources: audioItems.slice(0, 250),
-          groups: {
-            scenes: { prepared: true, active: true, count: scenes.length, items: scenes },
-            sources: { prepared: true, active: true, count: sources.length, items: sources },
-            audioSources: { prepared: true, active: true, count: audioItems.length, items: audioItems.slice(0, 250) }
-          },
-          counts: { scenes: scenes.length, sources: sources.length, audioSources: audioItems.length, total: scenes.length + sources.length + audioItems.length },
-          capabilities: { sceneInventoryReadPrepared: true, sourceInventoryReadPrepared: true, audioInventoryReadPrepared: true, currentSceneReadPrepared: true, realObsInventoryReadActive: true, obsWebSocketRequestsEnabled: true, actionsEnabled: false, controlEnabled: false },
-          noSecretExposed: true,
-          noControlActions: true,
-          note: 'OBS-Inventar wurde lokal read-only ueber OBS-WebSocket gelesen. Keine Steuer-Actions aktiv.'
-        };
-        finishResolve(inventory);
-      } catch (err) { finishReject(err); }
-    }
-    obsWs.on('message', (raw) => {
-      let msg = null;
-      try { msg = JSON.parse(String(raw)); } catch (err) { return; }
-      if (msg.op === 0) {
-        const auth = msg.d && msg.d.authentication;
-        const identify = { rpcVersion: 1, eventSubscriptions: 0 };
-        if (auth) {
-          if (!config.password) return finishReject(new Error('obs_inventory_auth_required'));
-          identify.authentication = buildObsAuth(config.password, auth.salt, auth.challenge);
-        }
-        sendOp(1, identify);
-        return;
-      }
-      if (msg.op === 2) {
-        identified = true;
-        collect();
-        return;
-      }
-      if (msg.op === 7 && msg.d && msg.d.requestId) {
-        const item = pending.get(msg.d.requestId);
-        if (!item) return;
-        pending.delete(msg.d.requestId);
-        const status = msg.d.requestStatus || {};
-        if (status.result === false) return item.rej(new Error(`obs_request_failed_${safeReason(item.requestType)}`));
-        item.res(msg.d.responseData || {});
-      }
-      void identified;
-    });
-    obsWs.on('error', (err) => finishReject(err));
-    obsWs.on('close', () => { if (!finished && !identified) finishReject(new Error('obs_inventory_socket_closed')); });
-  });
+  if (!obsSharedModule || typeof obsSharedModule.getSharedObs !== 'function') {
+    return Promise.reject(new Error('obs_shared_unavailable'));
+  }
+  const shared = obsSharedModule.getSharedObs(process.env, console);
+  if (!shared || typeof shared.call !== 'function') {
+    return Promise.reject(new Error('obs_shared_call_unavailable'));
+  }
+  return collectObsInventoryFromShared(shared, config);
 }
 
-function buildObsAuth(password, salt, challenge) {
-  const secret = crypto.createHash('sha256').update(String(password) + String(salt || ''), 'utf8').digest('base64');
-  return crypto.createHash('sha256').update(secret + String(challenge || ''), 'utf8').digest('base64');
+async function collectObsInventoryFromShared(shared, config) {
+  const sceneList = await shared.call('GetSceneList');
+  const inputList = typeof shared.getInputList === 'function'
+    ? { inputs: await shared.getInputList() }
+    : await shared.call('GetInputList');
+  const currentScene = await shared.call('GetCurrentProgramScene').catch(() => ({}));
+  const inputs = Array.isArray(inputList.inputs) ? inputList.inputs : [];
+  const audioItems = [];
+
+  for (const input of inputs.slice(0, 80)) {
+    const kind = String(input.inputKind || input.kind || '').toLowerCase();
+    const name = String(input.inputName || input.name || '').trim();
+    const isAudio = /audio|wasapi|pulse|alsa|coreaudio|dshow_input|browser_source/.test(kind);
+    if (!name || !isAudio) continue;
+    let muted = null;
+    try {
+      if (typeof shared.getInputMute === 'function') muted = await shared.getInputMute(name);
+      else {
+        const mute = await shared.call('GetInputMute', { inputName: name });
+        muted = Object.prototype.hasOwnProperty.call(mute, 'inputMuted') ? Boolean(mute.inputMuted) : null;
+      }
+    } catch (err) { muted = null; }
+    audioItems.push({ name: safeText(name, 140), label: safeText(name, 140), id: safeText(name, 140), type: safeText(input.inputKind || 'audio', 80), muted, readOnly: true });
+  }
+
+  const scenes = (Array.isArray(sceneList.scenes) ? sceneList.scenes : [])
+    .map(scene => ({ name: safeText(scene.sceneName || scene.name, 140), label: safeText(scene.sceneName || scene.name, 140), id: safeText(scene.sceneUuid || scene.sceneName || scene.name, 160), type: 'scene', readOnly: true }))
+    .filter(item => item.name)
+    .slice(0, 250);
+  const sources = inputs
+    .map(input => ({ name: safeText(input.inputName || input.name, 140), label: safeText(input.inputName || input.name, 140), id: safeText(input.inputUuid || input.inputName || input.name, 160), type: safeText(input.inputKind || 'input', 80), readOnly: true }))
+    .filter(item => item.name)
+    .slice(0, 500);
+  const checkedAt = new Date().toISOString();
+  void config;
+  return {
+    prepared: true,
+    active: true,
+    status: 'readonly_inventory_available',
+    checkedAt,
+    currentScene: safeText(currentScene.currentProgramSceneName || sceneList.currentProgramSceneName || '', 140) || null,
+    scenes,
+    sources,
+    audioSources: audioItems.slice(0, 250),
+    groups: {
+      scenes: { prepared: true, active: true, count: scenes.length, items: scenes },
+      sources: { prepared: true, active: true, count: sources.length, items: sources },
+      audioSources: { prepared: true, active: true, count: audioItems.length, items: audioItems.slice(0, 250) }
+    },
+    counts: { scenes: scenes.length, sources: sources.length, audioSources: audioItems.length, total: scenes.length + sources.length + audioItems.length },
+    capabilities: { sceneInventoryReadPrepared: true, sourceInventoryReadPrepared: true, audioInventoryReadPrepared: true, currentSceneReadPrepared: true, realObsInventoryReadActive: true, obsWebSocketRequestsEnabled: true, obsSharedConnectionUsed: true, newObsWebSocketConnectionOpened: false, actionsEnabled: false, controlEnabled: false },
+    noSecretExposed: true,
+    noControlActions: true,
+    newObsWebSocketConnectionOpened: false,
+    source: 'obs_shared_existing_connection',
+    note: 'OBS-Inventar wurde lokal read-only ueber die bestehende obs_shared-Verbindung gelesen. Keine Steuer-Actions aktiv.'
+  };
 }
 
 function safeObsInventoryErrorStatus(err) {
@@ -654,12 +667,34 @@ function safeObsInventoryErrorStatus(err) {
   return 'read_failed';
 }
 
-function sanitizeLocalHost(value) {
-  const host = String(value || '127.0.0.1').trim().toLowerCase();
-  if (host === 'localhost' || host === '127.0.0.1' || host === '192.168.16.200') return host;
-  return '127.0.0.1';
+function buildObsInventoryStatusResponse() {
+  const now = new Date().toISOString();
+  const obs = buildObsStatus(now);
+  const inventory = obs.inventory || preparedInventory(now, 'unknown', false, 'Kein Inventarstatus vorhanden.', readObsStatusConfig());
+  return buildBaseResponse({
+    displayName: 'OBS Inventar read-only Diagnose',
+    readOnly: true,
+    route: '/api/remote-agent/obs/inventory/status',
+    obs: {
+      reachable: obs.reachable,
+      status: obs.status,
+      port: obs.port,
+      checkedAt: obs.checkedAt,
+      noObsRequestSent: obs.noObsRequestSent,
+      noObsInventoryRequestSent: obs.noObsInventoryRequestSent,
+      config: obs.config
+    },
+    inventoryReadEnabled: inventory.config ? inventory.config.inventoryReadEnabled : false,
+    inventoryStatus: inventory.status,
+    inventoryActive: inventory.active === true,
+    currentScene: inventory.currentScene || null,
+    counts: inventory.counts || { scenes: 0, sources: 0, audioSources: 0, total: 0 },
+    disabledReason: inventory.disabledReason || null,
+    nextStep: inventory.nextStep || null,
+    config: inventory.config || obs.config,
+    safety: { actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
+  });
 }
-function safePort(value) { const port = Number(value); return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : 4455; }
 
 function buildBaseResponse(extra = {}) {
   return { ok: true, module: MODULE, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, statusApiVersion: STATUS_API_VERSION, readOnly: true, writeEnabled: false, actionEnabled: false, productiveAgentRuntime: false, generatedAt: new Date().toISOString(), loadedAt: LOADED_AT, ...extra };
@@ -677,7 +712,7 @@ function buildStatusResponse() {
     remoteTarget: { publicDashboardUrl: 'https://mods.forrestcgn.de', remoteWsUrl: state.remoteWsUrl, plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws', plannedWsPath: state.wsPath, streamPcPublicPortRequired: false, outgoingConnectionOnly: true },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
-    warnings: ['Version 0.1.4 sendet Heartbeats plus sicheren Komponentenstatus inklusive optionalem OBS-Inventar-read-only vom Streaming-PC zum Webserver.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
+    warnings: ['Version 0.1.5D sendet Heartbeats plus sicheren Komponentenstatus inklusive optionalem OBS-Inventar-read-only ueber obs_shared vom Streaming-PC zum Webserver.', 'OBS_WS_URL und OBS_WS_PASSWORD werden als lokale .env-Aliase erkannt; Inventar nutzt die bestehende obs_shared-Verbindung.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
 }
@@ -723,7 +758,7 @@ function buildConnectionStatus() {
 
 function buildPermissionsModelResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'permissions.streaming_pc.v0.1.4',
+    modelApiVersion: 'permissions.streaming_pc.v0.1.5',
     permissionDecisionRule: 'roles are presets; groups are markers; concrete permission keys and module matrix grants decide',
     twitchRolesAreNotDashboardRoles: true,
     rolesAreSeparateFromGroups: true,
@@ -743,29 +778,42 @@ function buildPermissionsModelResponse() {
   });
 }
 
-function buildLocksStatusResponse() { return buildBaseResponse({ modelApiVersion: 'locks.streaming_pc.v0.1.4', locks: clonePlain(LOCK_MODEL), activeLocks: [], summary: { enabled: false, activeLockCount: 0, staleLockCount: 0, takeoverPendingCount: 0 }, warnings: ['Version 0.1.4 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.'] }); }
-function buildAuditModelResponse() { return buildBaseResponse({ modelApiVersion: 'audit.streaming_pc.v0.1.4', audit: clonePlain(AUDIT_MODEL), summary: { enabled: false, recentEventsAvailable: false, retentionConfigurable: true }, warnings: ['Version 0.1.4 schreibt noch keine Audit-Events.'] }); }
+function buildLocksStatusResponse() { return buildBaseResponse({ modelApiVersion: 'locks.streaming_pc.v0.1.5', locks: clonePlain(LOCK_MODEL), activeLocks: [], summary: { enabled: false, activeLockCount: 0, staleLockCount: 0, takeoverPendingCount: 0 }, warnings: ['Version 0.1.5D liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.'] }); }
+function buildAuditModelResponse() { return buildBaseResponse({ modelApiVersion: 'audit.streaming_pc.v0.1.5', audit: clonePlain(AUDIT_MODEL), summary: { enabled: false, recentEventsAvailable: false, retentionConfigurable: true }, warnings: ['Version 0.1.5D schreibt noch keine Audit-Events.'] }); }
 
 function buildRoutesResponse() {
   return buildBaseResponse({
     routes: [
       { method: 'GET', path: '/api/remote-agent/status', description: 'Read-only Status fuer lokale Streaming-PC-Verbindung, Komponentenstatus und optionales OBS-Inventar.' },
       { method: 'GET', path: '/api/streaming-pc-connection/status', description: 'Lesbarer Alias fuer Streaming-PC Verbindung. Keine Aktionen.' },
+      { method: 'GET', path: '/api/remote-agent/obs/inventory/status', description: 'Kompakte read-only OBS-Inventar-/ENV-Diagnose. Keine OBS-Steuerung.' },
       { method: 'GET', path: '/api/remote-agent/permissions/model', description: 'Read-only Rollen-/Permission-Modell. Keine User-/Grant-Schreiboperation.' },
       { method: 'GET', path: '/api/remote-agent/locks/status', description: 'Read-only Lock-Modell und aktueller Null-Status. Keine Lock-Schreiboperation.' },
       { method: 'GET', path: '/api/remote-agent/audit/model', description: 'Read-only Audit-Modell fuer spaetere produktive Aktionen. Keine Audit-Schreiboperation.' },
-      { method: 'GET', path: '/api/remote-agent/routes', description: 'Read-only Routenuebersicht fuer Version 0.1.4.' }
+      { method: 'GET', path: '/api/remote-agent/routes', description: 'Read-only Routenuebersicht fuer Version 0.1.5D.' }
     ]
   });
 }
 
 function buildSafetyBlock() {
-  return { noSoundControl: true, noObsControl: true, noOverlayControl: true, noMediaWrite: true, noTextConfigWrite: true, noCommandsOrChannelpoints: true, noDatabaseWrite: true, noFileWrite: true, noShellOrProcessActions: true, noAgentActionExecution: true, noStreamingPcActionExecution: true, heartbeatOnly: true, outgoingConnectionOnly: true, obsInventoryReadOnly: true };
+  return { noSoundControl: true, noObsControl: true, noOverlayControl: true, noMediaWrite: true, noTextConfigWrite: true, noCommandsOrChannelpoints: true, noDatabaseWrite: true, noFileWrite: true, noShellOrProcessActions: true, noAgentActionExecution: true, noStreamingPcActionExecution: true, heartbeatOnly: true, outgoingConnectionOnly: true, obsInventoryReadOnly: true, obsInventoryEnvDiagnostic: true, obsInventorySharedConnection: true };
 }
 
 function readString(name, fallback) { const value = process.env[name]; if (typeof value !== 'string') return fallback; const trimmed = value.trim(); return trimmed || fallback; }
+function readStringAllowBlank(name, fallback) { const value = process.env[name]; if (typeof value !== 'string') return fallback; return value.trim(); }
 function readBoolean(name, fallback) { const value = process.env[name]; if (typeof value !== 'string') return Boolean(fallback); return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase()); }
 function readInt(name, fallback, min, max) { const parsed = Number.parseInt(process.env[name], 10); if (!Number.isInteger(parsed)) return fallback; if (Number.isFinite(min) && parsed < min) return fallback; if (Number.isFinite(max) && parsed > max) return fallback; return parsed; }
+function envNamePresent(name) { return Object.prototype.hasOwnProperty.call(process.env, name) ? name : ''; }
+function sanitizeLocalHost(value) {
+  const host = String(value || '127.0.0.1').trim().toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1' || host === '192.168.16.200') return host;
+  return '127.0.0.1';
+}
+
+function safePort(value) {
+  const port = Number(value);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : 4455;
+}
 function sanitizeLocalUrl(value) { try { const url = new URL(String(value || '').trim()); if (!['http:', 'https:'].includes(url.protocol)) throw new Error('bad_protocol'); if (!['127.0.0.1', 'localhost', '192.168.16.200'].includes(url.hostname)) throw new Error('bad_host'); return url.toString().slice(0, 180); } catch (err) { return 'http://192.168.16.200:8080/dashboard'; } }
 function sanitizeRemoteWsUrl(value) { try { const url = new URL(value || DEFAULT_REMOTE_WS_URL); if (url.protocol !== 'wss:' && url.protocol !== 'ws:') return DEFAULT_REMOTE_WS_URL; url.username = ''; url.password = ''; url.search = ''; url.hash = ''; return url.toString(); } catch (err) { return DEFAULT_REMOTE_WS_URL; } }
 function safeWsPath(value) { try { return new URL(value || DEFAULT_REMOTE_WS_URL).pathname || '/agent-ws'; } catch (err) { return '/agent-ws'; } }

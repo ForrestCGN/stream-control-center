@@ -1,36 +1,22 @@
 # Local Dashboard Replacement Plan Current
 
-Stand: 2026-06-28, `0.2.17`.
+Stand: 0.2.18D
 
-Remote-Modboard bleibt die einzige UI-Wahrheit. Lokales Dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
-
-## 0.2.17
-
-Der lokale `remote_agent` kann OBS-Inventar read-only lesen, aber nur wenn lokal explizit aktiviert:
+0.2.18D verbessert den lokalen OBS-Inventar-Read nur diagnostisch:
 
 ```text
-STREAMING_PC_OBS_INVENTORY_READ_ENABLED=true
-STREAMING_PC_OBS_PASSWORD=<optional, nur falls OBS Auth verlangt>
+- remote_agent erkennt OBS_WS_URL und OBS_WS_PASSWORD aus der lokalen .env.
+- OBS_WS_URL=ws://127.0.0.1:4455 reicht als lokaler Alias, um den read-only Inventar-Read zu aktivieren.
+- Neuer kompakter Endpunkt: /api/remote-agent/obs/inventory/status.
+- Remote-Modboard online bleibt read-only Placeholder.
 ```
 
-Default: deaktiviert.
-
-Read-only Requests:
+Sicherheitsgrenzen bleiben unveraendert:
 
 ```text
-GetSceneList
-GetInputList
-GetInputMute
-GetCurrentProgramScene
-```
-
-Keine Steuerung:
-
-```text
-keine Szenenwechsel
-keine Mutes setzen
-keine Source-Visibility setzen
-keine Media-Steuerung
+keine OBS-Steuerung
 keine Agent-Actions
 keine Writes
+keine DB-Migration
+keine Shell-/Datei-/Prozess-Actions
 ```

@@ -2,32 +2,24 @@
 
 Stand: 2026-06-28
 
-Aktuell: `0.2.17 - lokale OBS-Inventarabfrage read-only im remote_agent vorbereitet`.
+Aktuell: `0.2.18D - OBS-Inventar read-only ueber obs_shared vorbereitet`.
 
-Geaendert:
-
-```text
-backend/modules/remote_agent.js
-remote-modboard/backend/server.js
-remote-modboard/backend/src/routes/obs-readonly.routes.js
-```
-
-remote_agent:
+Umgesetzt:
 
 ```text
-moduleVersion: 0.1.4
-moduleBuild: VERSION_0_1_4_STREAMING_PC_OBS_INVENTORY_READONLY
-statusApiVersion: streaming_pc_obs_inventory_status.v0.1.4
-OBS inventory read default false
-Aktivierung: STREAMING_PC_OBS_INVENTORY_READ_ENABLED=true
+- remote_agent Version 0.1.5D.
+- OBS_WS_URL und OBS_WS_PASSWORD werden als lokale .env-Aliase akzeptiert.
+- OBS_WS_URL aktiviert den lokalen read-only Inventar-Read automatisch.
+- Neuer kompakter Diagnose-Endpunkt: /api/remote-agent/obs/inventory/status.
+- Remote-Modboard online bleibt read-only Placeholder.
 ```
 
-Sicherheit:
+Nicht umgesetzt / weiterhin verboten:
 
 ```text
 keine OBS-Steuerung
 keine Agent-Actions
-keine Writes
+keine produktiven Writes
 keine DB-Migration
 keine Shell-/Datei-/Prozess-Actions
 ```

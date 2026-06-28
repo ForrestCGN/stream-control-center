@@ -1,23 +1,32 @@
 Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer ForrestCGN.
 
-Sprache Deutsch, kurz, direkt, pragmatisch.
-
-Aktueller Stand: `0.2.17 - lokale OBS-Inventarabfrage read-only im remote_agent vorbereitet`.
+Sprache: Deutsch. Kurz, direkt, pragmatisch. Forrest arbeitet mit `go`, `ok`, `weiter`.
 
 WICHTIG:
-- GitHub/dev ist Wahrheit.
-- Erst Startdateien und echte Dateien aus GitHub/dev lesen.
-- Dann Plan nennen.
-- Auf explizites `go` warten.
-- Keine ZIP-/Code-Erstellung vor `go`.
-- Bestehende Module erweitern, keine parallelen Strukturen.
+GitHub/dev ist Wahrheit. Nicht blind aus Erinnerung arbeiten.
+Erst die Startdateien wirklich aus GitHub/dev lesen, dann Plan nennen, dann auf mein explizites `go` warten.
 
-Stand 0.2.17:
-- `backend/modules/remote_agent.js` Version 0.1.4 kann optional OBS-Inventar read-only lesen.
-- Aktivierung nur lokal per `STREAMING_PC_OBS_INVENTORY_READ_ENABLED=true`.
-- OBS-Passwort optional per `STREAMING_PC_OBS_PASSWORD` oder `OBS_WEBSOCKET_PASSWORD`.
-- Webserver liest OBS nicht direkt.
-- Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
+Startdateien zuerst lesen:
 
-Naechster sinnvoller Step:
-- 0.2.18: Lokalen Test der echten Inventarlisten auswerten und UI/Adapter nur falls noetig angleichen.
+```text
+docs/current/START_HERE_FOR_NEW_CHAT.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+backend/modules/remote_agent.js
+remote-modboard/backend/src/routes/obs-readonly.routes.js
+```
+
+Aktueller Stand:
+
+```text
+0.2.18D - OBS-Inventar read-only ueber obs_shared vorbereitet
+```
+
+Wichtig:
+
+```text
+remote_agent 0.1.5D liest OBS_WS_URL / OBS_WS_PASSWORD aus .env. Das OBS-Inventar wird read-only ueber die bestehende obs_shared-Verbindung gelesen.
+OBS_WS_URL=ws://127.0.0.1:4455 aktiviert lokalen read-only Inventar-Read automatisch.
+Diagnose: /api/remote-agent/obs/inventory/status.
+Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
+```

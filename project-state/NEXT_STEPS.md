@@ -1,22 +1,23 @@
 # Next Steps
 
-Nach `0.2.17`:
+Nach `0.2.18D`:
 
 ```text
-0.2.18 - lokalen OBS-Inventar-Read testen und UI/Adapter nur falls noetig angleichen
+0.2.19 - echten lokalen OBS-Inventar-Read mit OBS_WS_URL testen und UI-Anzeige nur falls noetig angleichen
 ```
 
-Vorher lokal testen:
-
-```powershell
-$env:STREAMING_PC_OBS_INVENTORY_READ_ENABLED="true"
-# optional:
-$env:STREAMING_PC_OBS_PASSWORD="..."
-```
-
-Dann pruefen:
+Lokal pruefen:
 
 ```text
-/api/remote-agent/status -> streamingPcConnection.componentStatus.obs.inventory
-/api/remote/local-dashboard/obs/status -> inventory.counts
+GET /api/remote-agent/obs/inventory/status
+GET /api/remote-agent/status
+GET /api/remote/local-dashboard/obs/status
+```
+
+Erwartung bei gesetztem OBS_WS_URL:
+
+```text
+config.urlSource: OBS_WS_URL
+inventoryReadEnabled: true
+inventoryStatus: readonly_inventory_available oder konkreter Fehler auth_required/timeout/read_failed
 ```

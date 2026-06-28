@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.17';
-const BUILD_NAME = 'Lokale OBS-Inventarabfrage read-only im Agent vorbereitet';
-const STEP_REF = 'RDAP_0.2.17_LOCAL_OBS_INVENTORY_READONLY_AGENT';
+const APP_VERSION = '0.2.18D';
+const BUILD_NAME = 'OBS Inventar-Read obs_shared Inventar-Fix';
+const STEP_REF = 'RDAP_0.2.18D_OBS_INVENTORY_SHARED_CONNECTION';
 const MODULE_BUILD = STEP_REF;
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
   const app = createApp({ config, moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] v${APP_VERSION} - ${BUILD_NAME} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' obsInventoryReadonlyAgentPrepared=true actions=false remoteWritesControlled=true');
+    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' obsInventorySharedConnectionPrepared=true actions=false remoteWritesControlled=true');
   });
 
   registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
