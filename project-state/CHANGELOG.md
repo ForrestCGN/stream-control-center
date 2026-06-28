@@ -1,12 +1,12 @@
 # Changelog
 
-## 0.2.18D - OBS-Inventar read-only ueber obs_shared vorbereitet
+## 0.2.19 - lokale OBS-Inventar UI als Mod-Bedienflaeche read-only vorbereitet
 
-- remote_agent auf 0.1.5D gesetzt.
-- `OBS_WS_URL` und `OBS_WS_PASSWORD` als lokale .env-Aliase ergaenzt.
-- `OBS_WS_URL` aktiviert den lokalen read-only Inventar-Read automatisch.
-- Neuer kompakter Diagnose-Endpunkt: `/api/remote-agent/obs/inventory/status`.
-- Online-Remote-Modboard auf 0.2.18D gesetzt.
+- OBS-Seite von technischer Statusanzeige in Richtung Mod-Bedienflaeche umgebaut.
+- Aktuelle Program-Szene prominent sichtbar gemacht.
+- Produktive Szenen nach Regel `Name beginnt nicht mit _` gefiltert.
+- Interne `_`-Szenen aus normaler Mod-Ansicht ausgeblendet.
+- Audioquellen inklusive read-only Mute-Status angezeigt.
+- Quellen nur noch als kompakte Vorschau; Technikdetails sollen spaeter in Admin / Diagnose.
+- Rollen-/Rechte-Zielbild vorbereitet: `obs.read`, `obs.scene.switch`, `obs.audio.mute`, `obs.source.visibility`.
 - Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
-
-- Fix: fehlende sanitizeLocalHost-Helper-Funktion im remote_agent ergaenzt.

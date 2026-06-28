@@ -4,8 +4,16 @@
   const MODULE_ID = 'system';
   const PAGE_ID = 'obs';
   const ENDPOINT = '/api/remote/local-dashboard/obs/status';
+  const LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
+  const STEP_LABEL = '0.2.19';
+  const LIVE_REFRESH_MS = 250;
+  const LIVE_REFRESH_HIDDEN_MS = 2000;
+  const FULL_REFRESH_MS = 30000;
   let loading = false;
   let refreshTimer = null;
+  let liveRefreshTimer = null;
+  let liveRefreshRunning = false;
+  let lastInventory = null;
 
   function registerPage() {
     if (!window.RemoteModboardModules || typeof window.RemoteModboardModules.registerPage !== 'function') return;
@@ -13,7 +21,7 @@
       moduleId: MODULE_ID,
       pageId: PAGE_ID,
       label: 'OBS',
-      title: 'OBS',
+      title: 'OBS Bedienung',
       tab: 'read-only',
       section: 'System',
       order: 30
@@ -37,65 +45,54 @@
     panel.innerHTML = `
       <section class="page-header module-page-header cgn-card rdap-obs-header">
         <div>
-          <p class="cgn-eyebrow">System / OBS</p>
-          <h1>OBS Status</h1>
-          <p>Read-only OBS-Status und vorbereitetes Inventar-Modell. Diese Seite zeigt nur Erreichbarkeit, Szenen-/Quellen-/Audio-Struktur und Sicherheitsgrenzen. Keine Szenenwechsel, keine Mutes, keine Media-Steuerung.</p>
+          <p class="cgn-eyebrow">OBS / Mod-Bedienfläche</p>
+          <h1>OBS Bedienung</h1>
+          <p>Vorbereitete Mod-Ansicht für produktive OBS-Bedienung. Die aktuelle Szene wird schnell aktualisiert; Inventar bleibt bewusst langsam, weil Szenen/Quellen während des Streams normalerweise stabil sind.</p>
         </div>
         <div class="rdap-obs-header-actions">
           <span class="cgn-chip" id="obsStatusPill">lädt</span>
-          <button class="secondaryButton small" type="button" id="obsRefreshButton">OBS neu laden</button>
+          <button class="secondaryButton small" type="button" id="obsRefreshButton">Anzeige aktualisieren</button>
         </div>
       </section>
 
-      <section class="metric-grid rdap-obs-metrics">
-        <article class="metric-card cgn-card"><span>OBS</span><strong id="obsReachable">—</strong><small>WebSocket-Port</small><div class="cgn-progress"><i id="obsReachableBar" style="width:8%"></i></div></article>
-        <article class="metric-card cgn-card"><span>Port</span><strong id="obsPort">—</strong><small>Standard: 4455</small><div class="cgn-progress"><i style="width:45%"></i></div></article>
-        <article class="metric-card cgn-card"><span>Agent</span><strong id="obsAgent">—</strong><small>remote_agent</small><div class="cgn-progress"><i id="obsAgentBar" style="width:8%"></i></div></article>
-        <article class="metric-card cgn-card"><span>Steuerung</span><strong id="obsControl">Aus</strong><small>read-only</small><div class="cgn-progress cgn-progress--warn"><i style="width:8%"></i></div></article>
+      <section class="rdap-obs-topline">
+        <article class="cgn-card rdap-obs-current"><span>Aktuelle Szene</span><strong id="obsCurrentScene">—</strong><small id="obsLiveState">Live-Status</small></article>
+        <article class="cgn-card rdap-obs-mini"><span>OBS</span><strong id="obsConnectionText">—</strong><small>Verbindung</small></article>
+        <article class="cgn-card rdap-obs-mini"><span>Szenen</span><strong id="obsProductiveSceneCount">0</strong><small id="obsInternalSceneText">interne ausgeblendet</small></article>
+        <article class="cgn-card rdap-obs-mini"><span>Audio</span><strong id="obsAudioCount">0</strong><small id="obsAudioHiddenText">relevant</small></article>
       </section>
 
-      <section class="page-grid rdap-obs-grid">
-        <article class="cgn-card span2">
-          <div class="card-head"><div><p class="cgn-eyebrow">Details</p><h2>Read-only Status</h2></div><span class="cgn-chip cgn-chip--info">0.2.15</span></div>
-          <div class="kv-grid">
-            <div class="kv-row"><span>Status</span><strong id="obsStatusText">—</strong></div>
-            <div class="kv-row"><span>Geprüft</span><strong id="obsCheckedAt">—</strong></div>
-            <div class="kv-row"><span>OBS-Request</span><strong id="obsRequestState">keiner</strong></div>
-            <div class="kv-row"><span>Inventar</span><strong id="obsInventoryState">vorbereitet</strong></div>
-          </div>
-          <p class="rdap-obs-detail" id="obsDetailText">Noch nicht geladen.</p>
+      <section class="rdap-obs-board">
+        <article class="cgn-card rdap-obs-scenes-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Szenen</p><h2>Produktive Szenen</h2></div><span class="cgn-chip cgn-chip--info">${STEP_LABEL} Anzeige</span></div>
+          <p class="rdap-obs-detail">Kompakte Mod-Ansicht wie in OBS: nur produktive Szenen ohne <code>_</code>. Die Markierung der aktuellen Szene aktualisiert sich nahezu in Echtzeit.</p>
+          <div class="rdap-obs-scene-list" id="obsProductiveSceneList"><p>lädt…</p></div>
         </article>
 
-        <article class="cgn-card span2">
-          <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Szenen / Quellen / Audio</h2></div><span class="cgn-chip cgn-chip--info" id="obsInventoryPill">vorbereitet</span></div>
-          <div class="rdap-obs-inventory-metrics">
-            <div><span>Szenen</span><strong id="obsSceneCount">0</strong></div>
-            <div><span>Quellen</span><strong id="obsSourceCount">0</strong></div>
-            <div><span>Audio</span><strong id="obsAudioCount">0</strong></div>
-          </div>
-          <div class="rdap-obs-inventory-columns">
-            <div><h3>Szenen</h3><div class="rdap-obs-list" id="obsSceneList"><p>lädt…</p></div></div>
-            <div><h3>Quellen</h3><div class="rdap-obs-list" id="obsSourceList"><p>lädt…</p></div></div>
-            <div><h3>Audio</h3><div class="rdap-obs-list" id="obsAudioList"><p>lädt…</p></div></div>
-          </div>
-          <p class="rdap-obs-detail" id="obsInventoryNote">Inventarstruktur wird geladen.</p>
+        <article class="cgn-card rdap-obs-audio-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Audio</p><h2>Audiomixer</h2></div><span class="cgn-chip cgn-chip--info">Anzeige</span></div>
+          <p class="rdap-obs-detail">Nur relevante Audioquellen in der Mod-Ansicht. Interne <code>_</code>-Quellen gehören später in Admin / Diagnose oder in eine explizite Allowlist.</p>
+          <div class="rdap-obs-audio-list" id="obsAudioList"><p>lädt…</p></div>
+          <p class="rdap-obs-detail" id="obsAudioMore"></p>
+        </article>
+      </section>
+
+      <section class="rdap-obs-secondary-grid">
+        <article class="cgn-card rdap-obs-source-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Quellen</p><h2>Technik später in Diagnose</h2></div><span class="cgn-chip cgn-chip--info" id="obsSourcePill">0 Quellen</span></div>
+          <p class="rdap-obs-detail">Die komplette Quellenliste ist Technikmaterial. Für Mods werden später nur freigegebene Quellen bedienbar.</p>
+          <div class="rdap-obs-source-list" id="obsSourcePreview"><p>lädt…</p></div>
         </article>
 
-        <article class="cgn-card span2">
-          <div class="card-head"><div><p class="cgn-eyebrow">Sicherheit</p><h2>Keine Steuerung aktiv</h2></div><span class="cgn-chip cgn-chip--warn">geschützt</span></div>
-          <div class="admin-lock-note rdap-obs-note">
-            <i>!</i>
-            <div>
-              <strong>Nur Anzeige</strong>
-              <span>OBS-Kommandos bleiben deaktiviert: kein Szenenwechsel, kein Mute/Unmute, keine Quellen-Sichtbarkeit, keine Media-Steuerung und keine Agent-Actions.</span>
-            </div>
+        <article class="cgn-card rdap-obs-rights-card">
+          <div class="card-head"><div><p class="cgn-eyebrow">Rechte</p><h2>Spätere Freigaben</h2></div><span class="cgn-chip cgn-chip--warn">gesperrt</span></div>
+          <div class="rdap-obs-rights-list">
+            <span><b>obs.read</b><small>sehen</small></span>
+            <span><b>obs.scene.switch</b><small>Szenen</small></span>
+            <span><b>obs.audio.mute</b><small>Audio</small></span>
+            <span><b>obs.source.visibility</b><small>Quellen</small></span>
           </div>
-          <div class="module-list rdap-obs-action-list">
-            <div class="module-row"><span class="module-icon purple">🎬</span><div><b>Szenenwechsel</b><small>geplant, aktuell deaktiviert</small></div></div>
-            <div class="module-row"><span class="module-icon blue">🔇</span><div><b>Mute/Unmute</b><small>geplant, aktuell deaktiviert</small></div></div>
-            <div class="module-row"><span class="module-icon cyan">⏹</span><div><b>Media stoppen</b><small>geplant, aktuell deaktiviert</small></div></div>
-          </div>
-          <p class="rdap-obs-updated" id="obsLastUpdated">Noch nicht geladen</p>
+          <p class="rdap-obs-detail">${STEP_LABEL}: keine Aktionen. Später nur mit Rechteprüfung, Allowlist und Audit.</p>
         </article>
       </section>
     `;
@@ -106,47 +103,64 @@
   }
 
   function installStyle() {
-    if (document.getElementById('rdap0215ObsStyle')) return;
+    if (document.getElementById('rdap0219ObsStyleFix3')) return;
+    const old = document.getElementById('rdap0219ObsStyle');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
     const style = document.createElement('style');
-    style.id = 'rdap0215ObsStyle';
+    style.id = 'rdap0219ObsStyleFix3';
     style.textContent = `
       [data-page-panel="obs"] .rdap-obs-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-      [data-page-panel="obs"] .rdap-obs-header p:not(.cgn-eyebrow){max-width:980px}
+      [data-page-panel="obs"] .rdap-obs-header p:not(.cgn-eyebrow){max-width:1120px}
       [data-page-panel="obs"] .rdap-obs-header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-      [data-page-panel="obs"] .rdap-obs-detail{margin:14px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
-      [data-page-panel="obs"] .rdap-obs-note{background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.18)}
-      [data-page-panel="obs"] .rdap-obs-updated{margin:12px 0 0;color:var(--muted);font-size:12px}
-      [data-page-panel="obs"] .rdap-obs-inventory-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 14px}
-      [data-page-panel="obs"] .rdap-obs-inventory-metrics>div{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;background:rgba(255,255,255,.03)}
-      [data-page-panel="obs"] .rdap-obs-inventory-metrics span{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
-      [data-page-panel="obs"] .rdap-obs-inventory-metrics strong{font-size:22px}
-      [data-page-panel="obs"] .rdap-obs-inventory-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-      [data-page-panel="obs"] .rdap-obs-inventory-columns h3{font-size:13px;margin:0 0 8px;color:var(--text)}
-      [data-page-panel="obs"] .rdap-obs-list{min-height:78px;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;background:rgba(0,0,0,.12)}
-      [data-page-panel="obs"] .rdap-obs-list p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
-      [data-page-panel="obs"] .rdap-obs-list .obs-item{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}
-      [data-page-panel="obs"] .rdap-obs-list .obs-item:last-child{border-bottom:0}
-      [data-page-panel="obs"] .rdap-obs-list .obs-item small{color:var(--muted)}
-      @media(max-width:900px){[data-page-panel="obs"] .rdap-obs-inventory-columns{grid-template-columns:1fr}}
+      [data-page-panel="obs"] .rdap-obs-detail{margin:10px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+      [data-page-panel="obs"] .rdap-obs-detail code{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--text)}
+      [data-page-panel="obs"] .rdap-obs-topline{display:grid;grid-template-columns:minmax(320px,1.6fr) repeat(3,minmax(150px,.75fr));gap:12px;margin-bottom:14px}
+      [data-page-panel="obs"] .rdap-obs-current,[data-page-panel="obs"] .rdap-obs-mini{padding:16px;border-radius:18px}
+      [data-page-panel="obs"] .rdap-obs-current span,[data-page-panel="obs"] .rdap-obs-mini span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px}
+      [data-page-panel="obs"] .rdap-obs-current strong{display:block;font-size:25px;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      [data-page-panel="obs"] .rdap-obs-mini strong{display:block;font-size:19px;line-height:1.15}
+      [data-page-panel="obs"] .rdap-obs-current small,[data-page-panel="obs"] .rdap-obs-mini small{display:block;margin-top:6px;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      [data-page-panel="obs"] .rdap-obs-current.is-live strong{color:var(--text);text-shadow:0 0 16px rgba(69,220,255,.18)}
+      [data-page-panel="obs"] .rdap-obs-board{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(340px,.75fr);gap:14px;align-items:start}
+      [data-page-panel="obs"] .rdap-obs-scene-list{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+      [data-page-panel="obs"] .obs-scene-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.075);border-radius:11px;padding:8px 10px;background:rgba(255,255,255,.025);min-width:0}
+      [data-page-panel="obs"] .obs-scene-row.is-current{border-color:rgba(69,220,255,.55);background:rgba(69,220,255,.09)}
+      [data-page-panel="obs"] .obs-scene-dot{width:10px;height:10px;border-radius:99px;background:rgba(255,255,255,.18);box-shadow:none;margin-left:4px}
+      [data-page-panel="obs"] .obs-scene-row.is-current .obs-scene-dot{background:rgba(69,220,255,.95);box-shadow:0 0 12px rgba(69,220,255,.55)}
+      [data-page-panel="obs"] .obs-scene-name{font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      [data-page-panel="obs"] .obs-scene-state{border-radius:999px;padding:4px 8px;background:rgba(255,255,255,.075);font-size:11px;color:var(--muted);white-space:nowrap}
+      [data-page-panel="obs"] .obs-scene-row.is-current .obs-scene-state{background:rgba(69,220,255,.25);color:var(--text)}
+      [data-page-panel="obs"] .rdap-obs-audio-list{display:flex;flex-direction:column;gap:6px;margin-top:14px;max-height:420px;overflow:auto;padding-right:4px}
+      [data-page-panel="obs"] .obs-audio-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.075);border-radius:11px;padding:8px 10px;background:rgba(255,255,255,.025);min-width:0}
+      [data-page-panel="obs"] .obs-audio-row b{display:block;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      [data-page-panel="obs"] .obs-audio-row small{display:block;margin-top:2px;color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      [data-page-panel="obs"] .obs-status-badge{border-radius:999px;padding:4px 8px;background:rgba(255,255,255,.075);font-size:11px;color:var(--muted);white-space:nowrap}
+      [data-page-panel="obs"] .rdap-obs-secondary-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(340px,.75fr);gap:14px;margin-top:14px;align-items:start}
+      [data-page-panel="obs"] .rdap-obs-source-list{margin-top:12px;border:1px solid rgba(255,255,255,.075);border-radius:12px;overflow:hidden;background:rgba(0,0,0,.10)}
+      [data-page-panel="obs"] .obs-source-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.045);font-size:12px;min-width:0}
+      [data-page-panel="obs"] .obs-source-row:last-child{border-bottom:0}
+      [data-page-panel="obs"] .obs-source-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      [data-page-panel="obs"] .obs-source-row small{color:var(--muted);white-space:nowrap}
+      [data-page-panel="obs"] .rdap-obs-more{padding:8px 10px;color:var(--muted);font-size:12px;background:rgba(255,255,255,.025)}
+      [data-page-panel="obs"] .rdap-obs-rights-list{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}
+      [data-page-panel="obs"] .rdap-obs-rights-list span{display:block;border:1px solid rgba(255,255,255,.075);border-radius:11px;padding:8px;background:rgba(255,255,255,.025)}
+      [data-page-panel="obs"] .rdap-obs-rights-list b{display:block;font-size:12px}
+      [data-page-panel="obs"] .rdap-obs-rights-list small{display:block;margin-top:2px;color:var(--muted);font-size:11px;line-height:1.25}
+      @media(max-width:1200px){[data-page-panel="obs"] .rdap-obs-topline,[data-page-panel="obs"] .rdap-obs-board,[data-page-panel="obs"] .rdap-obs-secondary-grid{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
 
   function bindActions() {
     const button = document.getElementById('obsRefreshButton');
-    if (!button || button.dataset.rdap0215Bound === '1') return;
-    button.dataset.rdap0215Bound = '1';
+    if (!button || button.dataset.rdap0219Fix3Bound === '1') return;
+    button.dataset.rdap0219Fix3Bound = '1';
     button.addEventListener('click', () => loadObsStatus('manual'));
   }
 
   async function getJson(url) {
     try {
-      const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: { 'Accept': 'application/json' }
-      });
+      const response = await fetch(url, { method: 'GET', credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } });
       const body = await response.json().catch(() => null);
       return { ok: response.ok && body && body.ok !== false, httpStatus: response.status, body };
     } catch (err) {
@@ -165,59 +179,146 @@
   }
 
   function renderObsStatus(result, reason) {
+    void reason;
     const body = result && result.body ? result.body : {};
     const obs = body.obs || {};
-    const agent = body.remoteAgent || {};
-    const safety = body.safety || {};
     const inventory = body.inventory || {};
-    const counts = inventory.counts || {};
-    const reachable = obs.reachable === true;
-    const agentConnected = agent.connected === true;
-    const controlEnabled = safety.obsControlEnabled === true || obs.controlEnabled === true;
+    const scenes = Array.isArray(inventory.scenes) ? inventory.scenes : ((inventory.groups && inventory.groups.scenes && inventory.groups.scenes.items) || []);
+    const sources = Array.isArray(inventory.sources) ? inventory.sources : ((inventory.groups && inventory.groups.sources && inventory.groups.sources.items) || []);
+    const audioSources = Array.isArray(inventory.audioSources) ? inventory.audioSources : ((inventory.groups && inventory.groups.audioSources && inventory.groups.audioSources.items) || []);
+    lastInventory = inventory;
+    const currentScene = getCurrentSceneFromInventory(inventory) || '—';
+    const productiveScenes = scenes.filter(isProductiveScene);
+    const internalSceneCount = Math.max(0, scenes.length - productiveScenes.length);
+    const visibleAudio = audioSources.filter(isRelevantAudio);
+    const hiddenAudioCount = Math.max(0, audioSources.length - visibleAudio.length);
+    const reachable = obs.reachable === true || obs.status === 'reachable' || inventory.active === true;
 
-    setChip('obsStatusPill', result && result.ok && reachable, reachable ? 'OBS erreichbar' : 'OBS nicht erreichbar');
-    setText('obsReachable', reachable ? 'Ja' : 'Nein');
-    setText('obsPort', obs.port || '4455');
-    setText('obsAgent', agentConnected ? 'Verbunden' : 'Nicht verbunden');
-    setText('obsControl', controlEnabled ? 'Aktiv' : 'Aus');
-    setText('obsStatusText', obs.status || (reachable ? 'reachable' : 'not_reachable'));
-    setText('obsCheckedAt', formatDate(obs.checkedAt));
-    setText('obsRequestState', obs.noObsRequestSent === false ? 'gesendet' : 'keiner');
-    setText('obsInventoryState', inventory.active ? 'aktiv' : 'vorbereitet');
-    setText('obsDetailText', obs.detail || body.note || 'OBS read-only Status geladen.');
-    setText('obsLastUpdated', `Aktualisiert: ${new Date().toLocaleString('de-DE')}${reason ? ` · ${reason}` : ''}`);
-    setText('obsSceneCount', counts.scenes || 0);
-    setText('obsSourceCount', counts.sources || 0);
-    setText('obsAudioCount', counts.audioSources || 0);
-    setText('obsInventoryNote', inventory.note || 'OBS-Inventar ist read-only vorbereitet.');
-    setChip('obsInventoryPill', Boolean(inventory.prepared), inventory.active ? 'aktiv' : 'vorbereitet');
-    renderList('obsSceneList', inventory.scenes || (inventory.groups && inventory.groups.scenes && inventory.groups.scenes.items), 'Noch keine Szenen gelesen.');
-    renderList('obsSourceList', inventory.sources || (inventory.groups && inventory.groups.sources && inventory.groups.sources.items), 'Noch keine Quellen gelesen.');
-    renderList('obsAudioList', inventory.audioSources || (inventory.groups && inventory.groups.audioSources && inventory.groups.audioSources.items), 'Noch keine Audioquellen gelesen.');
-    setBar('obsReachableBar', reachable ? 92 : 12);
-    setBar('obsAgentBar', agentConnected ? 88 : 12);
+    setChip('obsStatusPill', result && result.ok && reachable, reachable ? 'OBS verbunden' : 'OBS nicht verbunden');
+    renderLiveScene(currentScene, 'Inventar/Status');
+    setText('obsConnectionText', reachable ? 'Verbunden' : 'Nicht verbunden');
+    setText('obsProductiveSceneCount', productiveScenes.length);
+    setText('obsInternalSceneText', `${internalSceneCount} interne ausgeblendet`);
+    setText('obsAudioCount', visibleAudio.length);
+    setText('obsAudioHiddenText', hiddenAudioCount ? `${hiddenAudioCount} interne ausgeblendet` : 'relevant');
+    setText('obsSourcePill', `${sources.length || 0} Quellen`);
+
+    renderProductiveScenes(productiveScenes, currentScene);
+    renderAudioList(visibleAudio, hiddenAudioCount);
+    renderSourcePreview(sources);
   }
 
-  function renderList(id, items, emptyText) {
-    const node = document.getElementById(id);
+  function isProductiveScene(item) {
+    const name = getItemName(item).trim();
+    if (!name || name.startsWith('_')) return false;
+    if (/^[\s\-–—_]{4,}$/.test(name)) return false;
+    return true;
+  }
+
+  function isRelevantAudio(item) {
+    const name = getItemName(item).trim();
+    if (!name) return false;
+    if (name.startsWith('_')) return false;
+    return true;
+  }
+
+  function renderProductiveScenes(items, currentScene) {
+    const node = document.getElementById('obsProductiveSceneList');
     if (!node) return;
     const list = Array.isArray(items) ? items : [];
     if (!list.length) {
-      node.innerHTML = `<p>${escapeHtml(emptyText)}</p>`;
+      node.innerHTML = '<p class="rdap-obs-detail">Keine produktiven Szenen gelesen.</p>';
       return;
     }
-    node.innerHTML = list.slice(0, 12).map((item) => {
-      const name = typeof item === 'string' ? item : (item && (item.name || item.label || item.id)) || 'Unbenannt';
-      const meta = item && typeof item === 'object' && item.type ? item.type : 'read-only';
-      return `<div class="obs-item"><span>${escapeHtml(name)}</span><small>${escapeHtml(meta)}</small></div>`;
+    node.innerHTML = list.map((item) => {
+      const name = getItemName(item);
+      const isCurrent = sameName(name, currentScene);
+      return `<div class="obs-scene-row${isCurrent ? ' is-current' : ''}"><i class="obs-scene-dot"></i><span class="obs-scene-name">${escapeHtml(name)}</span><span class="obs-scene-state">${isCurrent ? 'aktuell' : 'später schaltbar'}</span></div>`;
     }).join('');
+  }
+
+  function renderAudioList(items, hiddenCount) {
+    const node = document.getElementById('obsAudioList');
+    const more = document.getElementById('obsAudioMore');
+    if (!node) return;
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      node.innerHTML = '<p class="rdap-obs-detail">Keine relevanten Audioquellen gelesen.</p>';
+      if (more) more.textContent = hiddenCount ? `${hiddenCount} interne Audioquellen ausgeblendet. Details später in Admin / Diagnose.` : '';
+      return;
+    }
+    const visible = list.slice(0, 10);
+    node.innerHTML = visible.map((item) => {
+      const name = getItemName(item);
+      const type = getItemType(item, 'audio');
+      const muted = item && typeof item === 'object' && Object.prototype.hasOwnProperty.call(item, 'muted') ? item.muted : null;
+      const status = muted === true ? 'stumm' : muted === false ? 'aktiv' : 'Status unbekannt';
+      return `<div class="obs-audio-row"><div><b>${escapeHtml(name)}</b><small>${escapeHtml(type)}</small></div><span class="obs-status-badge">${escapeHtml(status)}</span></div>`;
+    }).join('');
+    const extra = list.length > visible.length ? `+ ${list.length - visible.length} weitere relevante Audioquellen. ` : '';
+    if (more) more.textContent = `${extra}${hiddenCount ? `${hiddenCount} interne Audioquellen ausgeblendet.` : ''}`.trim();
+  }
+
+  function renderSourcePreview(items) {
+    const node = document.getElementById('obsSourcePreview');
+    if (!node) return;
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      node.innerHTML = '<p class="rdap-obs-detail">Keine Quellen gelesen.</p>';
+      return;
+    }
+    const visible = list.filter(item => !getItemName(item).trim().startsWith('_')).slice(0, 8);
+    const base = visible.length ? visible : list.slice(0, 8);
+    const rows = base.map((item) => `<div class="obs-source-row"><span>${escapeHtml(getItemName(item))}</span><small>${escapeHtml(getItemType(item, 'source'))}</small></div>`).join('');
+    const restCount = Math.max(0, list.length - base.length);
+    const rest = restCount ? `<div class="rdap-obs-more">+ ${restCount} weitere Quellen. Details später in Admin / Diagnose.</div>` : '';
+    node.innerHTML = rows + rest;
+  }
+
+
+  async function loadObsLiveStatus() {
+    const result = await getJson(LIVE_ENDPOINT);
+    if (!result || !result.ok || !result.body) return;
+    const body = result.body;
+    const currentScene = body.currentScene || body.currentProgramSceneName || (body.obs && (body.obs.currentScene || body.obs.currentProgramSceneName)) || '';
+    if (!currentScene) return;
+    renderLiveScene(currentScene, 'Live');
+    const scenes = lastInventory && Array.isArray(lastInventory.scenes) ? lastInventory.scenes : [];
+    const productiveScenes = scenes.filter(isProductiveScene);
+    if (productiveScenes.length) renderProductiveScenes(productiveScenes, currentScene);
+  }
+
+  function getCurrentSceneFromInventory(inventory) {
+    if (!inventory || typeof inventory !== 'object') return '';
+    return inventory.currentScene || inventory.currentProgramSceneName || (inventory.live && (inventory.live.currentScene || inventory.live.currentProgramSceneName)) || '';
+  }
+
+  function renderLiveScene(currentScene, sourceLabel) {
+    setText('obsCurrentScene', currentScene || '—');
+    setText('obsLiveState', sourceLabel ? `${sourceLabel} · Auto ${LIVE_REFRESH_MS}ms` : `Auto ${LIVE_REFRESH_MS}ms`);
+    const currentCard = document.querySelector('[data-page-panel="obs"] .rdap-obs-current');
+    if (currentCard) currentCard.classList.toggle('is-live', Boolean(currentScene && currentScene !== '—'));
+  }
+
+  function getItemName(item) {
+    if (typeof item === 'string') return item;
+    return item && (item.name || item.label || item.id) ? String(item.name || item.label || item.id) : 'Unbenannt';
+  }
+
+  function getItemType(item, fallback) {
+    if (!item || typeof item !== 'object') return fallback || 'read-only';
+    return String(item.type || item.kind || fallback || 'read-only');
+  }
+
+  function sameName(a, b) {
+    return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
   }
 
   function setButtonLoading(value) {
     const button = document.getElementById('obsRefreshButton');
     if (!button) return;
     button.disabled = Boolean(value);
-    button.textContent = value ? 'lädt…' : 'OBS neu laden';
+    button.textContent = value ? 'lädt…' : 'Anzeige aktualisieren';
   }
 
   function setChip(id, ok, text) {
@@ -232,19 +333,6 @@
     if (node) node.textContent = value == null || value === '' ? '—' : String(value);
   }
 
-  function setBar(id, value) {
-    const node = document.getElementById(id);
-    if (!node) return;
-    node.style.width = `${Math.max(0, Math.min(100, Number(value) || 0))}%`;
-  }
-
-  function formatDate(value) {
-    if (!value || value === '—') return '—';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
-    return date.toLocaleString('de-DE');
-  }
-
   function escapeHtml(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -255,9 +343,7 @@
   }
 
   function pageIsActive() {
-    if (window.RdapMainRouter && typeof window.RdapMainRouter.getCurrentPage === 'function') {
-      return window.RdapMainRouter.getCurrentPage() === PAGE_ID;
-    }
+    if (window.RdapMainRouter && typeof window.RdapMainRouter.getCurrentPage === 'function') return window.RdapMainRouter.getCurrentPage() === PAGE_ID;
     const panel = document.querySelector('[data-page-panel="obs"]');
     return Boolean(panel && panel.classList.contains('is-active-view'));
   }
@@ -265,13 +351,39 @@
   function startRefresh() {
     stopRefresh();
     refreshTimer = window.setInterval(() => {
-      if (pageIsActive()) loadObsStatus('auto');
-    }, 15000);
+      if (pageIsActive()) loadObsStatus('auto-full');
+    }, FULL_REFRESH_MS);
+    scheduleNextLiveRefresh(0);
+  }
+
+  function scheduleNextLiveRefresh(delayMs) {
+    if (liveRefreshTimer) window.clearTimeout(liveRefreshTimer);
+    liveRefreshTimer = window.setTimeout(runLiveRefreshLoop, Math.max(0, Number(delayMs) || 0));
+  }
+
+  async function runLiveRefreshLoop() {
+    if (liveRefreshRunning) {
+      scheduleNextLiveRefresh(LIVE_REFRESH_MS);
+      return;
+    }
+    liveRefreshRunning = true;
+    try {
+      if (pageIsActive() && !document.hidden) await loadObsLiveStatus();
+    } catch (err) {
+      // read-only live status must never break the page
+    } finally {
+      liveRefreshRunning = false;
+      const nextDelay = document.hidden ? LIVE_REFRESH_HIDDEN_MS : LIVE_REFRESH_MS;
+      scheduleNextLiveRefresh(nextDelay);
+    }
   }
 
   function stopRefresh() {
     if (refreshTimer) window.clearInterval(refreshTimer);
+    if (liveRefreshTimer) window.clearTimeout(liveRefreshTimer);
     refreshTimer = null;
+    liveRefreshTimer = null;
+    liveRefreshRunning = false;
   }
 
   function install() {

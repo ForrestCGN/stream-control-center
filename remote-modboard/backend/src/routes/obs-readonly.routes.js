@@ -1,7 +1,7 @@
 'use strict';
 
-const STATUS_API_VERSION = 'rdap_obs_inventory_shared_connection_0218d.v1';
-const BUILD = 'RDAP_0.2.18D_OBS_INVENTORY_SHARED_CONNECTION';
+const STATUS_API_VERSION = 'rdap_obs_inventory_ui_display_0219.v1';
+const BUILD = 'RDAP_0.2.19_LOCAL_OBS_INVENTORY_UI_DISPLAY';
 const OBS_STATUS_PATH = '/api/remote/local-dashboard/obs/status';
 const OBS_MODEL_PATH = '/api/remote/local-dashboard/obs/model';
 const INVENTORY_SOURCE_MODE = 'local_adapter_remote_agent_component_status';
@@ -13,7 +13,7 @@ function buildObsReadonlyPayload(context = {}) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_obs_readonly',
-    moduleVersion: context.appVersion || '0.2.18D',
+    moduleVersion: context.appVersion || '0.2.19',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -22,7 +22,7 @@ function buildObsReadonlyPayload(context = {}) {
     readOnly: true,
     prepared: true,
     active: false,
-    status: 'readonly_obs_inventory_env_diagnostic_prepared',
+    status: 'readonly_obs_inventory_ui_display_prepared',
     localDashboard: runtimeMode === 'local',
     remoteAgent: {
       checked: true,
@@ -55,8 +55,10 @@ function buildObsReadonlyPayload(context = {}) {
     inventory: buildPreparedInventory(generatedAt),
     plannedReadOnlyEndpoints: [OBS_STATUS_PATH, OBS_MODEL_PATH],
     plannedActionsStillDisabled: ['obs.scene.switch', 'obs.source.visibility.set', 'obs.input.mute.set', 'obs.media.stop', 'obs.refresh'],
+    plannedPermissions: ['obs.read', 'obs.scene.switch', 'obs.audio.mute', 'obs.source.visibility', 'obs.admin.diagnostics'],
+    productiveSceneRule: 'scene.name must not start with underscore',
     safety: buildObsSafety(),
-    note: '0.2.18D bereitet OBS_WS-Aliase und obs_shared Inventar-Read fuer den lokalen remote_agent vor. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
+    note: '0.2.19 richtet die OBS-Seite als spaetere Mod-Bedienflaeche aus. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
   };
 }
 
@@ -94,13 +96,16 @@ function buildPreparedInventory(generatedAt) {
       remoteAgentObsInventoryEnvDiagnosticPrepared: true,
       obsWsUrlAliasPrepared: true,
       obsWsPasswordAliasPrepared: true,
+      obsInventoryUiDisplayPrepared: true,
+      productiveSceneFilterPrepared: true,
+      obsModControlSurfacePrepared: true,
       realObsInventoryReadActive: false,
       obsWebSocketRequestsEnabled: false,
       actionsEnabled: false,
       controlEnabled: false
     },
     emptyReason: 'online_placeholder_local_remote_agent_env_diagnostic_prepared',
-    note: 'Lokale OBS-Inventarquelle ist read-only vorbereitet. 0.2.18D akzeptiert lokal OBS_WS_URL/OBS_WS_PASSWORD im remote_agent und liefert eine kompakte Diagnose-Route.'
+    note: 'Lokale OBS-Inventarquelle ist read-only vorbereitet. 0.2.19 filtert produktive Szenen in der UI als Szenen ohne fuehrenden Unterstrich.'
   };
 }
 
@@ -116,6 +121,8 @@ function buildObsSafety() {
     localInventorySourcePrepared: true,
     remoteAgentObsInventoryReadPrepared: true,
     remoteAgentObsInventoryEnvDiagnosticPrepared: true,
+    obsInventoryUiDisplayPrepared: true,
+    productiveSceneFilterPrepared: true,
     realObsInventoryReadActive: false,
     noObsRequestSentByBackend: true,
     noObsInventoryRequestSentByBackend: true,
@@ -123,12 +130,13 @@ function buildObsSafety() {
     noStreamingPcActionExecution: true,
     noFileWrite: true,
     noDatabaseWrite: true,
-    noShellOrProcessActions: true
+    noShellOrProcessActions: true,
+    noFreeObsPayloads: true
   };
 }
 
 function buildObsModuleMetadataPage() {
-  return { pageId: 'obs', label: 'OBS', moduleId: 'system', runtime: 'both', permission: 'remote.view', title: 'OBS Status', tab: 'read-only', readOnly: true, inventoryReadOnlyPrepared: true, localInventorySourcePrepared: true, remoteAgentObsInventoryReadPrepared: true, remoteAgentObsInventoryEnvDiagnosticPrepared: true, routeBuild: BUILD };
+  return { pageId: 'obs', label: 'OBS', moduleId: 'system', runtime: 'both', permission: 'remote.view', title: 'OBS Bedienung', tab: 'read-only', readOnly: true, inventoryReadOnlyPrepared: true, localInventorySourcePrepared: true, remoteAgentObsInventoryReadPrepared: true, remoteAgentObsInventoryEnvDiagnosticPrepared: true, obsInventoryUiDisplayPrepared: true, productiveSceneFilterPrepared: true, plannedPermissions: ['obs.read', 'obs.scene.switch', 'obs.audio.mute', 'obs.source.visibility'], routeBuild: BUILD };
 }
 
 function buildObsRoutesSummary() {
@@ -143,11 +151,14 @@ function buildObsRoutesSummary() {
     localInventorySourceMode: INVENTORY_SOURCE_MODE,
     remoteAgentObsInventoryReadPrepared: true,
     remoteAgentObsInventoryEnvDiagnosticPrepared: true,
+    obsInventoryUiDisplayPrepared: true,
+    productiveSceneFilterPrepared: true,
     obsWsUrlAliasPrepared: true,
     obsWsPasswordAliasPrepared: true,
+    plannedPermissions: ['obs.read', 'obs.scene.switch', 'obs.audio.mute', 'obs.source.visibility', 'obs.admin.diagnostics'],
     routes: [
-      { method: 'GET', path: OBS_STATUS_PATH, description: 'OBS read-only Status und lokale Inventarquelle vorbereitet; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true },
-      { method: 'GET', path: OBS_MODEL_PATH, description: 'OBS read-only Modell inklusive lokaler Inventarquellen-/ENV-Diagnose; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true }
+      { method: 'GET', path: OBS_STATUS_PATH, description: 'OBS read-only Status und lokale Inventarquelle fuer Mod-Bedienflaeche vorbereitet; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true },
+      { method: 'GET', path: OBS_MODEL_PATH, description: 'OBS read-only Modell inklusive produktiver Szenen-Regel und Rechte-Zielbild; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true }
     ],
     safety: buildObsSafety()
   };
@@ -161,7 +172,7 @@ function decorateStatusPayload(payload) {
   const existingIndex = pages.findIndex(item => item && item.pageId === 'obs');
   if (existingIndex >= 0) pages[existingIndex] = { ...pages[existingIndex], ...page };
   else pages.push(page);
-  payload.moduleMetadata = { ...moduleMetadata, pages, obsReadOnlyPagePrepared: true, obsReadOnlyStatusRoutePrepared: true, obsInventoryReadOnlyPrepared: true, obsLocalInventorySourcePrepared: true, obsInventorySourcePrepared: true, obsInventorySourceMode: INVENTORY_SOURCE_MODE, obsLocalInventorySourceMode: INVENTORY_SOURCE_MODE, obsRemoteAgentInventoryReadPrepared: true, obsRemoteAgentInventoryEnvDiagnosticPrepared: true, obsWsUrlAliasPrepared: true, obsWsPasswordAliasPrepared: true, obsReadOnlyRouteBuild: BUILD };
+  payload.moduleMetadata = { ...moduleMetadata, pages, obsReadOnlyPagePrepared: true, obsReadOnlyStatusRoutePrepared: true, obsInventoryReadOnlyPrepared: true, obsLocalInventorySourcePrepared: true, obsInventorySourcePrepared: true, obsInventorySourceMode: INVENTORY_SOURCE_MODE, obsLocalInventorySourceMode: INVENTORY_SOURCE_MODE, obsRemoteAgentInventoryReadPrepared: true, obsRemoteAgentInventoryEnvDiagnosticPrepared: true, obsInventoryUiDisplayPrepared: true, obsProductiveSceneFilterPrepared: true, obsWsUrlAliasPrepared: true, obsWsPasswordAliasPrepared: true, obsReadOnlyRouteBuild: BUILD };
   payload.obsReadOnly = buildObsRoutesSummary();
   return payload;
 }

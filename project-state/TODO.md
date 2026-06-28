@@ -1,6 +1,7 @@
 # TODO
 
-- Lokalen OBS-Inventar-Read mit OBS_WS_URL testen.
-- Falls `auth_required`: OBS_WS_PASSWORD korrekt setzen oder OBS-WebSocket ohne Auth bestaetigen.
-- Danach UI-Anzeige fuer echte Inventarlisten nur bei Bedarf verfeinern.
+- 0.2.19 lokal testen: OBS-Seite zeigt aktuelle Szene und produktive Szenen ohne `_`.
+- Pruefen, ob interne `_`-Szenen in der normalen OBS-Mod-Ansicht ausgeblendet sind.
+- Pruefen, ob Audioquellen nur read-only angezeigt werden.
+- Danach OBS-Allowlist-/Rechte-Modell fuer spaetere Bedienung planen.
 - Keine Steuer-Actions aktivieren.
