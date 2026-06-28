@@ -3,8 +3,8 @@
 const crypto = require('crypto');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.20_AGENT_OBS_LIVE_STATE_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_obs_live_state_runtime_0220.v1';
+const MODULE_BUILD = 'RDAP_0.2.20C_AGENT_LIVE_STATE_SCENE_MAPPING_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_live_state_scene_mapping_runtime_0220c.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -557,7 +557,7 @@ function validateLiveStatePayload(payload, details = {}) {
 
 function sanitizeLiveObs(input) {
   const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
-  const allowed = new Set(['connected', 'detected', 'reachable', 'currentScene', 'currentProgramSceneName']);
+  const allowed = new Set(['connected', 'detected', 'reachable', 'currentScene', 'currentProgramSceneName', 'noObsControl', 'noNewObsWebSocketConnection']);
   for (const key of Object.keys(source)) {
     if (!allowed.has(key)) return { connected: false, detected: false, reachable: null, currentScene: null, currentProgramSceneName: null, status: 'invalid_live_obs_fields' };
   }
@@ -945,7 +945,7 @@ function buildAgentObsLiveStatusResponse() {
     service: 'remote-modboard',
     module: MODULE,
     moduleBuild: MODULE_BUILD,
-    statusApiVersion: 'rdap_agent_obs_live_state_status_0220.v1',
+    statusApiVersion: 'rdap_agent_live_state_scene_mapping_status_0220c.v1',
     route: '/api/remote/agent/obs/live/status',
     generatedAt: new Date().toISOString(),
     readOnly: true,

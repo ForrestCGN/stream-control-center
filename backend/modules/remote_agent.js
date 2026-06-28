@@ -15,7 +15,7 @@ try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule
 
 const MODULE = 'remote_agent';
 const MODULE_VERSION = '0.1.6B';
-const MODULE_BUILD = 'RDAP_0.2.20B_AGENT_HEARTBEAT_SLIM_LIVE_STATE_READONLY';
+const MODULE_BUILD = 'RDAP_0.2.20C_AGENT_LIVE_STATE_SCENE_MAPPING_READONLY';
 const STATUS_API_VERSION = 'rdap_agent_obs_live_state_0220b.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
@@ -433,7 +433,7 @@ function sendLiveState(config) {
     agentId: config.agentId,
     seq: CONNECTION_STATE.liveStateSeq,
     collectedAt: liveState.collectedAt,
-    obs: liveState.obs
+    obs: buildLiveStateTransportObs(liveState.obs)
   };
   try {
     ws.send(JSON.stringify(payload));
@@ -453,6 +453,18 @@ function sendLiveState(config) {
     CONNECTION_STATE.liveStateSendError = err && err.message ? safeError(err.message) : 'live_state_send_failed';
     handleError(config, err);
   }
+}
+
+function buildLiveStateTransportObs(obs) {
+  const source = obs && typeof obs === 'object' && !Array.isArray(obs) ? obs : {};
+  const currentScene = safeText(source.currentProgramSceneName || source.currentScene || '', 160) || null;
+  return {
+    connected: source.connected === true,
+    detected: source.detected === true,
+    reachable: source.reachable === true ? true : (source.reachable === false ? false : null),
+    currentScene,
+    currentProgramSceneName: currentScene
+  };
 }
 
 function buildObsLiveState(config) {
