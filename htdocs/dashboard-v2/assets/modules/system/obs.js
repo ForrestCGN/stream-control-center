@@ -4,9 +4,12 @@
   const MODULE_ID = 'system';
   const PAGE_ID = 'obs';
   const ENDPOINT = '/api/remote/local-dashboard/obs/status';
-  const LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
-  const STEP_LABEL = '0.2.19';
-  const LIVE_REFRESH_MS = 250;
+  const ONLINE_LIVE_ENDPOINT = '/api/remote/agent/obs/live/status';
+  const LOCAL_LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
+  const STEP_LABEL = '0.2.20';
+  const LOCAL_LIVE_REFRESH_MS = 250;
+  const ONLINE_LIVE_REFRESH_MS = 1000;
+  let activeLiveRefreshMs = ONLINE_LIVE_REFRESH_MS;
   const LIVE_REFRESH_HIDDEN_MS = 2000;
   const FULL_REFRESH_MS = 30000;
   let loading = false;
@@ -64,7 +67,7 @@
 
       <section class="rdap-obs-board">
         <article class="cgn-card rdap-obs-scenes-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Szenen</p><h2>Produktive Szenen</h2></div><span class="cgn-chip cgn-chip--info">${STEP_LABEL} Anzeige</span></div>
+          <div class="card-head"><div><p class="cgn-eyebrow">Szenen</p><h2>Produktive Szenen</h2></div><span class="cgn-chip cgn-chip--info">${STEP_LABEL} Live</span></div>
           <p class="rdap-obs-detail">Kompakte Mod-Ansicht wie in OBS: nur produktive Szenen ohne <code>_</code>. Die Markierung der aktuellen Szene aktualisiert sich nahezu in Echtzeit.</p>
           <div class="rdap-obs-scene-list" id="obsProductiveSceneList"><p>lädt…</p></div>
         </article>
@@ -92,7 +95,7 @@
             <span><b>obs.audio.mute</b><small>Audio</small></span>
             <span><b>obs.source.visibility</b><small>Quellen</small></span>
           </div>
-          <p class="rdap-obs-detail">${STEP_LABEL}: keine Aktionen. Später nur mit Rechteprüfung, Allowlist und Audit.</p>
+          <p class="rdap-obs-detail">${STEP_LABEL}: Live-State read-only. Später nur mit Rechteprüfung, Allowlist und Audit.</p>
         </article>
       </section>
     `;
@@ -277,15 +280,31 @@
 
 
   async function loadObsLiveStatus() {
-    const result = await getJson(LIVE_ENDPOINT);
-    if (!result || !result.ok || !result.body) return;
-    const body = result.body;
-    const currentScene = body.currentScene || body.currentProgramSceneName || (body.obs && (body.obs.currentScene || body.obs.currentProgramSceneName)) || '';
-    if (!currentScene) return;
-    renderLiveScene(currentScene, 'Live');
-    const scenes = lastInventory && Array.isArray(lastInventory.scenes) ? lastInventory.scenes : [];
-    const productiveScenes = scenes.filter(isProductiveScene);
-    if (productiveScenes.length) renderProductiveScenes(productiveScenes, currentScene);
+    const candidates = [
+      { url: ONLINE_LIVE_ENDPOINT, label: 'Online Live', intervalMs: ONLINE_LIVE_REFRESH_MS },
+      { url: LOCAL_LIVE_ENDPOINT, label: 'Lokal Live', intervalMs: LOCAL_LIVE_REFRESH_MS }
+    ];
+
+    for (const candidate of candidates) {
+      const result = await getJson(candidate.url);
+      if (!result || !result.ok || !result.body) continue;
+      const body = result.body;
+      const currentScene = extractLiveScene(body);
+      if (!currentScene) continue;
+      activeLiveRefreshMs = candidate.intervalMs;
+      renderLiveScene(currentScene, candidate.label);
+      const scenes = lastInventory && Array.isArray(lastInventory.scenes) ? lastInventory.scenes : [];
+      const productiveScenes = scenes.filter(isProductiveScene);
+      if (productiveScenes.length) renderProductiveScenes(productiveScenes, currentScene);
+      return;
+    }
+  }
+
+  function extractLiveScene(body) {
+    if (!body || typeof body !== 'object') return '';
+    return body.currentScene || body.currentProgramSceneName ||
+      (body.obs && (body.obs.currentScene || body.obs.currentProgramSceneName)) ||
+      (body.liveState && (body.liveState.currentScene || body.liveState.currentProgramSceneName || (body.liveState.obs && (body.liveState.obs.currentScene || body.liveState.obs.currentProgramSceneName)))) || '';
   }
 
   function getCurrentSceneFromInventory(inventory) {
@@ -295,7 +314,7 @@
 
   function renderLiveScene(currentScene, sourceLabel) {
     setText('obsCurrentScene', currentScene || '—');
-    setText('obsLiveState', sourceLabel ? `${sourceLabel} · Auto ${LIVE_REFRESH_MS}ms` : `Auto ${LIVE_REFRESH_MS}ms`);
+    setText('obsLiveState', sourceLabel ? `${sourceLabel} · Auto ${activeLiveRefreshMs}ms` : `Auto ${activeLiveRefreshMs}ms`);
     const currentCard = document.querySelector('[data-page-panel="obs"] .rdap-obs-current');
     if (currentCard) currentCard.classList.toggle('is-live', Boolean(currentScene && currentScene !== '—'));
   }
@@ -363,7 +382,7 @@
 
   async function runLiveRefreshLoop() {
     if (liveRefreshRunning) {
-      scheduleNextLiveRefresh(LIVE_REFRESH_MS);
+      scheduleNextLiveRefresh(activeLiveRefreshMs);
       return;
     }
     liveRefreshRunning = true;
@@ -373,7 +392,7 @@
       // read-only live status must never break the page
     } finally {
       liveRefreshRunning = false;
-      const nextDelay = document.hidden ? LIVE_REFRESH_HIDDEN_MS : LIVE_REFRESH_MS;
+      const nextDelay = document.hidden ? LIVE_REFRESH_HIDDEN_MS : activeLiveRefreshMs;
       scheduleNextLiveRefresh(nextDelay);
     }
   }

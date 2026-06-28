@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.19 - lokale OBS-Inventar UI als Mod-Bedienflaeche read-only vorbereitet`.
+Aktueller Stand: `0.2.20 - Agent OBS Live-State read-only vorbereitet`.
 
 Verbindlich:
 
@@ -12,18 +12,18 @@ Keine zweite lokale UI, keine separate lokale Navigation, kein eigenes lokales D
 
 ## Stand
 
-0.2.18D bereitete den lokalen OBS-Inventar-Read ueber die vorhandene `obs_shared`-Verbindung vor.
+0.2.19 richtete die OBS-Seite als spaetere Mod-Bedienflaeche read-only aus.
 
-0.2.19 richtet die OBS-Seite als spaetere Mod-Bedienflaeche aus:
+0.2.20 erweitert den bestehenden Agent-WSS-Pfad um schnellen OBS-Live-State read-only:
 
 ```text
-- Seitentitel: OBS Bedienung.
-- Aktuelle OBS-Program-Szene wird prominent angezeigt.
-- Produktive Szenen sind OBS-Szenen ohne fuehrenden Unterstrich `_`.
-- Interne `_`-Szenen werden in der normalen Mod-Ansicht ausgeblendet.
-- Audioquellen werden mit read-only Mute-Status angezeigt.
-- Quellen erscheinen nur als kompakte Vorschau; komplette Technikdetails gehoeren spaeter in Admin / Diagnose.
-- Rollen-/Rechte-Zielbild ist sichtbar vorbereitet: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility.
+- Stream-PC sendet `type: live_state` ueber die bestehende Agent-WSS-Verbindung.
+- Protocol: rdap-agent-live-state.v1.
+- Webserver speichert Live-State nur in Memory.
+- Online-Endpunkt: GET /api/remote/agent/obs/live/status.
+- Lokaler Endpunkt bleibt: GET /api/remote-agent/obs/live/status.
+- Inventar bleibt langsam/manuell; Bedienstatus ist schnell.
+- UI nutzt online zuerst den Webserver-Live-State und lokal den lokalen Live-Endpunkt.
 - Es gibt weiterhin keine OBS-Steuerung, keine Agent-Actions und keine Writes.
 ```
 
@@ -32,14 +32,16 @@ Keine zweite lokale UI, keine separate lokale Navigation, kein eigenes lokales D
 ```text
 - Webserver baut keine OBS-WebSocket-Verbindung auf.
 - Echte lokale OBS-Inventardaten kommen nur ueber local_remote_modboard_adapter -> /api/remote-agent/status -> componentStatus.obs.inventory.
-- Der lokale remote_agent nutzt fuer Inventar nur die bestehende obs_shared-Verbindung.
+- Der lokale remote_agent nutzt fuer Inventar und Live-State nur die bestehende obs_shared-Verbindung.
+- Agent-WSS Live-State ist ein streng begrenzter read-only Message-Typ.
 - Keine freien OBS-Payloads.
-- Keine Set*-Requests im remote_agent fuer Inventar/UI.
+- Keine Set*-Requests im remote_agent fuer Inventar/UI/Live-State.
 ```
 
 ## Lokal pruefen
 
 ```text
+GET /api/remote-agent/obs/live/status
 GET /api/remote-agent/obs/inventory/status
 GET /api/remote-agent/status
 GET /api/remote/local-dashboard/obs/status
@@ -50,6 +52,7 @@ Erwartung:
 
 ```text
 - aktuelle Szene sichtbar
+- Live-Scene-Refresh lokal weiterhin schnell
 - produktive Szenen ohne `_` sichtbar
 - interne `_`-Szenen nicht in der normalen Szenenliste
 - Audioquellen read-only sichtbar
@@ -61,9 +64,10 @@ Erwartung:
 ```text
 GET /api/remote/status
 GET /api/remote/routes
+GET /api/remote/agent/obs/live/status
 GET /api/remote/local-dashboard/obs/status
 ```
 
-Online bleibt OBS Placeholder/read-only. Die UI ist dennoch dieselbe Remote-Modboard-App.
+Online zeigt OBS-Live-State nur, wenn der Stream-PC-Agent verbunden ist und `live_state` sendet. Inventar bleibt online ohne lokale OBS-Daten leer/placeholder.
 
 Weiterarbeit: Danach kann ein separater Step das read-only Allowlist-/Rechte-Modell fuer spaetere OBS-Szenenwechsel planen. Keine produktiven OBS-Actions ohne separaten freigegebenen Step.

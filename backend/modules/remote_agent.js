@@ -14,12 +14,13 @@ let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.5D';
-const MODULE_BUILD = 'VERSION_0_1_5D_STREAMING_PC_OBS_INVENTORY_SHARED_CONNECTION';
-const STATUS_API_VERSION = 'streaming_pc_obs_inventory_status.v0.1.5';
+const MODULE_VERSION = '0.1.6';
+const MODULE_BUILD = 'RDAP_0.2.20_AGENT_OBS_LIVE_STATE_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_obs_live_state_0220.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
+const LIVE_STATE_PROTOCOL_VERSION = 'rdap-agent-live-state.v1';
 const DEFAULT_REMOTE_WS_URL = 'wss://mods.forrestcgn.de/agent-ws';
 const LOADED_AT = new Date().toISOString();
 
@@ -29,7 +30,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'remote-dashboard',
-  description: 'Streaming-PC connection client with read-only local component status, optional OBS inventory read and OBS env diagnostics. No productive actions.',
+  description: 'Streaming-PC connection client with read-only component status, optional OBS inventory read and fast OBS live-state push over the existing agent WSS. No productive actions.',
   routesPrefix: ['/api/remote-agent', '/api/streaming-pc-connection'],
   bus: { registered: false, heartbeat: true, emits: [], listens: [] },
   legacy: false
@@ -50,6 +51,8 @@ const CAPABILITIES = Object.freeze({
   obsInventoryReadOnly: true,
   obsInventoryEnvDiagnostic: true,
   obsInventorySharedConnection: true,
+  obsLiveStateRead: true,
+  obsLiveStatePush: true,
   obsControl: false,
   soundControl: false,
   overlayControl: false,
@@ -192,11 +195,20 @@ const CONNECTION_STATE = {
   noShellOrProcessActions: true,
   noFileWrite: true,
   noDatabaseWrite: true,
-  noRawPayloadStored: true
+  noRawPayloadStored: true,
+  liveStateProtocolVersion: LIVE_STATE_PROTOCOL_VERSION,
+  liveStateSeq: 0,
+  liveStateIntervalMs: 500,
+  lastLiveStateAt: null,
+  liveStateUpdatedAt: null,
+  liveState: null,
+  liveStateSendErrorAt: null,
+  liveStateSendError: null
 };
 
 let ws = null;
 let heartbeatTimer = null;
+let liveStateTimer = null;
 let reconnectTimer = null;
 let started = false;
 
@@ -213,7 +225,7 @@ function init(ctx) {
   registerGet(app, '/api/remote-agent/routes', (req, res) => { void req; res.json(buildRoutesResponse()); });
 
   startStreamingPcConnectionClient();
-  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client with read-only OBS inventory env diagnostic registered. actions=false.`);
+  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client with read-only OBS inventory env diagnostic and live-state push registered. actions=false.`);
 }
 
 function registerGet(app, routePath, handler) {
@@ -255,6 +267,7 @@ function readConnectionConfig() {
     agentName: readString('STREAMING_PC_CONNECTION_NAME', readString('AGENT_NAME', 'Forrest Stream-PC')),
     accessKey: readString('STREAMING_PC_CONNECTION_KEY', readString('AGENT_ACCESS_KEY', '')),
     heartbeatIntervalMs: readInt('STREAMING_PC_HEARTBEAT_INTERVAL_MS', readInt('AGENT_HEARTBEAT_INTERVAL_MS', 30000), 5000, 300000),
+    liveStateIntervalMs: readInt('STREAMING_PC_OBS_LIVE_STATE_INTERVAL_MS', readInt('AGENT_OBS_LIVE_STATE_INTERVAL_MS', 500), 250, 5000),
     reconnectDelayMs: readInt('STREAMING_PC_RECONNECT_DELAY_MS', readInt('AGENT_RECONNECT_DELAY_MS', 5000), 1000, 300000)
   };
 }
@@ -267,6 +280,7 @@ function applyConnectionConfig(config) {
   CONNECTION_STATE.agentId = safeAgentId(config.agentId);
   CONNECTION_STATE.agentName = safeAgentName(config.agentName);
   CONNECTION_STATE.heartbeatIntervalMs = config.heartbeatIntervalMs;
+  CONNECTION_STATE.liveStateIntervalMs = config.liveStateIntervalMs;
   CONNECTION_STATE.reconnectDelayMs = config.reconnectDelayMs;
   CONNECTION_STATE.keyConfigured = Boolean(config.accessKey);
   CONNECTION_STATE.keyExposed = false;
@@ -291,7 +305,7 @@ function connectStreamingPc(config) {
     ws.on('open', () => handleOpen(config));
     ws.on('close', () => handleClose(config, 'socket_close'));
     ws.on('error', (err) => handleError(config, err));
-    ws.on('message', () => { /* Version 0.1.5D ignores inbound data. No commands/actions are accepted. */ });
+    ws.on('message', () => { /* Version 0.1.6 ignores inbound data. No commands/actions are accepted. */ });
   } catch (err) {
     handleError(config, err);
     handleClose(config, 'connect_exception');
@@ -302,7 +316,7 @@ function handleOpen(config) {
   const now = new Date().toISOString();
   CONNECTION_STATE.connected = true;
   CONNECTION_STATE.connectionState = 'connected';
-  CONNECTION_STATE.reason = 'connected_readonly_heartbeat';
+  CONNECTION_STATE.reason = 'connected_readonly_heartbeat_live_state';
   CONNECTION_STATE.connectedSince = now;
   CONNECTION_STATE.lastSeenAt = now;
   CONNECTION_STATE.lastError = null;
@@ -310,11 +324,14 @@ function handleOpen(config) {
   CONNECTION_STATE.actionsEnabled = false;
   CONNECTION_STATE.productiveActionsEnabled = false;
   startHeartbeatTimer(config);
+  startLiveStateTimer(config);
   sendHeartbeat(config);
+  sendLiveState(config);
 }
 
 function handleClose(config, reason) {
   stopHeartbeatTimer();
+  stopLiveStateTimer();
   CONNECTION_STATE.connected = false;
   CONNECTION_STATE.connectionState = CONNECTION_STATE.enabled ? 'reconnecting' : 'disabled';
   CONNECTION_STATE.reason = safeReason(reason || 'socket_close');
@@ -338,6 +355,12 @@ function startHeartbeatTimer(config) {
   if (heartbeatTimer && typeof heartbeatTimer.unref === 'function') heartbeatTimer.unref();
 }
 function stopHeartbeatTimer() { if (heartbeatTimer) clearInterval(heartbeatTimer); heartbeatTimer = null; }
+function startLiveStateTimer(config) {
+  stopLiveStateTimer();
+  liveStateTimer = setInterval(() => sendLiveState(config), config.liveStateIntervalMs);
+  if (liveStateTimer && typeof liveStateTimer.unref === 'function') liveStateTimer.unref();
+}
+function stopLiveStateTimer() { if (liveStateTimer) clearInterval(liveStateTimer); liveStateTimer = null; }
 function scheduleReconnect(config) { clearReconnectTimer(); CONNECTION_STATE.reconnectCount += 1; reconnectTimer = setTimeout(() => connectStreamingPc(config), config.reconnectDelayMs); if (reconnectTimer && typeof reconnectTimer.unref === 'function') reconnectTimer.unref(); }
 function clearReconnectTimer() { if (reconnectTimer) clearTimeout(reconnectTimer); reconnectTimer = null; }
 
@@ -360,6 +383,73 @@ function sendHeartbeat(config) {
   } catch (err) { handleError(config, err); }
 }
 
+function sendLiveState(config) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  CONNECTION_STATE.liveStateSeq += 1;
+  const liveState = buildObsLiveState(config);
+  const payload = {
+    type: 'live_state',
+    protocolVersion: LIVE_STATE_PROTOCOL_VERSION,
+    agentId: config.agentId,
+    seq: CONNECTION_STATE.liveStateSeq,
+    collectedAt: liveState.collectedAt,
+    obs: liveState.obs
+  };
+  try {
+    ws.send(JSON.stringify(payload));
+    const now = new Date().toISOString();
+    CONNECTION_STATE.lastLiveStateAt = now;
+    CONNECTION_STATE.liveStateUpdatedAt = now;
+    CONNECTION_STATE.liveState = liveState;
+    CONNECTION_STATE.lastSeenAt = now;
+    CONNECTION_STATE.connectionState = 'connected';
+    CONNECTION_STATE.reason = 'live_state_sent';
+    CONNECTION_STATE.liveStateSendErrorAt = null;
+    CONNECTION_STATE.liveStateSendError = null;
+    CONNECTION_STATE.actionsEnabled = false;
+    CONNECTION_STATE.productiveActionsEnabled = false;
+  } catch (err) {
+    CONNECTION_STATE.liveStateSendErrorAt = new Date().toISOString();
+    CONNECTION_STATE.liveStateSendError = err && err.message ? safeError(err.message) : 'live_state_send_failed';
+    handleError(config, err);
+  }
+}
+
+function buildObsLiveState(config) {
+  void config;
+  const collectedAt = new Date().toISOString();
+  const status = getObsSharedPublicStatus();
+  const currentScene = safeText(status.currentProgramSceneName || status.currentProgramScene || '', 160) || null;
+  return {
+    prepared: true,
+    readOnly: true,
+    protocolVersion: LIVE_STATE_PROTOCOL_VERSION,
+    collectedAt,
+    source: 'obs_shared_public_status',
+    obs: {
+      connected: status.obsConnected === true,
+      detected: status.obsDetected === true,
+      reachable: status.obsConnected === true || status.obsDetected === true,
+      currentScene,
+      currentProgramSceneName: currentScene,
+      noNewObsWebSocketConnection: true,
+      noObsControl: true
+    },
+    safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
+  };
+}
+
+function getObsSharedPublicStatus() {
+  try {
+    if (!obsSharedModule || typeof obsSharedModule.getSharedObs !== 'function') return {};
+    const shared = obsSharedModule.getSharedObs(process.env, console);
+    if (!shared || typeof shared.getPublicStatus !== 'function') return {};
+    return shared.getPublicStatus() || {};
+  } catch (err) {
+    return {};
+  }
+}
+
 function buildComponentStatus(config) {
   void config;
   const now = new Date().toISOString();
@@ -370,7 +460,7 @@ function buildComponentStatus(config) {
     localDashboard: { available: true, name: 'Lokales Dashboard', reachable: true, status: 'available', url: sanitizeLocalUrl(localDashboardUrl), checkedAt: now, detail: 'lokale Dashboard-Adresse hinterlegt' },
     localServer: { available: true, name: 'Lokaler Dashboard-Server', reachable: true, status: 'running', port: 8080, checkedAt: now, detail: 'dieser Node-Server liefert den Heartbeat' },
     obs: buildObsStatus(now),
-    streamerbot: { available: false, name: 'Streamer.bot', reachable: null, status: 'not_checked', checkedAt: now, detail: 'Version 0.1.5D liest Streamer.bot noch nicht aktiv aus' },
+    streamerbot: { available: false, name: 'Streamer.bot', reachable: null, status: 'not_checked', checkedAt: now, detail: 'Version 0.1.6 liest Streamer.bot noch nicht aktiv aus' },
     actionsEnabled: false,
     productiveActionsEnabled: false,
     noCommands: true,
@@ -705,14 +795,14 @@ function buildStatusResponse() {
   const state = buildConnectionStatus();
   return buildBaseResponse({
     displayName: 'Streaming-PC Verbindung',
-    status: { connected: state.connected, connectionState: state.connectionState, reason: state.reason, lastSeenAt: state.lastSeenAt, connectedSince: state.connectedSince, lastHeartbeatAt: state.lastHeartbeatAt, heartbeatSeq: state.heartbeatSeq, heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt), reconnectCount: state.reconnectCount, stale: isHeartbeatStale(state.lastHeartbeatAt) },
+    status: { connected: state.connected, connectionState: state.connectionState, reason: state.reason, lastSeenAt: state.lastSeenAt, connectedSince: state.connectedSince, lastHeartbeatAt: state.lastHeartbeatAt, heartbeatSeq: state.heartbeatSeq, heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt), lastLiveStateAt: state.lastLiveStateAt, liveStateSeq: state.liveStateSeq, liveStateAgeMs: calculateHeartbeatAgeMs(state.lastLiveStateAt), reconnectCount: state.reconnectCount, stale: isHeartbeatStale(state.lastHeartbeatAt) },
     streamingPcConnection: state,
-    agent: { agentId: state.agentId, agentName: state.agentName, agentVersion: state.agentVersion, protocolVersion: state.protocolVersion, heartbeatProtocolVersion: state.heartbeatProtocolVersion, expectedAgentId: 'stream-pc-main', expectedAgentName: 'Forrest Stream-PC' },
+    agent: { agentId: state.agentId, agentName: state.agentName, agentVersion: state.agentVersion, protocolVersion: state.protocolVersion, heartbeatProtocolVersion: state.heartbeatProtocolVersion, liveStateProtocolVersion: state.liveStateProtocolVersion, expectedAgentId: 'stream-pc-main', expectedAgentName: 'Forrest Stream-PC' },
     host: { dashboardServer: 'local-stream-control-center', hostname: safeHostname(), platform: process.platform, nodeVersion: process.version, processUptimeSec: Math.floor(process.uptime()), localTime: now },
     remoteTarget: { publicDashboardUrl: 'https://mods.forrestcgn.de', remoteWsUrl: state.remoteWsUrl, plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws', plannedWsPath: state.wsPath, streamPcPublicPortRequired: false, outgoingConnectionOnly: true },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
-    warnings: ['Version 0.1.5D sendet Heartbeats plus sicheren Komponentenstatus inklusive optionalem OBS-Inventar-read-only ueber obs_shared vom Streaming-PC zum Webserver.', 'OBS_WS_URL und OBS_WS_PASSWORD werden als lokale .env-Aliase erkannt; Inventar nutzt die bestehende obs_shared-Verbindung.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
+    warnings: ['Version 0.1.6 sendet Heartbeats plus sicheren Komponentenstatus und separaten read-only OBS-Live-State ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS_WS_URL und OBS_WS_PASSWORD werden als lokale .env-Aliase erkannt; Inventar nutzt die bestehende obs_shared-Verbindung.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
 }
@@ -736,6 +826,14 @@ function buildConnectionStatus() {
     lastSeenAt: CONNECTION_STATE.lastSeenAt,
     lastHeartbeatAt: CONNECTION_STATE.lastHeartbeatAt,
     heartbeatSeq: CONNECTION_STATE.heartbeatSeq,
+    liveStateProtocolVersion: CONNECTION_STATE.liveStateProtocolVersion,
+    liveStateSeq: CONNECTION_STATE.liveStateSeq,
+    liveStateIntervalMs: CONNECTION_STATE.liveStateIntervalMs,
+    lastLiveStateAt: CONNECTION_STATE.lastLiveStateAt,
+    liveStateUpdatedAt: CONNECTION_STATE.liveStateUpdatedAt,
+    liveState: CONNECTION_STATE.liveState || buildObsLiveState({}),
+    liveStateSendErrorAt: CONNECTION_STATE.liveStateSendErrorAt,
+    liveStateSendError: CONNECTION_STATE.liveStateSendError,
     componentStatus: CONNECTION_STATE.componentStatus || buildComponentStatus({}),
     componentStatusUpdatedAt: CONNECTION_STATE.componentStatusUpdatedAt,
     heartbeatIntervalMs: CONNECTION_STATE.heartbeatIntervalMs,
@@ -778,8 +876,8 @@ function buildPermissionsModelResponse() {
   });
 }
 
-function buildLocksStatusResponse() { return buildBaseResponse({ modelApiVersion: 'locks.streaming_pc.v0.1.5', locks: clonePlain(LOCK_MODEL), activeLocks: [], summary: { enabled: false, activeLockCount: 0, staleLockCount: 0, takeoverPendingCount: 0 }, warnings: ['Version 0.1.5D liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.'] }); }
-function buildAuditModelResponse() { return buildBaseResponse({ modelApiVersion: 'audit.streaming_pc.v0.1.5', audit: clonePlain(AUDIT_MODEL), summary: { enabled: false, recentEventsAvailable: false, retentionConfigurable: true }, warnings: ['Version 0.1.5D schreibt noch keine Audit-Events.'] }); }
+function buildLocksStatusResponse() { return buildBaseResponse({ modelApiVersion: 'locks.streaming_pc.v0.1.5', locks: clonePlain(LOCK_MODEL), activeLocks: [], summary: { enabled: false, activeLockCount: 0, staleLockCount: 0, takeoverPendingCount: 0 }, warnings: ['Version 0.1.6 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.'] }); }
+function buildAuditModelResponse() { return buildBaseResponse({ modelApiVersion: 'audit.streaming_pc.v0.1.5', audit: clonePlain(AUDIT_MODEL), summary: { enabled: false, recentEventsAvailable: false, retentionConfigurable: true }, warnings: ['Version 0.1.6 schreibt noch keine Audit-Events.'] }); }
 
 function buildRoutesResponse() {
   return buildBaseResponse({
@@ -787,16 +885,17 @@ function buildRoutesResponse() {
       { method: 'GET', path: '/api/remote-agent/status', description: 'Read-only Status fuer lokale Streaming-PC-Verbindung, Komponentenstatus und optionales OBS-Inventar.' },
       { method: 'GET', path: '/api/streaming-pc-connection/status', description: 'Lesbarer Alias fuer Streaming-PC Verbindung. Keine Aktionen.' },
       { method: 'GET', path: '/api/remote-agent/obs/inventory/status', description: 'Kompakte read-only OBS-Inventar-/ENV-Diagnose. Keine OBS-Steuerung.' },
+      { method: 'GET', path: '/api/remote-agent/obs/live/status', description: 'Lokaler read-only OBS-Live-Status ueber bestehende obs_shared-Instanz. Keine OBS-Steuerung.' },
       { method: 'GET', path: '/api/remote-agent/permissions/model', description: 'Read-only Rollen-/Permission-Modell. Keine User-/Grant-Schreiboperation.' },
       { method: 'GET', path: '/api/remote-agent/locks/status', description: 'Read-only Lock-Modell und aktueller Null-Status. Keine Lock-Schreiboperation.' },
       { method: 'GET', path: '/api/remote-agent/audit/model', description: 'Read-only Audit-Modell fuer spaetere produktive Aktionen. Keine Audit-Schreiboperation.' },
-      { method: 'GET', path: '/api/remote-agent/routes', description: 'Read-only Routenuebersicht fuer Version 0.1.5D.' }
+      { method: 'GET', path: '/api/remote-agent/routes', description: 'Read-only Routenuebersicht fuer Version 0.1.6.' }
     ]
   });
 }
 
 function buildSafetyBlock() {
-  return { noSoundControl: true, noObsControl: true, noOverlayControl: true, noMediaWrite: true, noTextConfigWrite: true, noCommandsOrChannelpoints: true, noDatabaseWrite: true, noFileWrite: true, noShellOrProcessActions: true, noAgentActionExecution: true, noStreamingPcActionExecution: true, heartbeatOnly: true, outgoingConnectionOnly: true, obsInventoryReadOnly: true, obsInventoryEnvDiagnostic: true, obsInventorySharedConnection: true };
+  return { noSoundControl: true, noObsControl: true, noOverlayControl: true, noMediaWrite: true, noTextConfigWrite: true, noCommandsOrChannelpoints: true, noDatabaseWrite: true, noFileWrite: true, noShellOrProcessActions: true, noAgentActionExecution: true, noStreamingPcActionExecution: true, heartbeatOnly: false, liveStateReadOnlyPush: true, outgoingConnectionOnly: true, obsInventoryReadOnly: true, obsLiveStateReadOnly: true, obsInventoryEnvDiagnostic: true, obsInventorySharedConnection: true };
 }
 
 function readString(name, fallback) { const value = process.env[name]; if (typeof value !== 'string') return fallback; const trimmed = value.trim(); return trimmed || fallback; }

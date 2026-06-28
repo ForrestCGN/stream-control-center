@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.20 - Agent OBS Live-State read-only vorbereitet
+
+- Separaten read-only Agent-WSS Message-Typ `live_state` vorbereitet.
+- Protocol `rdap-agent-live-state.v1` eingefuehrt.
+- Stream-PC-Agent sendet aktuelle OBS-Szene schnell ueber bestehende WSS-Verbindung.
+- Webserver validiert und sanitisiert Live-State streng und speichert ihn nur in Memory.
+- Neuer Online-Endpunkt: `GET /api/remote/agent/obs/live/status`.
+- UI nutzt online den Webserver-Live-State und lokal weiterhin `/api/remote-agent/obs/live/status`.
+- Inventar bleibt langsam/manuell; Live-/Bedienstatus ist schnell.
+- Keine OBS-Steuerung, keine Agent-Actions, keine Writes, keine DB-Migration.
+
 ## 0.2.19 - lokale OBS-Inventar UI als Mod-Bedienflaeche read-only vorbereitet
 
 - OBS-Seite von technischer Statusanzeige in Richtung Mod-Bedienflaeche umgebaut.

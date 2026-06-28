@@ -15,19 +15,27 @@ project-state/NEXT_STEPS.md
 backend/modules/remote_agent.js
 backend/modules/obs_shared.js
 backend/modules/local_remote_modboard_adapter.js
+backend/modules/obs_live_status.js
+remote-modboard/backend/src/services/agent-runtime.service.js
+remote-modboard/backend/src/routes/obs-readonly.routes.js
 remote-modboard/backend/public/assets/modules/system/obs.js
 ```
 
 Aktueller Stand:
 
 ```text
-0.2.19 - lokale OBS-Inventar UI als Mod-Bedienflaeche read-only vorbereitet
+0.2.20 - Agent OBS Live-State read-only vorbereitet
 ```
 
 Wichtig:
 
 ```text
-Produktive OBS-Szenen sind Szenen ohne fuehrenden Unterstrich `_`.
+Inventar langsam, Bedienstatus schnell.
+Stream-PC pusht OBS-Live-State read-only ueber bestehende Agent-WSS-Verbindung.
+Online-Endpunkt: /api/remote/agent/obs/live/status.
+Lokal bleibt: /api/remote-agent/obs/live/status.
+Live-State ist Memory-only, streng sanitisiert, keine Commands, keine Actions, keine Secrets.
+Produktive OBS-Szenen sind Szenen ohne fuehrenden `_`.
 Interne `_`-Szenen gehoeren nicht in die normale Mod-Bedienflaeche.
 OBS-Seite ist als spaetere Mod-Bedienung ausgerichtet, aber aktuell read-only.
 Rollen-/Rechte-Zielbild: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility, obs.admin.diagnostics.
@@ -38,5 +46,5 @@ Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
 Naechster sinnvoller Step:
 
 ```text
-0.2.20 - OBS Allowlist-/Rechte-Modell read-only vorbereiten, noch ohne echte OBS-Actions.
+0.2.21 - OBS Allowlist-/Rechte-Modell read-only planen/vorbereiten, noch ohne echte OBS-Actions.
 ```

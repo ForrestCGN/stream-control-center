@@ -2,13 +2,18 @@
 
 Stand: 2026-06-28
 
-Aktuell: `0.2.19 - lokale OBS-Inventar UI als Mod-Bedienflaeche read-only vorbereitet`.
+Aktuell: `0.2.20 - Agent OBS Live-State read-only vorbereitet`.
 
 Umgesetzt:
 
 ```text
-- OBS-Seite ist auf spaetere Mod-Bedienung ausgerichtet, bleibt aber read-only.
+- OBS-Seite bleibt Mod-Bedienflaeche read-only.
 - Aktuelle OBS-Szene wird prominent angezeigt.
+- Lokaler Live-Scene-Refresh bleibt ueber /api/remote-agent/obs/live/status moeglich.
+- Stream-PC-Agent kann OBS-Live-State read-only ueber bestehende Agent-WSS-Verbindung senden.
+- Neuer Online-Endpunkt: /api/remote/agent/obs/live/status.
+- Webserver speichert Live-State nur in Memory.
+- Inventar bleibt langsam/manuell.
 - Produktive Szenen werden aus inventory.scenes gefiltert: Name beginnt nicht mit `_`.
 - Interne `_`-Szenen werden in der normalen Mod-Ansicht ausgeblendet.
 - Audioquellen zeigen read-only Mute-Status, ohne Mute/Unmute-Button.
@@ -25,4 +30,5 @@ keine produktiven Writes
 keine DB-Migration
 keine Shell-/Datei-/Prozess-Actions
 keine freien OBS requestType Payloads
+keine Secrets in Logs, Status, UI oder Doku
 ```

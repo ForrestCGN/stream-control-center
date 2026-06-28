@@ -3,18 +3,25 @@
 const crypto = require('crypto');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'VERSION_0_1_3_STREAMING_PC_OBS_STATUS_READONLY';
-const STATUS_API_VERSION = 'streaming_pc_runtime.v0.1.3';
+const MODULE_BUILD = 'RDAP_0.2.20_AGENT_OBS_LIVE_STATE_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_obs_live_state_runtime_0220.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
+const LIVE_STATE_PROTOCOL_VERSION = 'rdap-agent-live-state.v1';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
 const MAX_HEARTBEAT_PAYLOAD_BYTES = 4096;
+const MAX_LIVE_STATE_PAYLOAD_BYTES = 2048;
 const PLANNED_HEARTBEAT_INTERVAL_MS = 30000;
+const PLANNED_LIVE_STATE_INTERVAL_MS = 500;
+const LIVE_STATE_STALE_AFTER_MS = 5000;
+const LIVE_STATE_OFFLINE_AFTER_MS = 15000;
 const STALE_AFTER_MS = 90000;
 const OFFLINE_AFTER_MS = 120000;
+
+const FORBIDDEN_LIVE_STATE_FIELDS = new Set(['capabilities', 'commands', 'requestedActions', 'actionQueue', 'env', 'paths', 'tokens', 'secrets', 'shell', 'stdout', 'stderr', 'configDump', 'processList', 'fileList']);
 
 const FORBIDDEN_HEARTBEAT_FIELDS = new Set([
   'capabilities',
@@ -94,7 +101,25 @@ const CONNECTION_STATE = {
   lastHeartbeatRejectReason: null,
   lastHeartbeatPayloadStored: false,
   componentStatus: clonePlain(EMPTY_COMPONENT_STATUS),
-  componentStatusUpdatedAt: null
+  componentStatusUpdatedAt: null,
+  liveStateReceiverPrepared: true,
+  liveStateInMemoryOnly: true,
+  liveStatePersistsToDatabase: false,
+  liveStateExecutesActions: false,
+  liveStateAcceptsCommands: false,
+  liveStateProtocolVersion: LIVE_STATE_PROTOCOL_VERSION,
+  liveState: null,
+  liveStateUpdatedAt: null,
+  lastLiveStateAt: null,
+  liveStateSeq: null,
+  liveStateAgeMs: null,
+  liveStateStaleAfterMs: LIVE_STATE_STALE_AFTER_MS,
+  liveStateOfflineAfterMs: LIVE_STATE_OFFLINE_AFTER_MS,
+  liveStateStale: false,
+  liveStateRejectCount: 0,
+  lastLiveStateRejectAt: null,
+  lastLiveStateRejectReason: null,
+  lastLiveStatePayloadStored: false
 };
 
 const REJECT_DIAGNOSTIC = {
@@ -209,6 +234,9 @@ function getAgentRuntimeConfig(config = {}) {
     wssRuntimeEnabled: effectiveEnabled,
     heartbeatReceiverBuildEnabled: HEARTBEAT_RECEIVER_BUILD_ENABLED,
     heartbeatReceiverEnabled,
+    liveStateReceiverPrepared: true,
+    liveStateProtocolVersion: LIVE_STATE_PROTOCOL_VERSION,
+    plannedLiveStateIntervalMs: PLANNED_LIVE_STATE_INTERVAL_MS,
     acceptsAgentConnections: effectiveEnabled,
     actionsEnabled: false,
     productiveAgentRuntime: false,
@@ -242,6 +270,9 @@ function buildRegistrationSummary(input = {}) {
     heartbeatReceiverEnabled: agentRuntime.heartbeatReceiverEnabled === true,
     componentStatusReceiverPrepared: true,
     componentStatusInMemoryOnly: true,
+    obsLiveStateReceiverPrepared: true,
+    obsLiveStateInMemoryOnly: true,
+    obsLiveStateRoute: '/api/remote/agent/obs/live/status',
     actionEnabled: false,
     productiveAgentRuntime: false,
     noAgentActions: true,
@@ -317,7 +348,7 @@ function acceptUpgrade(req, socket, details = {}) {
     'Upgrade: websocket',
     'Connection: Upgrade',
     `Sec-WebSocket-Accept: ${accept}`,
-    'X-SCC-Agent-Runtime: version-0.1.3-obs-status-readonly',
+    'X-SCC-Agent-Runtime: rdap-0.2.20-agent-obs-live-state-readonly',
     'X-SCC-Agent-Actions: disabled',
     'X-SCC-Agent-Heartbeat: readonly-in-memory',
     '',
@@ -410,6 +441,11 @@ function processHeartbeatText(text, details = {}) {
     return;
   }
 
+  if (payload && payload.type === 'live_state') {
+    processLiveStatePayload(payload, details, Buffer.byteLength(text, 'utf8'));
+    return;
+  }
+
   const validation = validateHeartbeatPayload(payload, details);
   if (!validation.ok) {
     recordHeartbeatReject(validation.reason);
@@ -453,6 +489,88 @@ function validateHeartbeatPayload(payload, details = {}) {
   if (payload.agentVersion && !agentVersion) return { ok: false, reason: 'heartbeat_agent_version_invalid' };
 
   return { ok: true, seq, agentVersion };
+}
+
+function processLiveStatePayload(payload, details = {}, payloadBytes = 0) {
+  if (payloadBytes > MAX_LIVE_STATE_PAYLOAD_BYTES) {
+    recordLiveStateReject('live_state_payload_too_large');
+    return;
+  }
+  const validation = validateLiveStatePayload(payload, details);
+  if (!validation.ok) {
+    recordLiveStateReject(validation.reason);
+    return;
+  }
+  const now = new Date().toISOString();
+  CONNECTION_STATE.lastSeenAt = now;
+  CONNECTION_STATE.lastLiveStateAt = now;
+  CONNECTION_STATE.liveStateSeq = validation.seq;
+  CONNECTION_STATE.liveState = validation.liveState;
+  CONNECTION_STATE.liveStateUpdatedAt = now;
+  CONNECTION_STATE.liveStateAgeMs = 0;
+  CONNECTION_STATE.liveStateStale = false;
+  CONNECTION_STATE.connectionState = 'connected';
+  CONNECTION_STATE.lastLiveStateRejectReason = null;
+  CONNECTION_STATE.lastLiveStatePayloadStored = false;
+  CONNECTION_STATE.actionsEnabled = false;
+  CONNECTION_STATE.productiveAgentRuntime = false;
+  CONNECTION_STATE.liveStateExecutesActions = false;
+  CONNECTION_STATE.liveStateAcceptsCommands = false;
+}
+
+function validateLiveStatePayload(payload, details = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { ok: false, reason: 'invalid_live_state_json' };
+  for (const key of Object.keys(payload)) {
+    if (FORBIDDEN_LIVE_STATE_FIELDS.has(key)) return { ok: false, reason: 'live_state_forbidden_fields' };
+  }
+  const allowedTop = new Set(['type', 'protocolVersion', 'agentId', 'seq', 'collectedAt', 'obs']);
+  for (const key of Object.keys(payload)) {
+    if (!allowedTop.has(key)) return { ok: false, reason: 'live_state_unexpected_field' };
+  }
+  if (payload.type !== 'live_state') return { ok: false, reason: 'unsupported_live_state_type' };
+  if (payload.protocolVersion !== LIVE_STATE_PROTOCOL_VERSION) return { ok: false, reason: 'unsupported_live_state_protocol' };
+  const expectedAgentId = details.agentId || CONNECTION_STATE.agentId || 'stream-pc-main';
+  if (payload.agentId !== expectedAgentId) return { ok: false, reason: 'live_state_agent_mismatch' };
+  const seq = Number(payload.seq);
+  if (!Number.isFinite(seq) || seq < 1 || Math.floor(seq) !== seq) return { ok: false, reason: 'live_state_seq_invalid' };
+  const collectedAt = safeIsoOrNull(payload.collectedAt) || new Date().toISOString();
+  const obs = sanitizeLiveObs(payload.obs);
+  return {
+    ok: true,
+    seq,
+    liveState: {
+      prepared: true,
+      readOnly: true,
+      protocolVersion: LIVE_STATE_PROTOCOL_VERSION,
+      source: 'agent-wss-live-state',
+      agentId: expectedAgentId,
+      seq,
+      collectedAt,
+      receivedAt: new Date().toISOString(),
+      obs,
+      currentScene: obs.currentScene,
+      currentProgramSceneName: obs.currentProgramSceneName,
+      safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
+    }
+  };
+}
+
+function sanitizeLiveObs(input) {
+  const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const allowed = new Set(['connected', 'detected', 'reachable', 'currentScene', 'currentProgramSceneName']);
+  for (const key of Object.keys(source)) {
+    if (!allowed.has(key)) return { connected: false, detected: false, reachable: null, currentScene: null, currentProgramSceneName: null, status: 'invalid_live_obs_fields' };
+  }
+  const currentScene = safeLabel(source.currentProgramSceneName || source.currentScene || '') || null;
+  return {
+    connected: source.connected === true,
+    detected: source.detected === true,
+    reachable: source.reachable === true ? true : source.reachable === false ? false : null,
+    currentScene,
+    currentProgramSceneName: currentScene,
+    status: currentScene ? 'live_scene_available' : (source.connected === true ? 'connected_no_scene' : 'not_connected_or_not_ready'),
+    noObsControl: true
+  };
 }
 
 function sanitizeComponentStatus(input, fallbackCollectedAt) {
@@ -558,6 +676,13 @@ function clearConnectionState(reason) {
   CONNECTION_STATE.lastHeartbeatPayloadStored = false;
   CONNECTION_STATE.componentStatus = clonePlain(EMPTY_COMPONENT_STATUS);
   CONNECTION_STATE.componentStatusUpdatedAt = null;
+  CONNECTION_STATE.liveState = null;
+  CONNECTION_STATE.liveStateUpdatedAt = null;
+  CONNECTION_STATE.lastLiveStateAt = null;
+  CONNECTION_STATE.liveStateSeq = null;
+  CONNECTION_STATE.liveStateAgeMs = null;
+  CONNECTION_STATE.liveStateStale = false;
+  CONNECTION_STATE.lastLiveStatePayloadStored = false;
   activeSocket = null;
 }
 
@@ -598,6 +723,15 @@ function recordHeartbeatReject(reason) {
   CONNECTION_STATE.lastHeartbeatRejectAt = new Date().toISOString();
   CONNECTION_STATE.lastHeartbeatRejectReason = safeReason(reason || 'heartbeat_rejected');
   CONNECTION_STATE.lastHeartbeatPayloadStored = false;
+  CONNECTION_STATE.actionsEnabled = false;
+  CONNECTION_STATE.productiveAgentRuntime = false;
+}
+
+function recordLiveStateReject(reason) {
+  CONNECTION_STATE.liveStateRejectCount += 1;
+  CONNECTION_STATE.lastLiveStateRejectAt = new Date().toISOString();
+  CONNECTION_STATE.lastLiveStateRejectReason = safeReason(reason || 'live_state_rejected');
+  CONNECTION_STATE.lastLiveStatePayloadStored = false;
   CONNECTION_STATE.actionsEnabled = false;
   CONNECTION_STATE.productiveAgentRuntime = false;
 }
@@ -706,6 +840,24 @@ function buildAgentConnectionSummary() {
     lastHeartbeatRejectAt: CONNECTION_STATE.lastHeartbeatRejectAt,
     lastHeartbeatRejectReason: CONNECTION_STATE.lastHeartbeatRejectReason,
     lastHeartbeatPayloadStored: false,
+    liveStateReceiverPrepared: true,
+    liveStateInMemoryOnly: true,
+    liveStatePersistsToDatabase: false,
+    liveStateExecutesActions: false,
+    liveStateAcceptsCommands: false,
+    liveStateProtocolVersion: LIVE_STATE_PROTOCOL_VERSION,
+    plannedLiveStateIntervalMs: PLANNED_LIVE_STATE_INTERVAL_MS,
+    lastLiveStateAt: CONNECTION_STATE.lastLiveStateAt,
+    liveStateSeq: CONNECTION_STATE.liveStateSeq,
+    liveStateAgeMs: CONNECTION_STATE.liveStateAgeMs,
+    liveStateStaleAfterMs: LIVE_STATE_STALE_AFTER_MS,
+    liveStateOfflineAfterMs: LIVE_STATE_OFFLINE_AFTER_MS,
+    liveStateStale: CONNECTION_STATE.liveStateStale === true,
+    liveStateRejectCount: CONNECTION_STATE.liveStateRejectCount,
+    lastLiveStateRejectAt: CONNECTION_STATE.lastLiveStateRejectAt,
+    lastLiveStateRejectReason: CONNECTION_STATE.lastLiveStateRejectReason,
+    lastLiveStatePayloadStored: false,
+    liveState: clonePlain(CONNECTION_STATE.liveState || buildEmptyLiveState()),
     componentStatus: clonePlain(CONNECTION_STATE.componentStatus || EMPTY_COMPONENT_STATUS),
     componentStatusUpdatedAt: CONNECTION_STATE.componentStatusUpdatedAt,
     componentStatusInMemoryOnly: true,
@@ -723,6 +875,7 @@ function buildAgentConnectionSummary() {
 }
 
 function updateDerivedHeartbeatState() {
+  updateDerivedLiveState();
   if (!CONNECTION_STATE.connected) {
     CONNECTION_STATE.connectionState = 'offline';
     CONNECTION_STATE.stale = false;
@@ -759,6 +912,53 @@ function updateDerivedHeartbeatState() {
   }
   CONNECTION_STATE.connectionState = 'connected';
   CONNECTION_STATE.stale = false;
+}
+
+function updateDerivedLiveState() {
+  if (!CONNECTION_STATE.connected || !CONNECTION_STATE.lastLiveStateAt) {
+    CONNECTION_STATE.liveStateAgeMs = null;
+    CONNECTION_STATE.liveStateStale = false;
+    return;
+  }
+  const last = Date.parse(CONNECTION_STATE.lastLiveStateAt);
+  if (!Number.isFinite(last)) {
+    CONNECTION_STATE.liveStateAgeMs = null;
+    CONNECTION_STATE.liveStateStale = false;
+    return;
+  }
+  const age = Math.max(0, Date.now() - last);
+  CONNECTION_STATE.liveStateAgeMs = age;
+  CONNECTION_STATE.liveStateStale = age >= LIVE_STATE_STALE_AFTER_MS;
+}
+
+function buildEmptyLiveState() {
+  return { prepared: true, readOnly: true, protocolVersion: LIVE_STATE_PROTOCOL_VERSION, source: 'agent-wss-live-state', available: false, collectedAt: null, receivedAt: null, obs: { connected: false, detected: false, reachable: null, currentScene: null, currentProgramSceneName: null, status: 'not_reported', noObsControl: true }, currentScene: null, currentProgramSceneName: null, safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false } };
+}
+
+function buildAgentObsLiveStatusResponse() {
+  updateDerivedHeartbeatState();
+  const connected = CONNECTION_STATE.connected === true;
+  const liveState = CONNECTION_STATE.liveState || buildEmptyLiveState();
+  const available = connected && liveState && liveState.obs && Boolean(liveState.obs.currentScene);
+  return {
+    ok: true,
+    service: 'remote-modboard',
+    module: MODULE,
+    moduleBuild: MODULE_BUILD,
+    statusApiVersion: 'rdap_agent_obs_live_state_status_0220.v1',
+    route: '/api/remote/agent/obs/live/status',
+    generatedAt: new Date().toISOString(),
+    readOnly: true,
+    prepared: true,
+    active: available,
+    status: available ? 'live_scene_available' : (connected ? 'connected_no_live_scene' : 'agent_offline'),
+    agent: { connected, connectionState: CONNECTION_STATE.connectionState, agentId: CONNECTION_STATE.agentId, agentName: CONNECTION_STATE.agentName, lastSeenAt: CONNECTION_STATE.lastSeenAt, lastLiveStateAt: CONNECTION_STATE.lastLiveStateAt, liveStateAgeMs: CONNECTION_STATE.liveStateAgeMs, liveStateStale: CONNECTION_STATE.liveStateStale === true },
+    liveState: clonePlain(liveState),
+    obs: clonePlain(liveState.obs || buildEmptyLiveState().obs),
+    currentScene: liveState.currentScene || null,
+    currentProgramSceneName: liveState.currentProgramSceneName || null,
+    safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false, inMemoryOnly: true, persistsToDatabase: false }
+  };
 }
 
 function rejectUpgrade(socket, details = {}) {
@@ -914,5 +1114,6 @@ module.exports = {
   registerAgentRuntime,
   buildRegistrationSummary,
   buildAgentConnectionSummary,
+  buildAgentObsLiveStatusResponse,
   buildRejectDiagnosticSummary
 };
