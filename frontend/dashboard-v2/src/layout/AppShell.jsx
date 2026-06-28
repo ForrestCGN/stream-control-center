@@ -6,7 +6,7 @@ import { ModuleTabs } from "./ModuleTabs.jsx";
 export function AppShell({ sections, activeRoute, activeModule, isSidebarCollapsed, onToggleSidebar, onNavigate, children }) {
   useEffect(() => {
     function updateScrolledState() {
-      document.body.classList.toggle("is-scrolled", window.scrollY > 12);
+      document.body.classList.toggle("is-scrolled", window.scrollY > 8);
     }
     updateScrolledState();
     window.addEventListener("scroll", updateScrolledState, { passive: true });

@@ -18,3 +18,19 @@ body.is-scrolled .cgn-topbar{border-color:rgba(255,255,255,.52);background:rgba(
 @media(max-width:1180px){.cgn-topbar{grid-template-columns:minmax(210px,1fr) minmax(180px,.7fr) auto}.top-right .cgn-avatar-copy{display:none}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.page-grid{grid-template-columns:1fr}.status-grid{grid-template-columns:1fr}}
 @media(max-width:900px){.cgn-topbar{grid-template-columns:minmax(0,1fr) auto}.top-search,.top-center{display:none}.cgn-layout{padding-left:10px}.cgn-sidebar{position:fixed;transform:translateX(calc(-100% - 16px));opacity:0;pointer-events:none}body:not(.nav-collapsed) .cgn-sidebar{opacity:1;pointer-events:auto;transform:translateX(0)}.cgn-scrim{display:block;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.42);opacity:0;pointer-events:none}body:not(.nav-collapsed) .cgn-scrim{opacity:1;pointer-events:auto}.metric-grid{grid-template-columns:1fr}.top-right .secondaryButton,.top-right .cgn-lang{display:none}}
 @media(max-width:560px){.cgn-topbar{height:auto;min-height:var(--topbar-h);grid-template-columns:1fr;align-items:stretch}.top-right{justify-content:flex-start}.cgn-layout{padding-top:calc(var(--topbar-h) + 82px)}.page-header h1{font-size:24px}.kv-row{grid-template-columns:1fr}.activity-row,.quick-row{grid-template-columns:36px minmax(0,1fr)}.activity-icon,.quick-icon{width:36px;height:36px}}
+
+
+/* 0.2.10F: /dashboard-v2 uses the Remote-Modboard shell directly. Local differences are data only. */
+.dashboardScene{display:block;min-height:100vh}
+#dashboardScene[hidden]{display:none!important}
+#remoteModboardContent{min-width:0}
+.cgn-topbar{grid-template-columns:minmax(210px,.85fr) minmax(190px,.65fr) auto minmax(390px,auto)!important}
+.top-search{max-width:248px;justify-self:start;width:100%}
+.top-center{justify-content:center;gap:8px;flex-wrap:nowrap;min-width:0;overflow:hidden}
+.top-right{justify-content:flex-end;gap:8px;min-width:0;overflow:visible}
+.top-right .secondaryButton{height:42px;border-radius:16px;padding:0 17px;font-size:14px;white-space:nowrap}
+.cgn-avatar-button{max-width:264px;overflow:hidden}
+.cgn-avatar-copy small{opacity:.82}.local-only-note{font-size:12px;color:var(--muted);margin-top:6px}.rdap-view{display:none}.rdap-view.is-active-view{display:block}.errorBox{margin-bottom:var(--gap);display:flex;align-items:center;justify-content:space-between;gap:12px}.errorBox[hidden]{display:none!important}.footer{margin-top:var(--gap);display:flex;justify-content:space-between;align-items:center;gap:12px}.local-shell-note{padding:11px 12px;border-radius:15px;background:rgba(27,216,255,.06);border:1px solid rgba(27,216,255,.16);color:var(--muted);font-size:12px;line-height:1.4}.self-profile-panel,.self-profile-backdrop{display:none!important}.module-status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+@media(max-width:1360px){.cgn-topbar{grid-template-columns:minmax(190px,.8fr) minmax(180px,.5fr) minmax(420px,auto) minmax(320px,auto)!important}.top-center .cgn-chip:nth-child(5){display:none}.cgn-avatar-copy small{display:none}}
+@media(max-width:1180px){.cgn-topbar{grid-template-columns:minmax(210px,1fr) minmax(180px,.7fr) auto!important}.top-right .cgn-avatar-copy{display:none}.top-center .cgn-chip:nth-child(n+4){display:none}.module-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.top-search,.top-center{display:none}.cgn-topbar{grid-template-columns:minmax(0,1fr) auto!important}.top-right .secondaryButton,.top-right .cgn-lang{display:none}.module-status-grid{grid-template-columns:1fr}}

@@ -1,12 +1,9 @@
 # TODO - aktive Kurzfrist-Aufgaben
 
-Stand: 2026-06-27
+Stand: 2026-06-28
 
-- [ ] `0.2.10C - Dashboard-v2 V13/Modboard-Design wirklich uebernommen` lokal nicht als finalen Optik-Stand behandeln.
-- [ ] Naechsten Step planen: `0.2.10D - Dashboard-v2 Topbar V13 exakt nachziehen`.
-- [ ] Vor 0.2.10D echte Design-Dateien lesen: Remote-Modboard, V13-Referenz, UI-Design-Doku.
-- [ ] Topbar oben korrigieren: Hoehe, Spalten, Abstaende, Breadcrumb, Suche, Chips, Refresh, DE, Lock, Avatar/Userbereich.
-- [ ] `body.is-scrolled .cgn-topbar` mit hellem Rand/Glow/Shadow sauber pruefen.
-- [ ] Keine fachliche Erweiterung vor Topbar-Fix.
-- [ ] `/dashboard/` unveraendert lassen.
-- [ ] Kein Webserver-Deploy noetig, solange nur lokale Dashboard-v2-/Doku-Dateien geaendert werden.
+- [ ] `0.2.10H` lokal installieren und Node neu starten.
+- [ ] `/api/remote/local-dashboard/adapter/status` pruefen.
+- [ ] `/dashboard-v2/` Sichttest: keine nackte HTML-Seite, Remote-Modboard-Optik sichtbar.
+- [ ] Falls sichtbar passend: `stepdone.cmd`.
+- [ ] Keine fachliche Erweiterung vor erfolgreichem Sichttest.
