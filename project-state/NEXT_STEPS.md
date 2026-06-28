@@ -2,21 +2,36 @@
 
 Stand: 2026-06-28
 
-Naechster Schritt nach `0.2.14B`:
+Naechster sinnvoller Code-Step nach `0.2.14C`:
 
 ```text
-Sichttest lokal: OBS-Seite zeigt echte Labels statt Rohkeys.
+0.2.15 - OBS Inventar read-only vorbereiten
 ```
 
-Pruefen:
+Ziel:
 
 ```text
-- Sidebar zeigt OBS statt page.system.obs.label.
-- Topbar zeigt OBS Status / read-only statt Rohkeys.
-- OBS read-only Kacheln laden weiter.
-- Keine Steuerbuttons vorhanden.
+- Szenen/Quellen/Audio read-only vorbereiten.
+- Status-/Modellstruktur fuer OBS-Inventar sauber erweitern.
+- Keine Steuerbuttons.
+- Keine Szenenwechsel.
+- Keine Mute-/Unmute-Aktionen.
+- Keine Quellen-Sichtbarkeit aendern.
+- Keine Media-Steuerung.
+- Keine produktiven Writes.
+- Keine Agent-Actions ohne separates Action-Modell.
 ```
 
-Danach `stepdone.cmd`.
+Vor dem naechsten Code-Step zuerst echte Dateien aus GitHub/dev lesen, insbesondere:
 
-Spaeter separat planen: Navigation in Richtung Live / Control / Loyalty / Community / System / Admin, ohne grossen Umbau in diesem Fix-Step.
+```text
+remote-modboard/backend/src/routes/obs-readonly.routes.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/public/assets/modules/system/obs.js
+htdocs/dashboard-v2/assets/modules/system/obs.js
+backend/modules/local_remote_modboard_adapter.js
+backend/modules/remote_agent.js
+```
+
+Spaeter separat planen: Navigation in Richtung Live / Control / Loyalty / Community / System / Admin, ohne grossen Umbau im OBS-Inventar-Step.

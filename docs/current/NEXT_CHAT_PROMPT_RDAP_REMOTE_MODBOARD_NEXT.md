@@ -17,12 +17,25 @@ Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer Forrest
 ## Aktueller Stand
 
 ```text
-0.2.14B - OBS read-only UI Label-Fix
+0.2.14C - OBS read-only Online-Status-Fix
 ```
 
 ## Wichtig
 
-OBS ist sichtbar, bleibt aber read-only. 0.2.14B korrigiert nur sichtbare Label-/Title-Rohkeys.
+OBS ist sichtbar und bleibt read-only.
+
+0.2.14:
+- OBS read-only in der UI sichtbar.
+
+0.2.14B:
+- sichtbare OBS-Label-/Title-Rohkeys korrigiert.
+
+0.2.14C:
+- Online-Backend-Status und Routes mit sichtbarer OBS-Seite synchronisiert.
+- `/api/remote/status` enthaelt `obsPage`.
+- `/api/remote/routes` enthaelt `/api/remote/local-dashboard/obs/status` und `/model`.
+- `/api/remote/local-dashboard/obs/status` liefert read-only Online-Placeholder.
+- Webserver-Deploy wurde ausgefuehrt und erfolgreich geprueft.
 
 Keine grosse Navigation neu bauen. Die alte grobe Zielstruktur kann spaeter separat geplant werden:
 
@@ -30,4 +43,24 @@ Keine grosse Navigation neu bauen. Die alte grobe Zielstruktur kann spaeter sepa
 Live / Control / Loyalty / Community / System / Admin
 ```
 
-Naechster Schritt: Sichttest, dann stepdone. Danach klein weiterplanen.
+Mein Konto gehoert oben rechts, nicht links.
+
+OBS ist aktuell unter System sichtbar. Wenn spaeter verschoben wird, dann eher klein Richtung `Control -> OBS`, aber nicht in diesem Step.
+
+## Naechster sinnvoller Step
+
+```text
+0.2.15 - OBS Inventar read-only vorbereiten
+```
+
+Ziel:
+- Szenen/Quellen/Audio read-only vorbereiten.
+- Weiterhin keine Steuerung.
+- Keine Szenenwechsel.
+- Keine Mutes.
+- Keine Quellen-Sichtbarkeit aendern.
+- Keine Media-Steuerung.
+- Keine produktiven Writes.
+- Keine Agent-Actions ohne separates Action-Modell.
+
+Vor jedem neuen Code-Step: echte Dateien aus GitHub/dev lesen, Plan nennen, auf `go` warten.
