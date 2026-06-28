@@ -1,35 +1,27 @@
 # Next Steps
 
-Nach `0.2.20B`:
+Nach `0.2.20C`:
 
 ```text
-0.2.21 - OBS Allowlist-/Rechte-Modell read-only planen/vorbereiten
+0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereiten
 ```
 
-Ziel fuer den naechsten sinnvollen Step:
+Ziel:
 
 ```text
 - produktive Szenen ohne `_` bleiben sichtbare Basis
-- schaltbare Szenen werden spaeter zusaetzlich ueber Allowlist freigegeben
-- geplante Rechte: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility, obs.admin.diagnostics
-- Admin/Diagnose nimmt spaeter Technikdetails auf: Agent, Live-State, Inventarstatus, ENV-Diagnose, interne Szenen, komplette Quellenliste
-- weiterhin keine OBS-Actions ohne separaten freigegebenen Control-Step
+- schaltbare Szenen werden spaeter zusaetzlich per Allowlist freigegeben
+- Rechte vorbereiten: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility, obs.admin.diagnostics
+- UI zeigt spaetere Bedienbarkeit nur als read-only Vorschau
+- keine echten Buttons/Aktionen aktivieren
+- keine OBS-Kommandos senden
 ```
 
-Lokal pruefen:
+Dabei beachten:
 
 ```text
-GET /api/remote-agent/obs/live/status
-GET /api/remote-agent/obs/inventory/status
-GET /api/remote-agent/status
-GET /api/remote/local-dashboard/obs/status
-/dashboard-v2/ -> System / OBS
-```
-
-Online pruefen:
-
-```text
-GET /api/remote/agent/obs/live/status
-GET /api/remote/status
-GET /api/remote/routes
+Heartbeat klein lassen.
+Live-State fuer schnelle kleine Daten nutzen.
+Inventory langsam/groesser lassen.
+Keine grossen Daten in den Heartbeat packen.
 ```

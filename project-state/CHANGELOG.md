@@ -1,23 +1,25 @@
 # Changelog
 
-## 0.2.20B - Agent Heartbeat slim + OBS Live-State read-only
+## 0.2.20C - Agent OBS Live-State Scene Mapping read-only
 
-- Heartbeat absichtlich verkleinert: Verbindung + minimaler Komponentenstatus.
-- OBS-Inventar wird nicht mehr im Heartbeat gesendet.
-- Schneller OBS-Live-State bleibt separater WSS-Message-Typ `live_state`.
-- Ziel: Webserver trennt Agent nicht mehr wegen `heartbeat_payload_too_large`.
+- Scene-Mapping im Live-State korrigiert.
+- Webserver uebernimmt `currentScene` / `currentProgramSceneName` korrekt aus dem Agent-Live-State.
+- Online-Endpoint `/api/remote/agent/obs/live/status` liefert bestaetigt `active=true` und `status=live_scene_available`.
+- Bestaetigte Szene: `Live Gameplay Engel&Forrest`.
 - Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
 
-## 0.2.20 - Agent OBS Live-State read-only vorbereitet
+## 0.2.20B - Agent Heartbeat slim + Live-State getrennt
 
-- Separaten read-only Agent-WSS Message-Typ `live_state` vorbereitet.
-- Protocol `rdap-agent-live-state.v1` eingefuehrt.
-- Stream-PC-Agent sendet aktuelle OBS-Szene schnell ueber bestehende WSS-Verbindung.
-- Webserver validiert und sanitisiert Live-State streng und speichert ihn nur in Memory.
-- Neuer Online-Endpunkt: `GET /api/remote/agent/obs/live/status`.
-- UI nutzt online den Webserver-Live-State und lokal weiterhin `/api/remote-agent/obs/live/status`.
-- Inventar bleibt langsam/manuell; Live-/Bedienstatus ist schnell.
-- Keine OBS-Steuerung, keine Agent-Actions, keine Writes, keine DB-Migration.
+- Heartbeat abgespeckt, damit Verbindung nicht wegen `heartbeat_payload_too_large` getrennt wird.
+- Schneller Live-State bleibt separat.
+- Architektur festgelegt: Heartbeat klein, Live-State schnell, Inventory langsam/groesser.
+
+## 0.2.20 - Agent OBS Live-State read-only
+
+- Schnellen OBS-Live-State ueber Agent-WSS vorbereitet.
+- Online-Route `/api/remote/agent/obs/live/status` vorbereitet.
+- UI auf Online-Live-State vorbereitet.
+- Alles read-only und in Memory.
 
 ## 0.2.19 - lokale OBS-Inventar UI als Mod-Bedienflaeche read-only vorbereitet
 
@@ -27,5 +29,5 @@
 - Interne `_`-Szenen aus normaler Mod-Ansicht ausgeblendet.
 - Audioquellen inklusive read-only Mute-Status angezeigt.
 - Quellen nur noch als kompakte Vorschau; Technikdetails sollen spaeter in Admin / Diagnose.
-- Rollen-/Rechte-Zielbild vorbereitet: `obs.read`, `obs.scene.switch`, `obs.audio.mute`, `obs.source.visibility`.
+- Rollen-/Rechte-Zielbild vorbereitet.
 - Keine OBS-Steuerung, keine Agent-Actions, keine Writes.

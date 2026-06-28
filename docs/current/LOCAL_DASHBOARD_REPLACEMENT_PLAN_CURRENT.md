@@ -1,40 +1,50 @@
 # Local Dashboard Replacement Plan Current
 
-Stand: 0.2.20B
+Stand: `0.2.20C`
 
-0.2.19 richtete die lokale/remote OBS-Seite als spaetere Mod-Bedienflaeche aus:
+Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale `dashboard-v2` ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 
-```text
-- dieselbe Remote-Modboard-UI online und lokal
-- aktuelle Szene prominent
-- produktive Szenen = Szenen ohne fuehrenden `_`
-- interne `_`-Szenen in normaler Mod-Ansicht ausgeblendet
-- Audioquellen read-only sichtbar
-- Quellen nur kompakte Vorschau
-- Rollen-/Rechte-Zielbild sichtbar vorbereitet
-```
-
-0.2.20/0.2.20B setzt die Entscheidung `Inventar langsam, Bedienstatus schnell` technisch fuer online um:
+## Erreicht
 
 ```text
-- lokaler Live-Status bleibt ueber /api/remote-agent/obs/live/status
-- Stream-PC sendet schnellen read-only Live-State ueber bestehende Agent-WSS-Verbindung
-- Webserver haelt Live-State nur in Memory
-- Online-UI nutzt /api/remote/agent/obs/live/status fuer aktuelle Szene
-- Heartbeat bleibt klein und transportiert kein OBS-Inventar
-- Inventar bleibt langsam/manuell und online ohne lokale OBS-Daten leer/placeholder
+0.2.19: OBS-Seite als spaetere Mod-Bedienflaeche read-only vorbereitet.
+0.2.20: Online OBS-Live-State ueber Agent-WSS vorbereitet.
+0.2.20B: Heartbeat abgespeckt; Live-State separat schnell gehalten.
+0.2.20C: Scene-Mapping korrigiert; Online-Live-Szene bestaetigt.
 ```
 
-Sicherheitsgrenzen bleiben unveraendert:
+## Datenmodell fuer Lokal/Online
 
 ```text
-keine OBS-Steuerung
-keine Agent-Actions
-keine Writes
-keine DB-Migration
-keine Shell-/Datei-/Prozess-Actions
-keine freien OBS-Payloads
-keine Secrets in Logs, Status, UI oder Doku
+Heartbeat:
+- klein
+- stabil
+- Verbindung/Agent-Zustand
+- ca. alle 30 Sekunden
+
+Live-State:
+- schnell
+- aktuelle OBS-Szene und spaeter weitere kleine Live-Werte
+- ca. alle 250-500 ms
+- online nur in Memory
+
+Inventory:
+- groessere Listen
+- Szenen, Quellen, Audioquellen
+- langsam/manuell oder selten
 ```
 
-Technikdetails wie Agentstatus, Inventarstatus, ENV-Diagnose, interne Szenen und komplette Quellenliste gehoeren spaeter in Admin / Diagnose.
+## Grenzen
+
+```text
+Keine OBS-Steuerung.
+Keine Agent-Actions.
+Keine Writes.
+Keine DB-Migration.
+Keine freien OBS-Payloads.
+Webserver baut keine OBS-WebSocket-Verbindung auf.
+```
+
+## Naechster Ausbau
+
+OBS-Allowlist-/Rechte-Modell read-only vorbereiten. Echte Steuerung erst spaeter in einem separat freigegebenen Control-Step.

@@ -6,45 +6,92 @@ WICHTIG:
 GitHub/dev ist Wahrheit. Nicht blind aus Erinnerung arbeiten.
 Erst die Startdateien wirklich aus GitHub/dev lesen, dann Plan nennen, dann auf mein explizites `go` warten.
 
+Verbindliche Arbeitsweise:
+
+```text
+- Immer zuerst echte Dateien aus GitHub/dev lesen.
+- Erst Plan nennen.
+- Auf explizites go warten.
+- Keine Code-/ZIP-Erstellung vor go.
+- Bestehende Module/Services/Dateien bevorzugen.
+- Keine parallelen Strukturen erfinden.
+- ZIPs muessen echte Repo-Zielpfade enthalten.
+- Forrest legt ZIPs in den Downloads-Ordner.
+- Lokal: cd D:\Git\stream-control-center; .\installstep.cmd "$env:USERPROFILE\Downloads\<ZIP>.zip" "<Beschreibung>"
+- Danach lokale Checks und git status.
+- Wenn sauber: .\stepdone.cmd "<Beschreibung>"
+- Webserver-Deploy nur nach Code-/Remote-Modboard-Aenderungen.
+```
+
 Startdateien zuerst lesen:
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
 backend/modules/remote_agent.js
 backend/modules/obs_shared.js
 backend/modules/local_remote_modboard_adapter.js
 backend/modules/obs_live_status.js
+remote-modboard/backend/server.js
 remote-modboard/backend/src/services/agent-runtime.service.js
 remote-modboard/backend/src/routes/obs-readonly.routes.js
 remote-modboard/backend/public/assets/modules/system/obs.js
+htdocs/dashboard-v2/assets/modules/system/obs.js
 ```
 
 Aktueller Stand:
 
 ```text
-0.2.20B - Agent Heartbeat slim + OBS Live-State read-only
+0.2.20C - Agent OBS Live-State online read-only bestaetigt.
 ```
 
-Wichtig:
+Bestaetigt:
 
 ```text
-Inventar langsam, Bedienstatus schnell.
-Stream-PC pusht OBS-Live-State read-only ueber bestehende Agent-WSS-Verbindung. Heartbeat ist absichtlich klein und enthaelt kein OBS-Inventar.
-Online-Endpunkt: /api/remote/agent/obs/live/status.
-Lokal bleibt: /api/remote-agent/obs/live/status.
-Live-State ist Memory-only, streng sanitisiert, keine Commands, keine Actions, keine Secrets.
-Produktive OBS-Szenen sind Szenen ohne fuehrenden `_`.
-Interne `_`-Szenen gehoeren nicht in die normale Mod-Bedienflaeche.
-OBS-Seite ist als spaetere Mod-Bedienung ausgerichtet, aber aktuell read-only.
-Rollen-/Rechte-Zielbild: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility, obs.admin.diagnostics.
-Technik/Diagnose soll spaeter in Admin / Diagnose, nicht in die normale OBS-Mod-Seite.
-Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
+- Stream-PC-Agent ist per WSS verbunden.
+- Heartbeat ist schlank und stabil.
+- Live-State ist vom Heartbeat getrennt.
+- OBS aktuelle Szene kommt online an.
+- /api/remote/agent/obs/live/status liefert active=true, status=live_scene_available, currentScene.
+- UI zeigt die Online-Live-Szene.
+```
+
+Architektur:
+
+```text
+Heartbeat = klein/stabil, Verbindung, ca. 30s.
+Live-State = schnelle Daten, aktuell OBS-Szene, ca. 500ms.
+Inventory = langsam/groesser, Szenen/Quellen/Audioquellen.
+```
+
+Sicherheitsgrenzen:
+
+```text
+Keine OBS-Steuerung.
+Keine Agent-Actions.
+Keine Writes.
+Keine DB-Migration.
+Keine Shell-/Datei-/Prozess-Actions.
+Keine freien OBS-Payloads.
+Webserver baut keine OBS-WebSocket-Verbindung auf.
 ```
 
 Naechster sinnvoller Step:
 
 ```text
-0.2.21 - OBS Allowlist-/Rechte-Modell read-only planen/vorbereiten, noch ohne echte OBS-Actions.
+0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereiten.
+```
+
+Ziel 0.2.21:
+
+```text
+- produktive Szenen bleiben Szenen ohne fuehrenden `_`
+- zusaetzliche Allowlist fuer spaeter schaltbare Szenen planen
+- Rechte/Zielbild vorbereiten: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility, obs.admin.diagnostics
+- UI-Zustaende fuer spaetere Buttons read-only vorbereiten
+- noch keine OBS-Actions aktivieren
 ```
