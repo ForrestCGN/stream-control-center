@@ -46,7 +46,7 @@ htdocs/dashboard-v2/assets/modules/system/obs.js
 Aktueller Stand:
 
 ```text
-0.2.20C - Agent OBS Live-State online read-only bestaetigt.
+0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereitet.
 ```
 
 Bestaetigt:
@@ -57,15 +57,17 @@ Bestaetigt:
 - Live-State ist vom Heartbeat getrennt.
 - OBS aktuelle Szene kommt online an.
 - /api/remote/agent/obs/live/status liefert active=true, status=live_scene_available, currentScene.
-- UI zeigt die Online-Live-Szene.
+- UI zeigt Online-Live-Szene.
+- OBS-Allowlist-/Rechte-Modell ist read-only vorbereitet.
 ```
 
 Architektur:
 
 ```text
 Heartbeat = klein/stabil, Verbindung, ca. 30s.
-Live-State = schnelle Daten, aktuell OBS-Szene, ca. 500ms.
+Live-State = schnelle kleine Daten, aktuell OBS-Szene, ca. 500ms.
 Inventory = langsam/groesser, Szenen/Quellen/Audioquellen.
+Allowlist/Rechte = Modell fuer spaetere Bedienbarkeit, aktuell read-only.
 ```
 
 Sicherheitsgrenzen:
@@ -83,15 +85,14 @@ Webserver baut keine OBS-WebSocket-Verbindung auf.
 Naechster sinnvoller Step:
 
 ```text
-0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereiten.
+0.2.22 - OBS Control-Preflight read-only.
 ```
 
-Ziel 0.2.21:
+Ziel 0.2.22:
 
 ```text
-- produktive Szenen bleiben Szenen ohne fuehrenden `_`
-- zusaetzliche Allowlist fuer spaeter schaltbare Szenen planen
-- Rechte/Zielbild vorbereiten: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility, obs.admin.diagnostics
-- UI-Zustaende fuer spaetere Buttons read-only vorbereiten
 - noch keine OBS-Actions aktivieren
+- pro Ziel anzeigen, ob es nach Modell theoretisch bedienbar waere
+- Safety-/Lock-/Audit-Zielbild fuer spaetere Control-Actions vorbereiten
+- keine freien OBS requestType Payloads
 ```

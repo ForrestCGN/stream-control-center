@@ -6,12 +6,19 @@
   const ENDPOINT = '/api/remote/local-dashboard/obs/status';
   const ONLINE_LIVE_ENDPOINT = '/api/remote/agent/obs/live/status';
   const LOCAL_LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
-  const STEP_LABEL = '0.2.20';
+  const STEP_LABEL = '0.2.21';
   const LOCAL_LIVE_REFRESH_MS = 250;
   const ONLINE_LIVE_REFRESH_MS = 1000;
   let activeLiveRefreshMs = ONLINE_LIVE_REFRESH_MS;
   const LIVE_REFRESH_HIDDEN_MS = 2000;
   const FULL_REFRESH_MS = 30000;
+  const OBS_ALLOWLIST_MODEL = Object.freeze({
+    switchableScenes: [],
+    controllableAudioSources: [],
+    controllableSources: [],
+    actionEnabled: false,
+    readOnly: true
+  });
   let loading = false;
   let refreshTimer = null;
   let liveRefreshTimer = null;
@@ -50,7 +57,7 @@
         <div>
           <p class="cgn-eyebrow">OBS / Mod-Bedienfläche</p>
           <h1>OBS Bedienung</h1>
-          <p>Vorbereitete Mod-Ansicht für produktive OBS-Bedienung. Die aktuelle Szene wird schnell aktualisiert; Inventar bleibt bewusst langsam, weil Szenen/Quellen während des Streams normalerweise stabil sind.</p>
+          <p>Vorbereitete Mod-Ansicht für spätere OBS-Bedienung. Die aktuelle Szene wird schnell aktualisiert; Rechte und Allowlist sind nur als read-only Modell sichtbar.</p>
         </div>
         <div class="rdap-obs-header-actions">
           <span class="cgn-chip" id="obsStatusPill">lädt</span>
@@ -68,7 +75,7 @@
       <section class="rdap-obs-board">
         <article class="cgn-card rdap-obs-scenes-card">
           <div class="card-head"><div><p class="cgn-eyebrow">Szenen</p><h2>Produktive Szenen</h2></div><span class="cgn-chip cgn-chip--info">${STEP_LABEL} Live</span></div>
-          <p class="rdap-obs-detail">Kompakte Mod-Ansicht wie in OBS: nur produktive Szenen ohne <code>_</code>. Die Markierung der aktuellen Szene aktualisiert sich nahezu in Echtzeit.</p>
+          <p class="rdap-obs-detail">Kompakte Mod-Ansicht wie in OBS: produktive Szenen ohne <code>_</code> bleiben sichtbar. Schaltbar wird später nur, was zusätzlich explizit freigegeben ist.</p>
           <div class="rdap-obs-scene-list" id="obsProductiveSceneList"><p>lädt…</p></div>
         </article>
 
@@ -88,14 +95,14 @@
         </article>
 
         <article class="cgn-card rdap-obs-rights-card">
-          <div class="card-head"><div><p class="cgn-eyebrow">Rechte</p><h2>Spätere Freigaben</h2></div><span class="cgn-chip cgn-chip--warn">gesperrt</span></div>
+          <div class="card-head"><div><p class="cgn-eyebrow">Rechte / Allowlist</p><h2>Spätere Freigaben</h2></div><span class="cgn-chip cgn-chip--warn">read-only</span></div>
           <div class="rdap-obs-rights-list">
-            <span><b>obs.read</b><small>sehen</small></span>
-            <span><b>obs.scene.switch</b><small>Szenen</small></span>
-            <span><b>obs.audio.mute</b><small>Audio</small></span>
-            <span><b>obs.source.visibility</b><small>Quellen</small></span>
+            <span><b>obs.read</b><small>Anzeige vorbereitet</small></span>
+            <span><b>obs.scene.switch</b><small>nur Allowlist, noch aus</small></span>
+            <span><b>obs.audio.mute</b><small>nur Allowlist, noch aus</small></span>
+            <span><b>obs.source.visibility</b><small>nur Allowlist, noch aus</small></span>
           </div>
-          <p class="rdap-obs-detail">${STEP_LABEL}: Live-State read-only. Später nur mit Rechteprüfung, Allowlist und Audit.</p>
+          <p class="rdap-obs-detail">${STEP_LABEL}: Rechte- und Allowlist-Modell read-only. Keine Buttons, keine OBS-Kommandos, keine Agent-Actions.</p>
         </article>
       </section>
     `;
@@ -218,6 +225,11 @@
     return true;
   }
 
+  function isSceneAllowlisted(name) {
+    const allowlist = Array.isArray(OBS_ALLOWLIST_MODEL.switchableScenes) ? OBS_ALLOWLIST_MODEL.switchableScenes : [];
+    return allowlist.some(item => sameName(item, name));
+  }
+
   function isRelevantAudio(item) {
     const name = getItemName(item).trim();
     if (!name) return false;
@@ -236,7 +248,8 @@
     node.innerHTML = list.map((item) => {
       const name = getItemName(item);
       const isCurrent = sameName(name, currentScene);
-      return `<div class="obs-scene-row${isCurrent ? ' is-current' : ''}"><i class="obs-scene-dot"></i><span class="obs-scene-name">${escapeHtml(name)}</span><span class="obs-scene-state">${isCurrent ? 'aktuell' : 'später schaltbar'}</span></div>`;
+      const state = isCurrent ? 'aktuell' : (isSceneAllowlisted(name) ? 'freigegeben (read-only)' : 'nicht freigegeben');
+      return `<div class="obs-scene-row${isCurrent ? ' is-current' : ''}"><i class="obs-scene-dot"></i><span class="obs-scene-name">${escapeHtml(name)}</span><span class="obs-scene-state">${escapeHtml(state)}</span></div>`;
     }).join('');
   }
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.21 - OBS Allowlist-/Rechte-Modell read-only
+
+- OBS-Allowlist-Modell fuer spaetere Szene-/Audio-/Quellen-Bedienung vorbereitet.
+- Rechte-Zielbild read-only vorbereitet: `obs.read`, `obs.scene.switch`, `obs.audio.mute`, `obs.source.visibility`, `obs.admin.diagnostics`.
+- UI zeigt Szenen nicht mehr pauschal als spaeter schaltbar.
+- UI unterscheidet read-only: aktuell / freigegeben / nicht freigegeben.
+- Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
+
 ## 0.2.20C - Agent OBS Live-State Scene Mapping read-only
 
 - Scene-Mapping im Live-State korrigiert.

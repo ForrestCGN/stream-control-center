@@ -1,10 +1,8 @@
 # Files
 
-0.2.20C relevante Code-Dateien:
+0.2.21 relevante Code-Dateien:
 
 ```text
-backend/modules/remote_agent.js
-remote-modboard/backend/src/services/agent-runtime.service.js
 remote-modboard/backend/src/routes/obs-readonly.routes.js
 remote-modboard/backend/server.js
 remote-modboard/backend/public/assets/modules/system/obs.js
@@ -13,7 +11,7 @@ remote-modboard/backend/public/assets/modules/module-manifest.js
 htdocs/dashboard-v2/assets/modules/module-manifest.js
 ```
 
-Doku-/Status-Dateien fuer diesen Doku-Step:
+Doku-/Status-Dateien fuer diesen Step:
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md

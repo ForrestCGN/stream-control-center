@@ -2,9 +2,9 @@
 
 Stand: 2026-06-28
 
-Aktuell: `0.2.20C - Agent OBS Live-State online read-only bestaetigt`.
+Aktuell: `0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereitet`.
 
-Umgesetzt und bestaetigt:
+Umgesetzt und bestaetigt aus 0.2.20C:
 
 ```text
 - Stream-PC-Agent verbindet per WSS mit dem Webserver.
@@ -16,12 +16,13 @@ Umgesetzt und bestaetigt:
 - UI kann Online-Live-Szene anzeigen.
 ```
 
-Bestaetigter Wert:
+Neu in 0.2.21:
 
 ```text
-currentScene: Live Gameplay Engel&Forrest
-status: live_scene_available
-agent.connected: true
+- OBS-Allowlist-Modell read-only vorbereitet.
+- Rechte-Modell fuer spaetere OBS-Bedienung read-only vorbereitet.
+- UI zeigt spaetere Bedienbarkeit als Modell: erlaubt/nicht freigegeben/read-only.
+- Keine pauschale Aussage mehr: jede produktive Szene sei spaeter schaltbar.
 ```
 
 Weiterhin verboten:

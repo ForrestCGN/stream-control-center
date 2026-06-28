@@ -2,12 +2,58 @@
 
 const { buildAgentObsLiveStatusResponse } = require('../services/agent-runtime.service');
 
-const STATUS_API_VERSION = 'rdap_agent_obs_live_state_0220.v1';
-const BUILD = 'RDAP_0.2.20_AGENT_OBS_LIVE_STATE_READONLY';
+const STATUS_API_VERSION = 'rdap_obs_allowlist_rights_model_0221.v1';
+const BUILD = 'RDAP_0.2.21_OBS_ALLOWLIST_RIGHTS_MODEL_READONLY';
 const OBS_STATUS_PATH = '/api/remote/local-dashboard/obs/status';
 const OBS_MODEL_PATH = '/api/remote/local-dashboard/obs/model';
 const OBS_AGENT_LIVE_STATUS_PATH = '/api/remote/agent/obs/live/status';
 const INVENTORY_SOURCE_MODE = 'local_adapter_remote_agent_component_status';
+
+const OBS_ALLOWLIST_MODEL = Object.freeze({
+  prepared: true,
+  readOnly: true,
+  active: false,
+  modelVersion: 'obs_allowlist_rights_model.v1',
+  defaultProductiveSceneRule: 'scene.name must not start with underscore',
+  switchableSceneMode: 'explicit_allowlist_required_later',
+  switchableScenes: [],
+  controllableAudioSources: [],
+  controllableSources: [],
+  targetTypes: [
+    { key: 'scene', permission: 'obs.scene.switch', action: 'switch', requiresAllowlist: true, enabled: false },
+    { key: 'audio', permission: 'obs.audio.mute', action: 'mute-toggle', requiresAllowlist: true, enabled: false },
+    { key: 'source', permission: 'obs.source.visibility', action: 'visibility-toggle', requiresAllowlist: true, enabled: false }
+  ],
+  notes: [
+    'Produktive Szenen ohne fuehrenden Unterstrich bleiben sichtbar.',
+    'Schaltbar wird spaeter nur, was explizit in einer Allowlist steht.',
+    '0.2.21 aktiviert keine OBS-Actions und sendet keine OBS-Kommandos.'
+  ]
+});
+
+const OBS_RIGHTS_MODEL = Object.freeze({
+  prepared: true,
+  readOnly: true,
+  active: false,
+  permissions: [
+    { key: 'obs.read', label: 'OBS sehen', area: 'obs', prepared: true, enabled: false, actionEnabled: false },
+    { key: 'obs.scene.switch', label: 'Szenen wechseln', area: 'obs', prepared: true, enabled: false, actionEnabled: false, allowlistRequired: true },
+    { key: 'obs.audio.mute', label: 'Audio stumm/aktiv', area: 'obs', prepared: true, enabled: false, actionEnabled: false, allowlistRequired: true },
+    { key: 'obs.source.visibility', label: 'Quellen sichtbar/unsichtbar', area: 'obs', prepared: true, enabled: false, actionEnabled: false, allowlistRequired: true },
+    { key: 'obs.admin.diagnostics', label: 'OBS Diagnose', area: 'obs', prepared: true, enabled: false, actionEnabled: false }
+  ],
+  rolePreview: [
+    { role: 'owner', planned: ['obs.read', 'obs.scene.switch', 'obs.audio.mute', 'obs.source.visibility', 'obs.admin.diagnostics'], enabledNow: [] },
+    { role: 'admin', planned: ['obs.read', 'obs.scene.switch', 'obs.audio.mute', 'obs.source.visibility', 'obs.admin.diagnostics'], enabledNow: [] },
+    { role: 'lead_mod', planned: ['obs.read', 'obs.scene.switch', 'obs.audio.mute'], enabledNow: [] },
+    { role: 'mod', planned: ['obs.read'], enabledNow: [] },
+    { role: 'readonly', planned: ['obs.read'], enabledNow: [] }
+  ],
+  auditTargetPrepared: true,
+  lockTargetPrepared: true,
+  writesEnabled: false,
+  actionsEnabled: false
+});
 
 function buildObsReadonlyPayload(context = {}) {
   const runtimeMode = context && context.config && context.config.runtimeMode ? String(context.config.runtimeMode) : 'online';
@@ -16,7 +62,7 @@ function buildObsReadonlyPayload(context = {}) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_obs_readonly',
-    moduleVersion: context.appVersion || '0.2.20',
+    moduleVersion: context.appVersion || '0.2.21',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -25,7 +71,7 @@ function buildObsReadonlyPayload(context = {}) {
     readOnly: true,
     prepared: true,
     active: false,
-    status: 'readonly_agent_obs_live_state_prepared',
+    status: 'readonly_obs_allowlist_rights_model_prepared',
     localDashboard: runtimeMode === 'local',
     remoteAgent: {
       checked: true,
@@ -38,6 +84,7 @@ function buildObsReadonlyPayload(context = {}) {
       obsInventoryEnvDiagnosticPrepared: true,
       obsLiveStateReadOnlyPrepared: true,
       obsLiveStateRoute: OBS_AGENT_LIVE_STATUS_PATH,
+      obsAllowlistRightsModelPrepared: true,
       acceptedLocalEnvNames: ['OBS_WS_URL', 'OBS_WS_PASSWORD', 'STREAMING_PC_OBS_INVENTORY_READ_ENABLED'],
       diagnosticRoute: '/api/remote-agent/obs/inventory/status',
       note: 'Online-Backend stellt nur OBS-read-only Status und Inventar-Modell fuer die UI bereit. Echte lokale Datenquelle ist der lokale remote_agent-Komponentenstatus; Agent-Actions bleiben deaktiviert.'
@@ -58,13 +105,25 @@ function buildObsReadonlyPayload(context = {}) {
       lastError: null
     },
     inventory: buildPreparedInventory(generatedAt),
+    allowlistModel: buildObsAllowlistModel(),
+    rightsModel: buildObsRightsModel(),
     plannedReadOnlyEndpoints: [OBS_STATUS_PATH, OBS_MODEL_PATH, OBS_AGENT_LIVE_STATUS_PATH],
     plannedActionsStillDisabled: ['obs.scene.switch', 'obs.source.visibility.set', 'obs.input.mute.set', 'obs.media.stop', 'obs.refresh'],
-    plannedPermissions: ['obs.read', 'obs.scene.switch', 'obs.audio.mute', 'obs.source.visibility', 'obs.admin.diagnostics'],
+    plannedPermissions: buildObsRightsModel().permissions.map(item => item.key),
     productiveSceneRule: 'scene.name must not start with underscore',
+    switchableSceneRule: 'explicit allowlist required before any future switch action',
     safety: buildObsSafety(),
-    note: '0.2.20 nimmt schnellen OBS-Live-State vom Stream-PC ueber bestehende Agent-WSS read-only entgegen. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
+    note: '0.2.21 bereitet OBS-Allowlist und Rechte-Modell read-only vor. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
   };
+}
+
+
+function buildObsAllowlistModel() {
+  return clonePlain(OBS_ALLOWLIST_MODEL);
+}
+
+function buildObsRightsModel() {
+  return clonePlain(OBS_RIGHTS_MODEL);
 }
 
 function buildPreparedInventory(generatedAt) {
@@ -104,6 +163,7 @@ function buildPreparedInventory(generatedAt) {
       obsInventoryUiDisplayPrepared: true,
       productiveSceneFilterPrepared: true,
       obsModControlSurfacePrepared: true,
+      obsAllowlistRightsModelPrepared: true,
       realObsInventoryReadActive: false,
       obsWebSocketRequestsEnabled: false,
       actionsEnabled: false,
@@ -128,6 +188,7 @@ function buildObsSafety() {
     remoteAgentObsInventoryEnvDiagnosticPrepared: true,
     obsInventoryUiDisplayPrepared: true,
     obsLiveStateReadOnlyPrepared: true,
+    obsAllowlistRightsModelPrepared: true,
     productiveSceneFilterPrepared: true,
     realObsInventoryReadActive: false,
     noObsRequestSentByBackend: true,
@@ -142,7 +203,8 @@ function buildObsSafety() {
 }
 
 function buildObsModuleMetadataPage() {
-  return { pageId: 'obs', label: 'OBS', moduleId: 'system', runtime: 'both', permission: 'remote.view', title: 'OBS Bedienung', tab: 'read-only', readOnly: true, inventoryReadOnlyPrepared: true, localInventorySourcePrepared: true, remoteAgentObsInventoryReadPrepared: true, remoteAgentObsInventoryEnvDiagnosticPrepared: true, obsInventoryUiDisplayPrepared: true, obsLiveStateReadOnlyPrepared: true, obsLiveStateRoute: OBS_AGENT_LIVE_STATUS_PATH, productiveSceneFilterPrepared: true, plannedPermissions: ['obs.read', 'obs.scene.switch', 'obs.audio.mute', 'obs.source.visibility'], routeBuild: BUILD };
+  return { pageId: 'obs', label: 'OBS', moduleId: 'system', runtime: 'both', permission: 'remote.view', title: 'OBS Bedienung', tab: 'read-only', readOnly: true, inventoryReadOnlyPrepared: true, localInventorySourcePrepared: true, remoteAgentObsInventoryReadPrepared: true, remoteAgentObsInventoryEnvDiagnosticPrepared: true, obsInventoryUiDisplayPrepared: true, obsLiveStateReadOnlyPrepared: true,
+    obsAllowlistRightsModelPrepared: true, obsLiveStateRoute: OBS_AGENT_LIVE_STATUS_PATH, productiveSceneFilterPrepared: true, allowlistModel: buildObsAllowlistModel(), plannedPermissions: buildObsRightsModel().permissions.map(item => item.key), routeBuild: BUILD };
 }
 
 function buildObsRoutesSummary() {
@@ -159,11 +221,14 @@ function buildObsRoutesSummary() {
     remoteAgentObsInventoryEnvDiagnosticPrepared: true,
     obsInventoryUiDisplayPrepared: true,
     obsLiveStateReadOnlyPrepared: true,
+    obsAllowlistRightsModelPrepared: true,
     obsLiveStateRoute: OBS_AGENT_LIVE_STATUS_PATH,
+    allowlistModel: buildObsAllowlistModel(),
+    rightsModel: buildObsRightsModel(),
     productiveSceneFilterPrepared: true,
     obsWsUrlAliasPrepared: true,
     obsWsPasswordAliasPrepared: true,
-    plannedPermissions: ['obs.read', 'obs.scene.switch', 'obs.audio.mute', 'obs.source.visibility', 'obs.admin.diagnostics'],
+    plannedPermissions: buildObsRightsModel().permissions.map(item => item.key),
     routes: [
       { method: 'GET', path: OBS_STATUS_PATH, description: 'OBS read-only Status und lokale Inventarquelle fuer Mod-Bedienflaeche vorbereitet; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true },
       { method: 'GET', path: OBS_MODEL_PATH, description: 'OBS read-only Modell inklusive produktiver Szenen-Regel und Rechte-Zielbild; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true },
@@ -181,7 +246,8 @@ function decorateStatusPayload(payload) {
   const existingIndex = pages.findIndex(item => item && item.pageId === 'obs');
   if (existingIndex >= 0) pages[existingIndex] = { ...pages[existingIndex], ...page };
   else pages.push(page);
-  payload.moduleMetadata = { ...moduleMetadata, pages, obsReadOnlyPagePrepared: true, obsReadOnlyStatusRoutePrepared: true, obsInventoryReadOnlyPrepared: true, obsLocalInventorySourcePrepared: true, obsInventorySourcePrepared: true, obsInventorySourceMode: INVENTORY_SOURCE_MODE, obsLocalInventorySourceMode: INVENTORY_SOURCE_MODE, obsRemoteAgentInventoryReadPrepared: true, obsRemoteAgentInventoryEnvDiagnosticPrepared: true, obsInventoryUiDisplayPrepared: true, obsLiveStateReadOnlyPrepared: true, obsLiveStateRoute: OBS_AGENT_LIVE_STATUS_PATH, obsProductiveSceneFilterPrepared: true, obsWsUrlAliasPrepared: true, obsWsPasswordAliasPrepared: true, obsReadOnlyRouteBuild: BUILD };
+  payload.moduleMetadata = { ...moduleMetadata, pages, obsReadOnlyPagePrepared: true, obsReadOnlyStatusRoutePrepared: true, obsInventoryReadOnlyPrepared: true, obsLocalInventorySourcePrepared: true, obsInventorySourcePrepared: true, obsInventorySourceMode: INVENTORY_SOURCE_MODE, obsLocalInventorySourceMode: INVENTORY_SOURCE_MODE, obsRemoteAgentInventoryReadPrepared: true, obsRemoteAgentInventoryEnvDiagnosticPrepared: true, obsInventoryUiDisplayPrepared: true, obsLiveStateReadOnlyPrepared: true,
+    obsAllowlistRightsModelPrepared: true, obsLiveStateRoute: OBS_AGENT_LIVE_STATUS_PATH, obsProductiveSceneFilterPrepared: true, obsWsUrlAliasPrepared: true, obsWsPasswordAliasPrepared: true, obsReadOnlyRouteBuild: BUILD };
   payload.obsReadOnly = buildObsRoutesSummary();
   return payload;
 }
@@ -197,8 +263,10 @@ function decorateRoutesPayload(payload) {
   return payload;
 }
 
+function clonePlain(value) { return JSON.parse(JSON.stringify(value)); }
+
 function wrapJsonForPath(res, decorator) { const originalJson = res.json.bind(res); res.json = (payload) => originalJson(decorator(payload)); }
 function installObsReadonlyResponseDecorators(app) { app.use((req, res, next) => { if (req.method === 'GET' && req.path === '/api/remote/status') wrapJsonForPath(res, decorateStatusPayload); if (req.method === 'GET' && req.path === '/api/remote/routes') wrapJsonForPath(res, decorateRoutesPayload); next(); }); }
 function registerObsReadonlyRoutes(app, context = {}) { app.get(OBS_STATUS_PATH, (req, res) => res.json(buildObsReadonlyPayload(context))); app.get(OBS_MODEL_PATH, (req, res) => res.json(buildObsReadonlyPayload(context))); app.get(OBS_AGENT_LIVE_STATUS_PATH, (req, res) => res.json(buildAgentObsLiveStatusResponse())); }
 
-module.exports = { BUILD, STATUS_API_VERSION, OBS_STATUS_PATH, OBS_MODEL_PATH, OBS_AGENT_LIVE_STATUS_PATH, buildObsReadonlyPayload, buildPreparedInventory, buildObsModuleMetadataPage, buildObsRoutesSummary, decorateStatusPayload, decorateRoutesPayload, installObsReadonlyResponseDecorators, registerObsReadonlyRoutes };
+module.exports = { BUILD, STATUS_API_VERSION, OBS_STATUS_PATH, OBS_MODEL_PATH, OBS_AGENT_LIVE_STATUS_PATH, buildObsReadonlyPayload, buildObsAllowlistModel, buildObsRightsModel, buildPreparedInventory, buildObsModuleMetadataPage, buildObsRoutesSummary, decorateStatusPayload, decorateRoutesPayload, installObsReadonlyResponseDecorators, registerObsReadonlyRoutes };

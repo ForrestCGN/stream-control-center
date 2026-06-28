@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.20C - Agent OBS Live-State online read-only bestaetigt`.
+Aktueller Stand: `0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereitet`.
 
 Verbindlich:
 
@@ -17,7 +17,7 @@ Keine zweite lokale UI.
 
 ```text
 - Stream-PC-Agent verbindet per WSS mit dem Webserver.
-- Heartbeat ist wieder schlank und stabil.
+- Heartbeat ist schlank und stabil.
 - Schneller OBS-Live-State ist vom Heartbeat getrennt.
 - OBS-Live-State wird ca. alle 500 ms gesendet.
 - Webserver empfaengt aktuelle OBS-Program-Szene in Memory.
@@ -25,21 +25,21 @@ Keine zweite lokale UI.
 - UI nutzt Online-Live-State fuer aktuelle Szene.
 ```
 
-Bestaetigter Webserver-Check:
+## Neu vorbereitet in 0.2.21
 
 ```text
-GET /api/remote/agent/obs/live/status
-active: true
-status: live_scene_available
-currentScene: Live Gameplay Engel&Forrest
-agent.connected: true
+- OBS-Allowlist-/Rechte-Modell read-only vorbereitet.
+- Produktive Szenen ohne fuehrenden `_` bleiben sichtbare Basis.
+- Spaeter schaltbar wird nur, was explizit in einer Allowlist steht.
+- Rechte-Zielbild vorbereitet: obs.read, obs.scene.switch, obs.audio.mute, obs.source.visibility, obs.admin.diagnostics.
+- UI zeigt Freigabezustand nur als read-only Vorschau.
 ```
 
 ## Datenklassen
 
 ```text
 Heartbeat = klein/stabil, Verbindung, alle ca. 30s.
-Live-State = schnelle Daten, z. B. aktuelle OBS-Szene, alle ca. 250-500ms.
+Live-State = schnelle kleine Daten, z. B. aktuelle OBS-Szene, alle ca. 250-500ms.
 Inventory = groessere Listen, langsam/manuell, z. B. Szenen/Quellen/Audioquellen.
 ```
 
@@ -54,6 +54,7 @@ Keine Shell-/Datei-/Prozess-Actions.
 Keine freien OBS requestType Payloads.
 Webserver baut keine OBS-WebSocket-Verbindung auf.
 Live-State wird nur in Memory gehalten.
+0.2.21 ist weiterhin read-only.
 ```
 
 ## Wichtige Routen
@@ -74,10 +75,11 @@ GET /api/remote/status
 GET /api/remote/routes
 GET /api/remote/agent/obs/live/status
 GET /api/remote/local-dashboard/obs/status
+GET /api/remote/local-dashboard/obs/model
 ```
 
 ## Naechster sinnvoller Step
 
-`0.2.21 - OBS Allowlist-/Rechte-Modell read-only vorbereiten`.
+`0.2.22 - OBS Control-Preflight read-only`.
 
-Noch keine echten OBS-Actions. Erst Modell, erlaubte Ziele, Rechte, UI-Zustaende und Audit-/Lock-Zielbild vorbereiten.
+Noch keine echten OBS-Actions. Erst pruefen/anzeigen, welche spaeteren Control-Ziele erlaubt waeren, inklusive Safety, Lock-/Audit-Zielbild und UI-Zustand.
