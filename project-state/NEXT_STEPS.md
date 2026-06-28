@@ -1,25 +1,9 @@
 # Next Steps
 
-Nach `0.2.22B`:
+Nach 0.2.22C:
 
 ```text
-0.2.22B testen: Inventory-Sync muss online echte Szenen/Audio/Quellen anzeigen.
-```
-
-Checks:
-
-```text
-- Agent verbunden
-- Live-State active=true
-- Inventory-Sync active=true
-- Szenenliste > 0
-- Audio/Quellen plausibel
-```
-
-Danach:
-
-```text
-- Mod-UI weiter vereinfachen
-- Allowlist/Freigabe-Anzeige verfeinern
-- noch keine OBS-Actions aktivieren
+- Sichttest lokal und online: Szenen/Audio nicht mehr 0, wenn Inventory da ist.
+- Danach erst naechster echter Bedienvorbereitungs-Step.
+- Keine OBS-Actions vor separater Freigabe.
 ```

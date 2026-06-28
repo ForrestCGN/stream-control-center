@@ -1,7 +1,7 @@
 # TODO
 
-- 0.2.22B lokal einspielen und Node/Agent neu starten.
+- 0.2.22C lokal einspielen.
+- Lokalen Inventory-Endpunkt pruefen.
 - Webserver deployen.
-- `/api/remote/agent/obs/inventory/status` pruefen.
-- OBS-Seite pruefen: Szenen/Audio/Quellen sollen echte Listen zeigen.
+- Browser lokal/online sichtpruefen.
 - Keine Steuer-Actions aktivieren.

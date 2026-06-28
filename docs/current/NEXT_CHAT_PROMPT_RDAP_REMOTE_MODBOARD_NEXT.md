@@ -1,72 +1,16 @@
 Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer ForrestCGN.
 
-Sprache: Deutsch. Kurz, direkt, pragmatisch. Forrest arbeitet mit `go`, `ok`, `weiter`.
+Sprache: Deutsch. Kurz, direkt, pragmatisch. GitHub/dev ist Wahrheit. Erst echte Dateien lesen, Plan nennen, auf explizites go warten.
 
-WICHTIG:
-GitHub/dev ist Wahrheit. Nicht blind aus Erinnerung arbeiten.
-Erst die Startdateien wirklich aus GitHub/dev lesen, dann Plan nennen, dann auf mein explizites `go` warten.
+Aktueller Stand: `0.2.22C - OBS Inventory-Sync lokal/online read-only`.
 
-Verbindliche Arbeitsweise:
+Bestaetigt/zu beachten:
 
 ```text
-- Immer zuerst echte Dateien aus GitHub/dev lesen.
-- Erst Plan nennen.
-- Auf explizites go warten.
-- Keine Code-/ZIP-Erstellung vor go.
-- Bestehende Module/Services/Dateien bevorzugen.
-- ZIPs muessen echte Repo-Zielpfade enthalten.
-- Forrest legt ZIPs in den Downloads-Ordner.
-- Lokal: cd D:\Git\stream-control-center; .\installstep.cmd "$env:USERPROFILE\Downloads\<ZIP>.zip" "<Beschreibung>"
-- Danach lokale Checks und git status.
-- Wenn sauber: .\stepdone.cmd "<Beschreibung>"
-- Webserver-Deploy nur nach Code-/Remote-Modboard-Aenderungen.
-```
-
-Startdateien zuerst lesen:
-
-```text
-docs/current/START_HERE_FOR_NEW_CHAT.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-backend/modules/remote_agent.js
-remote-modboard/backend/server.js
-remote-modboard/backend/src/services/agent-runtime.service.js
-remote-modboard/backend/src/routes/obs-readonly.routes.js
-remote-modboard/backend/public/assets/modules/system/obs.js
-htdocs/dashboard-v2/assets/modules/system/obs.js
-```
-
-Aktueller Stand:
-
-```text
-0.2.22B - OBS Inventory-Sync read-only vorbereitet.
-```
-
-Architektur:
-
-```text
-Heartbeat = klein/stabil, Verbindung, ca. 30s.
-Live-State = schnelle Daten, aktuell OBS-Szene, ca. 500ms.
-Inventory-Sync = Szenen/Quellen/Audioquellen, separat/langsamer, nicht im Heartbeat.
-```
-
-Sicherheitsgrenzen:
-
-```text
-Keine OBS-Steuerung.
-Keine Agent-Actions.
-Keine Writes.
-Keine DB-Migration.
-Keine Shell-/Datei-/Prozess-Actions.
-Keine freien OBS-Payloads.
-Webserver baut keine OBS-WebSocket-Verbindung auf.
-```
-
-Naechster sinnvoller Step:
-
-```text
-0.2.22B testen und ggf. Inventory-Sync/UI glätten. Noch keine OBS-Actions aktivieren.
+- Live-State sendet aktuelle OBS-Szene schnell.
+- Inventory-Sync sendet Szenen/Quellen/Audio separat, nicht im Heartbeat.
+- Online hatte 19 Szenen, 48 Quellen, 35 Audioquellen.
+- Lokaler Endpoint /api/remote-agent/obs/inventory/status muss echte Listen aus dem gesendeten Sync anzeigen.
+- UI darf keine falschen 0-Werte aus leerem Status anzeigen.
+- Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
 ```

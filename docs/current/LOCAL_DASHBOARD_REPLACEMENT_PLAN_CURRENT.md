@@ -1,39 +1,15 @@
 # Local Dashboard Replacement Plan Current
 
-Stand: `0.2.22B`
+Stand: `0.2.22C`
 
-Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale `dashboard-v2` ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
+Remote-Modboard bleibt einzige UI-Wahrheit. Lokales dashboard-v2 ist dieselbe App im lokalen Profil.
 
-## Erreicht
-
-```text
-0.2.19: OBS-Seite als spaetere Mod-Bedienflaeche read-only vorbereitet.
-0.2.20: Online OBS-Live-State ueber Agent-WSS vorbereitet.
-0.2.20B: Heartbeat abgespeckt; Live-State separat schnell gehalten.
-0.2.20C: Scene-Mapping korrigiert; Online-Live-Szene bestaetigt.
-0.2.21: OBS-Allowlist-/Rechte-Modell read-only vorbereitet.
-0.2.22B: OBS-Szenen/Audio/Quellen als separater Inventory-Sync read-only vorbereitet.
-```
-
-## Datenmodell fuer Lokal/Online
+Erreicht:
 
 ```text
-Heartbeat: klein/stabil, Verbindung, ca. alle 30 Sekunden.
-Live-State: schnell, aktuelle OBS-Szene, ca. alle 250-500 ms.
-Inventory-Sync: Szenen, Quellen, Audioquellen, separat/langsamer, nur Memory.
+Live-State: aktuelle Szene schnell.
+Inventory-Sync: Szenen/Quellen/Audio separat read-only.
+0.2.22C: lokaler Inventory-Endpunkt/Anzeige korrigiert.
 ```
 
-## Grenzen
-
-```text
-Keine OBS-Steuerung.
-Keine Agent-Actions.
-Keine Writes.
-Keine DB-Migration.
-Keine freien OBS-Payloads.
-Webserver baut keine OBS-WebSocket-Verbindung auf.
-```
-
-## Naechster Ausbau
-
-Inventory-Sync testen und Mod-UI danach weiter vereinfachen. Echte Steuerung erst spaeter in einem separat freigegebenen Control-Step.
+Weiter verboten: OBS-Steuerung, Agent-Actions, Writes, DB-Migration, freie OBS-Payloads.

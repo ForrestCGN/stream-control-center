@@ -14,7 +14,7 @@ let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.7';
+const MODULE_VERSION = '0.1.7C';
 const MODULE_BUILD = 'RDAP_0.2.22_OBS_INVENTORY_SYNC_READONLY';
 const STATUS_API_VERSION = 'rdap_agent_obs_inventory_sync_0222.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
@@ -927,26 +927,46 @@ function safeObsInventoryErrorStatus(err) {
 
 function buildObsInventoryStatusResponse() {
   const now = new Date().toISOString();
-  const obs = buildObsStatus(now);
-  const inventory = obs.inventory || preparedInventory(now, 'unknown', false, 'Kein Inventarstatus vorhanden.', readObsStatusConfig());
+  const stored = CONNECTION_STATE.inventorySync && typeof CONNECTION_STATE.inventorySync === 'object' ? CONNECTION_STATE.inventorySync : null;
+  const obs = stored ? buildObsStatusSnapshot(now, readObsStatusConfig()) : buildObsStatus(now);
+  const inventory = stored || obs.inventory || preparedInventory(now, 'unknown', false, 'Kein OBS-Listenstatus vorhanden.', readObsStatusConfig());
+  const counts = inventory.counts || { scenes: 0, sources: 0, audioSources: 0, total: 0 };
+  const active = inventory.active === true || Number(counts.total || 0) > 0;
+  const currentScene = inventory.currentScene || inventory.currentProgramSceneName || (CONNECTION_STATE.liveState && (CONNECTION_STATE.liveState.currentScene || CONNECTION_STATE.liveState.currentProgramSceneName)) || null;
   return buildBaseResponse({
-    displayName: 'OBS Inventar read-only Diagnose',
+    displayName: 'OBS Listen read-only',
     readOnly: true,
     route: '/api/remote-agent/obs/inventory/status',
+    prepared: true,
+    active,
+    status: active ? 'inventory_available' : (CONNECTION_STATE.connected ? 'connected_inventory_pending' : 'inventory_pending'),
     obs: {
       reachable: obs.reachable,
-      status: obs.status,
+      status: active ? 'inventory_available' : obs.status,
       port: obs.port,
       checkedAt: obs.checkedAt,
       noObsRequestSent: obs.noObsRequestSent,
       noObsInventoryRequestSent: obs.noObsInventoryRequestSent,
       config: obs.config
     },
+    agent: {
+      connected: CONNECTION_STATE.connected === true,
+      connectionState: CONNECTION_STATE.connectionState,
+      agentId: CONNECTION_STATE.agentId,
+      agentName: CONNECTION_STATE.agentName,
+      lastSeenAt: CONNECTION_STATE.lastSeenAt,
+      lastInventorySyncAt: CONNECTION_STATE.inventorySyncUpdatedAt,
+      inventorySyncSeq: CONNECTION_STATE.inventorySyncSeq
+    },
+    inventory,
+    scenes: inventory.scenes || [],
+    sources: inventory.sources || [],
+    audioSources: inventory.audioSources || [],
     inventoryReadEnabled: inventory.config ? inventory.config.inventoryReadEnabled : false,
     inventoryStatus: inventory.status,
-    inventoryActive: inventory.active === true,
-    currentScene: inventory.currentScene || null,
-    counts: inventory.counts || { scenes: 0, sources: 0, audioSources: 0, total: 0 },
+    inventoryActive: active,
+    currentScene,
+    counts,
     disabledReason: inventory.disabledReason || null,
     nextStep: inventory.nextStep || null,
     config: inventory.config || obs.config,
@@ -970,7 +990,7 @@ function buildStatusResponse() {
     remoteTarget: { publicDashboardUrl: 'https://mods.forrestcgn.de', remoteWsUrl: state.remoteWsUrl, plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws', plannedWsPath: state.wsPath, streamPcPublicPortRequired: false, outgoingConnectionOnly: true },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
-    warnings: ['Version 0.1.7 sendet schlanke Heartbeats plus separaten read-only OBS-Live-State und OBS-Inventory-Sync ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS-Listen werden separat langsam als Inventory-Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
+    warnings: ['Version 0.1.7C sendet schlanke Heartbeats plus separaten read-only OBS-Live-State und lokalen/online OBS-Inventory-Sync ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS-Listen werden separat langsam als Inventory-Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
 }

@@ -2,8 +2,8 @@
 
 const { buildAgentObsLiveStatusResponse, buildAgentObsInventoryStatusResponse } = require('../services/agent-runtime.service');
 
-const STATUS_API_VERSION = 'rdap_obs_inventory_sync_readonly_0222.v1';
-const BUILD = 'RDAP_0.2.22BB_OBS_INVENTORY_SYNC_RECEIVER_FIX_READONLY';
+const STATUS_API_VERSION = 'rdap_obs_inventory_sync_readonly_0222c.v1';
+const BUILD = 'RDAP_0.2.22C_LOCAL_OBS_INVENTORY_ENDPOINT_READONLY';
 const OBS_STATUS_PATH = '/api/remote/local-dashboard/obs/status';
 const OBS_MODEL_PATH = '/api/remote/local-dashboard/obs/model';
 const OBS_AGENT_LIVE_STATUS_PATH = '/api/remote/agent/obs/live/status';

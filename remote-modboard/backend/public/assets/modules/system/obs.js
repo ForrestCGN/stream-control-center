@@ -4,9 +4,11 @@
   const MODULE_ID = 'system';
   const PAGE_ID = 'obs';
   const ENDPOINT = '/api/remote/local-dashboard/obs/status';
+  const ONLINE_INVENTORY_ENDPOINT = '/api/remote/agent/obs/inventory/status';
+  const LOCAL_INVENTORY_ENDPOINT = '/api/remote-agent/obs/inventory/status';
   const ONLINE_LIVE_ENDPOINT = '/api/remote/agent/obs/live/status';
   const LOCAL_LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
-  const STEP_LABEL = '0.2.22BB';
+  const STEP_LABEL = '0.2.22C';
   const LOCAL_LIVE_REFRESH_MS = 250;
   const ONLINE_LIVE_REFRESH_MS = 1000;
   let activeLiveRefreshMs = ONLINE_LIVE_REFRESH_MS;
@@ -182,17 +184,51 @@
     if (loading) return;
     loading = true;
     setButtonLoading(true);
-    const result = await getJson(ENDPOINT);
+    const candidates = getInventoryCandidates();
+    let result = null;
+    for (const url of candidates) {
+      result = await getJson(url);
+      if (result && result.ok && result.body && hasInventoryData(result.body)) break;
+    }
     renderObsStatus(result, reason);
     setButtonLoading(false);
     loading = false;
+  }
+
+  function getInventoryCandidates() {
+    const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+    return isLocal ? [LOCAL_INVENTORY_ENDPOINT, ONLINE_INVENTORY_ENDPOINT, ENDPOINT] : [ONLINE_INVENTORY_ENDPOINT, LOCAL_INVENTORY_ENDPOINT, ENDPOINT];
+  }
+
+  function hasInventoryData(body) {
+    const inventory = normalizeInventoryBody(body);
+    const counts = inventory.counts || body.counts || {};
+    return inventory.active === true || Number(counts.total || 0) > 0 || Array.isArray(inventory.scenes) || Array.isArray(inventory.audioSources);
+  }
+
+  function normalizeInventoryBody(body) {
+    if (!body || typeof body !== 'object') return {};
+    if (body.inventory && typeof body.inventory === 'object') return body.inventory;
+    if (Array.isArray(body.scenes) || Array.isArray(body.sources) || Array.isArray(body.audioSources) || body.counts) {
+      return {
+        active: body.active === true || (body.counts && Number(body.counts.total || 0) > 0),
+        status: body.status || 'inventory_available',
+        currentScene: body.currentScene || body.currentProgramSceneName || '',
+        scenes: body.scenes || [],
+        sources: body.sources || [],
+        audioSources: body.audioSources || [],
+        groups: body.groups || {},
+        counts: body.counts || { scenes: 0, sources: 0, audioSources: 0, total: 0 }
+      };
+    }
+    return {};
   }
 
   function renderObsStatus(result, reason) {
     void reason;
     const body = result && result.body ? result.body : {};
     const obs = body.obs || {};
-    const inventory = body.inventory || {};
+    const inventory = normalizeInventoryBody(body);
     const scenes = Array.isArray(inventory.scenes) ? inventory.scenes : ((inventory.groups && inventory.groups.scenes && inventory.groups.scenes.items) || []);
     const sources = Array.isArray(inventory.sources) ? inventory.sources : ((inventory.groups && inventory.groups.sources && inventory.groups.sources.items) || []);
     const audioSources = Array.isArray(inventory.audioSources) ? inventory.audioSources : ((inventory.groups && inventory.groups.audioSources && inventory.groups.audioSources.items) || []);
@@ -209,9 +245,9 @@
     renderLiveScene(currentScene, hasInventory ? 'OBS Liste' : 'Live');
     setText('obsConnectionText', reachable ? 'Live verbunden' : 'Wartet');
     setText('obsProductiveSceneCount', hasInventory ? productiveScenes.length : '—');
-    setText('obsInternalSceneText', hasInventory ? `${internalSceneCount} interne ausgeblendet` : 'Liste lädt');
+    setText('obsInternalSceneText', hasInventory ? `${internalSceneCount} interne OBS-Elemente nicht angezeigt` : 'Liste lädt');
     setText('obsAudioCount', hasInventory ? visibleAudio.length : '—');
-    setText('obsAudioHiddenText', hasInventory ? (hiddenAudioCount ? `${hiddenAudioCount} interne ausgeblendet` : 'bereit') : 'Liste lädt');
+    setText('obsAudioHiddenText', hasInventory ? (hiddenAudioCount ? `${hiddenAudioCount} interne OBS-Elemente nicht angezeigt` : 'bereit') : 'Liste lädt');
     setText('obsSourcePill', hasInventory ? `${sources.length || 0} Quellen` : 'Liste lädt');
 
     renderProductiveScenes(productiveScenes, currentScene, hasInventory);
@@ -261,7 +297,7 @@
     const list = Array.isArray(items) ? items : [];
     if (!list.length) {
       node.innerHTML = `<p class="rdap-obs-detail">${hasInventory ? 'Keine relevanten Audioquellen in der Freigabe-Liste.' : 'Audioliste lädt…'}</p>`;
-      if (more) more.textContent = hasInventory && hiddenCount ? `${hiddenCount} interne Audioquellen ausgeblendet.` : '';
+      if (more) more.textContent = hasInventory && hiddenCount ? `${hiddenCount} interne OBS-Elemente nicht angezeigt.` : '';
       return;
     }
     const visible = list.slice(0, 10);
@@ -273,7 +309,7 @@
       return `<div class="obs-audio-row"><div><b>${escapeHtml(name)}</b><small>${escapeHtml(type)}</small></div><span class="obs-status-badge">${escapeHtml(status)}</span></div>`;
     }).join('');
     const extra = list.length > visible.length ? `+ ${list.length - visible.length} weitere relevante Audioquellen. ` : '';
-    if (more) more.textContent = `${extra}${hiddenCount ? `${hiddenCount} interne Audioquellen ausgeblendet.` : ''}`.trim();
+    if (more) more.textContent = `${extra}${hiddenCount ? `${hiddenCount} interne OBS-Elemente nicht angezeigt.` : ''}`.trim();
   }
 
   function renderSourcePreview(items, hasInventory) {
