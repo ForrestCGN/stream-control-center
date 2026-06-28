@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.15 - OBS Inventar read-only vorbereitet`.
+Aktueller Stand: `0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet`.
 
 Verbindlich:
 
@@ -51,34 +51,52 @@ Keine zweite lokale UI, keine separate lokale Navigation, kein eigenes lokales D
 - Keine Writes.
 ```
 
-## Online geprüft
+0.2.16 bereitete die lokale OBS-Inventarquelle read-only vor:
 
-Auf dem Webserver erfolgreich geprüft:
+```text
+- Webserver-/Online-Backend bleibt read-only Placeholder.
+- /api/remote/local-dashboard/obs/status und /model melden 0.2.16.
+- inventory.sourcePrepared=true.
+- inventory.sourceMode=local_adapter_remote_agent_component_status.
+- inventory.sourceActive=false, solange keine echten lokalen Inventardaten vorhanden sind.
+- Lokaler Adapter nutzt den vorhandenen Pfad local_remote_modboard_adapter -> /api/remote-agent/status -> componentStatus.obs.inventory.
+- Wenn remote_agent spaeter read-only Inventar liefert, kann der lokale Adapter diese Listen anzeigen.
+- Es wird keine OBS-Steuerung aktiviert.
+- Es wird keine echte OBS-Inventar-Abfrage aktiviert.
+- Es werden keine Agent-Actions aktiviert.
+```
+
+## Online zu pruefen
+
+Nach Webserver-Deploy pruefen:
 
 ```text
 GET /api/remote/status
-- version: 0.2.15
-- stepRef: RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED
+- version: 0.2.16
+- stepRef: RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED
 - obsPage vorhanden
-- inventoryReadOnlyPrepared: true
+- obsLocalInventorySourcePrepared: true
 
 GET /api/remote/local-dashboard/obs/status
-- moduleVersion: 0.2.15
-- statusApiVersion: rdap_obs_inventory_readonly_0215.v1
+- moduleVersion: 0.2.16
+- statusApiVersion: rdap_obs_local_inventory_source_0216.v1
 - readOnly: true
 - inventory.prepared: true
-- inventory.active: false
-- inventory.counts vorhanden
-- noObsRequestSent: true
-- obsWebSocketRequestsEnabled: false
-- actionsEnabled: false
-- controlEnabled: false
+- inventory.sourcePrepared: true
+- inventory.sourceMode: local_adapter_remote_agent_component_status
+- inventory.sourceActive: false
+- obs.noObsRequestSent: true
+- obs.noObsInventoryRequestSent: true
+- inventory.capabilities.obsWebSocketRequestsEnabled: false
+- inventory.capabilities.actionsEnabled: false
+- inventory.capabilities.controlEnabled: false
 
 GET /api/remote/local-dashboard/obs/model
-- moduleVersion: 0.2.15
+- moduleVersion: 0.2.16
 - readOnly: true
 - inventory.prepared: true
-- inventory.active: false
+- inventory.sourcePrepared: true
+- inventory.sourceActive: false
 ```
 
-Weiterarbeit: Naechster sinnvoller Code-Step ist `0.2.16 - lokale OBS-Inventarquelle read-only planen/vorbereiten`, aber nur nach erneutem Lesen echter Dateien und Plan vor `go`.
+Weiterarbeit: Naechster sinnvoller Code-Step ist echte lokale OBS-Inventar-Abfrage read-only separat planen, aber nur nach erneutem Lesen echter Dateien und Plan vor `go`.

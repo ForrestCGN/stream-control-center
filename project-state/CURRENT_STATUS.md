@@ -5,41 +5,45 @@ Stand: 2026-06-28
 Aktueller getesteter Stand:
 
 ```text
-0.2.15 - OBS Inventar read-only vorbereitet
+0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet
 ```
 
 ## Ergebnis
 
-0.2.15 erweitert den erfolgreichen 0.2.14C Stand um eine vorbereitete OBS-Inventarstruktur.
+0.2.16 erweitert den erfolgreichen 0.2.15 Stand um eine vorbereitete lokale OBS-Inventarquelle.
 
-Online geprueft:
+Geplant/zu pruefen nach Webserver-Deploy:
 
 ```text
 /api/remote/status
-- version: 0.2.15
-- stepRef: RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED
-- moduleBuild: RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED
+- version: 0.2.16
+- stepRef: RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED
+- moduleBuild: RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED
 - obsPage vorhanden
-- inventoryReadOnlyPrepared: true
+- obsLocalInventorySourcePrepared: true
 
 /api/remote/local-dashboard/obs/status
-- moduleVersion: 0.2.15
-- statusApiVersion: rdap_obs_inventory_readonly_0215.v1
+- moduleVersion: 0.2.16
+- statusApiVersion: rdap_obs_local_inventory_source_0216.v1
 - readOnly: true
 - inventory.prepared: true
-- inventory.active: false
+- inventory.sourcePrepared: true
+- inventory.sourceMode: local_adapter_remote_agent_component_status
+- inventory.sourceActive: false
 - groups fuer scenes/sources/audioSources vorhanden
 - counts vorhanden
 - obs.noObsRequestSent: true
+- obs.noObsInventoryRequestSent: true
 - inventory.capabilities.obsWebSocketRequestsEnabled: false
 - inventory.capabilities.actionsEnabled: false
 - inventory.capabilities.controlEnabled: false
 
 /api/remote/local-dashboard/obs/model
-- moduleVersion: 0.2.15
+- moduleVersion: 0.2.16
 - readOnly: true
 - inventory.prepared: true
-- inventory.active: false
+- inventory.sourcePrepared: true
+- inventory.sourceActive: false
 ```
 
 OBS bleibt sichtbar und read-only.

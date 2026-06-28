@@ -1,9 +1,10 @@
 'use strict';
 
-const STATUS_API_VERSION = 'rdap_obs_inventory_readonly_0215.v1';
-const BUILD = 'RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED';
+const STATUS_API_VERSION = 'rdap_obs_local_inventory_source_0216.v1';
+const BUILD = 'RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED';
 const OBS_STATUS_PATH = '/api/remote/local-dashboard/obs/status';
 const OBS_MODEL_PATH = '/api/remote/local-dashboard/obs/model';
+const INVENTORY_SOURCE_MODE = 'local_adapter_remote_agent_component_status';
 
 function buildObsReadonlyPayload(context = {}) {
   const runtimeMode = context && context.config && context.config.runtimeMode ? String(context.config.runtimeMode) : 'online';
@@ -13,7 +14,7 @@ function buildObsReadonlyPayload(context = {}) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_obs_readonly',
-    moduleVersion: context.appVersion || '0.2.15',
+    moduleVersion: context.appVersion || '0.2.16',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -22,7 +23,7 @@ function buildObsReadonlyPayload(context = {}) {
     readOnly: true,
     prepared: true,
     active: false,
-    status: 'readonly_inventory_prepared',
+    status: 'readonly_local_inventory_source_prepared',
     localDashboard: runtimeMode === 'local',
     remoteAgent: {
       checked: true,
@@ -30,7 +31,9 @@ function buildObsReadonlyPayload(context = {}) {
       actionsEnabled: false,
       productiveActionsEnabled: false,
       safeReadOnly: true,
-      note: 'Online-Backend stellt nur OBS-read-only Status und Inventar-Modell fuer die UI bereit. Agent-Actions bleiben deaktiviert.'
+      componentStatusSourcePrepared: true,
+      inventorySourceMode: INVENTORY_SOURCE_MODE,
+      note: 'Online-Backend stellt nur OBS-read-only Status und Inventar-Modell fuer die UI bereit. Echte lokale Datenquelle ist fuer den lokalen Adapter/remote_agent-Komponentenstatus vorbereitet; Agent-Actions bleiben deaktiviert.'
     },
     obs: {
       available: true,
@@ -39,11 +42,12 @@ function buildObsReadonlyPayload(context = {}) {
       name: 'OBS',
       port: 4455,
       checkedAt: generatedAt,
-      detail: 'Online read-only Placeholder: Das Webserver-Backend baut keine OBS-WebSocket-Verbindung auf, liest kein echtes OBS-Inventar aus und sendet keine OBS-Kommandos.',
+      detail: 'Online read-only Placeholder: Das Webserver-Backend baut keine OBS-WebSocket-Verbindung auf, liest kein echtes OBS-Inventar aus und sendet keine OBS-Kommandos. Lokale Inventarquelle ist nur als read-only Quelle ueber Adapter/remote_agent vorbereitet.',
       readOnly: true,
       controlEnabled: false,
       noAuthenticationAttempt: true,
       noObsRequestSent: true,
+      noObsInventoryRequestSent: true,
       lastError: null
     },
     inventory: buildPreparedInventory(generatedAt),
@@ -56,7 +60,7 @@ function buildObsReadonlyPayload(context = {}) {
       'obs.refresh'
     ],
     safety: buildObsSafety(),
-    note: '0.2.15 bereitet das OBS-Inventar read-only als Modell/UI-Struktur vor. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
+    note: '0.2.16 bereitet die lokale OBS-Inventarquelle read-only ueber lokalen Adapter/remote_agent-Komponentenstatus vor. Keine echte OBS-Inventar-Abfrage, keine OBS-Actions, keine Agent-Actions, keine Writes.'
   };
 }
 
@@ -64,8 +68,13 @@ function buildPreparedInventory(generatedAt) {
   return {
     prepared: true,
     active: false,
-    status: 'prepared_empty',
+    status: 'source_prepared_empty',
     checkedAt: generatedAt,
+    sourcePrepared: true,
+    sourceActive: false,
+    sourceMode: INVENTORY_SOURCE_MODE,
+    sourceRoute: '/api/remote-agent/status',
+    sourceField: 'componentStatus.obs.inventory',
     currentScene: null,
     scenes: [],
     sources: [],
@@ -86,13 +95,16 @@ function buildPreparedInventory(generatedAt) {
       sourceInventoryReadPrepared: true,
       audioInventoryReadPrepared: true,
       currentSceneReadPrepared: true,
+      localInventorySourcePrepared: true,
+      localAdapterSourcePrepared: true,
+      remoteAgentComponentStatusSourcePrepared: true,
       realObsInventoryReadActive: false,
       obsWebSocketRequestsEnabled: false,
       actionsEnabled: false,
       controlEnabled: false
     },
-    emptyReason: 'real_obs_inventory_read_not_enabled_in_0_2_15',
-    note: 'OBS-Inventarstruktur ist read-only vorbereitet. Echte Szenen-/Quellen-/Audio-Abfrage folgt separat und bleibt ohne Steuer-Actions.'
+    emptyReason: 'local_obs_inventory_source_prepared_but_real_obs_inventory_read_not_enabled_in_0_2_16',
+    note: 'Lokale OBS-Inventarquelle ist read-only vorbereitet. Echte Szenen-/Quellen-/Audio-Abfrage ist noch nicht aktiv und folgt separat ohne Steuer-Actions.'
   };
 }
 
@@ -105,8 +117,10 @@ function buildObsSafety() {
     muteControlEnabled: false,
     mediaControlEnabled: false,
     inventoryReadPrepared: true,
+    localInventorySourcePrepared: true,
     realObsInventoryReadActive: false,
     noObsRequestSentByBackend: true,
+    noObsInventoryRequestSentByBackend: true,
     noAgentActionExecution: true,
     noStreamingPcActionExecution: true,
     noFileWrite: true,
@@ -126,6 +140,7 @@ function buildObsModuleMetadataPage() {
     tab: 'read-only',
     readOnly: true,
     inventoryReadOnlyPrepared: true,
+    localInventorySourcePrepared: true,
     routeBuild: BUILD
   };
 }
@@ -136,9 +151,11 @@ function buildObsRoutesSummary() {
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
     inventoryReadOnlyPrepared: true,
+    localInventorySourcePrepared: true,
+    localInventorySourceMode: INVENTORY_SOURCE_MODE,
     routes: [
-      { method: 'GET', path: OBS_STATUS_PATH, description: 'OBS read-only Status und vorbereitetes Inventar-Modell fuer die sichtbare UI; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true },
-      { method: 'GET', path: OBS_MODEL_PATH, description: 'OBS read-only Modell inklusive vorbereiteter Inventarstruktur; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true }
+      { method: 'GET', path: OBS_STATUS_PATH, description: 'OBS read-only Status und lokale Inventarquelle vorbereitet; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true },
+      { method: 'GET', path: OBS_MODEL_PATH, description: 'OBS read-only Modell inklusive lokaler Inventarquellen-Struktur; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true }
     ],
     safety: buildObsSafety()
   };
@@ -163,6 +180,8 @@ function decorateStatusPayload(payload) {
     obsReadOnlyPagePrepared: true,
     obsReadOnlyStatusRoutePrepared: true,
     obsInventoryReadOnlyPrepared: true,
+    obsLocalInventorySourcePrepared: true,
+    obsLocalInventorySourceMode: INVENTORY_SOURCE_MODE,
     obsReadOnlyRouteBuild: BUILD
   };
 

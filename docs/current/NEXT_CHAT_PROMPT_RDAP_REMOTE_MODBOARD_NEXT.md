@@ -20,7 +20,7 @@ Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer Forrest
 ## Aktueller Stand
 
 ```text
-0.2.15 - OBS Inventar read-only vorbereitet
+0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet
 ```
 
 ## Wichtig
@@ -53,6 +53,16 @@ OBS ist sichtbar und bleibt read-only.
 - `controlEnabled=false`.
 - Webserver-Deploy wurde ausgefuehrt und erfolgreich geprueft.
 
+0.2.16:
+- Lokale OBS-Inventarquelle read-only vorbereitet.
+- Quelle ist `local_remote_modboard_adapter -> /api/remote-agent/status -> componentStatus.obs.inventory`.
+- `/api/remote/local-dashboard/obs/status` und `/model` melden `inventory.sourcePrepared=true`.
+- `inventory.sourceMode=local_adapter_remote_agent_component_status`.
+- `inventory.sourceActive=false`, solange keine echten lokalen Inventardaten vom Agent geliefert werden.
+- Online-Backend bleibt Placeholder und sendet keine OBS-WebSocket-Requests.
+- Lokaler Adapter kann spaeter vom Agent gelieferte read-only Inventarlisten anzeigen.
+- Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
+
 Keine grosse Navigation neu bauen. Die alte grobe Zielstruktur kann spaeter separat geplant werden:
 
 ```text
@@ -61,17 +71,18 @@ Live / Control / Loyalty / Community / System / Admin
 
 Mein Konto gehoert oben rechts, nicht links.
 
-OBS ist aktuell unter System sichtbar. Wenn spaeter verschoben wird, dann eher klein Richtung `Control -> OBS`, aber nicht in diesem Step.
+OBS ist aktuell unter System sichtbar. Wenn spaeter verschoben wird, dann eher klein Richtung `Control -> OBS`, aber nicht im naechsten Inventar-Step.
 
 ## Naechster sinnvoller Step
 
 ```text
-0.2.16 - lokale OBS-Inventarquelle read-only vorbereiten/planen
+0.2.17 - echte lokale OBS-Inventar-Abfrage read-only separat planen
 ```
 
 Zielidee:
-- Echte lokale OBS-Inventardaten nur read-only vorbereiten.
-- Vorher genau klaeren, ob die Daten vom lokalen Dashboard/Adapter oder vom Streaming-PC-Agent kommen.
+- Echte lokale OBS-Inventardaten nur read-only lesen.
+- Vorher remote_agent und OBS-WebSocket-Zugriff separat pruefen.
+- Nur lesen: Szenen, Quellen, Audioquellen, aktuelle Szene.
 - Keine Steuerung.
 - Keine Szenenwechsel.
 - Keine Mutes.

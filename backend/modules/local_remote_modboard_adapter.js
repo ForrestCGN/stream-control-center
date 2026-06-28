@@ -6,9 +6,10 @@ const http = require("http");
 const express = require("express");
 
 const MODULE_NAME = "local_remote_modboard_adapter";
-const MODULE_VERSION = "0.2.14B";
-const MODULE_BUILD = "RDAP_0_2_14B_OBS_LABEL_FIX";
+const MODULE_VERSION = "0.2.16";
+const MODULE_BUILD = "RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED";
 const API_PREFIX = "/api/remote";
+const INVENTORY_SOURCE_MODE = "local_adapter_remote_agent_component_status";
 
 const MODULE_META = {
   name: MODULE_NAME,
@@ -16,7 +17,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "local-dashboard-adapter",
   category: "dashboard-v2",
-  description: "Local compatibility adapter so /dashboard-v2 can run the real Remote-Modboard frontend shell on port 8080. Provides local runtime-profile, agent-executor and OBS read-only diagnostics and blocks productive writes/actions.",
+  description: "Local compatibility adapter so /dashboard-v2 can run the real Remote-Modboard frontend shell on port 8080. Provides local runtime-profile, agent-executor and OBS read-only diagnostics/inventory-source preparation and blocks productive writes/actions.",
   routesPrefix: [
     API_PREFIX,
     "/assets/remote-modboard.css",
@@ -109,12 +110,13 @@ function fetchLocalJson(pathname, timeoutMs = 900) {
       });
     });
 
-    req.on("timeout", () => {
-      req.destroy(new Error("local_agent_status_timeout"));
-    });
-    req.on("error", (err) => {
-      resolve({ ok: false, statusCode: 0, durationMs: Date.now() - startedAt, error: err && err.message ? String(err.message).slice(0, 160) : "local_agent_status_error" });
-    });
+    req.on("timeout", () => req.destroy(new Error("local_agent_status_timeout")));
+    req.on("error", (err) => resolve({
+      ok: false,
+      statusCode: 0,
+      durationMs: Date.now() - startedAt,
+      error: err && err.message ? String(err.message).slice(0, 160) : "local_agent_status_error"
+    }));
     req.end();
   });
 }
@@ -143,6 +145,7 @@ function summarizeRemoteAgentStatus(result) {
     lastHeartbeatAt: String(connection.lastHeartbeatAt || streamingPcConnection.lastHeartbeatAt || ""),
     heartbeatSeq: Number(connection.heartbeatSeq || streamingPcConnection.heartbeatSeq || 0),
     componentStatusAvailable: Boolean(componentStatus),
+    inventorySourcePrepared: true,
     actionsEnabled: false,
     productiveActionsEnabled: false,
     safeReadOnly: true
@@ -164,6 +167,79 @@ function getComponentStatusFromRemoteAgentResult(result) {
   return streamingPcConnection.componentStatus || json.componentStatus || null;
 }
 
+function sanitizeInventoryItem(item, fallbackType) {
+  if (typeof item === "string") return { name: item.slice(0, 140), type: fallbackType || "read-only" };
+  if (!item || typeof item !== "object") return null;
+  const name = String(item.name || item.label || item.id || "").trim();
+  if (!name) return null;
+  return {
+    name: name.slice(0, 140),
+    label: String(item.label || name).slice(0, 140),
+    id: item.id ? String(item.id).slice(0, 140) : name.slice(0, 140),
+    type: String(item.type || item.kind || fallbackType || "read-only").slice(0, 80),
+    readOnly: true
+  };
+}
+
+function readInventoryArray(source, key, fallbackType) {
+  const value = source && Array.isArray(source[key]) ? source[key] : [];
+  return value.map(item => sanitizeInventoryItem(item, fallbackType)).filter(Boolean).slice(0, 250);
+}
+
+function extractPreparedInventory(result, generatedAt) {
+  const componentStatus = getComponentStatusFromRemoteAgentResult(result);
+  const obs = componentStatus && componentStatus.obs && typeof componentStatus.obs === "object" ? componentStatus.obs : null;
+  const rawInventory = obs && obs.inventory && typeof obs.inventory === "object" ? obs.inventory : null;
+  const scenes = readInventoryArray(rawInventory, "scenes", "scene");
+  const sources = readInventoryArray(rawInventory, "sources", "source");
+  const audioSources = readInventoryArray(rawInventory, "audioSources", "audio");
+  const realActive = Boolean(rawInventory && rawInventory.active === true && (scenes.length || sources.length || audioSources.length));
+
+  return {
+    prepared: true,
+    active: realActive,
+    status: realActive ? "source_readonly_data_available" : "source_prepared_empty",
+    checkedAt: generatedAt,
+    sourcePrepared: true,
+    sourceActive: realActive,
+    sourceMode: INVENTORY_SOURCE_MODE,
+    sourceRoute: "/api/remote-agent/status",
+    sourceField: "componentStatus.obs.inventory",
+    currentScene: rawInventory && rawInventory.currentScene ? String(rawInventory.currentScene).slice(0, 140) : null,
+    scenes,
+    sources,
+    audioSources,
+    groups: {
+      scenes: { prepared: true, active: realActive, count: scenes.length, items: scenes },
+      sources: { prepared: true, active: realActive, count: sources.length, items: sources },
+      audioSources: { prepared: true, active: realActive, count: audioSources.length, items: audioSources }
+    },
+    counts: {
+      scenes: scenes.length,
+      sources: sources.length,
+      audioSources: audioSources.length,
+      total: scenes.length + sources.length + audioSources.length
+    },
+    capabilities: {
+      sceneInventoryReadPrepared: true,
+      sourceInventoryReadPrepared: true,
+      audioInventoryReadPrepared: true,
+      currentSceneReadPrepared: true,
+      localInventorySourcePrepared: true,
+      localAdapterSourcePrepared: true,
+      remoteAgentComponentStatusSourcePrepared: true,
+      realObsInventoryReadActive: realActive,
+      obsWebSocketRequestsEnabled: false,
+      actionsEnabled: false,
+      controlEnabled: false
+    },
+    emptyReason: realActive ? null : "local_obs_inventory_source_prepared_but_real_obs_inventory_read_not_enabled_in_0_2_16",
+    note: realActive
+      ? "Lokale OBS-Inventardaten wurden read-only aus remote_agent-Komponentenstatus uebernommen. Keine Steuer-Actions aktiv."
+      : "Lokale OBS-Inventarquelle ist read-only vorbereitet. Echte Szenen-/Quellen-/Audio-Abfrage ist noch nicht aktiv und folgt separat ohne Steuer-Actions."
+  };
+}
+
 function summarizeObsStatusFromRemoteAgentResult(result) {
   const componentStatus = getComponentStatusFromRemoteAgentResult(result);
   const obs = componentStatus && componentStatus.obs && typeof componentStatus.obs === "object" ? componentStatus.obs : null;
@@ -174,41 +250,34 @@ function summarizeObsStatusFromRemoteAgentResult(result) {
     name: obs && obs.name ? String(obs.name) : "OBS",
     port: obs && obs.port ? obs.port : 4455,
     checkedAt: obs && obs.checkedAt ? String(obs.checkedAt) : "",
-    detail: obs && obs.detail ? String(obs.detail) : "OBS wird read-only ueber remote_agent-Komponentenstatus gelesen.",
+    detail: obs && obs.detail ? String(obs.detail) : "OBS wird read-only ueber remote_agent-Komponentenstatus gelesen. Inventarquelle ist vorbereitet, echte Inventarabfrage bleibt separat deaktiviert.",
     readOnly: true,
     controlEnabled: false,
     noAuthenticationAttempt: obs ? obs.noAuthenticationAttempt !== false : true,
     noObsRequestSent: obs ? obs.noObsRequestSent !== false : true,
+    noObsInventoryRequestSent: true,
     lastError: obs && obs.lastError ? String(obs.lastError) : null
   };
 }
 
-function obsModelPayload(obsStatus, remoteAgent) {
+function obsModelPayload(obsStatus, remoteAgent, inventory, generatedAt) {
   return {
     ok: true,
     service: "remote-modboard",
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    statusApiVersion: "local_remote_modboard_adapter.obs_readonly.v1",
-    generatedAt: nowIso(),
+    statusApiVersion: "local_remote_modboard_adapter.obs_inventory_source_0216.v1",
+    generatedAt,
     runtimeMode: "local",
     localDashboard: true,
     readOnly: true,
     prepared: true,
     active: false,
-    status: "readonly_foundation",
+    status: "readonly_local_inventory_source_prepared",
     remoteAgent,
     obs: obsStatus,
-    inventory: {
-      prepared: true,
-      active: false,
-      scenes: [],
-      sources: [],
-      audioSources: [],
-      currentScene: null,
-      note: "0.2.14B zeigt die OBS-read-only Grundlage in der Remote-Modboard-UI. Szenen-/Quellen-Inventar wird noch nicht aktiv per OBS-WebSocket gelesen."
-    },
+    inventory,
     plannedReadOnlyEndpoints: [
       `${API_PREFIX}/local-dashboard/obs/status`,
       `${API_PREFIX}/local-dashboard/obs/model`
@@ -227,21 +296,27 @@ function obsModelPayload(obsStatus, remoteAgent) {
       sourceVisibilityEnabled: false,
       muteControlEnabled: false,
       mediaControlEnabled: false,
+      inventoryReadPrepared: true,
+      localInventorySourcePrepared: true,
+      realObsInventoryReadActive: inventory.capabilities.realObsInventoryReadActive === true,
       noObsRequestSentByAdapter: true,
+      noObsInventoryRequestSentByAdapter: true,
       noAgentActionExecution: true,
       noStreamingPcActionExecution: true,
       noFileWrite: true,
       noDatabaseWrite: true,
       noShellOrProcessActions: true
     },
-    note: "OBS ist als erstes Modul sinnvoll. 0.2.14B korrigiert die OBS-Labels und zeigt Status/Modell in der UI sichtbar und fuehrt keine OBS-Aktion aus."
+    note: "0.2.16 bereitet die lokale OBS-Inventarquelle read-only ueber local_remote_modboard_adapter -> remote_agent componentStatus vor. Es wird keine OBS-Aktion und keine Agent-Aktion ausgefuehrt."
   };
 }
 
 async function localObsReadOnlyPayload() {
+  const generatedAt = nowIso();
   const remote = await getRemoteAgentStatusSummary();
   const obsStatus = summarizeObsStatusFromRemoteAgentResult(remote.result);
-  return obsModelPayload(obsStatus, remote.summary);
+  const inventory = extractPreparedInventory(remote.result, generatedAt);
+  return obsModelPayload(obsStatus, remote.summary, inventory, generatedAt);
 }
 
 async function agentExecutorDiagnosticPayload(ctx = {}) {
@@ -279,6 +354,8 @@ async function agentExecutorDiagnosticPayload(ctx = {}) {
     obsReadOnly: {
       prepared: true,
       endpoint: `${API_PREFIX}/local-dashboard/obs/status`,
+      inventorySourcePrepared: true,
+      inventorySourceMode: INVENTORY_SOURCE_MODE,
       actionEnabled: false
     },
     safety: {
@@ -297,9 +374,10 @@ async function agentExecutorDiagnosticPayload(ctx = {}) {
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/status`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/status`, readOnly: true },
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/model`, readOnly: true },
       { method: "GET", path: "/api/remote-agent/status", readOnly: true, source: "remote_agent" }
     ],
-    note: "0.2.13 liest nur den bestehenden remote_agent-Status und OBS-Komponentenstatus. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt."
+    note: "0.2.16 liest nur bestehenden remote_agent-Status und bereitet die lokale OBS-Inventarquelle read-only vor. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt."
   };
 }
 
@@ -317,6 +395,24 @@ function localUser() {
     permissions: ["remote.view", "remote.admin.read", "remote.dashboard.local.read"],
     runtime: "local",
     localOnly: true
+  };
+}
+
+function localSafetyPayload() {
+  return {
+    readOnly: true,
+    productiveWritesEnabled: false,
+    remoteWritesEnabled: false,
+    agentActionsEnabled: false,
+    obsActionsEnabled: false,
+    soundActionsEnabled: false,
+    overlayActionsEnabled: false,
+    commandActionsEnabled: false,
+    shellActionsEnabled: false,
+    fileActionsEnabled: false,
+    processActionsEnabled: false,
+    dbMigration: false,
+    dashboardLegacyChanged: false
   };
 }
 
@@ -344,18 +440,9 @@ function localArchitecturePayload(ctx = {}) {
       note: "Dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil."
     },
     access: {
-      mods: {
-        entry: "https://mods.forrestcgn.de/",
-        localAccess: false
-      },
-      forrestEngelHome: {
-        entry: "/dashboard-v2/",
-        mode: "local-stream-pc-lan"
-      },
-      forrestEngelAway: {
-        entry: "https://mods.forrestcgn.de/",
-        mode: "online"
-      }
+      mods: { entry: "https://mods.forrestcgn.de/", localAccess: false },
+      forrestEngelHome: { entry: "/dashboard-v2/", mode: "local-stream-pc-lan" },
+      forrestEngelAway: { entry: "https://mods.forrestcgn.de/", mode: "online" }
     },
     agentExecutor: {
       prepared: true,
@@ -368,26 +455,19 @@ function localArchitecturePayload(ctx = {}) {
       localPath: "Dashboard-v2 lokal -> lokaler Server/Adapter -> Agent -> Streaming-PC-Aktion",
       onlinePath: "Modboard online -> Webserver -> Agent -> Streaming-PC-Aktion",
       enabledActions: [],
-      blockedActions: [
-        "obs",
-        "sound",
-        "overlay",
-        "command",
-        "file",
-        "process",
-        "shell",
-        "productiveWrite"
-      ],
-      note: "0.2.13 bereitet Agent-Executor-Diagnose und OBS-read-only Grundlage vor. Es aktiviert keine Agent-Actions."
+      blockedActions: ["obs", "sound", "overlay", "command", "file", "process", "shell", "productiveWrite"],
+      note: "0.2.16 bereitet Agent-Executor-Diagnose und OBS-Inventarquelle read-only vor. Es aktiviert keine Agent-Actions."
     },
     obsModule: {
       prepared: true,
       active: false,
-      status: "readonly_foundation",
+      status: "readonly_local_inventory_source_prepared",
       statusEndpoint: `${API_PREFIX}/local-dashboard/obs/status`,
       modelEndpoint: `${API_PREFIX}/local-dashboard/obs/model`,
+      inventorySourcePrepared: true,
+      inventorySourceMode: INVENTORY_SOURCE_MODE,
       controlEnabled: false,
-      note: "OBS ist als erstes fachliches Modul vorgesehen. 0.2.13 ist nur read-only Grundlage."
+      note: "OBS-Inventarquelle ist read-only ueber Adapter/remote_agent vorbereitet. Echte OBS-Inventarabfrage und Steuerung bleiben aus."
     },
     rightsSync: {
       prepared: true,
@@ -400,62 +480,7 @@ function localArchitecturePayload(ctx = {}) {
       note: "User/Rechte-Sync ist dokumentiert, aber technisch noch nicht aktiv."
     },
     safety: localSafetyPayload(),
-    loadedModules: {
-      count: loadedModules.length,
-      files: loadedModules
-    }
-  };
-}
-
-function localSafetyPayload() {
-  return {
-    readOnly: true,
-    productiveWritesEnabled: false,
-    remoteWritesEnabled: false,
-    agentActionsEnabled: false,
-    obsActionsEnabled: false,
-    soundActionsEnabled: false,
-    overlayActionsEnabled: false,
-    commandActionsEnabled: false,
-    shellActionsEnabled: false,
-    fileActionsEnabled: false,
-    processActionsEnabled: false,
-    dbMigration: false,
-    dashboardLegacyChanged: false
-  };
-}
-
-function localAuthPayload(extra = {}) {
-  const user = localUser();
-  return {
-    ok: true,
-    service: "remote-modboard",
-    module: MODULE_NAME,
-    moduleVersion: MODULE_VERSION,
-    moduleBuild: MODULE_BUILD,
-    runtimeMode: "local",
-    localDashboard: true,
-    authenticated: true,
-    loggedIn: true,
-    authorized: true,
-    allowed: true,
-    canAccess: true,
-    accessGranted: true,
-    user,
-    me: user,
-    profile: user,
-    account: user,
-    session: {
-      authenticated: true,
-      authorized: true,
-      localOnly: true,
-      createdAt: nowIso(),
-      expiresAt: ""
-    },
-    roles: user.roles,
-    groups: user.groups,
-    permissions: user.permissions,
-    ...extra
+    loadedModules: { count: loadedModules.length, files: loadedModules }
   };
 }
 
@@ -499,6 +524,7 @@ function localStatusPayload(ctx = {}) {
       agentExecutorEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/status`,
       obsModule: architecture.obsModule.status,
       obsEndpoint: `${API_PREFIX}/local-dashboard/obs/status`,
+      obsInventorySourcePrepared: true,
       rightsSync: architecture.rightsSync.status,
       writeActions: "disabled"
     },
@@ -533,12 +559,40 @@ function localRoutesPayload(ctx = {}) {
       { method: "GET", path: `${API_PREFIX}/local-dashboard/architecture`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/status`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true },
-      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/status`, readOnly: true },
-      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/model`, readOnly: true }
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/status`, readOnly: true, inventorySourcePrepared: true },
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/model`, readOnly: true, inventorySourcePrepared: true }
     ],
     localSafety: localSafetyPayload(),
     loadedModules: getLoadedModules(ctx),
     generatedAt: nowIso()
+  };
+}
+
+function localAuthPayload(extra = {}) {
+  const user = localUser();
+  return {
+    ok: true,
+    service: "remote-modboard",
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    runtimeMode: "local",
+    localDashboard: true,
+    authenticated: true,
+    loggedIn: true,
+    authorized: true,
+    allowed: true,
+    canAccess: true,
+    accessGranted: true,
+    user,
+    me: user,
+    profile: user,
+    account: user,
+    session: { authenticated: true, authorized: true, localOnly: true, createdAt: nowIso(), expiresAt: "" },
+    roles: user.roles,
+    groups: user.groups,
+    permissions: user.permissions,
+    ...extra
   };
 }
 
@@ -562,13 +616,7 @@ function authModelPayload() {
       { id: "admin", label: "Admin", localOnly: true }
     ],
     permissions: user.permissions.map((permission) => ({ id: permission, permission, allowed: true, localOnly: true, readOnly: true })),
-    model: {
-      loginEnabled: false,
-      oauthEnabled: false,
-      sessionEnabled: false,
-      localReadOnlyAdapter: true,
-      runtimeProfileEndpoint: `${API_PREFIX}/local-dashboard/runtime-profile`
-    },
+    model: { loginEnabled: false, oauthEnabled: false, sessionEnabled: false, localReadOnlyAdapter: true, runtimeProfileEndpoint: `${API_PREFIX}/local-dashboard/runtime-profile` },
     user
   };
 }
@@ -590,10 +638,7 @@ function permissionPayload(req) {
     canRead: true,
     canWrite: false,
     user: localUser(),
-    decision: {
-      allowed: true,
-      reason: "local_read_only_adapter"
-    }
+    decision: { allowed: true, reason: "local_read_only_adapter" }
   };
 }
 
@@ -607,16 +652,8 @@ function lockAuditStatusPayload() {
     runtimeMode: "local",
     localDashboard: true,
     readOnly: true,
-    lock: {
-      enabled: true,
-      activeLocks: 0,
-      locks: []
-    },
-    audit: {
-      enabled: true,
-      localReadOnly: true,
-      recent: []
-    },
+    lock: { enabled: true, activeLocks: 0, locks: [] },
+    audit: { enabled: true, localReadOnly: true, recent: [] },
     canRead: true,
     canWrite: false
   };
@@ -632,16 +669,8 @@ function schemaAdapterPayload() {
     runtimeMode: "local",
     localDashboard: true,
     readOnly: true,
-    adapter: {
-      prepared: true,
-      mode: "local-read-only",
-      dbRequired: false
-    },
-    schema: {
-      ready: true,
-      localOnly: true,
-      migrationsRequired: false
-    }
+    adapter: { prepared: true, mode: "local-read-only", dbRequired: false },
+    schema: { ready: true, localOnly: true, migrationsRequired: false }
   };
 }
 
@@ -689,8 +718,6 @@ function mountRemoteAssetFiles(app, remoteAssetsDir) {
   const staticOptions = { index: false, dotfiles: "deny", fallthrough: true };
   const dashboardAssetsDir = getDashboardV2AssetsDir();
 
-  // Local /dashboard-v2 asset overrides win first. This keeps the real Remote-Modboard UI,
-  // but lets local foundation steps expose local-only read-only pages before online deploy.
   app.use("/assets/modules", express.static(path.join(dashboardAssetsDir, "modules"), staticOptions));
   app.use("/assets/languages", express.static(path.join(dashboardAssetsDir, "languages"), staticOptions));
   app.use("/dashboard-v2/assets/modules", express.static(path.join(dashboardAssetsDir, "modules"), staticOptions));
@@ -705,10 +732,8 @@ function mountRemoteAssetFiles(app, remoteAssetsDir) {
     return (req, res) => {
       const dashboardFile = path.join(dashboardAssetsDir, localName);
       if (fs.existsSync(dashboardFile)) return res.sendFile(dashboardFile);
-
       const file = path.join(remoteAssetsDir, localName);
       if (fs.existsSync(file)) return res.sendFile(file);
-
       return redirectRemoteAsset(req, res, assetName || localName);
     };
   }
@@ -784,23 +809,17 @@ module.exports.init = function init(ctx = {}) {
     assetFallback: remoteAssetsAvailable ? "local-files" : "upstream-redirect",
     readOnly: true,
     runtimeProfileEndpoint: `${API_PREFIX}/local-dashboard/runtime-profile`,
-    agentExecutor: {
-      prepared: true,
-      active: false,
-      status: "diagnostic_only",
-      diagnosticEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/status`
-    },
+    agentExecutor: { prepared: true, active: false, status: "diagnostic_only", diagnosticEndpoint: `${API_PREFIX}/local-dashboard/agent-executor/status` },
     obsModule: {
       prepared: true,
       active: false,
-      status: "readonly_foundation",
-      statusEndpoint: `${API_PREFIX}/local-dashboard/obs/status`
+      status: "readonly_local_inventory_source_prepared",
+      statusEndpoint: `${API_PREFIX}/local-dashboard/obs/status`,
+      modelEndpoint: `${API_PREFIX}/local-dashboard/obs/model`,
+      inventorySourcePrepared: true,
+      inventorySourceMode: INVENTORY_SOURCE_MODE
     },
-    rightsSync: {
-      prepared: true,
-      active: false,
-      status: "planned"
-    }
+    rightsSync: { prepared: true, active: false, status: "planned" }
   }));
 
   app.get(`${API_PREFIX}/auth/login/start`, (req, res) => {
@@ -810,5 +829,5 @@ module.exports.init = function init(ctx = {}) {
   app.get(`${API_PREFIX}/*`, (req, res) => res.json(localPlaceholderPayload(req)));
   app.all(`${API_PREFIX}/*`, (req, res) => res.status(405).json(writeBlockedPayload(req)));
 
-  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; obsReadOnly=prepared; obsUi=visible; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
+  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; obsLocalInventorySource=prepared; obsUi=visible; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
 };

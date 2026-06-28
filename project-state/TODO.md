@@ -7,12 +7,13 @@ Stand: 2026-06-28
 ```text
 0.2.14C - OBS read-only Online-Status-Fix
 0.2.15 - OBS Inventar read-only vorbereitet
+0.2.16 - lokale OBS-Inventarquelle read-only vorbereitet
 ```
 
 ## Naechster sinnvoller Punkt
 
 ```text
-0.2.16 - lokale OBS-Inventarquelle read-only vorbereiten/planen
+0.2.17 - echte lokale OBS-Inventar-Abfrage read-only separat planen
 ```
 
 ## Sicherheitsregeln fuer den naechsten OBS-Step
