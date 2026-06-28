@@ -1,7 +1,7 @@
 'use strict';
 
-const STATUS_API_VERSION = 'rdap_obs_readonly_online_status_0214c.v1';
-const BUILD = 'RDAP_0.2.14C_OBS_READONLY_ONLINE_STATUS_FIX';
+const STATUS_API_VERSION = 'rdap_obs_inventory_readonly_0215.v1';
+const BUILD = 'RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED';
 const OBS_STATUS_PATH = '/api/remote/local-dashboard/obs/status';
 const OBS_MODEL_PATH = '/api/remote/local-dashboard/obs/model';
 
@@ -13,7 +13,7 @@ function buildObsReadonlyPayload(context = {}) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_obs_readonly',
-    moduleVersion: context.appVersion || '0.2.14C',
+    moduleVersion: context.appVersion || '0.2.15',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -22,7 +22,7 @@ function buildObsReadonlyPayload(context = {}) {
     readOnly: true,
     prepared: true,
     active: false,
-    status: 'readonly_online_placeholder',
+    status: 'readonly_inventory_prepared',
     localDashboard: runtimeMode === 'local',
     remoteAgent: {
       checked: true,
@@ -30,7 +30,7 @@ function buildObsReadonlyPayload(context = {}) {
       actionsEnabled: false,
       productiveActionsEnabled: false,
       safeReadOnly: true,
-      note: 'Online-Backend stellt nur einen read-only OBS-Status fuer die UI bereit. Agent-Actions bleiben deaktiviert.'
+      note: 'Online-Backend stellt nur OBS-read-only Status und Inventar-Modell fuer die UI bereit. Agent-Actions bleiben deaktiviert.'
     },
     obs: {
       available: true,
@@ -39,22 +39,14 @@ function buildObsReadonlyPayload(context = {}) {
       name: 'OBS',
       port: 4455,
       checkedAt: generatedAt,
-      detail: 'Online read-only Placeholder: Das Webserver-Backend baut keine OBS-WebSocket-Verbindung auf und sendet keine OBS-Kommandos. Echte Inventar-/Komponentenwerte folgen in einem separaten read-only Step.',
+      detail: 'Online read-only Placeholder: Das Webserver-Backend baut keine OBS-WebSocket-Verbindung auf, liest kein echtes OBS-Inventar aus und sendet keine OBS-Kommandos.',
       readOnly: true,
       controlEnabled: false,
       noAuthenticationAttempt: true,
       noObsRequestSent: true,
       lastError: null
     },
-    inventory: {
-      prepared: true,
-      active: false,
-      scenes: [],
-      sources: [],
-      audioSources: [],
-      currentScene: null,
-      note: 'OBS-Inventar ist vorbereitet, aber online noch nicht aktiv. Keine Szenen-/Quellen-/Audio-Abfrage in diesem Step.'
-    },
+    inventory: buildPreparedInventory(generatedAt),
     plannedReadOnlyEndpoints: [OBS_STATUS_PATH, OBS_MODEL_PATH],
     plannedActionsStillDisabled: [
       'obs.scene.switch',
@@ -64,7 +56,43 @@ function buildObsReadonlyPayload(context = {}) {
       'obs.refresh'
     ],
     safety: buildObsSafety(),
-    note: '0.2.14C synchronisiert Online-Backend-Status und Routes mit der sichtbaren OBS-read-only UI. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
+    note: '0.2.15 bereitet das OBS-Inventar read-only als Modell/UI-Struktur vor. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
+  };
+}
+
+function buildPreparedInventory(generatedAt) {
+  return {
+    prepared: true,
+    active: false,
+    status: 'prepared_empty',
+    checkedAt: generatedAt,
+    currentScene: null,
+    scenes: [],
+    sources: [],
+    audioSources: [],
+    groups: {
+      scenes: { prepared: true, active: false, count: 0, items: [] },
+      sources: { prepared: true, active: false, count: 0, items: [] },
+      audioSources: { prepared: true, active: false, count: 0, items: [] }
+    },
+    counts: {
+      scenes: 0,
+      sources: 0,
+      audioSources: 0,
+      total: 0
+    },
+    capabilities: {
+      sceneInventoryReadPrepared: true,
+      sourceInventoryReadPrepared: true,
+      audioInventoryReadPrepared: true,
+      currentSceneReadPrepared: true,
+      realObsInventoryReadActive: false,
+      obsWebSocketRequestsEnabled: false,
+      actionsEnabled: false,
+      controlEnabled: false
+    },
+    emptyReason: 'real_obs_inventory_read_not_enabled_in_0_2_15',
+    note: 'OBS-Inventarstruktur ist read-only vorbereitet. Echte Szenen-/Quellen-/Audio-Abfrage folgt separat und bleibt ohne Steuer-Actions.'
   };
 }
 
@@ -76,6 +104,8 @@ function buildObsSafety() {
     sourceVisibilityEnabled: false,
     muteControlEnabled: false,
     mediaControlEnabled: false,
+    inventoryReadPrepared: true,
+    realObsInventoryReadActive: false,
     noObsRequestSentByBackend: true,
     noAgentActionExecution: true,
     noStreamingPcActionExecution: true,
@@ -95,6 +125,7 @@ function buildObsModuleMetadataPage() {
     title: 'OBS Status',
     tab: 'read-only',
     readOnly: true,
+    inventoryReadOnlyPrepared: true,
     routeBuild: BUILD
   };
 }
@@ -104,9 +135,10 @@ function buildObsRoutesSummary() {
     prepared: true,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
+    inventoryReadOnlyPrepared: true,
     routes: [
-      { method: 'GET', path: OBS_STATUS_PATH, description: 'OBS read-only Status fuer die sichtbare UI; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true },
-      { method: 'GET', path: OBS_MODEL_PATH, description: 'OBS read-only Modell fuer die sichtbare UI; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true }
+      { method: 'GET', path: OBS_STATUS_PATH, description: 'OBS read-only Status und vorbereitetes Inventar-Modell fuer die sichtbare UI; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true },
+      { method: 'GET', path: OBS_MODEL_PATH, description: 'OBS read-only Modell inklusive vorbereiteter Inventarstruktur; keine OBS-Kommandos, keine Agent-Actions, keine Writes', readOnly: true }
     ],
     safety: buildObsSafety()
   };
@@ -121,13 +153,16 @@ function decorateStatusPayload(payload) {
     : { prepared: true, modules: [], pages: [] };
 
   const pages = Array.isArray(moduleMetadata.pages) ? moduleMetadata.pages.slice() : [];
-  if (!pages.some(item => item && item.pageId === 'obs')) pages.push(page);
+  const existingIndex = pages.findIndex(item => item && item.pageId === 'obs');
+  if (existingIndex >= 0) pages[existingIndex] = { ...pages[existingIndex], ...page };
+  else pages.push(page);
 
   payload.moduleMetadata = {
     ...moduleMetadata,
     pages,
     obsReadOnlyPagePrepared: true,
     obsReadOnlyStatusRoutePrepared: true,
+    obsInventoryReadOnlyPrepared: true,
     obsReadOnlyRouteBuild: BUILD
   };
 
@@ -172,6 +207,7 @@ module.exports = {
   OBS_STATUS_PATH,
   OBS_MODEL_PATH,
   buildObsReadonlyPayload,
+  buildPreparedInventory,
   buildObsModuleMetadataPage,
   buildObsRoutesSummary,
   decorateStatusPayload,

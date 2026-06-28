@@ -39,7 +39,7 @@
         <div>
           <p class="cgn-eyebrow">System / OBS</p>
           <h1>OBS Status</h1>
-          <p>Read-only OBS-Status vom Streaming-PC. Diese Seite zeigt nur Erreichbarkeit und Sicherheitsgrenzen. Keine Szenenwechsel, keine Mutes, keine Media-Steuerung.</p>
+          <p>Read-only OBS-Status und vorbereitetes Inventar-Modell. Diese Seite zeigt nur Erreichbarkeit, Szenen-/Quellen-/Audio-Struktur und Sicherheitsgrenzen. Keine Szenenwechsel, keine Mutes, keine Media-Steuerung.</p>
         </div>
         <div class="rdap-obs-header-actions">
           <span class="cgn-chip" id="obsStatusPill">lädt</span>
@@ -56,7 +56,7 @@
 
       <section class="page-grid rdap-obs-grid">
         <article class="cgn-card span2">
-          <div class="card-head"><div><p class="cgn-eyebrow">Details</p><h2>Read-only Status</h2></div><span class="cgn-chip cgn-chip--info">0.2.14B</span></div>
+          <div class="card-head"><div><p class="cgn-eyebrow">Details</p><h2>Read-only Status</h2></div><span class="cgn-chip cgn-chip--info">0.2.15</span></div>
           <div class="kv-grid">
             <div class="kv-row"><span>Status</span><strong id="obsStatusText">—</strong></div>
             <div class="kv-row"><span>Geprüft</span><strong id="obsCheckedAt">—</strong></div>
@@ -64,6 +64,21 @@
             <div class="kv-row"><span>Inventar</span><strong id="obsInventoryState">vorbereitet</strong></div>
           </div>
           <p class="rdap-obs-detail" id="obsDetailText">Noch nicht geladen.</p>
+        </article>
+
+        <article class="cgn-card span2">
+          <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Szenen / Quellen / Audio</h2></div><span class="cgn-chip cgn-chip--info" id="obsInventoryPill">vorbereitet</span></div>
+          <div class="rdap-obs-inventory-metrics">
+            <div><span>Szenen</span><strong id="obsSceneCount">0</strong></div>
+            <div><span>Quellen</span><strong id="obsSourceCount">0</strong></div>
+            <div><span>Audio</span><strong id="obsAudioCount">0</strong></div>
+          </div>
+          <div class="rdap-obs-inventory-columns">
+            <div><h3>Szenen</h3><div class="rdap-obs-list" id="obsSceneList"><p>lädt…</p></div></div>
+            <div><h3>Quellen</h3><div class="rdap-obs-list" id="obsSourceList"><p>lädt…</p></div></div>
+            <div><h3>Audio</h3><div class="rdap-obs-list" id="obsAudioList"><p>lädt…</p></div></div>
+          </div>
+          <p class="rdap-obs-detail" id="obsInventoryNote">Inventarstruktur wird geladen.</p>
         </article>
 
         <article class="cgn-card span2">
@@ -91,9 +106,9 @@
   }
 
   function installStyle() {
-    if (document.getElementById('rdap0214ObsStyle')) return;
+    if (document.getElementById('rdap0215ObsStyle')) return;
     const style = document.createElement('style');
-    style.id = 'rdap0214ObsStyle';
+    style.id = 'rdap0215ObsStyle';
     style.textContent = `
       [data-page-panel="obs"] .rdap-obs-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
       [data-page-panel="obs"] .rdap-obs-header p:not(.cgn-eyebrow){max-width:980px}
@@ -101,14 +116,26 @@
       [data-page-panel="obs"] .rdap-obs-detail{margin:14px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
       [data-page-panel="obs"] .rdap-obs-note{background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.18)}
       [data-page-panel="obs"] .rdap-obs-updated{margin:12px 0 0;color:var(--muted);font-size:12px}
+      [data-page-panel="obs"] .rdap-obs-inventory-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 14px}
+      [data-page-panel="obs"] .rdap-obs-inventory-metrics>div{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;background:rgba(255,255,255,.03)}
+      [data-page-panel="obs"] .rdap-obs-inventory-metrics span{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
+      [data-page-panel="obs"] .rdap-obs-inventory-metrics strong{font-size:22px}
+      [data-page-panel="obs"] .rdap-obs-inventory-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+      [data-page-panel="obs"] .rdap-obs-inventory-columns h3{font-size:13px;margin:0 0 8px;color:var(--text)}
+      [data-page-panel="obs"] .rdap-obs-list{min-height:78px;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;background:rgba(0,0,0,.12)}
+      [data-page-panel="obs"] .rdap-obs-list p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+      [data-page-panel="obs"] .rdap-obs-list .obs-item{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}
+      [data-page-panel="obs"] .rdap-obs-list .obs-item:last-child{border-bottom:0}
+      [data-page-panel="obs"] .rdap-obs-list .obs-item small{color:var(--muted)}
+      @media(max-width:900px){[data-page-panel="obs"] .rdap-obs-inventory-columns{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
 
   function bindActions() {
     const button = document.getElementById('obsRefreshButton');
-    if (!button || button.dataset.rdap0214Bound === '1') return;
-    button.dataset.rdap0214Bound = '1';
+    if (!button || button.dataset.rdap0215Bound === '1') return;
+    button.dataset.rdap0215Bound = '1';
     button.addEventListener('click', () => loadObsStatus('manual'));
   }
 
@@ -143,6 +170,7 @@
     const agent = body.remoteAgent || {};
     const safety = body.safety || {};
     const inventory = body.inventory || {};
+    const counts = inventory.counts || {};
     const reachable = obs.reachable === true;
     const agentConnected = agent.connected === true;
     const controlEnabled = safety.obsControlEnabled === true || obs.controlEnabled === true;
@@ -158,8 +186,31 @@
     setText('obsInventoryState', inventory.active ? 'aktiv' : 'vorbereitet');
     setText('obsDetailText', obs.detail || body.note || 'OBS read-only Status geladen.');
     setText('obsLastUpdated', `Aktualisiert: ${new Date().toLocaleString('de-DE')}${reason ? ` · ${reason}` : ''}`);
+    setText('obsSceneCount', counts.scenes || 0);
+    setText('obsSourceCount', counts.sources || 0);
+    setText('obsAudioCount', counts.audioSources || 0);
+    setText('obsInventoryNote', inventory.note || 'OBS-Inventar ist read-only vorbereitet.');
+    setChip('obsInventoryPill', Boolean(inventory.prepared), inventory.active ? 'aktiv' : 'vorbereitet');
+    renderList('obsSceneList', inventory.scenes || (inventory.groups && inventory.groups.scenes && inventory.groups.scenes.items), 'Noch keine Szenen gelesen.');
+    renderList('obsSourceList', inventory.sources || (inventory.groups && inventory.groups.sources && inventory.groups.sources.items), 'Noch keine Quellen gelesen.');
+    renderList('obsAudioList', inventory.audioSources || (inventory.groups && inventory.groups.audioSources && inventory.groups.audioSources.items), 'Noch keine Audioquellen gelesen.');
     setBar('obsReachableBar', reachable ? 92 : 12);
     setBar('obsAgentBar', agentConnected ? 88 : 12);
+  }
+
+  function renderList(id, items, emptyText) {
+    const node = document.getElementById(id);
+    if (!node) return;
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      node.innerHTML = `<p>${escapeHtml(emptyText)}</p>`;
+      return;
+    }
+    node.innerHTML = list.slice(0, 12).map((item) => {
+      const name = typeof item === 'string' ? item : (item && (item.name || item.label || item.id)) || 'Unbenannt';
+      const meta = item && typeof item === 'object' && item.type ? item.type : 'read-only';
+      return `<div class="obs-item"><span>${escapeHtml(name)}</span><small>${escapeHtml(meta)}</small></div>`;
+    }).join('');
   }
 
   function setButtonLoading(value) {
@@ -192,6 +243,15 @@
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
     return date.toLocaleString('de-DE');
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function pageIsActive() {

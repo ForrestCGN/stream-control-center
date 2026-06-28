@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.14C';
-const BUILD_NAME = 'OBS read-only Online-Status-Fix';
-const STEP_REF = 'RDAP_0.2.14C_OBS_READONLY_ONLINE_STATUS_FIX';
+const APP_VERSION = '0.2.15';
+const BUILD_NAME = 'OBS Inventar read-only vorbereitet';
+const STEP_REF = 'RDAP_0.2.15_OBS_INVENTORY_READONLY_PREPARED';
 const MODULE_BUILD = STEP_REF;
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
   const app = createApp({ config, moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] v${APP_VERSION} - ${BUILD_NAME} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' obsReadonlyOnlineStatus=true actions=false remoteWritesControlled=true');
+    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' obsInventoryReadonlyPrepared=true actions=false remoteWritesControlled=true');
   });
 
   registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
