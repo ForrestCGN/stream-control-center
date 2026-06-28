@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.22 - OBS Inventory-Sync read-only vorbereitet`.
+Aktueller Stand: `0.2.22B - OBS Inventory-Sync read-only vorbereitet`.
 
 Verbindlich:
 
@@ -23,7 +23,7 @@ Keine zweite lokale UI.
 - Online-Route /api/remote/agent/obs/live/status liefert active=true und currentScene.
 ```
 
-## Neuer Stand 0.2.22
+## Neuer Stand 0.2.22B
 
 ```text
 - OBS-Szenen, Quellen und Audioquellen werden separat als Inventory-Sync ueber Agent-WSS vorbereitet.
@@ -77,4 +77,4 @@ GET /api/remote/local-dashboard/obs/status
 
 ## Naechster sinnvoller Step
 
-0.2.22 lokal/online testen: Inventory-Sync muss echte Szenen/Audio/Quellen liefern. Danach UI-Freigabe-/Allowlist-Darstellung verfeinern. Noch keine echten OBS-Actions.
+0.2.22B lokal/online testen: Inventory-Sync muss echte Szenen/Audio/Quellen liefern. Danach UI-Freigabe-/Allowlist-Darstellung verfeinern. Noch keine echten OBS-Actions.

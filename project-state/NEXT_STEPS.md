@@ -1,9 +1,9 @@
 # Next Steps
 
-Nach `0.2.22`:
+Nach `0.2.22B`:
 
 ```text
-0.2.22 testen: Inventory-Sync muss online echte Szenen/Audio/Quellen anzeigen.
+0.2.22B testen: Inventory-Sync muss online echte Szenen/Audio/Quellen anzeigen.
 ```
 
 Checks:

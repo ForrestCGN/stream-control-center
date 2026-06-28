@@ -2,7 +2,7 @@
 
 Stand: 2026-06-28
 
-Aktuell: `0.2.22 - OBS Inventory-Sync read-only vorbereitet`.
+Aktuell: `0.2.22B - OBS Inventory-Sync read-only vorbereitet`.
 
 Umgesetzt:
 

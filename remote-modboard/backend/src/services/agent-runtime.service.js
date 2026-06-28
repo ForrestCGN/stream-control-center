@@ -3,8 +3,8 @@
 const crypto = require('crypto');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.22_OBS_INVENTORY_SYNC_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_obs_inventory_sync_runtime_0222.v1';
+const MODULE_BUILD = 'RDAP_0.2.22B_OBS_INVENTORY_SYNC_RECEIVER_FIX_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_obs_inventory_sync_runtime_0222b.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -16,6 +16,7 @@ const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
 const MAX_HEARTBEAT_PAYLOAD_BYTES = 4096;
 const MAX_LIVE_STATE_PAYLOAD_BYTES = 2048;
 const MAX_INVENTORY_SYNC_PAYLOAD_BYTES = 65536;
+const MAX_AGENT_WS_BUFFER_BYTES = MAX_INVENTORY_SYNC_PAYLOAD_BYTES + 4096;
 const PLANNED_HEARTBEAT_INTERVAL_MS = 30000;
 const PLANNED_LIVE_STATE_INTERVAL_MS = 500;
 const PLANNED_INVENTORY_SYNC_INTERVAL_MS = 30000;
@@ -448,13 +449,42 @@ function handleSocketData(socket, chunk, details = {}) {
     return;
   }
 
-  const frame = decodeClientWebSocketFrame(chunk);
-  if (!frame.ok) {
-    recordHeartbeatReject(frame.reason || 'invalid_websocket_frame');
-    if (frame.closeSocket) safeSocketEnd(socket);
+  const incoming = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk || '');
+  if (!incoming.length) return;
+
+  const previous = Buffer.isBuffer(socket._rdapFrameBuffer) && socket._rdapFrameBuffer.length ? socket._rdapFrameBuffer : null;
+  const buffer = previous ? Buffer.concat([previous, incoming]) : incoming;
+
+  if (buffer.length > MAX_AGENT_WS_BUFFER_BYTES) {
+    socket._rdapFrameBuffer = Buffer.alloc(0);
+    recordHeartbeatReject('agent_frame_buffer_too_large');
+    safeSocketEnd(socket);
     return;
   }
 
+  let offset = 0;
+  while (offset < buffer.length) {
+    const frame = decodeClientWebSocketFrame(buffer.subarray(offset));
+    if (!frame.ok) {
+      if (frame.incomplete) break;
+      socket._rdapFrameBuffer = Buffer.alloc(0);
+      recordHeartbeatReject(frame.reason || 'invalid_websocket_frame');
+      if (frame.closeSocket) safeSocketEnd(socket);
+      return;
+    }
+
+    offset += frame.bytesConsumed || buffer.length;
+    processDecodedAgentFrame(socket, frame, details);
+    if (!socket || socket.destroyed) {
+      socket._rdapFrameBuffer = Buffer.alloc(0);
+      return;
+    }
+  }
+
+  socket._rdapFrameBuffer = offset < buffer.length ? Buffer.from(buffer.subarray(offset)) : Buffer.alloc(0);
+}
+
+function processDecodedAgentFrame(socket, frame, details = {}) {
   if (frame.opcode === 0x8) {
     clearConnectionState('client_close_frame');
     safeSocketEnd(socket);
@@ -756,7 +786,7 @@ function sanitizeComponent(input, fallback = {}) {
 }
 
 function decodeClientWebSocketFrame(chunk) {
-  if (!Buffer.isBuffer(chunk) || chunk.length < 2) return { ok: false, reason: 'invalid_websocket_frame' };
+  if (!Buffer.isBuffer(chunk) || chunk.length < 2) return { ok: false, incomplete: true, reason: 'incomplete_websocket_frame' };
   const first = chunk[0];
   const second = chunk[1];
   const fin = (first & 0x80) === 0x80;
@@ -768,20 +798,23 @@ function decodeClientWebSocketFrame(chunk) {
   if (!fin) return { ok: false, reason: 'fragmented_websocket_frame_unsupported', closeSocket: true };
   if (!masked) return { ok: false, reason: 'unmasked_client_frame', closeSocket: true };
   if (length === 126) {
-    if (chunk.length < offset + 2) return { ok: false, reason: 'invalid_websocket_frame' };
+    if (chunk.length < offset + 2) return { ok: false, incomplete: true, reason: 'incomplete_websocket_frame' };
     length = chunk.readUInt16BE(offset);
     offset += 2;
   } else if (length === 127) {
-    return { ok: false, reason: 'heartbeat_payload_too_large', closeSocket: true };
+    if (chunk.length < offset + 8) return { ok: false, incomplete: true, reason: 'incomplete_websocket_frame' };
+    return { ok: false, reason: 'agent_payload_too_large_64bit_frame', closeSocket: true };
   }
   if (length > MAX_INVENTORY_SYNC_PAYLOAD_BYTES) return { ok: false, reason: 'agent_payload_too_large', closeSocket: true };
-  if (chunk.length < offset + 4 + length) return { ok: false, reason: 'invalid_websocket_frame' };
+
+  const totalLength = offset + 4 + length;
+  if (chunk.length < totalLength) return { ok: false, incomplete: true, reason: 'incomplete_websocket_frame' };
 
   const mask = chunk.subarray(offset, offset + 4);
   offset += 4;
   const payload = Buffer.alloc(length);
   for (let i = 0; i < length; i += 1) payload[i] = chunk[offset + i] ^ mask[i % 4];
-  return { ok: true, opcode, payload };
+  return { ok: true, opcode, payload, bytesConsumed: totalLength };
 }
 
 function writePong(socket, payload) {
@@ -1143,7 +1176,7 @@ function buildAgentObsInventoryStatusResponse() {
     service: 'remote-modboard',
     module: MODULE,
     moduleBuild: MODULE_BUILD,
-    statusApiVersion: 'rdap_agent_obs_inventory_sync_status_0222.v1',
+    statusApiVersion: 'rdap_agent_obs_inventory_sync_status_0222b.v1',
     route: '/api/remote/agent/obs/inventory/status',
     generatedAt: new Date().toISOString(),
     readOnly: true,

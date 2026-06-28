@@ -6,7 +6,7 @@
   const ENDPOINT = '/api/remote/local-dashboard/obs/status';
   const ONLINE_LIVE_ENDPOINT = '/api/remote/agent/obs/live/status';
   const LOCAL_LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
-  const STEP_LABEL = '0.2.22';
+  const STEP_LABEL = '0.2.22BB';
   const LOCAL_LIVE_REFRESH_MS = 250;
   const ONLINE_LIVE_REFRESH_MS = 1000;
   let activeLiveRefreshMs = ONLINE_LIVE_REFRESH_MS;

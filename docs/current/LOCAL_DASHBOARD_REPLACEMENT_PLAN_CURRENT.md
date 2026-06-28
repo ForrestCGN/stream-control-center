@@ -1,6 +1,6 @@
 # Local Dashboard Replacement Plan Current
 
-Stand: `0.2.22`
+Stand: `0.2.22B`
 
 Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale `dashboard-v2` ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 
@@ -12,7 +12,7 @@ Remote-Modboard bleibt die einzige UI-Wahrheit. Das lokale `dashboard-v2` ist di
 0.2.20B: Heartbeat abgespeckt; Live-State separat schnell gehalten.
 0.2.20C: Scene-Mapping korrigiert; Online-Live-Szene bestaetigt.
 0.2.21: OBS-Allowlist-/Rechte-Modell read-only vorbereitet.
-0.2.22: OBS-Szenen/Audio/Quellen als separater Inventory-Sync read-only vorbereitet.
+0.2.22B: OBS-Szenen/Audio/Quellen als separater Inventory-Sync read-only vorbereitet.
 ```
 
 ## Datenmodell fuer Lokal/Online

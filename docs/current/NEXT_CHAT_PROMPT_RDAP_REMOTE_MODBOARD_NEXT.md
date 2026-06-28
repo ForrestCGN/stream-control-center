@@ -42,7 +42,7 @@ htdocs/dashboard-v2/assets/modules/system/obs.js
 Aktueller Stand:
 
 ```text
-0.2.22 - OBS Inventory-Sync read-only vorbereitet.
+0.2.22B - OBS Inventory-Sync read-only vorbereitet.
 ```
 
 Architektur:
@@ -68,5 +68,5 @@ Webserver baut keine OBS-WebSocket-Verbindung auf.
 Naechster sinnvoller Step:
 
 ```text
-0.2.22 testen und ggf. Inventory-Sync/UI glätten. Noch keine OBS-Actions aktivieren.
+0.2.22B testen und ggf. Inventory-Sync/UI glätten. Noch keine OBS-Actions aktivieren.
 ```

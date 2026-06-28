@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.22B - OBS Inventory Sync Receiver Fix read-only
+
+- WebSocket-Receiver verarbeitet jetzt mehrere Frames in einem TCP-Chunk und gepufferte Teilframes.
+- Inventory-Sync vom Stream-PC kann dadurch auf dem Webserver in Memory ankommen.
+- Keine OBS-Steuerung, keine Agent-Actions, keine Writes.
+
+
 ## 0.2.22 - OBS Inventory-Sync read-only
 
 - Separaten Agent-WSS Message-Typ `inventory_sync` vorbereitet.

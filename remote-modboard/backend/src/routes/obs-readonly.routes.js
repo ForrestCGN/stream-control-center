@@ -3,7 +3,7 @@
 const { buildAgentObsLiveStatusResponse, buildAgentObsInventoryStatusResponse } = require('../services/agent-runtime.service');
 
 const STATUS_API_VERSION = 'rdap_obs_inventory_sync_readonly_0222.v1';
-const BUILD = 'RDAP_0.2.22_OBS_INVENTORY_SYNC_READONLY';
+const BUILD = 'RDAP_0.2.22BB_OBS_INVENTORY_SYNC_RECEIVER_FIX_READONLY';
 const OBS_STATUS_PATH = '/api/remote/local-dashboard/obs/status';
 const OBS_MODEL_PATH = '/api/remote/local-dashboard/obs/model';
 const OBS_AGENT_LIVE_STATUS_PATH = '/api/remote/agent/obs/live/status';
@@ -28,7 +28,7 @@ const OBS_ALLOWLIST_MODEL = Object.freeze({
   notes: [
     'Produktive Szenen ohne fuehrenden Unterstrich bleiben sichtbar.',
     'Schaltbar wird spaeter nur, was explizit in einer Allowlist steht.',
-    '0.2.22 aktiviert keine OBS-Actions und sendet keine OBS-Kommandos.'
+    '0.2.22B aktiviert keine OBS-Actions und sendet keine OBS-Kommandos.'
   ]
 });
 
@@ -67,7 +67,7 @@ function buildObsReadonlyPayload(context = {}) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_obs_readonly',
-    moduleVersion: context.appVersion || '0.2.22',
+    moduleVersion: context.appVersion || '0.2.22BB',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -119,7 +119,7 @@ function buildObsReadonlyPayload(context = {}) {
     productiveSceneRule: 'scene.name must not start with underscore',
     switchableSceneRule: 'explicit allowlist required before any future switch action',
     safety: buildObsSafety(),
-    note: '0.2.22 uebernimmt OBS-Szenen/Audio/Quellen separat per Agent Inventory-Sync read-only. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
+    note: '0.2.22B uebernimmt OBS-Szenen/Audio/Quellen separat per Agent Inventory-Sync read-only. Keine OBS-Actions, keine Agent-Actions, keine Writes.'
   };
 }
 
