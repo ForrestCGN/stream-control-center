@@ -8,7 +8,7 @@
   const LOCAL_INVENTORY_ENDPOINT = '/api/remote-agent/obs/inventory/status';
   const ONLINE_LIVE_ENDPOINT = '/api/remote/agent/obs/live/status';
   const LOCAL_LIVE_ENDPOINT = '/api/remote-agent/obs/live/status';
-  const STEP_LABEL = '0.2.22C';
+  const STEP_LABEL = '0.2.22D';
   const LOCAL_LIVE_REFRESH_MS = 250;
   const ONLINE_LIVE_REFRESH_MS = 1000;
   let activeLiveRefreshMs = ONLINE_LIVE_REFRESH_MS;
@@ -339,14 +339,19 @@
       const result = await getJson(candidate.url);
       if (!result || !result.ok || !result.body) continue;
       const body = result.body;
-      const currentScene = extractLiveScene(body);
-      if (!currentScene) continue;
       activeLiveRefreshMs = candidate.intervalMs;
-      renderLiveScene(currentScene, candidate.label);
-      const scenes = lastInventory && Array.isArray(lastInventory.scenes) ? lastInventory.scenes : [];
-      const productiveScenes = scenes.filter(isProductiveScene);
-      if (productiveScenes.length) renderProductiveScenes(productiveScenes, currentScene);
-      return;
+      const currentScene = extractLiveScene(body);
+      if (currentScene) {
+        renderLiveScene(currentScene, candidate.label);
+        const scenes = lastInventory && Array.isArray(lastInventory.scenes) ? lastInventory.scenes : [];
+        const productiveScenes = scenes.filter(isProductiveScene);
+        if (productiveScenes.length) renderProductiveScenes(productiveScenes, currentScene);
+        return;
+      }
+      if (isLiveUnavailable(body)) {
+        renderLiveUnavailable(candidate.label);
+        return;
+      }
     }
   }
 
@@ -355,6 +360,18 @@
     return body.currentScene || body.currentProgramSceneName ||
       (body.obs && (body.obs.currentScene || body.obs.currentProgramSceneName)) ||
       (body.liveState && (body.liveState.currentScene || body.liveState.currentProgramSceneName || (body.liveState.obs && (body.liveState.obs.currentScene || body.liveState.obs.currentProgramSceneName)))) || '';
+  }
+
+  function isLiveUnavailable(body) {
+    if (!body || typeof body !== 'object') return false;
+    const agent = body.agent && typeof body.agent === 'object' ? body.agent : {};
+    const obs = body.obs && typeof body.obs === 'object' ? body.obs : {};
+    const status = String(body.status || obs.status || '').toLowerCase();
+    if (body.active === false) return true;
+    if (agent.connected === false) return true;
+    if (agent.liveStateStale === true || body.liveStateStale === true) return true;
+    if (status.includes('offline') || status.includes('stale') || status.includes('no_live_scene') || status.includes('waiting')) return true;
+    return false;
   }
 
   function getCurrentSceneFromInventory(inventory) {
@@ -371,6 +388,15 @@
       setChip('obsStatusPill', true, 'OBS live verbunden');
       setText('obsConnectionText', 'Live verbunden');
     }
+  }
+
+  function renderLiveUnavailable(sourceLabel) {
+    setText('obsCurrentScene', '—');
+    setText('obsLiveState', sourceLabel ? `${sourceLabel} · wartet` : 'wartet');
+    setChip('obsStatusPill', false, 'OBS wartet');
+    setText('obsConnectionText', 'Wartet');
+    const currentCard = document.querySelector('[data-page-panel="obs"] .rdap-obs-current');
+    if (currentCard) currentCard.classList.remove('is-live');
   }
 
   function getCurrentSceneFromLiveCache() {

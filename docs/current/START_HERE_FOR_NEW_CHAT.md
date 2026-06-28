@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.22C - lokaler/online OBS Inventory-Sync read-only bestaetigt/vorzubereiten`.
+Aktueller Stand: `0.2.22D - lokaler/online OBS Inventory-Sync read-only bestaetigt/vorzubereiten`.
 
 Verbindlich: GitHub/dev ist Wahrheit. Erst echte Dateien lesen, Plan nennen, auf go warten.
 
@@ -10,7 +10,7 @@ Verbindlich: GitHub/dev ist Wahrheit. Erst echte Dateien lesen, Plan nennen, auf
 0.2.20C: Agent WSS, Heartbeat slim, OBS Live-Szene online.
 0.2.21: OBS Allowlist-/Rechte-Modell read-only.
 0.2.22B: Online Inventory-Sync empfaengt echte OBS-Listen.
-0.2.22C: Lokaler Inventory-Endpunkt und UI nutzen echte OBS-Listen statt leerer Statusdaten.
+0.2.22D: Lokaler Inventory-Endpunkt und UI nutzen echte OBS-Listen statt leerer Statusdaten.
 ```
 
 ## Datenklassen

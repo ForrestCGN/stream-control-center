@@ -2,7 +2,7 @@ Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer Forrest
 
 Sprache: Deutsch. Kurz, direkt, pragmatisch. GitHub/dev ist Wahrheit. Erst echte Dateien lesen, Plan nennen, auf explizites go warten.
 
-Aktueller Stand: `0.2.22C - OBS Inventory-Sync lokal/online read-only`.
+Aktueller Stand: `0.2.22D - OBS Inventory-Sync lokal/online read-only`.
 
 Bestaetigt/zu beachten:
 

@@ -1,6 +1,6 @@
 # Next Steps
 
-Nach 0.2.22C:
+Nach 0.2.22D:
 
 ```text
 - Sichttest lokal und online: Szenen/Audio nicht mehr 0, wenn Inventory da ist.
