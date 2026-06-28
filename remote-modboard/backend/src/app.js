@@ -15,6 +15,7 @@ const { registerAdminUsersRoutes } = require('./routes/admin-users.routes');
 const { registerAdminMiniWriteFoundationRoutes } = require('./routes/admin-mini-write-foundation.routes');
 const { registerAgentStatusRoutes } = require('./routes/agent-status.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
+const { installObsReadonlyResponseDecorators, registerObsReadonlyRoutes } = require('./routes/obs-readonly.routes');
 
 function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   const app = express();
@@ -31,6 +32,8 @@ function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   const context = { config, moduleBuild, appVersion: appVersion || '0.2.2', buildName: buildName || moduleBuild, stepRef: stepRef || '', safety: buildSafetyBlock() };
   const publicDir = path.join(__dirname, '..', 'public');
 
+  installObsReadonlyResponseDecorators(app);
+
   registerHealthRoutes(app, context);
   registerStatusRoutes(app, context);
   registerAuthModelRoutes(app, context);
@@ -42,6 +45,7 @@ function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   registerAdminMiniWriteFoundationRoutes(app, context);
   registerAgentStatusRoutes(app, context);
   registerRoutesRoutes(app, context);
+  registerObsReadonlyRoutes(app, context);
 
   app.get(['/', '/remote', '/modboard'], (req, res) => {
     const indexPath = path.join(publicDir, 'index.html');
