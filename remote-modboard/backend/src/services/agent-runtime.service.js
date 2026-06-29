@@ -4,8 +4,8 @@ const crypto = require('crypto');
 const { withWriteConnection, publicDbError } = require('./db.service');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.55A_MEDIA_FULL_SYNC_BLOCKED_STATE_CLARITY';
-const STATUS_API_VERSION = 'rdap_agent_media_full_sync_runtime_055.v1';
+const MODULE_BUILD = 'RDAP_0.2.55B_MEDIA_FULL_SYNC_ACTIVE_WRITE_COMPLETION_STATE';
+const STATUS_API_VERSION = 'rdap_agent_media_full_sync_runtime_055b.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -14,7 +14,7 @@ const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
 const MEDIA_FULL_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-full-sync.v1';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
-const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55A_MEDIA_FULL_SYNC_BLOCKED_STATE_CLARITY';
+const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55B_MEDIA_FULL_SYNC_ACTIVE_WRITE_COMPLETION_STATE';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
@@ -251,7 +251,8 @@ const CONNECTION_STATE = {
   mediaFullSyncPersistsToDatabase: false,
   mediaFullSyncExecutesActions: false,
   mediaFullSyncAcceptsCommands: false,
-  mediaFullSync: clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE)
+  mediaFullSync: clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE),
+  mediaFullSyncReceivedChunkIndexes: new Set()
 };
 
 const REJECT_DIAGNOSTIC = {
@@ -1085,6 +1086,7 @@ function recordMediaInventorySyncReject(reason) {
 }
 
 function resetMediaFullSyncState(input = {}) {
+  CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes = new Set();
   CONNECTION_STATE.mediaFullSync = {
     ...clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE),
     state: input.state || 'pending',
@@ -1127,19 +1129,22 @@ async function processMediaFullSyncChunkPayload(payload, details = {}, payloadBy
     resetMediaFullSyncState({ state: 'running', syncId: validation.syncId, totalChunks: validation.totalChunks, totalItems: validation.totalItems, startedAt: now, writeEnabled: writeGate.enabled });
   }
   if (!writeGate.enabled) {
-    const previousItems = CONNECTION_STATE.mediaFullSync && Number(CONNECTION_STATE.mediaFullSync.receivedItems || 0) || 0;
+    const previousState = CONNECTION_STATE.mediaFullSync || clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE);
+    CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes.add(validation.chunkIndex);
+    const receivedChunks = CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes.size;
+    const previousItems = Number(previousState.receivedItems || 0) || 0;
     const receivedItems = Math.min(validation.totalItems, previousItems + validation.items.length);
-    const complete = validation.chunkIndex >= validation.totalChunks && receivedItems >= validation.totalItems;
+    const complete = receivedChunks >= validation.totalChunks && receivedItems >= validation.totalItems;
     CONNECTION_STATE.mediaFullSync = {
-      ...(CONNECTION_STATE.mediaFullSync || clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE)),
+      ...previousState,
       state: complete ? 'received_write_blocked' : 'blocked_by_gate',
       syncId: validation.syncId,
-      receivedChunks: validation.chunkIndex,
+      receivedChunks,
       totalChunks: validation.totalChunks,
       receivedItems,
       totalItems: validation.totalItems,
       lastChunkAt: now,
-      completedAt: complete ? now : null,
+      completedAt: complete ? (previousState.completedAt || now) : null,
       lastError: writeGate.reason,
       writeEnabled: false,
       writesBlocked: true
@@ -1149,18 +1154,22 @@ async function processMediaFullSyncChunkPayload(payload, details = {}, payloadBy
   }
   try {
     const written = await writeMediaFullSyncChunkToDatabase(config, validation.items, validation.syncVersion);
-    const previousItems = CONNECTION_STATE.mediaFullSync && Number(CONNECTION_STATE.mediaFullSync.receivedItems || 0) || 0;
-    const complete = validation.chunkIndex >= validation.totalChunks;
+    const previousState = CONNECTION_STATE.mediaFullSync || clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE);
+    CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes.add(validation.chunkIndex);
+    const receivedChunks = CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes.size;
+    const previousItems = Number(previousState.receivedItems || 0) || 0;
+    const receivedItems = Math.min(validation.totalItems, previousItems + validation.items.length);
+    const complete = receivedChunks >= validation.totalChunks && receivedItems >= validation.totalItems;
     CONNECTION_STATE.mediaFullSync = {
-      ...(CONNECTION_STATE.mediaFullSync || clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE)),
+      ...previousState,
       state: complete ? 'complete' : 'chunk',
       syncId: validation.syncId,
-      receivedChunks: validation.chunkIndex,
+      receivedChunks,
       totalChunks: validation.totalChunks,
-      receivedItems: Math.min(validation.totalItems, previousItems + validation.items.length),
+      receivedItems,
       totalItems: validation.totalItems,
       lastChunkAt: now,
-      completedAt: complete ? now : null,
+      completedAt: complete ? (previousState.completedAt || now) : null,
       lastError: null,
       lastDbWriteAt: now,
       lastDbWriteItems: written,
@@ -1398,6 +1407,7 @@ function clearConnectionState(reason) {
   CONNECTION_STATE.lastInventorySyncPayloadStored = false;
   CONNECTION_STATE.mediaInventorySync = clonePlain(EMPTY_MEDIA_INVENTORY_SYNC);
   CONNECTION_STATE.mediaFullSync = clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE);
+  CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes = new Set();
   CONNECTION_STATE.mediaInventorySyncUpdatedAt = null;
   CONNECTION_STATE.lastMediaInventorySyncAt = null;
   CONNECTION_STATE.mediaInventorySyncSeq = null;

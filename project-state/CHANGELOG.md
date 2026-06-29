@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 0.2.55B - Media Full-Sync Active Write Completion State
+
+- `remote-modboard/backend/src/services/agent-runtime.service.js` zaehlt Full-Sync-Chunks jetzt als eindeutige Chunk-Indizes.
+- Aktiv geschriebene Full-Syncs koennen durch asynchron fertig werdende Chunks nicht mehr von `complete` auf `chunk` zurueckfallen.
+- `receivedChunks` zeigt die Anzahl eindeutig empfangener/geschriebener Chunks.
+- `completedAt` bleibt bei komplettem Full-Sync gesetzt.
+- `media-readonly.routes.js` und `routes.routes.js` melden den 0.2.55B Build.
+- Keine Gate-Aktivierung, keine UI-Read-Source-Umstellung, keine Upload/Edit/Delete-Funktion.
+
+
 ## 0.2.55A - Media Full-Sync Blocked-State Clarity
 
 - `remote-modboard/backend/src/services/agent-runtime.service.js` zeigt vollstaendig empfangene Full-Sync-Chunks bei deaktivierten MEDIA_INDEX-Gates als `received_write_blocked` statt `pending`.

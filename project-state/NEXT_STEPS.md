@@ -1,24 +1,16 @@
 # NEXT_STEPS
 
-## Naechster technischer Schritt
+## Naechster Schritt
 
 `RDAP_0.2.56_MEDIA_INDEX_READ_SOURCE`
 
 Ziel:
+- bestaetigten DB-Index `remote_media_index` als Read-Source vorbereiten/nutzen
+- Online-UI soll danach nicht mehr auf 120 Compact-Items begrenzt sein
+- nur Lesen aus DB, keine Upload/Edit/Delete-Funktion
+- keine Datei-Inhalte, keine absoluten Pfade
 
-- Remote-Modboard-Media-Lesequelle kontrolliert auf `remote_media_index` umstellen.
-- DB-Reads nur read-only ueber die bestehende Remote-Modboard-MariaDB-Schicht.
-- Agent-Memory als Fallback/Status sichtbar halten.
-- Paging/Suche/Sortierung auf DB-Read vorbereiten oder direkt sauber anbinden.
+## Danach
 
-## Vorbedingung
-
-Der Full-Sync-Receiver ist seit 0.2.55 vorhanden. 0.2.55A stellt klar, ob ein kompletter Sync nur durch deaktivierte MEDIA_INDEX-Gates blockiert wurde.
-
-## Grenzen
-
-- Keine Upload/Edit/Delete-Buttons.
-- Keine Datei-Inhalte.
-- Keine absoluten Pfade.
-- Keine Online->Agent-Dateiaktionen.
-- Keine Delta-Sync-Logik in diesem naechsten Schritt.
+- Delta-Sync / Loeschstatus separat planen
+- Online->Agent Queue separat und nur mit expliziten Permission-/Audit-/Confirm-Gates
