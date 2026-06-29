@@ -2,33 +2,32 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE` lokal einspielen.
-- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.31.
-- [ ] Pruefen: `docs/current/RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE.md` vorhanden.
+- [ ] `RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE` lokal einspielen.
+- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.32.
+- [ ] Pruefen: `docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md` vorhanden.
 - [ ] Pruefen: `CURRENT_STATUS.md`, `NEXT_STEPS.md`, `FILES.md`, `CHANGELOG.md` aktualisiert.
 - [ ] Pruefen: keine Runtime-Dateien geaendert.
 - [ ] Pruefen: keine neuen Runtime-Dateien enthalten.
 - [ ] Pruefen: keine DB-Migration enthalten.
 - [ ] Wenn sauber: `stepdone.cmd`.
 
-## Ergebnis 0.2.31
+## Ergebnis 0.2.32
 
-- [x] Datei-/Modulkarte lokal 8080 erstellt.
-- [x] Datei-/Modulkarte Server/RDAP 3010 erstellt.
-- [x] Doppelte Media-Logik markiert.
-- [x] Altlasten/Plan-Dateien eingeordnet.
-- [x] Neue Runtime-Dateien standardmaessig blockiert.
-- [x] Persistent-Index-Code weiter blockiert, bis eigener Plan bestaetigt ist.
+- [x] Persistent-Index-Zielbild geplant.
+- [x] Wahrscheinliche DB-Migration als eigener spaeterer Step markiert.
+- [x] Bestehende Datei-Verantwortung fuer spaeteren Code beschrieben.
+- [x] Neue Runtime-Dateien weiter blockiert.
+- [x] UI-/i18n-Befund aus Screenshot aufgenommen.
+- [x] Persistent-Index-Code weiter blockiert, bis eigener Migration-/Foundation-Step bestaetigt ist.
 
 ## Naechster No-Code-Plan
 
-- [ ] Vor 0.2.32 klaeren: Welche bestehende Datei darf spaeter geaendert werden?
-- [ ] Vor 0.2.32 klaeren: Darf `backend/core/database.js` im `remote-modboard/backend` Kontext sauber genutzt werden?
-- [ ] Vor 0.2.32 klaeren: Ist eine DB-Migration erlaubt?
-- [ ] Wenn Migration noetig: eigener ausdruecklicher Migration-/Foundation-Step.
-- [ ] Neue Runtime-Datei nur mit ausdruecklicher Forrest-Freigabe.
+- [ ] Entscheiden: zuerst UI/i18n-Fix-Plan oder Persistent-Index-Migration-Plan.
+- [ ] Fuer UI/i18n-Fix betroffene UI-/Language-Dateien aus GitHub/dev lesen.
+- [ ] Falls Connector abgeschnitten ist: Source-Sammel-Script liefern.
+- [ ] UI/i18n-Fix nicht mit DB-/Persistent-Index-Code vermischen.
 
-## Spaeterer Code-Plan, erst nach Inventory + Plan
+## Spaeterer Code-Plan, erst nach Plan + Go
 
 - [ ] Fuer Persistent Index echte DB-/Storage-/Service-Dateien aus GitHub/dev lesen.
 - [ ] Vor Code entscheiden: vorhandene Projekt-DB/Helper bevorzugen oder Alternative sauber begruenden.

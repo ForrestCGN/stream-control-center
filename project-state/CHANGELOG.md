@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.32 - Media Persistent Index Foundation Plan No Code
+
+- Doku-/Plan-Step fuer spaetere Persistent-Index-Foundation.
+- Festgelegt: Persistent Index braucht wahrscheinlich eine DB-Tabelle und damit einen eigenen bestaetigten Migration-/Foundation-Step.
+- Festgelegt: Keine DB-Migration heimlich in einem kleinen Code-Step.
+- Festgelegt: `agent-runtime.service.js` bleibt spaeterer Server-Eingang fuer Agent-Media-Snapshot, Sanitization und Memory.
+- Festgelegt: `media-readonly.routes.js` bleibt spaetere API-Ausgabe; Live-Memory zuerst, persistenter Index nur Fallback/Stale.
+- Festgelegt: `backend/core/database.js` ist bevorzugte DB-Schicht, falls im Server-Kontext sauber nutzbar.
+- Festgelegt: Neue Runtime-Dateien bleiben verboten, ausser Forrest genehmigt sie ausdruecklich.
+- Aufgenommen: UI-/i18n-Befund aus Screenshot mit sichtbaren Keys `module.media.label`, `page.media.library.title`, `page.media.library.label`.
+- Festgelegt: UI/i18n-Fix ist separater kleiner Step und wird nicht mit Persistent-Index-Code vermischt.
+- Keine Runtime-Aenderung, keine DB-Migration, keine neue Runtime-Datei, keine Datei-Inhalte, keine absoluten Pfade, keine Shell-/Prozess-Actions.
+
 ## 0.2.31 - Media 8080/3010 File Module Inventory No Code
 
 - Doku-/Inventory-Step nach 0.2.30 Projektbremse.

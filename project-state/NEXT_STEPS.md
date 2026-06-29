@@ -1,19 +1,19 @@
 # Next Steps
 
-Nach `0.2.31`:
+Nach `0.2.32`:
 
 ## 1. Direkt testen
 
 ```text
-RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE
+RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE
 ```
 
 Pruefen:
 
 ```text
-- START_HERE verweist auf 0.2.31.
-- Neue Doku-Datei ist vorhanden:
-  docs/current/RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE.md
+- START_HERE verweist auf 0.2.32.
+- Neue Plan-Doku ist vorhanden:
+  docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md
 - CURRENT_STATUS/NEXT_STEPS/TODO/FILES/CHANGELOG sind aktualisiert.
 - Keine Runtime-Dateien wurden geaendert.
 - Keine neuen Runtime-Dateien wurden erstellt.
@@ -21,58 +21,58 @@ Pruefen:
 - Kein Webserver-Deploy noetig, weil Doku-only.
 ```
 
-## 2. Danach zwingend vor jedem Code-Step
+## 2. Naechste sinnvolle Entscheidung
 
 ```text
-Kein direkter Code-Step.
-Erst bestaetigen, welche bestehende Datei geaendert werden darf.
+A) kleiner UI/i18n-Fix-Plan fuer sichtbare Translation-Keys
+B) Persistent-Index-Migration/Foundation weiter planen
+C) stoppen
 ```
 
-Mindestentscheidung vor Code:
+Empfehlung:
 
 ```text
-- Soll Persistent Index ueber agent-runtime.service.js geschrieben werden?
-- Soll media-readonly.routes.js nur lesen/fallbacken?
-- Darf backend/core/database.js aus remote-modboard/backend sauber importiert werden?
-- Gibt es bereits remote-modboard-eigene DB-Helfer, die stattdessen gelesen werden muessen?
-- Ist eine DB-Migration erlaubt? Wenn ja: eigener Migration/Foundation-Step.
-- Neue Runtime-Datei: nein, ausser Forrest genehmigt sie ausdruecklich.
+Zuerst UI/i18n-Fix separat klein planen, weil im Online-Modboard sichtbar:
+- module.media.label
+- page.media.library.title
+- page.media.library.label
 ```
 
-## 3. Danach spaeter sinnvoll, aber nur als Plan zuerst
+## 3. UI/i18n-Fix-Plan nur nach Dateipruefung
+
+Vor einem UI/i18n-Fix mindestens lesen:
 
 ```text
-RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_CACHE_READONLY_FOUNDATION_PLAN
+remote-modboard/backend/public/assets/runtime-profile.js
+remote-modboard/backend/public/assets/remote-modboard.js
+remote-modboard/backend/public/assets/modules/*
+remote-modboard/backend/public/assets/languages/*
+htdocs/dashboard-v2/assets/*
 ```
 
-Ziel:
+Regeln:
 
 ```text
-- Kein Code im ersten 0.2.32-Schritt.
-- Exakt festlegen, welche bestehenden Dateien betroffen waeren.
-- Exakt klaeren, ob DB-Migration noetig ist.
-- Exakt klaeren, ob backend/core/database.js im Server-Kontext sauber nutzbar ist.
-- Keine Parallelstruktur bauen.
-- Keine neue Runtime-Datei als Standardloesung.
+- Kein DB-Code.
+- Keine Agent-Aenderung.
+- Keine Media-Persistenz.
+- Nur Labels/Dictionary/Key-Mapping.
+- Eine UI, zwei Runtime-Profile bleibt bestehen.
 ```
 
-## 4. Danach spaeter Code nur nach gesondertem Go
+## 4. Persistent Index spaeter nur nach eigenem Go
 
 ```text
-RDAP_0.2.33_MEDIA_PERSISTENT_INDEX_CACHE_READONLY_FOUNDATION
+RDAP_0.2.33_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY
 ```
 
-Ziel:
+Nur wenn vorher bestaetigt:
 
 ```text
-- Vorhandene Projekt-DB/Helper bevorzugen.
-- Kleinste read-only Foundation fuer persistenten Media-Metadaten-Index.
-- Server speichert hoechstens Metadaten, keine Datei-Inhalte.
-- Lokal bleibt Master fuer echte Media-Dateien.
-- Agent-Snapshot darf Server-Index aktualisieren, aber keine lokalen Dateien veraendern.
-- Upload/Edit/Delete bleiben false.
-- Migration nur nach eigenem bestaetigten Plan.
-- Neue Runtime-Datei nur nach ausdruecklicher Forrest-Freigabe.
+- DB-Migration ist erlaubt.
+- Betroffene bestehende Dateien sind freigegeben.
+- Keine neue Runtime-Datei, ausser Forrest genehmigt sie ausdruecklich.
+- backend/core/database.js ist im Server-Kontext sauber nutzbar oder Alternative ist sauber begruendet.
 ```
 
 ## 5. Nicht tun
@@ -88,6 +88,7 @@ Keine DB-Migration ohne eigenen bestaetigten Step.
 Keine bidirektionale Datei-Synchronisation ohne Sicherheitsmodell.
 Keine Agent-Apply-Queue ohne Permission, Confirm, Audit, Backup und Conflict-Handling.
 Keine neue Runtime-Datei als Standardloesung.
+UI/i18n-Fix nicht mit Persistent-Index-Code vermischen.
 ```
 
 ## 6. Standard-Arbeitsweise Zusatz

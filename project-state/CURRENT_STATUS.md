@@ -2,7 +2,7 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.31 - Media 8080/3010 File Module Inventory No Code`.
+Aktuell: `0.2.32 - Media Persistent Index Foundation Plan No Code`.
 
 ## Technischer Stand
 
@@ -15,6 +15,7 @@ Aktuell: `0.2.31 - Media 8080/3010 File Module Inventory No Code`.
 - 0.2.29 ist ein reiner Plan-/Doku-Step fuer persistenten Server-Index-Cache read-only.
 - 0.2.30 ist ein Stop-/Inventory-/No-Code-Step nach fehlerhaftem und zurueckgesetztem 0.2.30-Versuch.
 - 0.2.31 ist ein Source-/Modul-Inventar-No-Code-Step.
+- 0.2.32 ist ein Persistent-Index-Foundation-Plan-No-Code-Step.
 - Es gibt weiterhin keinen persistenten Server-Cache fuer Media-Daten im Runtime-Code.
 - Media-System bleibt fachliches Modul; Agent/Sync/Cache bleiben Infrastruktur.
 - Upload/Edit/Delete bleiben false.
@@ -23,100 +24,46 @@ Aktuell: `0.2.31 - Media 8080/3010 File Module Inventory No Code`.
 - OBS-Modul bleibt bei 0.2.22E geparkt.
 ```
 
-## 0.2.31 Ergebnis
+## 0.2.32 Ergebnis
 
 ```text
-- Echte 8080-/3010-relevante Dateien wurden gelesen.
-- Datei-/Modulkarte wurde dokumentiert.
-- Doppelte Media-Logik wurde markiert.
-- Lokale 8080-Wahrheit und Server-3010-Wahrheit wurden getrennt.
+- Persistent-Index-Zielbild dokumentiert.
+- Wahrscheinliche DB-Migration als eigener spaeterer Step markiert.
+- Vorgeschlagene Verantwortung dokumentiert:
+  - agent-runtime.service.js = Empfang/Sanitization/Memory/ggf. spaeter Index-Write nach Sanitization
+  - media-readonly.routes.js = API-Ausgabe, Memory zuerst, Index spaeter nur Fallback/Stale
+  - backend/core/database.js = bevorzugte DB-Schicht, falls im Server-Kontext sauber nutzbar
+- Neue Runtime-Dateien bleiben verboten, ausser Forrest genehmigt sie ausdruecklich.
+- UI-/i18n-Befund aus Screenshot aufgenommen.
 - Keine Runtime-Dateien geaendert.
 - Keine DB-Migration eingefuehrt.
 - Keine neue Runtime-Datei erstellt.
 - Kein Webserver-Deploy noetig.
 ```
 
-## 8080 lokale Verantwortung
+## UI-/i18n-Befund
 
 ```text
-backend/modules/local_remote_modboard_adapter.js
-- lokale /api/remote/* Adapterroute
-- lokale /api/remote/media/status Wahrheit
-- liest htdocs/assets/* read-only
-- blockiert Writes
+Im Online-Modboard werden rohe Keys angezeigt:
+- module.media.label
+- page.media.library.title
+- page.media.library.label
 
-backend/modules/remote_agent.js
-- lokaler Agent /api/remote-agent/*
-- scannt Media-Roots read-only
-- sendet Media-Inventar per WSS Slow-Sync
-- akzeptiert keine Actions
-```
-
-## 3010 Server/RDAP Verantwortung
-
-```text
-remote-modboard/backend/server.js
-- Server-Entry und Agent-Runtime-Registrierung
-
-remote-modboard/backend/src/app.js
-- Express-App und Routenregistrierung
-
-remote-modboard/backend/src/services/agent-runtime.service.js
-- Agent-WSS Empfang/Sanitization/Memory-State
-- Media-Inventar bleibt memory-only
-
-remote-modboard/backend/src/routes/media-readonly.routes.js
-- /api/remote/media/status im Serverprofil
-- online liest aus agent-runtime memory-only
-- syncInfo.serverPersistence=false
-```
-
-## Doppelte Media-Logik
-
-```text
-Media Roots/Extensions/Limits/Item-Schema existieren aktuell mehrfach:
-- local_remote_modboard_adapter.js
-- remote_agent.js
-- agent-runtime.service.js
-- media-readonly.routes.js
-
-Risiko: Drift bei Root-Keys, Extensions, Limits, Sanitization und Response-Schema.
+Das ist ein separater UI-/i18n-Polish-Fix.
+Nicht mit Persistent-Index-DB-Code vermischen.
 ```
 
 ## Naechste Architekturentscheidung
 
 ```text
-Persistenter Server-Index ist weiterhin sinnvoll, aber nur als spaeterer separater read-only Code-/Migration-Step nach ausdruecklichem Plan.
-Keine neue Runtime-Datei als Standardloesung.
-Vorhandene Dateien/Helper bevorzugen.
-Kein voller bidirektionaler Datei-Sync ohne Permission, Confirm, Audit, Conflict-Handling und lokalen Agent-Apply-Mechanismus.
-Lokal bleibt wichtigste Quelle, weil dort die produktiven Medien benutzt werden.
-```
+Entweder:
+A) zuerst kleiner UI/i18n-Fix-Plan fuer sichtbare Translation-Keys
+oder:
+B) Persistent-Index-Migration/Foundation weiter planen
 
-## 0.2.29 Plan-Ergebnis bleibt gueltig
-
-```text
-- Server darf spaeter hoechstens sanitisierten Metadaten-Index speichern.
-- Keine Datei-Inhalte.
-- Keine absoluten lokalen Pfade.
-- Lokal bleibt Master.
-- Agent reconnect soll spaeter Server-Index wieder auf aktuellen Stand bringen.
-- Upload/Edit/Delete bleiben fuer separate spaetere Steps geparkt.
-```
-
-## Standard-Arbeitsweise Zusatz
-
-```text
-Wenn GitHub/dev ueber Connector nur unvollstaendig oder abgeschnitten verfuegbar ist:
-1. Assistant liefert zuerst ein Sammel-Script fuer die benoetigten Quell-Dateien.
-2. Forrest fuehrt es lokal im Repo aus und laedt die Source-ZIP hoch.
-3. Assistant baut daraus erst danach den echten Install-Step-ZIP mit echten Repo-Zielpfaden.
-4. Source-ZIP ist niemals Install-ZIP.
-
-Server-/API-Checks:
-- Standardmaessig kurze `jq '{...}'` Ausgaben verwenden.
-- Volles JSON nur bei Fehlerdiagnose oder ausdruecklicher Anforderung.
-- Lokal unter Windows PowerShell `Invoke-RestMethod` statt jq verwenden.
+Empfehlung:
+Erst UI/i18n-Fix separat klein planen, weil sichtbar und wahrscheinlich ohne DB.
+Danach Persistent Index nur nach eigenem Migration-/Foundation-Go.
 ```
 
 ## Sicherheitsgrenzen

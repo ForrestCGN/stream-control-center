@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.31 - Media 8080/3010 File Module Inventory No Code`.
+Aktueller Stand: `0.2.32 - Media Persistent Index Foundation Plan No Code`.
 
 ## Verbindlich
 
@@ -15,10 +15,10 @@ Keine zweite lokale UI.
 Keine Online-Sonder-UI.
 ```
 
-## 0.2.31 Projektbremse / Inventar
+## 0.2.32 Planstatus
 
 ```text
-0.2.31 ist bewusst ein Source-/Modul-Inventar-No-Code-Step.
+0.2.32 ist bewusst ein Plan-/Doku-No-Code-Step.
 Keine Runtime-Aenderung.
 Keine Backend-Routen-Aenderung.
 Keine UI-JS-Aenderung.
@@ -33,10 +33,10 @@ Keine absoluten Pfade.
 Kein Webserver-Deploy noetig.
 ```
 
-Die verbindliche Inventar-Doku liegt hier:
+Die verbindliche Plan-Doku liegt hier:
 
 ```text
-docs/current/RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE.md
+docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md
 ```
 
 ## Harte Architekturregeln
@@ -49,25 +49,9 @@ docs/current/RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE.md
 5. Gleiche Funktionen bleiben im gleichen fachlichen Modul.
 6. Jede Funktion wird von Anfang an mit User-/Rollen-/Permission-Modell gedacht.
 7. Keine Write-Funktion ohne serverseitige Permission-Pruefung, Confirm, Audit und Readback.
-8. Neue Runtime-Dateien sind fuer den naechsten Code-Step verboten, ausser Forrest genehmigt sie ausdruecklich nach Begruendung.
+8. Neue Runtime-Dateien sind verboten, ausser Forrest genehmigt sie ausdruecklich nach Begruendung.
 9. Erst vorhandene Media-/Agent-/DB-Dateien nutzen oder gar nichts bauen.
-```
-
-## Single UI / Dual Runtime Profile
-
-```text
-Remote-Modboard UI
-├─ runtimeMode: local
-│  ├─ gleiche UI
-│  ├─ Daten direkt vom lokalen SCC/Agent
-│  ├─ echte lokale Dateien/OBS/Sounds verfuegbar
-│  └─ Cloud nicht erforderlich
-│
-└─ runtimeMode: online
-   ├─ gleiche UI
-   ├─ Daten vom Webserver
-   ├─ Stream-PC-Daten nur ueber Agent-Sync/Memory-Cache
-   └─ zentrale Auth/Rechte/Audit-Schicht
+10. UI-/i18n-Fehler separat behandeln, nicht mit DB-/Persistent-Index-Code vermischen.
 ```
 
 ## 8080 / 3010 Wahrheit
@@ -116,9 +100,10 @@ OBS ist bei 0.2.22E geparkt.
 0.2.29: Persistent Media Index Cache read-only geplant; weiterhin kein Runtime-Code, keine DB-Migration, keine Writes.
 0.2.30: Stop and Inventory No Code; Projektbremse, kein Runtime-Code, keine neuen Runtime-Dateien.
 0.2.31: Media 8080/3010 File Module Inventory No Code; echte Datei-/Modulkarte dokumentiert, kein Runtime-Code.
+0.2.32: Persistent Index Foundation Plan No Code; Plan plus UI/i18n-Befund dokumentiert, kein Runtime-Code.
 ```
 
-## Aktuelle Media-Verantwortung laut 0.2.31
+## Aktuelle Media-Verantwortung
 
 ```text
 backend/modules/local_remote_modboard_adapter.js
@@ -145,14 +130,19 @@ remote-modboard/backend/src/routes/media-readonly.routes.js
 - localRuntime-Pfad existiert in Server-Route, ist aber nicht lokale 8080-Wahrheit
 ```
 
-## Lokal/Online
+## UI-/i18n-Befund aus Screenshot
 
 ```text
-Lokal: echte Media-Dateien liegen auf dem Stream-PC unter htdocs/assets/*.
-Online: Webserver hat keinen direkten Zugriff auf lokale Stream-PC-Dateien.
-Online-Media-Inventar kommt aktuell per Agent-WSS-Slow-Sync, memory-only.
-Persistent Server Index Cache ist geplant, aber noch nicht gebaut.
-Lokal bleibt Master/Wahrheit fuer echte Media-Dateien.
+Im Online-Modboard werden Media-Labels als rohe Translation-Keys angezeigt:
+- module.media.label
+- page.media.library.title
+- page.media.library.label
+
+Befund:
+- UI/i18n-Dictionary oder Runtime-Language-Asset kennt diese Keys nicht oder wird nicht passend geladen.
+- Das ist ein UI-/i18n-Polish-Thema.
+- Nicht mit Persistent-Index-DB-Code vermischen.
+- Spaeter eigener kleiner UI/i18n-Step, nachdem betroffene Language-/Module-Dateien gelesen wurden.
 ```
 
 ## Sicherheitsgrenzen
@@ -170,22 +160,14 @@ Keine Secrets in Logs/Status/UI/Docs.
 Keine neuen Runtime-Dateien ohne ausdrueckliche Genehmigung.
 ```
 
-## Wichtigste Doku
-
-```text
-docs/current/RDAP_RUNTIME_PROFILE_MODULE_PERMISSION_STANDARD.md
-docs/current/MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN_0.2.29.md
-docs/current/RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE.md
-project-state/FILES.md
-```
-
 ## Naechster sinnvoller Step
 
 ```text
-Nach 0.2.31: kein Code-Step starten, bevor Forrest bestaetigt, welche bestehende Datei fuer Persistent-Index-Foundation ueberhaupt geaendert werden darf.
-Empfehlung: 0.2.32 erst als Plan, nicht sofort Code.
-Wenn Code spaeter kommt: maximal bestehende Media-/Agent-/DB-Dateien nutzen; neue Runtime-Datei nur mit ausdruecklicher Forrest-Freigabe.
-Keine Upload/Delete/Edit-Writes ohne eigene spaetere Steps.
+Nach 0.2.32: entscheiden, ob zuerst ein kleiner UI/i18n-Fix-Plan oder ein Persistent-Index-Migration-Plan kommt.
+
+Empfehlung:
+1. UI/i18n-Befund separat planen und klein fixen.
+2. Danach Persistent Index Migration/Foundation nur nach gesondertem Go.
 ```
 
 Nur bauen, nachdem GitHub/dev gelesen wurde und ein Plan bestaetigt ist.
