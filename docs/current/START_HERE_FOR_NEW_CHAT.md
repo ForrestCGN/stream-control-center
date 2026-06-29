@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.38 - Remote-Modboard MariaDB Media Schema Confirmation Plan No Code`.
+Aktueller Stand: `0.2.39 - Remote-Modboard MariaDB Media Schema Migration File No Execute`.
 
 ## Verbindlich
 
@@ -135,10 +135,38 @@ Step-Doku:
 docs/current/RDAP_0.2.38_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_CONFIRMATION_PLAN_NO_CODE.md
 ```
 
+## 0.2.39 Ergebnis
+
+```text
+SQL-Datei fuer spaetere Remote-Modboard-MariaDB-Media-Schema-Migration wurde vorbereitet.
+
+Erstellt:
+- tools/rdap_0.2.39_remote_media_index_schema.sql
+
+Dokumentiert:
+- CREATE TABLE IF NOT EXISTS remote_media_index
+- SQL-Datei darf nicht automatisch ausgefuehrt werden
+- Ausfuehrung erst in eigenem Server-Migration-Confirm-Step
+
+Nicht passiert:
+- keine Runtime-Aenderung
+- keine SQL-Ausfuehrung
+- keine DB-Migration
+- keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung auf Server/DB
+- keine Media-Daten-Writes
+- kein Webserver-Deploy
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.39_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_FILE_NO_EXECUTE.md
+```
+
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.39_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_FILE_NO_EXECUTE
+RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED
 ```
 
-Nur SQL-Datei im Repo vorbereiten. Keine Ausfuehrung, keine Migration, keine Runtime-Dateien, keine Media-Writes, bis Forrest einen separaten Server-Migration-Confirm-Step ausdruecklich freigibt.
+Nur nach separatem ausdruecklichem Forrest-Confirm. Dann erstmals serverkritisch: Env sicher pruefen, Backup erstellen und pruefen, Vorab-Read-only-Checks, SQL aus frischem _deploy_tmp Clone ausfuehren, Readback pruefen, row_count=0 erwarten. Weiterhin keine Media-Daten schreiben.

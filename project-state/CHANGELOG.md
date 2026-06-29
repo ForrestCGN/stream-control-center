@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.39 - Remote-Modboard MariaDB Media Schema Migration File No Execute
+
+- Erstellt die SQL-Datei fuer spaetere Schema-Migration:
+  - `tools/rdap_0.2.39_remote_media_index_schema.sql`
+- SQL enthaelt `CREATE TABLE IF NOT EXISTS remote_media_index`.
+- SQL-Datei enthaelt Warnhinweise: nicht automatisch ausfuehren, keine Migration in 0.2.39.
+- Fuegt Step-Doku fuer 0.2.39 hinzu.
+- Aktualisiert Projektstatus und Next Steps auf den naechsten separaten Server-Migration-Confirm-Step.
+- Bestaetigt: keine Runtime-Aenderung.
+- Bestaetigt: keine SQL-Ausfuehrung.
+- Bestaetigt: keine DB-Migration.
+- Bestaetigt: keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung auf Server/DB.
+- Bestaetigt: keine Media-Daten-Writes.
+- Bestaetigt: kein Webserver-Deploy noetig.
+
 ## 0.2.38 - Remote-Modboard MariaDB Media Schema Confirmation Plan No Code
 
 - Fuegt reine Doku fuer den Confirm-/Migrationsplan hinzu.

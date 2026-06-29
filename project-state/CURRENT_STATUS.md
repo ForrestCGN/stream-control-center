@@ -2,7 +2,7 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.38 - Remote-Modboard MariaDB Media Schema Confirmation Plan No Code`.
+Aktuell: `0.2.39 - Remote-Modboard MariaDB Media Schema Migration File No Execute`.
 
 ## Technischer Stand
 
@@ -16,6 +16,7 @@ Aktuell: `0.2.38 - Remote-Modboard MariaDB Media Schema Confirmation Plan No Cod
 - 0.2.36 inventarisiert die vorhandene Remote-Modboard-DB-Nutzung ohne Code.
 - 0.2.37 dokumentiert das remote_media_index Schema als Dry-Run ohne Migration.
 - 0.2.38 dokumentiert den Confirm-/Migrationsplan ohne Code und ohne SQL-Ausfuehrung.
+- 0.2.39 erstellt die SQL-Datei tools/rdap_0.2.39_remote_media_index_schema.sql, fuehrt sie aber nicht aus.
 - Media bleibt online read-only ueber Agent-Memory.
 - Keine Media-Persistenz aktiv.
 - Keine DB-Migration aktiv.
@@ -61,6 +62,16 @@ remote-modboard/backend/src/services/audit-read.service.js
 - naechster Step bleibt SQL-Datei ohne Ausfuehrung
 ```
 
+## 0.2.39 Erstellt
+
+```text
+- tools/rdap_0.2.39_remote_media_index_schema.sql
+- CREATE TABLE IF NOT EXISTS remote_media_index
+- SQL-Datei ist nur vorbereitet, nicht ausgefuehrt
+- keine Runtime-Dateien geaendert
+- kein Webserver-Deploy noetig
+```
+
 ## Sicherheitsstatus
 
 ```text
@@ -70,6 +81,6 @@ keine manuellen DB-/Datei-Kopien auf dem Server
 keine SQLite-/Repo-root-DB fuer Online-Remote-Modboard annehmen
 db.service.js ist die relevante Online-DB-Schicht
 writeEnabled=false und migrationEnabled=false bleiben fuer Media unveraendert
-remote_media_index ist nur geplant/dokumentiert, nicht migriert
+remote_media_index SQL-Datei ist vorbereitet, aber nicht migriert
 keine produktiven Media-DB-Writes
 ```
