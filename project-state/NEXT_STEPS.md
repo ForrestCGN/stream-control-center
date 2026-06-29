@@ -1,19 +1,17 @@
 # Next Steps
 
-Nach `0.2.42`:
+Nach `0.2.43`:
 
-## 1. Lokal pruefen
+## 1. Direkt lokal pruefen
 
 ```text
-RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY
+RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONFIRMED_DOCS
 ```
 
 Checks:
 
 ```powershell
-node --check .\remote-modboard\backend\src\routes\media-readonly.routes.js
-node --check .\remote-modboard\backend\src\app.js
-node --check .\remote-modboard\backend\server.js
+Select-String -Path .\docs\current\RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONFIRMED_DOCS.md -Pattern "media/status?db=1","remote_media_index","itemCount = 0","compatibleForRead = true","compatibleForWrite = false","writeEnabled = false","Keine Media-Daten-Writes","Kein Webserver-Deploy"
 
 git status
 ```
@@ -21,21 +19,26 @@ git status
 Wenn sauber:
 
 ```powershell
-.\stepdone.cmd "RDAP 0.2.42 Media Index Schema Status Readonly vorbereitet; read-only DB-Diagnose, keine Media-Writes"
+.\stepdone.cmd "RDAP 0.2.43 Media Index Schema Status Readonly Deploy und Readback dokumentiert; itemCount 0, compatibleForRead true, Writes blockiert"
 ```
 
-## 2. Danach Webserver-Deploy
+## 2. Danach nur read-only Nutzungsplan vorbereiten
 
-```bash
-bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY dev
+```text
+RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN
 ```
 
-Pruefen:
+Ziel:
 
-```bash
-curl -fsS "http://127.0.0.1:3010/api/remote/media/status?db=1" | jq '.persistentIndex | {ok, inspected, detected, tableName, itemCount, compatibleForRead, compatibleForWrite, writeEnabled, dataWritesEnabled, migrationEnabled}'
-
-curl -fsS "http://127.0.0.1:3010/api/remote/routes" | jq '.mediaReadonly.persistentIndexSchemaStatusReadonly'
+```text
+- nur planen, ob/wie remote_media_index spaeter als echte read-only Quelle/Fallback genutzt werden darf.
+- klaeren, ob Agent-Memory weiterhin primäre Online-Wahrheit bleibt.
+- klaeren, welche API-Felder aus DB gelesen werden duerften.
+- klaeren, wie stale/deleted/last_seen_at bewertet werden duerften.
+- keine Media-Daten schreiben.
+- keine Agent-Writes.
+- kein Upload/Edit/Delete.
+- keine produktiven Media-DB-Writes ohne separaten Confirm-Write-Step.
 ```
 
 ## Nicht tun

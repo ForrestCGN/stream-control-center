@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.42 - Remote-Modboard Media Index Schema Status Readonly`.
+Aktueller Stand: `0.2.43 - Remote-Modboard Media Index Schema Status Readonly Confirmed Docs`.
 
 ## Verbindlich
 
@@ -97,10 +97,54 @@ Step-Doku:
 docs/current/RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY.md
 ```
 
+## 0.2.43 Ergebnis
+
+```text
+0.2.42 wurde auf dem Webserver deployed und read-only geprueft.
+
+Deploy/Readback bestaetigt:
+- GET /api/remote/media/status?db=1
+- persistentIndex.ok = true
+- inspected = true
+- detected = true
+- tableName = remote_media_index
+- itemCount = 0
+- compatibleForRead = true
+- compatibleForWrite = false
+- writeEnabled = false
+- dataWritesEnabled = false
+- migrationEnabled = false
+
+Routes-Readback bestaetigt:
+- .mediaReadonly.persistentIndexSchemaStatusReadonly.prepared = true
+- usesInformationSchemaColumns = true
+- usesInformationSchemaStatistics = true
+- readsRowCount = true
+- compatibleForWrite = false
+- writeEnabled = false
+- dataWritesEnabled = false
+- migrationEnabled = false
+
+Nicht passiert:
+- keine Runtime-Code-Aenderung in 0.2.43
+- keine SQL-Ausfuehrung
+- keine DB-Migration
+- keine Media-Daten-Writes
+- keine Agent-Writes
+- kein Upload/Edit/Delete
+- kein Webserver-Deploy fuer 0.2.43, weil Doku-only
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONFIRMED_DOCS.md
+```
+
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.42_SERVER_DEPLOY_AND_READBACK
+RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN
 ```
 
-Nur nach lokalem Abschluss und GitHub/dev-Push: Webserver-Deploy ueber `tools/server/remote-modboard-deploy-step.sh`, danach Readback auf `/api/remote/media/status?db=1`.
+Nur planen: ob/wie der vorhandene `remote_media_index` spaeter als echte read-only Quelle/Fallback genutzt werden darf. Keine Writes, keine Agent-Writes, kein Upload/Edit/Delete.
