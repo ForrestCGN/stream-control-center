@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.33 - UI i18n Media Labels Fix Plan`.
+Aktueller Stand: `0.2.34 - Media Persistent Index Migration Foundation Readonly`.
 
 ## Verbindlich
 
@@ -15,25 +15,25 @@ Keine zweite lokale UI.
 Keine Online-Sonder-UI.
 ```
 
-## 0.2.33 Status
+## 0.2.34 Status
 
 ```text
-0.2.33 ist ein kleiner UI-/i18n-Fix.
-Media-Translation-Keys wurden in zentrale Sprachdateien eingetragen.
-Media-Modulregistrierung nutzt zentrale label/title/description/tab Keys mit Fallbacks.
-Keine Backend-Routen-Aenderung.
-Keine DB-Migration.
-Keine Media-Persistenz.
-Keine Agent-Aenderung.
+0.2.34 ist eine kleine DB-Migration/Foundation fuer den Media Persistent Index.
+Erstellt/validiert Tabelle remote_media_index ueber bestehende DB-Schicht backend/core/database.js + ensureSchema.
+Media-Route bleibt read-only.
+Agent-Sync schreibt in diesem Step noch keine Media-Daten in die DB.
+/api/remote/media/status meldet persistentIndex-Status.
+Memory bleibt online zuerst.
+Lokal bleibt Datei-Wahrheit.
 Keine Uploads, Deletes oder Edits.
+Keine Agent-Actions.
 Keine neue Runtime-Datei.
-Webserver-Deploy ist nach Einspielen/Commit sinnvoll, weil Public-Assets betroffen sind.
 ```
 
-Die verbindliche Step-Doku liegt hier:
+Step-Doku:
 
 ```text
-docs/current/RDAP_0.2.33_UI_I18N_MEDIA_LABELS_FIX_PLAN.md
+docs/current/RDAP_0.2.34_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY.md
 ```
 
 ## Harte Architekturregeln
@@ -67,7 +67,7 @@ Lokale Adapter-/SCC-Schicht:
 - backend/modules/local_remote_modboard_adapter.js
 - backend/modules/remote_agent.js
 Produktive lokale SQLite-DB:
-- D:\Streaming\stramAssets\data\sqlitepp.sqlite
+- D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
 Server/RDAP:
@@ -83,23 +83,6 @@ Server-Code:
 
 Keine lokalen Checks gegen 3010.
 3010 nur fuer Webserver-/RDAP-Server-Checks nach GitHub/dev + Deploy.
-
-## Bestaetigter aktueller Fokus
-
-```text
-OBS ist bei 0.2.22E geparkt.
-0.2.24: Media-Foundation read-only.
-0.2.25: lokales Media-Inventar read-only aktiv.
-0.2.26: Architekturstandard fuer Runtime-Profile, fachliche Module, Sync-Klassen und Rechte dokumentiert.
-0.2.27: Media Agent Slow Sync read-only gebaut.
-0.2.27B: Media-WSS-Payload kompakt gemacht, damit kein 64-bit WebSocket-Frame-Abbruch entsteht.
-0.2.28: Media-Slow-Sync Status/UI polish read-only; kein DB-Cache, keine Persistenz.
-0.2.29: Persistent Media Index Cache read-only geplant; weiterhin kein Runtime-Code, keine DB-Migration, keine Writes.
-0.2.30: Stop and Inventory No Code; Projektbremse, kein Runtime-Code, keine neuen Runtime-Dateien.
-0.2.31: Media 8080/3010 File Module Inventory No Code; echte Datei-/Modulkarte dokumentiert, kein Runtime-Code.
-0.2.32: Persistent Index Foundation Plan No Code; Plan plus UI/i18n-Befund dokumentiert, kein Runtime-Code.
-0.2.33: UI/i18n Media Labels Fix; sichtbare rohe Media-Keys beseitigt.
-```
 
 ## Aktuelle Media-Verantwortung
 
@@ -125,18 +108,8 @@ remote-modboard/backend/src/services/agent-runtime.service.js
 remote-modboard/backend/src/routes/media-readonly.routes.js
 - Server 3010 /api/remote/media/status
 - online liest aus agent-runtime memory-only
-- localRuntime-Pfad existiert in Server-Route, ist aber nicht lokale 8080-Wahrheit
-```
-
-## 0.2.33 UI-/i18n-Ergebnis
-
-```text
-Rohe Keys sollten nicht mehr sichtbar sein:
-- module.media.label
-- page.media.library.title
-- page.media.library.label
-
-Betroffen war UI/i18n, nicht Media-Persistenz.
+- bereitet remote_media_index DB-Schema vor
+- DB-Fallback/Data-Writes bleiben deaktiviert
 ```
 
 ## Sicherheitsgrenzen
@@ -145,34 +118,22 @@ Betroffen war UI/i18n, nicht Media-Persistenz.
 Keine Media-Uploads.
 Keine Media-Deletes.
 Keine Media-Edits.
-Keine DB-Migration ohne separaten Step.
 Keine Agent-Actions ohne separaten Step.
 Keine Shell-/Datei-/Prozess-Actions.
 Keine absoluten Pfade in API/UI/DB.
 Keine Datei-Inhalte im Server-Index.
 Keine Secrets in Logs/Status/UI/Docs.
 Keine neuen Runtime-Dateien ohne ausdrueckliche Genehmigung.
+0.2.34 erlaubt nur die bestaetigte DB-Schema-Migration fuer remote_media_index.
 ```
 
 ## Naechster sinnvoller Step
 
 ```text
-Nach 0.2.33 zuerst testen, ob Online-Modboard und lokales Dashboard keine rohen Media-i18n-Keys mehr zeigen.
-Danach Persistent Index Migration/Foundation nur nach gesondertem Go.
-```
+Nach 0.2.34 zuerst lokal und online pruefen:
+- node --check fuer media-readonly.routes.js
+- /api/remote/media/status persistentIndex.ok/tableName/schemaVersion
+- keine Upload/Edit/Delete/Agent-Actions aktiv
 
-Nur bauen, nachdem GitHub/dev gelesen wurde und ein Plan bestaetigt ist.
-
-## Standard-Arbeitsweise Zusatz
-
-```text
-Wenn GitHub/dev ueber Connector abgeschnitten/unvollstaendig ist:
-- erst Source-Sammel-Script liefern
-- Source-ZIP vom Nutzer abwarten
-- daraus echten Install-Step-ZIP mit Zielpfaden bauen
-
-Check-Ausgaben kurz halten:
-- Webserver: curl + jq mit ausgewaehlten Feldern
-- Windows lokal: Invoke-RestMethod + pscustomobject
-- volles JSON nur bei Fehlerdiagnose
+Danach erst eigener Step fuer Daten-Write/Fallback-Lesen, wenn ausdruecklich freigegeben.
 ```

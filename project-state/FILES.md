@@ -1,82 +1,51 @@
 # Files
 
-## 0.2.33 relevante Dateien
+## 0.2.34 geaendert
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/RDAP_0.2.33_UI_I18N_MEDIA_LABELS_FIX_PLAN.md
+docs/current/RDAP_0.2.34_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-remote-modboard/backend/public/assets/languages/de.js
-remote-modboard/backend/public/assets/languages/en.js
-remote-modboard/backend/public/assets/modules/media/library.js
-htdocs/dashboard-v2/assets/modules/media/library.js
-```
-
-## 0.2.33 bewusst nicht geaendert
-
-```text
-Keine Backend-Routen.
-Keine DB-Migrationen.
-Keine Agent-Dateien.
-Keine Media-Persistenz.
-Keine Upload-/Edit-/Delete-Actions.
-Keine neuen Runtime-Dateien.
-```
-
-## 8080 lokal relevante Dateien
-
-```text
-backend/modules/local_remote_modboard_adapter.js
-backend/modules/remote_agent.js
-backend/core/database.js
-backend/modules/sqlite_core.js
-htdocs/dashboard-v2/assets/modules/media/library.js
-```
-
-## 3010 Server/RDAP relevante Dateien
-
-```text
 remote-modboard/backend/src/routes/media-readonly.routes.js
-remote-modboard/backend/src/services/agent-runtime.service.js
-remote-modboard/backend/src/app.js
-remote-modboard/backend/server.js
-remote-modboard/backend/public/assets/languages/de.js
-remote-modboard/backend/public/assets/languages/en.js
-remote-modboard/backend/public/assets/modules/media/library.js
 ```
 
-## Fuer spaeteren Persistent-Index-Code-Step relevant
+## 0.2.34 Runtime-Grenze
 
 ```text
-remote-modboard/backend/src/services/agent-runtime.service.js
-remote-modboard/backend/src/routes/media-readonly.routes.js
-backend/core/database.js
-backend/modules/sqlite_core.js
+Geaendert: bestehende Server-Route media-readonly.routes.js
+Neu: nur Doku-Datei
+Nicht neu: keine Runtime-Datei
+```
+
+## DB-Foundation
+
+```text
+Tabelle: remote_media_index
+Schema-Modul: remote_media_index
+Schema-Version: 1
+DB-Schicht: backend/core/database.js
+Migration: ensureSchema aus bestehender DB-Schicht
+```
+
+## Bewusst nicht geaendert
+
+```text
 backend/modules/remote_agent.js
 backend/modules/local_remote_modboard_adapter.js
-remote-modboard/backend/src/**/*.js mit DB-/Storage-/Audit-Helpern
-docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md
-docs/current/MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN_0.2.29.md
+remote-modboard/backend/src/services/agent-runtime.service.js
+remote-modboard/backend/public/assets/*
+htdocs/dashboard-v2/assets/*
 ```
 
-## Neue-Dateien-Regel
+## Sicherheitsgrenzen
 
 ```text
-Neue Runtime-Dateien sind verboten, ausser Forrest genehmigt sie ausdruecklich nach konkreter Begruendung.
-Vorhandene Module/Services/Routes bevorzugen.
-Keine Parallelstruktur bauen.
-Eine neue Doku-Datei ist erlaubt.
-Eine neue Runtime-Datei ist nicht erlaubt.
-```
-
-## Standard-Arbeitsweise
-
-```text
-Bei abgeschnittenem GitHub/dev zuerst Source-Sammel-Script und Source-ZIP nutzen.
-Install-ZIP muss echte Repo-Zielpfade enthalten.
-Check-Ausgaben kurz halten; volles JSON nur bei Diagnose.
+Keine Datei-Inhalte.
+Keine absoluten Pfade.
+Keine Media-Daten-Writes in diesem Step.
+Keine Upload/Edit/Delete/Agent-Actions.
 ```

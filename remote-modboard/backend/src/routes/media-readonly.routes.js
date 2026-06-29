@@ -4,9 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
 
-const STATUS_API_VERSION = 'rdap_media_agent_slow_sync_status_polish_028.v1';
-const BUILD = 'RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY';
+const STATUS_API_VERSION = 'rdap_media_persistent_index_foundation_034.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_agent_slow_sync_status_polish_028.v1';
+const BUILD = 'RDAP_0.2.34_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
+const PERSISTENT_INDEX_SCHEMA_MODULE = 'remote_media_index';
+const PERSISTENT_INDEX_SCHEMA_VERSION = 1;
+const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
 const MEDIA_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
@@ -21,6 +25,8 @@ const MEDIA_PLANNED_ROOTS = Object.freeze([
   { key: 'images', label: 'Bilder', localPathHint: 'htdocs/assets/images', publicBasePath: '/assets/images', types: ['image'] }
 ]);
 
+let persistentIndexSchemaState = null;
+
 function registerMediaReadonlyRoutes(app, context) {
   app.get(MEDIA_STATUS_PATH, (req, res) => {
     res.json(buildMediaReadonlyStatus(context, req));
@@ -32,6 +38,7 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
   const generatedAt = new Date().toISOString();
   const localRuntime = runtimeMode === 'local';
   const limit = readLimit(req);
+  const persistentIndex = ensurePersistentIndexFoundation(context);
   const agentMediaStatus = localRuntime ? null : safeBuildAgentMediaInventoryStatus();
   const inventory = localRuntime
     ? scanLocalInventory({ limit, generatedAt })
@@ -41,10 +48,11 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_media_readonly',
-    moduleVersion: context.appVersion || '0.2.28',
+    moduleVersion: context.appVersion || '0.2.34',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
+    previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
     route: MEDIA_STATUS_PATH,
     generatedAt,
     runtimeMode,
@@ -69,7 +77,8 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
       localDashboardProfileUsesSameUi: true
     },
     permissions: buildPermissionBlock(),
-    syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus }),
+    syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex }),
+    persistentIndex,
     inventory,
     plannedRoots: MEDIA_PLANNED_ROOTS.map(item => ({ ...item })),
     allowedExtensions: MEDIA_ALLOWED_EXTENSIONS.slice(),
@@ -85,12 +94,12 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     safety: buildSafetyBlock(),
     nextSteps: [
       inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert; kompakte Listen koennen truncated=true melden.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.',
+      persistentIndex.ok ? 'Persistent-Index-Schema ist vorbereitet; Daten-Schreiben bleibt in diesem Step deaktiviert.' : 'Persistent-Index-Schema pruefen, bevor DB-Fallback aktiviert wird.',
       'Filter/Paging spaeter ohne Breaking Change ueber limit/root/type/cursor ausbauen.',
       'Upload/Edit/Delete erst nach separatem Permission-/Audit-/Confirm-Step.'
     ]
   };
 }
-
 
 function buildOnlineSummary(inventory) {
   if (!inventory || inventory.active !== true) {
@@ -103,7 +112,7 @@ function buildOnlineSummary(inventory) {
   return `Online-Media-Inventar ist per Agent-WSS aktiv. Es werden ${returned} Eintraege angezeigt. Upload, Bearbeiten und Loeschen bleiben aus.`;
 }
 
-function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus }) {
+function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex }) {
   const counts = inventory && inventory.counts ? inventory.counts : {};
   return {
     prepared: true,
@@ -112,6 +121,11 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus }) {
     source: inventory && inventory.source ? inventory.source : (localRuntime ? 'local_stream_pc_filesystem_readonly' : 'agent_wss_media_inventory_sync_memory_only'),
     localIsMaster: true,
     serverPersistence: false,
+    serverPersistenceFoundation: persistentIndex && persistentIndex.ok === true,
+    persistentIndexPrepared: true,
+    persistentIndexTable: PERSISTENT_INDEX_TABLE,
+    persistentIndexWritesEnabled: false,
+    persistentIndexFallbackEnabled: false,
     memoryOnly: !localRuntime,
     compactTransport: !localRuntime,
     active: inventory && inventory.active === true,
@@ -122,7 +136,7 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus }) {
     status: inventory && inventory.active === true ? (inventory.truncated === true ? 'compact_inventory_available' : 'inventory_available') : 'inventory_pending',
     note: localRuntime
       ? 'Lokal bleibt die Datei-Wahrheit; das Inventar wird direkt read-only aus den Assets gelesen.'
-      : 'Online zeigt einen read-only Agent-Memory-Index. Dieser Step speichert keine Media-Daten dauerhaft auf dem Server.'
+      : 'Online zeigt zuerst den read-only Agent-Memory-Index. Das DB-Schema ist vorbereitet, aber dieser Step schreibt noch keine Media-Daten in den Index.'
   };
 }
 
@@ -134,6 +148,105 @@ function readLimit(req) {
 
 function getProjectRoot() {
   return path.resolve(__dirname, '..', '..', '..', '..');
+}
+
+function getDatabaseLayer() {
+  try {
+    return require(path.resolve(getProjectRoot(), 'backend', 'core', 'database.js'));
+  } catch (err) {
+    return null;
+  }
+}
+
+function ensurePersistentIndexFoundation(context = {}) {
+  if (persistentIndexSchemaState && persistentIndexSchemaState.ok === true) {
+    return { ...persistentIndexSchemaState, cached: true };
+  }
+
+  const db = getDatabaseLayer();
+  if (!db || typeof db.ensureReady !== 'function' || typeof db.ensureSchema !== 'function') {
+    persistentIndexSchemaState = buildPersistentIndexState({ ok: false, reason: 'database_layer_unavailable' });
+    return persistentIndexSchemaState;
+  }
+
+  try {
+    db.ensureReady(context);
+    db.ensureSchema(PERSISTENT_INDEX_SCHEMA_MODULE, PERSISTENT_INDEX_SCHEMA_VERSION, (currentVersion, nextVersion, database) => {
+      if (nextVersion === 1) migratePersistentIndexV1(database);
+    });
+
+    const tableExists = typeof db.tableExists === 'function' ? db.tableExists(PERSISTENT_INDEX_TABLE) : true;
+    const columns = typeof db.tableColumns === 'function' ? db.tableColumns(PERSISTENT_INDEX_TABLE) : [];
+    const itemCount = tableExists && typeof db.count === 'function' ? db.count(PERSISTENT_INDEX_TABLE) : 0;
+    const schemaVersion = typeof db.getSchemaVersion === 'function' ? db.getSchemaVersion(PERSISTENT_INDEX_SCHEMA_MODULE) : PERSISTENT_INDEX_SCHEMA_VERSION;
+    persistentIndexSchemaState = buildPersistentIndexState({ ok: tableExists, reason: tableExists ? 'schema_ready' : 'table_missing_after_migration', schemaVersion, columns, itemCount, databaseStatus: typeof db.status === 'function' ? db.status() : null });
+    return persistentIndexSchemaState;
+  } catch (err) {
+    persistentIndexSchemaState = buildPersistentIndexState({ ok: false, reason: err && err.message ? err.message : String(err || 'persistent_index_schema_failed') });
+    return persistentIndexSchemaState;
+  }
+}
+
+function migratePersistentIndexV1(database) {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS remote_media_index (
+      id TEXT PRIMARY KEY,
+      root_key TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      relative_path TEXT NOT NULL,
+      name TEXT NOT NULL,
+      extension TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL DEFAULT 0,
+      modified_at TEXT,
+      first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      deleted INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL DEFAULT 'agent_wss_media_inventory_sync',
+      sync_version INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_remote_media_index_root_path
+      ON remote_media_index (root_key, relative_path);
+
+    CREATE INDEX IF NOT EXISTS idx_remote_media_index_kind
+      ON remote_media_index (kind);
+
+    CREATE INDEX IF NOT EXISTS idx_remote_media_index_deleted_last_seen
+      ON remote_media_index (deleted, last_seen_at);
+  `);
+}
+
+function buildPersistentIndexState(input = {}) {
+  const databaseStatus = input.databaseStatus || null;
+  return {
+    prepared: true,
+    ok: input.ok === true,
+    readOnly: true,
+    tableName: PERSISTENT_INDEX_TABLE,
+    schemaModule: PERSISTENT_INDEX_SCHEMA_MODULE,
+    schemaVersion: Number(input.schemaVersion || 0),
+    targetSchemaVersion: PERSISTENT_INDEX_SCHEMA_VERSION,
+    reason: input.reason || 'unknown',
+    migrationEnabled: true,
+    dataWritesEnabled: false,
+    fallbackReadsEnabled: false,
+    localIsMaster: true,
+    storesFileContents: false,
+    storesAbsolutePaths: false,
+    columns: Array.isArray(input.columns) ? input.columns : [],
+    itemCount: Number(input.itemCount || 0),
+    database: databaseStatus ? {
+      adapter: databaseStatus.adapter,
+      dialect: databaseStatus.dialect,
+      initialized: databaseStatus.initialized,
+      ok: databaseStatus.ok === true,
+      sqliteReady: databaseStatus.sqlite ? databaseStatus.sqlite.initialized === true : false
+    } : null,
+    note: input.ok === true
+      ? 'DB-Schema ist vorbereitet. Agent-Sync schreibt in diesem Step noch keine Media-Daten in den Index.'
+      : 'DB-Schema ist nicht bereit; Media-Route bleibt trotzdem read-only ueber Memory/Local-Scan nutzbar.'
+  };
 }
 
 function buildPendingInventory({ localRuntime, limit }) {
@@ -154,7 +267,6 @@ function buildPendingInventory({ localRuntime, limit }) {
     emptyReason: 'inventory_not_available_in_this_runtime_yet'
   };
 }
-
 
 function safeBuildAgentMediaInventoryStatus() {
   try {
@@ -407,7 +519,7 @@ function walkRoot({ root, absoluteRoot, currentDir, depth, limit, items, groups,
 }
 
 function normalizeRelativePath(value) {
-  return String(value || '').replace(/\\/g, '/').replace(/^\/+/g, '');
+  return String(value || '').replace(/\\/g, '/').replace(/^\/+/, '');
 }
 
 function mediaKindForExtension(ext) {
@@ -441,7 +553,8 @@ function buildSafetyBlock() {
     deleteEnabled: false,
     fileWrite: false,
     databaseWrite: false,
-    migrationEnabled: false,
+    migrationEnabled: true,
+    mediaIndexDataWrite: false,
     shellOrProcessActions: false,
     agentActionsEnabled: false,
     freePathAccessEnabled: false,
@@ -453,10 +566,12 @@ function buildSafetyBlock() {
 }
 
 function buildMediaRoutesSummary(context = {}) {
+  const persistentIndex = ensurePersistentIndexFoundation(context);
   return {
     prepared: true,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
+    previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
     runtimeMode: context && context.config && context.config.runtimeMode ? String(context.config.runtimeMode) : 'online',
     readOnly: true,
     uploadEnabled: false,
@@ -464,14 +579,14 @@ function buildMediaRoutesSummary(context = {}) {
     permissionModelPrepared: true,
     localInventoryReadonlyPrepared: true,
     onlineAgentInventoryReadonlyPrepared: true,
+    persistentIndex,
     scanPolicy: { defaultLimit: MEDIA_SCAN_DEFAULT_LIMIT, hardLimit: MEDIA_SCAN_HARD_LIMIT, maxDepth: MEDIA_SCAN_MAX_DEPTH, cursorPreparedLater: true },
     routes: [
-      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status, lokales Inventar im Lokalmodus und Online-Inventar aus Agent-WSS-Memory-Cache; keine Uploads, keine Deletes, keine Writes', readOnly: true }
+      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status, lokales Inventar im Lokalmodus und Online-Inventar aus Agent-WSS-Memory-Cache; Persistent-Index-Schema vorbereitet; keine Uploads, keine Deletes, keine Media-Daten-Writes', readOnly: true }
     ],
     safety: {
       noFileWrite: true,
-      noDatabaseWrite: true,
-      noMigration: true,
+      mediaIndexDataWrite: false,
       noAgentActionExecution: true,
       noShellOrProcessActions: true
     }
@@ -484,5 +599,6 @@ module.exports = {
   BUILD,
   registerMediaReadonlyRoutes,
   buildMediaReadonlyStatus,
-  buildMediaRoutesSummary
+  buildMediaRoutesSummary,
+  ensurePersistentIndexFoundation
 };
