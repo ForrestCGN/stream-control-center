@@ -2,15 +2,14 @@
 
 ## Naechster technischer Schritt
 
-`RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER`
+`RDAP_0.2.56_MEDIA_INDEX_READ_SOURCE`
 
 Ziel:
 
-- Full-Sync-Agent -> Webserver in Chunks.
-- Server validiert Chunks streng.
-- Schreiben nach `remote_media_index` nur mit separaten MEDIA_INDEX Gates und expliziten Confirm-/Sync-Gates.
-- DB-Index danach mit Media-Daten befuellen.
-- Remote-Modboard-Lesequelle erst in einem separaten Folgeschritt kontrolliert von Agent-Memory auf DB-Index umstellen.
+- Remote-Modboard-Media-Lesequelle kontrolliert auf `remote_media_index` umstellen.
+- DB-Reads nur read-only ueber die bestehende Remote-Modboard-MariaDB-Schicht.
+- Agent-Memory als Fallback/Status sichtbar halten.
+- Paging/Suche/Sortierung auf DB-Read vorbereiten oder direkt sauber anbinden.
 
 ## Grenzen
 
@@ -18,3 +17,4 @@ Ziel:
 - Keine Datei-Inhalte.
 - Keine absoluten Pfade.
 - Keine Online->Agent-Dateiaktionen.
+- Keine Delta-Sync-Logik in diesem naechsten Schritt.

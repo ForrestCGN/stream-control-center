@@ -20,15 +20,16 @@ let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.8B';
-const MODULE_BUILD = 'RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX';
-const STATUS_API_VERSION = 'rdap_agent_media_slow_sync_027b.v1';
+const MODULE_VERSION = '0.1.8C';
+const MODULE_BUILD = 'RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER';
+const STATUS_API_VERSION = 'rdap_agent_media_full_sync_055.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
 const LIVE_STATE_PROTOCOL_VERSION = 'rdap-agent-live-state.v1';
 const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
+const MEDIA_FULL_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-full-sync.v1';
 const DEFAULT_REMOTE_WS_URL = 'wss://mods.forrestcgn.de/agent-ws';
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
@@ -40,6 +41,7 @@ const MEDIA_SCAN_HARD_LIMIT = 2000;
 const MEDIA_SCAN_MAX_DEPTH = 5;
 const MEDIA_WSS_TRANSPORT_MAX_BYTES = 60000;
 const MEDIA_WSS_TRANSPORT_LIMITS = Object.freeze([120, 80, 40, 20]);
+const MEDIA_FULL_SYNC_CHUNK_SIZE = 50;
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const MEDIA_ROOTS = Object.freeze([
   { key: 'sounds', label: 'Sounds', localPathHint: 'htdocs/assets/sounds', publicBasePath: '/assets/sounds', types: ['audio', 'video'] },
@@ -245,7 +247,21 @@ const CONNECTION_STATE = {
   mediaInventorySyncUpdatedAt: null,
   mediaInventorySync: null,
   mediaInventorySyncSendErrorAt: null,
-  mediaInventorySyncSendError: null
+  mediaInventorySyncSendError: null,
+  mediaFullSyncProtocolVersion: MEDIA_FULL_SYNC_PROTOCOL_VERSION,
+  mediaFullSyncPrepared: true,
+  mediaFullSyncSeq: 0,
+  mediaFullSyncState: 'pending',
+  mediaFullSyncId: null,
+  mediaFullSyncChunkSize: MEDIA_FULL_SYNC_CHUNK_SIZE,
+  mediaFullSyncTotalChunks: 0,
+  mediaFullSyncSentChunks: 0,
+  mediaFullSyncTotalItems: 0,
+  mediaFullSyncSentItems: 0,
+  mediaFullSyncStartedAt: null,
+  mediaFullSyncLastChunkAt: null,
+  mediaFullSyncCompletedAt: null,
+  mediaFullSyncLastError: null
 };
 
 let ws = null;
@@ -614,10 +630,112 @@ async function sendMediaInventorySync(config, reason) {
     CONNECTION_STATE.mediaInventorySyncSendError = null;
     CONNECTION_STATE.actionsEnabled = false;
     CONNECTION_STATE.productiveActionsEnabled = false;
+    await sendMediaFullSyncChunks(config, inventory, reason || 'timer');
   } catch (err) {
     CONNECTION_STATE.mediaInventorySyncSendErrorAt = new Date().toISOString();
     CONNECTION_STATE.mediaInventorySyncSendError = err && err.message ? safeError(err.message) : 'media_inventory_sync_failed';
   }
+}
+
+async function sendMediaFullSyncChunks(config, compactInventory, reason) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  const startedAt = new Date().toISOString();
+  CONNECTION_STATE.mediaFullSyncState = 'running';
+  CONNECTION_STATE.mediaFullSyncStartedAt = startedAt;
+  CONNECTION_STATE.mediaFullSyncCompletedAt = null;
+  CONNECTION_STATE.mediaFullSyncLastError = null;
+  try {
+    const inventory = scanLocalMediaInventory(MEDIA_SCAN_HARD_LIMIT);
+    const items = Array.isArray(inventory.items) ? inventory.items.map(sanitizeMediaTransportItem).filter(Boolean) : [];
+    const totalItems = items.length;
+    const totalChunks = Math.max(1, Math.ceil(totalItems / MEDIA_FULL_SYNC_CHUNK_SIZE));
+    const syncId = safeMediaId(`${config.agentId || 'stream-pc-main'}:${Date.now()}:${CONNECTION_STATE.mediaInventorySyncSeq}`);
+    CONNECTION_STATE.mediaFullSyncId = syncId;
+    CONNECTION_STATE.mediaFullSyncTotalChunks = totalChunks;
+    CONNECTION_STATE.mediaFullSyncSentChunks = 0;
+    CONNECTION_STATE.mediaFullSyncTotalItems = totalItems;
+    CONNECTION_STATE.mediaFullSyncSentItems = 0;
+    for (let index = 0; index < totalChunks; index += 1) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const chunkItems = items.slice(index * MEDIA_FULL_SYNC_CHUNK_SIZE, (index + 1) * MEDIA_FULL_SYNC_CHUNK_SIZE);
+      CONNECTION_STATE.mediaFullSyncSeq += 1;
+      const payload = {
+        type: 'media_inventory_full_sync_chunk',
+        protocolVersion: MEDIA_FULL_SYNC_PROTOCOL_VERSION,
+        agentId: config.agentId,
+        seq: CONNECTION_STATE.mediaFullSyncSeq,
+        syncId,
+        syncReason: safeReason(reason || 'timer'),
+        confirmFullSync: true,
+        mediaIndexDataOnly: true,
+        collectedAt: inventory.scannedAt || startedAt,
+        chunkIndex: index + 1,
+        totalChunks,
+        totalItems,
+        chunkItems: chunkItems.length,
+        inventory: {
+          prepared: true,
+          source: 'local_stream_pc_filesystem_readonly_full_sync_chunk',
+          scannedAt: inventory.scannedAt || startedAt,
+          counts: inventory.counts || (compactInventory && compactInventory.counts) || {},
+          roots: inventory.roots || [],
+          items: chunkItems
+        },
+        safety: {
+          readOnlyAgentScan: true,
+          noFileContent: true,
+          noAbsolutePaths: true,
+          noAgentActionExecution: true,
+          uploadEnabled: false,
+          editEnabled: false,
+          deleteEnabled: false
+        }
+      };
+      const json = JSON.stringify(payload);
+      if (Buffer.byteLength(json, 'utf8') > MEDIA_WSS_TRANSPORT_MAX_BYTES) {
+        CONNECTION_STATE.mediaFullSyncState = 'failed';
+        CONNECTION_STATE.mediaFullSyncLastError = 'media_full_sync_chunk_too_large';
+        return;
+      }
+      ws.send(json);
+      const now = new Date().toISOString();
+      CONNECTION_STATE.mediaFullSyncState = 'chunk';
+      CONNECTION_STATE.mediaFullSyncSentChunks = index + 1;
+      CONNECTION_STATE.mediaFullSyncSentItems += chunkItems.length;
+      CONNECTION_STATE.mediaFullSyncLastChunkAt = now;
+      CONNECTION_STATE.lastSeenAt = now;
+    }
+    CONNECTION_STATE.mediaFullSyncState = 'complete';
+    CONNECTION_STATE.mediaFullSyncCompletedAt = new Date().toISOString();
+  } catch (err) {
+    CONNECTION_STATE.mediaFullSyncState = 'failed';
+    CONNECTION_STATE.mediaFullSyncLastError = err && err.message ? safeError(err.message) : 'media_full_sync_failed';
+  }
+}
+
+function buildMediaFullSyncStatus() {
+  return {
+    prepared: true,
+    protocolVersion: MEDIA_FULL_SYNC_PROTOCOL_VERSION,
+    state: CONNECTION_STATE.mediaFullSyncState,
+    syncId: CONNECTION_STATE.mediaFullSyncId,
+    chunkSize: CONNECTION_STATE.mediaFullSyncChunkSize,
+    sentChunks: CONNECTION_STATE.mediaFullSyncSentChunks,
+    totalChunks: CONNECTION_STATE.mediaFullSyncTotalChunks,
+    sentItems: CONNECTION_STATE.mediaFullSyncSentItems,
+    totalItems: CONNECTION_STATE.mediaFullSyncTotalItems,
+    startedAt: CONNECTION_STATE.mediaFullSyncStartedAt,
+    lastChunkAt: CONNECTION_STATE.mediaFullSyncLastChunkAt,
+    completedAt: CONNECTION_STATE.mediaFullSyncCompletedAt,
+    lastError: CONNECTION_STATE.mediaFullSyncLastError,
+    gatedServerWriteRequired: true,
+    requiredServerGates: ['MEDIA_INDEX_WRITE_ENABLED', 'MEDIA_INDEX_DATA_WRITE_ENABLED', 'MEDIA_INDEX_FULL_SYNC_ENABLED'],
+    noFileContent: true,
+    noAbsolutePaths: true,
+    uploadEnabled: false,
+    editEnabled: false,
+    deleteEnabled: false
+  };
 }
 
 function buildCompactMediaInventoryFrame(config, inventory, seq) {
@@ -907,6 +1025,7 @@ function buildMediaInventoryStatusResponse(req = null) {
     groups: inventory.groups || emptyMediaGroups(),
     counts,
     syncFoundation: inventory.syncFoundation || buildMediaSyncFoundationStatus(inventory),
+    fullSync: buildMediaFullSyncStatus(),
     onlineIndexTarget: inventory.onlineIndexTarget || { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
   });
@@ -1584,4 +1703,4 @@ function isHeartbeatStale(value) { const age = calculateHeartbeatAgeMs(value); i
 function clonePlain(value) { return JSON.parse(JSON.stringify(value)); }
 function safeHostname() { try { return require('os').hostname(); } catch (err) { return 'unknown'; } }
 
-module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, buildStatusResponse, buildMediaInventoryStatusResponse, buildPermissionsModelResponse, GROUP_MARKERS, buildLocksStatusResponse, buildAuditModelResponse };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, buildStatusResponse, buildMediaInventoryStatusResponse, buildMediaFullSyncStatus, buildPermissionsModelResponse, GROUP_MARKERS, buildLocksStatusResponse, buildAuditModelResponse };

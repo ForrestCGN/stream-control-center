@@ -5,11 +5,12 @@ const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
 const { buildDatabaseReadiness, withReadOnlyConnection, withWriteConnection, publicDbError } = require('../services/db.service');
 
-const STATUS_API_VERSION = 'rdap_media_status_compact_source_info_046.v1';
+const STATUS_API_VERSION = 'rdap_media_full_sync_chunk_receiver_055.v1';
 const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
-const BUILD = 'RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_STATUS_COMPACT_SOURCE_INFO';
+const BUILD = 'RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const MEDIA_INDEX_SCHEMA_GATE_BUILD = 'RDAP_0.2.54_MEDIA_INDEX_SCHEMA_AND_WRITE_GATE';
+const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 const MEDIA_INDEX_WRITE_GATE_STATUS_PATH = '/api/remote/media/index/write-gate/status';
 const MEDIA_INDEX_SCHEMA_STATUS_PATH = '/api/remote/media/index/schema/status';
@@ -107,6 +108,7 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
     sourceInfo,
     syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo, config: context.config }),
     syncFoundation: buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStatus, persistentIndex, config: context.config }),
+    fullSync: buildMediaFullSyncStatus({ agentMediaStatus, config: context.config }),
     onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex, config: context.config }),
     mediaIndexWriteGate: buildMediaIndexWriteGate(context.config),
     mediaIndexSchemaGate: buildMediaIndexSchemaGate({ persistentIndex, config: context.config }),
@@ -258,6 +260,40 @@ function buildMediaIndexSchemaGate({ persistentIndex, config } = {}) {
   };
 }
 
+function buildMediaFullSyncStatus({ agentMediaStatus, config } = {}) {
+  const writeGate = buildMediaIndexWriteGate(config);
+  const fullSync = agentMediaStatus && agentMediaStatus.fullSync && typeof agentMediaStatus.fullSync === 'object'
+    ? agentMediaStatus.fullSync
+    : {};
+  return {
+    prepared: true,
+    build: MEDIA_FULL_SYNC_RECEIVER_BUILD,
+    receiverPrepared: true,
+    protocolVersion: fullSync.protocolVersion || 'rdap-agent-media-full-sync.v1',
+    state: fullSync.state || 'pending',
+    syncId: fullSync.syncId || null,
+    receivedChunks: Number(fullSync.receivedChunks || fullSync.sentChunks || 0),
+    totalChunks: Number(fullSync.totalChunks || 0),
+    receivedItems: Number(fullSync.receivedItems || fullSync.sentItems || 0),
+    totalItems: Number(fullSync.totalItems || 0),
+    lastChunkAt: fullSync.lastChunkAt || null,
+    completedAt: fullSync.completedAt || null,
+    lastError: fullSync.lastError || null,
+    writeGatePrepared: true,
+    writeEnabled: writeGate.writeEnabled,
+    dataWriteEnabled: writeGate.dataWriteEnabled,
+    fullSyncEnabled: writeGate.fullSyncEnabled,
+    writesBlocked: !(writeGate.writeEnabled && writeGate.dataWriteEnabled && writeGate.fullSyncEnabled),
+    writesToDatabase: writeGate.writeEnabled && writeGate.dataWriteEnabled && writeGate.fullSyncEnabled,
+    databaseTarget: 'remote_modboard_mariadb.' + PERSISTENT_INDEX_TABLE,
+    activeAsReadSource: false,
+    uploadEditDeleteEnabled: false,
+    noFileContent: true,
+    noAbsolutePaths: true,
+    note: '0.2.55 nimmt Full-Sync-Chunks an und schreibt nur bei aktiven MEDIA_INDEX Write/Data/Full-Sync-Gates. Die UI-Lesequelle bleibt in diesem Step Agent-Memory.'
+  };
+}
+
 function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStatus, persistentIndex, config } = {}) {
   const counts = inventory && inventory.counts ? inventory.counts : {};
   const returned = Number(counts.returned || counts.total || 0);
@@ -287,7 +323,8 @@ function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStat
     onlineDatabaseTarget: 'remote_modboard_mariadb.' + PERSISTENT_INDEX_TABLE,
     currentOnlineSource: localRuntime ? 'local_filesystem_direct' : 'agent_memory_compact_until_db_index_enabled',
     fullSyncPrepared: true,
-    fullSyncChunkProtocolPlanned: true,
+    fullSyncChunkReceiverPrepared: true,
+    fullSyncChunkProtocolPlanned: false,
     deltaSyncPrepared: true,
     bidirectionalSyncPlanned: true,
     onlineToAgentQueuePlanned: true,
@@ -299,9 +336,10 @@ function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStat
     persistentIndexDetected: persistentIndex && persistentIndex.detected === true,
     activeWrites: writeGate.schemaWriteEnabled === true || writeGate.dataWriteEnabled === true,
     uploadEditDeleteEnabled: false,
+    fullSync: buildMediaFullSyncStatus({ agentMediaStatus, config }),
     note: localRuntime
       ? 'Lokal kann die Datei-Wahrheit direkt gelesen werden. Online soll spaeter aus der persistenten DB lesen.'
-      : 'Online nutzt aktuell noch Agent-Memory. 0.2.54 macht Write-Gates und Schema-Foundation und den Fortschrittsstatus sichtbar; produktive Index-Writes folgen separat.'
+      : 'Online nutzt aktuell noch Agent-Memory als UI-Lesequelle. 0.2.55 kann Full-Sync-Chunks empfangen und bei aktiven MEDIA_INDEX-Gates in remote_media_index schreiben.'
   };
 }
 
@@ -316,13 +354,13 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     sourceInfoPrepared: true,
     primarySource: sourceInfo.primary,
     localIsMaster: true,
-    serverPersistence: false,
-    serverPersistenceFoundation: false,
+    serverPersistence: writeGate.writeEnabled && writeGate.dataWriteEnabled && writeGate.fullSyncEnabled,
+    serverPersistenceFoundation: true,
     persistentIndexPrepared: true,
     persistentIndexBlocked: persistentIndex && persistentIndex.blocked === true,
     persistentIndexTargetDatabase: 'remote_modboard_mariadb',
     persistentIndexTable: PERSISTENT_INDEX_TABLE,
-    persistentIndexWritesEnabled: false,
+    persistentIndexWritesEnabled: writeGate.writeEnabled && writeGate.dataWriteEnabled && writeGate.fullSyncEnabled,
     persistentIndexFallbackEnabled: false,
     mediaIndexSyncFoundationBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
     onlineDatabaseIndexPlanned: true,
@@ -331,12 +369,13 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     mediaIndexSchemaWriteEnabled: writeGate.schemaWriteEnabled,
     mediaIndexDataWriteEnabled: writeGate.dataWriteEnabled,
     fullSyncPrepared: true,
-    fullSyncChunkProtocolPlanned: true,
+    fullSyncChunkReceiverPrepared: true,
+    fullSyncChunkProtocolPlanned: false,
     deltaSyncPrepared: true,
     bidirectionalSyncPlanned: true,
     onlineToAgentQueuePlanned: true,
     syncStatusWindowPrepared: true,
-    activeMediaIndexWrites: false,
+    activeMediaIndexWrites: writeGate.writeEnabled && writeGate.dataWriteEnabled && writeGate.fullSyncEnabled,
     memoryOnly: !localRuntime,
     compactTransport: !localRuntime,
     active: inventory && inventory.active === true,
@@ -344,10 +383,11 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     truncated: inventory && inventory.truncated === true,
     hasMore: inventory && inventory.hasMore === true,
     lastMediaSyncAt: agentMediaStatus && agentMediaStatus.agent ? agentMediaStatus.agent.lastMediaInventorySyncAt || null : null,
+    fullSync: buildMediaFullSyncStatus({ agentMediaStatus, config }),
     status: inventory && inventory.active === true ? (inventory.truncated === true ? 'compact_inventory_available' : 'inventory_available') : 'inventory_pending',
     note: localRuntime
       ? 'Lokal bleibt die Datei-Wahrheit; das Inventar wird direkt read-only aus den Assets gelesen.'
-      : 'Online zeigt weiter den read-only Agent-Memory-Index. Persistent Index wird nur bei ?db=1 diagnostisch aus MariaDB gelesen; Writes bleiben aus.'
+      : 'Online zeigt weiter den Agent-Memory-Index. Full-Sync-Chunks koennen bei aktiven MEDIA_INDEX-Gates remote_media_index befuellen; DB-Read fuer UI folgt separat.'
   };
 }
 
@@ -906,6 +946,7 @@ function buildSafetyBlock() {
     databaseWrite: false,
     migrationEnabled: false,
     mediaIndexSchemaWritePrepared: true,
+    mediaIndexDataWritePrepared: true,
     mediaIndexDataWrite: false,
     shellOrProcessActions: false,
     agentActionsEnabled: false,
@@ -940,7 +981,8 @@ function buildMediaRoutesSummary(context = {}) {
     mediaIndexSchemaWriteEnabled: writeGate.schemaWriteEnabled,
     mediaIndexDataWriteEnabled: writeGate.dataWriteEnabled,
     fullSyncPrepared: true,
-    fullSyncChunkProtocolPlanned: true,
+    fullSyncChunkReceiverPrepared: true,
+    fullSyncChunkProtocolPlanned: false,
     deltaSyncPrepared: true,
     bidirectionalSyncPlanned: true,
     syncStatusWindowPrepared: true,
@@ -983,7 +1025,8 @@ function buildMediaRoutesSummary(context = {}) {
       { method: 'GET', path: MEDIA_INDEX_SCHEMA_STATUS_PATH, description: 'Media-Index Schema-Status; read-only INFORMATION_SCHEMA Diagnose', readOnly: true },
       { method: 'POST', path: MEDIA_INDEX_SCHEMA_PREPARE_PATH, description: 'Schema-Prepare local-only, confirmWrite+schemaOnly und MEDIA_INDEX_SCHEMA_WRITE_ENABLED erforderlich; schreibt keine Media-Daten', readOnly: false, schemaOnly: true, disabledByDefault: true }
     ],
-    safety: { noFileWrite: true, mediaIndexDataWrite: false, noAgentActionExecution: true, noShellOrProcessActions: true }
+    fullSyncReceiver: buildMediaFullSyncStatus({ agentMediaStatus: null, config: context.config }),
+    safety: { noFileWrite: true, mediaIndexDataWritePrepared: true, mediaIndexDataWrite: false, noAgentActionExecution: true, noShellOrProcessActions: true }
   };
 }
 

@@ -1,12 +1,15 @@
 # FILES
 
-## 0.2.54A
+## 0.2.55
 
 Geaendert:
 
 - `backend/modules/remote_agent.js`
-- `docs/current/RDAP_0.2.54A_MEDIA_AGENT_INVENTORY_SOURCE_FIX.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_54A.md`
+- `remote-modboard/backend/src/services/agent-runtime.service.js`
+- `remote-modboard/backend/src/routes/media-readonly.routes.js`
+- `remote-modboard/backend/src/routes/routes.routes.js`
+- `docs/current/RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER.md`
+- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_55.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -15,7 +18,7 @@ Geaendert:
 
 Nicht geaendert:
 
-- Remote-Modboard-Backend-Routen
-- DB-Service
-- Config-Service
-- UI
+- `remote-modboard/backend/src/app.js`
+- `remote-modboard/backend/src/services/config.service.js`
+- `remote-modboard/backend/src/services/db.service.js`
+- UI-Dateien
