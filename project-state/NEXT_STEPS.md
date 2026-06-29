@@ -2,12 +2,13 @@
 
 ## Naechster Schritt
 
-`RDAP_0.2.56_MEDIA_INDEX_READ_SOURCE`
+`RDAP_0.2.57_MEDIA_INDEX_READ_SOURCE_UI_POLISH_AND_DB_SOURCE_CONFIRMATION`
 
 Ziel:
-- bestaetigten DB-Index `remote_media_index` als Read-Source vorbereiten/nutzen
-- Online-UI soll danach nicht mehr auf 120 Compact-Items begrenzt sein
-- nur Lesen aus DB, keine Upload/Edit/Delete-Funktion
+- Online-UI gegen DB-Read-Source sichtbar pruefen
+- Quellen-/Sync-Hinweise fuer Mods klarer machen
+- Agent-Memory-Fallback sichtbar, aber nicht prominent
+- keine Upload/Edit/Delete-Funktion
 - keine Datei-Inhalte, keine absoluten Pfade
 
 ## Danach

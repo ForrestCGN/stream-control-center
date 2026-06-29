@@ -5,12 +5,13 @@ const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
 const { buildDatabaseReadiness, withReadOnlyConnection, withWriteConnection, publicDbError } = require('../services/db.service');
 
-const STATUS_API_VERSION = 'rdap_media_full_sync_active_write_completion_055b.v1';
+const STATUS_API_VERSION = 'rdap_media_index_read_source_056.v1';
 const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
-const BUILD = 'RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC';
+const BUILD = 'RDAP_0.2.56_MEDIA_INDEX_READ_SOURCE';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const MEDIA_INDEX_SCHEMA_GATE_BUILD = 'RDAP_0.2.54_MEDIA_INDEX_SCHEMA_AND_WRITE_GATE';
 const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC';
+const MEDIA_INDEX_READ_SOURCE_BUILD = 'RDAP_0.2.56_MEDIA_INDEX_READ_SOURCE';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 const MEDIA_INDEX_WRITE_GATE_STATUS_PATH = '/api/remote/media/index/write-gate/status';
 const MEDIA_INDEX_SCHEMA_STATUS_PATH = '/api/remote/media/index/schema/status';
@@ -66,12 +67,15 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
   const localRuntime = runtimeMode === 'local';
   const limit = readLimit(req);
   const inspectDatabase = shouldInspectPersistentIndex(req);
-  const persistentIndex = inspectDatabase ? await inspectPersistentIndexSchema(context) : ensurePersistentIndexFoundation(context);
+  const forceAgentMemory = shouldForceAgentMemory(req);
+  const persistentIndex = localRuntime
+    ? (inspectDatabase ? await inspectPersistentIndexSchema(context) : ensurePersistentIndexFoundation(context))
+    : await inspectPersistentIndexSchema(context);
   const agentMediaStatus = localRuntime ? null : safeBuildAgentMediaInventoryStatus();
   const inventory = localRuntime
     ? scanLocalInventory({ limit, generatedAt })
-    : buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus });
-  const sourceInfo = buildSourceInfo({ localRuntime, inventory, persistentIndex, inspectDatabase });
+    : await buildOnlineInventoryFromBestReadSource({ context, limit, generatedAt, agentMediaStatus, persistentIndex, forceAgentMemory });
+  const sourceInfo = buildSourceInfo({ localRuntime, inventory, persistentIndex, inspectDatabase: inspectDatabase || !localRuntime });
 
   return {
     ok: true,
@@ -127,46 +131,55 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
     },
     safety: buildSafetyBlock(),
     nextSteps: [
-      inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert; kompakte Listen koennen truncated=true melden.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.',
+      inventory.source === 'remote_media_index_readonly' ? 'Online-Media-Inventar wird read-only aus remote_media_index gelesen.' : (inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert; kompakte Listen koennen truncated=true melden.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.'),
       inspectDatabase ? 'Persistent-Index-Schema wurde read-only ueber Remote-Modboard-MariaDB diagnostiziert.' : 'Persistent-Index-Schema kann mit ?db=1 read-only ueber Remote-Modboard-MariaDB diagnostiziert werden.',
-      'sourceInfo fasst primaere Quelle und DB-Index-Diagnose kompakt zusammen; fallbackEnabled bleibt false.',
+      'sourceInfo fasst primaere Quelle und DB-Index-Diagnose kompakt zusammen; 0.2.56 aktiviert remote_media_index als read-only Quelle, wenn kompatibel und befuellt.',
       'Upload/Edit/Delete erst nach separatem Permission-/Audit-/Confirm-Step.'
     ]
   };
 }
 
 function buildSourceInfo({ localRuntime, inventory, persistentIndex, inspectDatabase }) {
-  const primary = localRuntime ? 'local_filesystem' : 'agent_memory';
+  const primarySource = inventory && inventory.source ? inventory.source : (localRuntime ? 'local_stream_pc_filesystem_readonly' : 'agent_wss_media_inventory_sync_memory_only');
   const dbIndexAvailable = inspectDatabase ? Boolean(persistentIndex && persistentIndex.detected === true && persistentIndex.compatibleForRead === true) : null;
   const dbIndexItemCount = inspectDatabase && persistentIndex && Number.isFinite(Number(persistentIndex.itemCount)) ? Number(persistentIndex.itemCount) : null;
+  const dbReadActive = !localRuntime && primarySource === 'remote_media_index_readonly';
+  const primary = localRuntime ? 'local_filesystem' : (dbReadActive ? 'remote_media_index' : 'agent_memory');
   return {
     prepared: true,
-    compact: true,
+    build: MEDIA_INDEX_READ_SOURCE_BUILD,
+    compact: !dbReadActive,
     readOnly: true,
     primary,
     primaryActive: Boolean(inventory && inventory.active === true),
-    primarySource: inventory && inventory.source ? inventory.source : (localRuntime ? 'local_stream_pc_filesystem_readonly' : 'agent_wss_media_inventory_sync_memory_only'),
+    primarySource,
     dbIndexChecked: Boolean(inspectDatabase),
     dbIndexAvailable,
     dbIndexItemCount,
     dbIndexTable: PERSISTENT_INDEX_TABLE,
+    dbIndexItemReadsEnabled: dbReadActive,
     fallbackCandidate: dbIndexAvailable === true,
-    fallbackEnabled: false,
+    fallbackEnabled: !dbReadActive,
+    fallbackSource: dbReadActive ? 'agent_memory_if_db_read_fails' : null,
     writesEnabled: false,
     mediaWritesEnabled: false,
     agentWritesEnabled: false,
     uploadEditDeleteEnabled: false,
-    note: inspectDatabase
-      ? 'DB-Index wurde nur diagnostisch bewertet. Agent-Memory bleibt primaere Online-Wahrheit; Fallback bleibt aus.'
-      : 'Keine DB-Abfrage in diesem Aufruf. Mit ?db=1 wird nur read-only diagnostiziert.'
+    note: dbReadActive
+      ? 'remote_media_index ist die primaere Online-Read-Source. Es werden nur read-only SELECTs ausgefuehrt; Agent-Memory bleibt Fallback.'
+      : (inspectDatabase ? 'DB-Index wurde read-only bewertet. Agent-Memory wird genutzt, wenn DB-Read nicht aktiv oder nicht verfuegbar ist.' : 'Keine DB-Abfrage in diesem Aufruf. Mit ?db=1 wird nur read-only diagnostiziert.')
   };
 }
 
 function buildOnlineSummary(inventory) {
   if (!inventory || inventory.active !== true) {
-    return 'Online-Media-Grundlage ist vorbereitet. Echte lokale Medien kommen nur ueber read-only Agent-WSS Slow-Sync.';
+    return 'Online-Media-Grundlage ist vorbereitet. Echte lokale Medien kommen nur ueber read-only Agent-WSS Slow-Sync oder remote_media_index.';
   }
   const returned = inventory.counts && Number.isFinite(Number(inventory.counts.returned)) ? Number(inventory.counts.returned) : 0;
+  const totalSeen = inventory.counts && Number.isFinite(Number(inventory.counts.totalSeen)) ? Number(inventory.counts.totalSeen) : returned;
+  if (inventory.source === 'remote_media_index_readonly') {
+    return `Online-Media-Inventar wird read-only aus remote_media_index gelesen. Es werden ${returned} von ${totalSeen} DB-Eintraegen angezeigt. Upload, Bearbeiten und Loeschen bleiben aus.`;
+  }
   if (inventory.truncated === true) {
     return `Online-Media-Inventar ist per Agent-WSS aktiv. Es werden ${returned} Eintraege kompakt angezeigt; weitere lokale Medien sind vorhanden. Upload, Bearbeiten und Loeschen bleiben aus.`;
   }
@@ -180,7 +193,7 @@ function buildOnlineIndexTarget({ persistentIndex, config } = {}) {
     build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
     previousBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
     planned: true,
-    activeAsReadSource: false,
+    activeAsReadSource: persistentIndex && persistentIndex.detected === true && persistentIndex.compatibleForRead === true && Number(persistentIndex.itemCount || 0) > 0,
     database: 'remote_modboard_mariadb',
     table: PERSISTENT_INDEX_TABLE,
     schemaModule: PERSISTENT_INDEX_SCHEMA_MODULE,
@@ -194,11 +207,11 @@ function buildOnlineIndexTarget({ persistentIndex, config } = {}) {
     schemaWritesEnabled: writeGate.schemaWriteEnabled,
     dataWritesEnabled: writeGate.dataWriteEnabled,
     migrationEnabled: writeGate.schemaWriteEnabled,
-    itemReadsEnabledInThisStep: false,
+    itemReadsEnabledInThisStep: persistentIndex && persistentIndex.detected === true && persistentIndex.compatibleForRead === true && Number(persistentIndex.itemCount || 0) > 0,
     uploadEditDeleteEnabled: false,
     note: writeGate.schemaWriteEnabled
       ? 'Schema-Write-Gate ist aktiv. Die Schema-Prepare-Route bleibt zusaetzlich local-only und confirm-geschuetzt.'
-      : 'Online soll der Media-Index persistent in MariaDB liegen. 0.2.54 trennt Media-Index-Writes per Gate von Auth-/Session-Writes; ohne MEDIA_INDEX_* Gates wird nichts geschrieben.'
+      : '0.2.56 nutzt remote_media_index read-only als Online-Read-Source, wenn die Tabelle kompatibel und befuellt ist. Writes bleiben separat gegated und aktuell aus.'
   };
 }
 
@@ -290,7 +303,7 @@ function buildMediaFullSyncStatus({ agentMediaStatus, config } = {}) {
     uploadEditDeleteEnabled: false,
     noFileContent: true,
     noAbsolutePaths: true,
-    note: '0.2.55B zeigt vollstaendige Full-Syncs auch bei aktivem DB-Write eindeutig als complete statt haengendem chunk. Die UI-Lesequelle bleibt Agent-Memory.'
+    note: '0.2.56 laesst die UI-Statusroute read-only aus remote_media_index lesen. Full-Sync-Writes bleiben durch MEDIA_INDEX-Gates getrennt.'
   };
 }
 
@@ -321,7 +334,7 @@ function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStat
     mediaIndexSchemaWriteEnabled: writeGate.schemaWriteEnabled,
     mediaIndexDataWriteEnabled: writeGate.dataWriteEnabled,
     onlineDatabaseTarget: 'remote_modboard_mariadb.' + PERSISTENT_INDEX_TABLE,
-    currentOnlineSource: localRuntime ? 'local_filesystem_direct' : 'agent_memory_compact_until_db_index_enabled',
+    currentOnlineSource: localRuntime ? 'local_filesystem_direct' : (inventory && inventory.source === 'remote_media_index_readonly' ? 'remote_media_index_readonly' : 'agent_memory_compact_until_db_index_enabled'),
     fullSyncPrepared: true,
     fullSyncChunkReceiverPrepared: true,
     fullSyncChunkProtocolPlanned: false,
@@ -329,7 +342,7 @@ function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStat
     bidirectionalSyncPlanned: true,
     onlineToAgentQueuePlanned: true,
     syncStatusWindowPrepared: true,
-    statusStates: ['idle', 'running', 'complete', 'failed', 'compact_limited', 'conflict'],
+    statusStates: ['idle', 'running', 'complete', 'failed', 'compact_limited', 'database_read_source', 'conflict'],
     plannedActionStates: ['requested', 'queued', 'syncing', 'applied', 'failed', 'conflict'],
     progress,
     currentLimitProblemVisible: !localRuntime && (truncated || (totalSeen > returned)),
@@ -339,7 +352,7 @@ function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStat
     fullSync: buildMediaFullSyncStatus({ agentMediaStatus, config }),
     note: localRuntime
       ? 'Lokal kann die Datei-Wahrheit direkt gelesen werden. Online soll spaeter aus der persistenten DB lesen.'
-      : 'Online nutzt aktuell noch Agent-Memory als UI-Lesequelle. 0.2.55B kann Full-Sync-Chunks empfangen, zeigt Gate-blockierte und aktiv geschriebene Komplett-Empfaenge klar an und schreibt nur bei aktiven MEDIA_INDEX-Gates in remote_media_index.'
+      : (inventory && inventory.source === 'remote_media_index_readonly' ? 'Online nutzt remote_media_index read-only als UI-Lesequelle. Agent-Memory bleibt Fallback; Writes bleiben separat gegated und aktuell aus.' : 'Online nutzt Agent-Memory als Fallback-Lesequelle. remote_media_index wird verwendet, sobald kompatibel und befuellt.')
   };
 }
 
@@ -361,7 +374,8 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     persistentIndexTargetDatabase: 'remote_modboard_mariadb',
     persistentIndexTable: PERSISTENT_INDEX_TABLE,
     persistentIndexWritesEnabled: writeGate.writeEnabled && writeGate.dataWriteEnabled && writeGate.fullSyncEnabled,
-    persistentIndexFallbackEnabled: false,
+    persistentIndexFallbackEnabled: inventory && inventory.source !== 'remote_media_index_readonly',
+    persistentIndexReadSourceEnabled: inventory && inventory.source === 'remote_media_index_readonly',
     mediaIndexSyncFoundationBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
     onlineDatabaseIndexPlanned: true,
     mediaIndexWriteGatePrepared: true,
@@ -376,8 +390,8 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     onlineToAgentQueuePlanned: true,
     syncStatusWindowPrepared: true,
     activeMediaIndexWrites: writeGate.writeEnabled && writeGate.dataWriteEnabled && writeGate.fullSyncEnabled,
-    memoryOnly: !localRuntime,
-    compactTransport: !localRuntime,
+    memoryOnly: !localRuntime && !(inventory && inventory.source === 'remote_media_index_readonly'),
+    compactTransport: !localRuntime && !(inventory && inventory.source === 'remote_media_index_readonly'),
     active: inventory && inventory.active === true,
     returned: Number(counts.returned || counts.total || 0),
     truncated: inventory && inventory.truncated === true,
@@ -387,8 +401,22 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     status: inventory && inventory.active === true ? (inventory.truncated === true ? 'compact_inventory_available' : 'inventory_available') : 'inventory_pending',
     note: localRuntime
       ? 'Lokal bleibt die Datei-Wahrheit; das Inventar wird direkt read-only aus den Assets gelesen.'
-      : 'Online zeigt weiter den Agent-Memory-Index. Full-Sync-Chunks koennen bei aktiven MEDIA_INDEX-Gates remote_media_index befuellen; DB-Read fuer UI folgt separat.'
+      : (inventory && inventory.source === 'remote_media_index_readonly' ? 'Online zeigt remote_media_index read-only als primaere Media-Quelle. Full-Sync-Writes bleiben deaktiviert, bis Gates bewusst aktiviert werden.' : 'Online zeigt Agent-Memory als Fallback. remote_media_index wird read-only genutzt, wenn kompatibel und befuellt.')
   };
+}
+
+async function buildOnlineInventoryFromBestReadSource({ context, limit, generatedAt, agentMediaStatus, persistentIndex, forceAgentMemory }) {
+  if (!forceAgentMemory && persistentIndex && persistentIndex.detected === true && persistentIndex.compatibleForRead === true && Number(persistentIndex.itemCount || 0) > 0) {
+    const dbInventory = await buildOnlinePersistentIndexInventory({ context, limit, generatedAt, persistentIndex, agentMediaStatus });
+    if (dbInventory && dbInventory.active === true) return dbInventory;
+  }
+  return buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus });
+}
+
+function shouldForceAgentMemory(req) {
+  if (!req || !req.query) return false;
+  const source = String(req.query.source || '').trim().toLowerCase();
+  return source === 'agent' || source === 'agent_memory' || source === 'memory';
 }
 
 function shouldInspectPersistentIndex(req) {
@@ -581,6 +609,120 @@ function safeBuildAgentMediaInventoryStatus() {
   } catch (err) {
     return null;
   }
+}
+
+async function buildOnlinePersistentIndexInventory({ context, limit, generatedAt, persistentIndex, agentMediaStatus }) {
+  const config = context && context.config ? context.config : {};
+  try {
+    return await withReadOnlyConnection(config, async (connection) => {
+      const maxRows = Math.max(1, Math.min(Number(limit || MEDIA_SCAN_DEFAULT_LIMIT), MEDIA_SCAN_HARD_LIMIT));
+      const [rows] = await connection.query(
+        `SELECT id, root_key, kind, relative_path, name, extension, size_bytes, modified_at, last_seen_at, source, sync_version FROM ${PERSISTENT_INDEX_TABLE} WHERE deleted = 0 ORDER BY root_key ASC, relative_path ASC LIMIT ?`,
+        [maxRows]
+      );
+      const [countRows] = await connection.query(
+        `SELECT
+          COUNT(*) AS total_count,
+          SUM(CASE WHEN root_key = 'sounds' THEN 1 ELSE 0 END) AS sounds_count,
+          SUM(CASE WHEN root_key = 'videos' THEN 1 ELSE 0 END) AS videos_count,
+          SUM(CASE WHEN root_key = 'images' THEN 1 ELSE 0 END) AS images_count,
+          SUM(CASE WHEN kind = 'audio' THEN 1 ELSE 0 END) AS audio_count,
+          SUM(CASE WHEN kind = 'video' THEN 1 ELSE 0 END) AS video_count,
+          SUM(CASE WHEN kind = 'image' THEN 1 ELSE 0 END) AS image_count
+         FROM ${PERSISTENT_INDEX_TABLE} WHERE deleted = 0`
+      );
+      const rawItems = Array.isArray(rows) ? rows : [];
+      const items = rawItems.map(sanitizePersistentIndexMediaItem).filter(Boolean);
+      const total = Number(countRows && countRows[0] && countRows[0].total_count ? countRows[0].total_count : (persistentIndex && persistentIndex.itemCount ? persistentIndex.itemCount : items.length));
+      const groups = buildGroupsFromItems(items, null);
+      const counts = buildPersistentIndexCounts({ countRow: countRows && countRows[0] ? countRows[0] : {}, returned: items.length, total });
+      const truncated = total > items.length;
+      return {
+        prepared: true,
+        build: MEDIA_INDEX_READ_SOURCE_BUILD,
+        active: items.length > 0,
+        source: 'remote_media_index_readonly',
+        transportMode: 'remote_modboard_mariadb_readonly',
+        routePreparedLater: null,
+        scannedAt: generatedAt,
+        receivedAt: generatedAt,
+        database: 'remote_modboard_mariadb',
+        table: PERSISTENT_INDEX_TABLE,
+        roots: MEDIA_PLANNED_ROOTS.map(root => ({ key: root.key, label: root.label, exists: true, count: groups[root.key].count })),
+        items,
+        groups,
+        counts,
+        limit: maxRows,
+        hardLimit: MEDIA_SCAN_HARD_LIMIT,
+        maxDepth: MEDIA_SCAN_MAX_DEPTH,
+        truncated,
+        hasMore: truncated,
+        nextCursor: truncated ? 'prepared_later' : null,
+        errors: [],
+        emptyReason: items.length ? null : 'remote_media_index_empty',
+        memoryOnly: false,
+        persistsToDatabase: true,
+        compactTransport: false,
+        readOnly: true,
+        uploadEditDeleteEnabled: false
+      };
+    });
+  } catch (err) {
+    return buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus });
+  }
+}
+
+function buildPersistentIndexCounts({ countRow, returned, total }) {
+  const safeCount = (key) => Math.max(0, Math.floor(Number(countRow && countRow[key] ? countRow[key] : 0)));
+  return {
+    total,
+    sounds: safeCount('sounds_count'),
+    videos: safeCount('videos_count'),
+    images: safeCount('images_count'),
+    audio: safeCount('audio_count'),
+    video: safeCount('video_count'),
+    image: safeCount('image_count'),
+    returned,
+    skipped: 0,
+    totalSeen: total
+  };
+}
+
+function sanitizePersistentIndexMediaItem(row) {
+  const source = row && typeof row === 'object' && !Array.isArray(row) ? row : {};
+  const rootKey = String(source.root_key || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 30);
+  const root = MEDIA_PLANNED_ROOTS.find(item => item.key === rootKey);
+  if (!root) return null;
+  const relativePath = normalizeRelativePath(source.relative_path || '');
+  if (!relativePath || relativePath.includes('..') || /^[a-zA-Z]:/.test(relativePath)) return null;
+  const ext = path.extname(relativePath).toLowerCase() || String(source.extension || '').toLowerCase();
+  if (!MEDIA_ALLOWED_EXTENSIONS.includes(ext)) return null;
+  const kind = mediaKindForExtension(ext);
+  const publicPath = safePublicMediaPath(path.posix.join(root.publicBasePath, relativePath));
+  return {
+    id: String(source.id || `${rootKey}:${relativePath}`).replace(/[^\w:./-]/g, '_').slice(0, 260),
+    rootKey,
+    rootLabel: root.label,
+    kind,
+    name: String(source.name || path.basename(relativePath)).slice(0, 140),
+    relativePath,
+    publicPath,
+    extension: ext,
+    sizeBytes: safeNonNegativeNumber(source.size_bytes),
+    modifiedAt: safeDateToIsoOrNull(source.modified_at),
+    lastSeenAt: safeDateToIsoOrNull(source.last_seen_at),
+    source: String(source.source || 'agent_full_sync').slice(0, 80),
+    syncVersion: safeNonNegativeNumber(source.sync_version),
+    readOnly: true
+  };
+}
+
+function safeDateToIsoOrNull(value) {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.toISOString() : null;
+  const parsed = Date.parse(String(value));
+  if (!Number.isFinite(parsed)) return null;
+  return new Date(parsed).toISOString();
 }
 
 function buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus }) {
@@ -991,10 +1133,10 @@ function buildMediaRoutesSummary(context = {}) {
       prepared: true,
       route: MEDIA_STATUS_PATH,
       compact: true,
-      primary: 'agent_memory_online_or_local_filesystem_local',
-      dbIndexCheckedOnlyWithDbQuery: true,
-      dbIndexItemReadsEnabled: false,
-      fallbackEnabled: false,
+      primary: 'remote_media_index_online_or_local_filesystem_local',
+      dbIndexCheckedOnlyWithDbQuery: false,
+      dbIndexItemReadsEnabled: true,
+      fallbackEnabled: true,
       writesEnabled: false
     },
     onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex, config: context.config }),
@@ -1010,7 +1152,7 @@ function buildMediaRoutesSummary(context = {}) {
       usesInformationSchemaColumns: true,
       usesInformationSchemaStatistics: true,
       readsRowCount: true,
-      readsItems: false,
+      readsItems: true,
       compatibleForReadPrepared: true,
       compatibleForWrite: false,
       writeEnabled: writeGate.writeEnabled,
@@ -1020,7 +1162,7 @@ function buildMediaRoutesSummary(context = {}) {
     },
     scanPolicy: { defaultLimit: MEDIA_SCAN_DEFAULT_LIMIT, hardLimit: MEDIA_SCAN_HARD_LIMIT, maxDepth: MEDIA_SCAN_MAX_DEPTH, cursorPreparedLater: true },
     routes: [
-      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status mit Media-Index-Write-Gate; Persistent Index Schema-Diagnose optional mit ?db=1', readOnly: true },
+      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status; online primaer aus remote_media_index, Agent-Memory als Fallback; keine Uploads, keine Deletes', readOnly: true },
       { method: 'GET', path: MEDIA_INDEX_WRITE_GATE_STATUS_PATH, description: 'Media-Index Write-Gate Status; zeigt separate MEDIA_INDEX_* Gates ohne Writes', readOnly: true },
       { method: 'GET', path: MEDIA_INDEX_SCHEMA_STATUS_PATH, description: 'Media-Index Schema-Status; read-only INFORMATION_SCHEMA Diagnose', readOnly: true },
       { method: 'POST', path: MEDIA_INDEX_SCHEMA_PREPARE_PATH, description: 'Schema-Prepare local-only, confirmWrite+schemaOnly und MEDIA_INDEX_SCHEMA_WRITE_ENABLED erforderlich; schreibt keine Media-Daten', readOnly: false, schemaOnly: true, disabledByDefault: true }

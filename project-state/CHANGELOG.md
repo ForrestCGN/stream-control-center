@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 0.2.56 - Media Index Read Source
+
+- `/api/remote/media/status` liest online `remote_media_index` read-only als primaere Media-Quelle, wenn die Tabelle kompatibel und befuellt ist.
+- Agent-Memory bleibt Fallback und ist per `?source=agent` pruefbar.
+- DB-Items werden serverseitig erneut sanitisiert: rootKey, relativePath, Extension, Kind, PublicPath, Groessen- und Zeitfelder.
+- `sourceInfo`, `syncInfo`, `syncFoundation`, `onlineIndexTarget` und `/api/remote/routes` melden die DB-Read-Source.
+- Keine Media-Index-Writes aktiviert.
+- Keine Upload/Edit/Delete-Funktion.
+- Keine Datei-Inhalte, keine absoluten Pfade.
+
 ## 0.2.55C - Media Full-Sync Build Marker Sync
 
 - Build-/Statusmarker nach 0.2.55B auf `RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC` synchronisiert.
