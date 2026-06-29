@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.2.58G Final Documentation
+
+- Webserver-Test nach 0.2.58G dokumentiert.
+- Ergebnis: `effectiveChangedOnAgentCount=0`, `softModifiedAtOnlyCount=120`, `effectiveUnchangedCount=120`.
+- Kein Delta-Upsert noetig.
+- Missing/Tombstone bleibt nicht belastbar wegen trunciertem Compact-Agent-Snapshot.
+- Neuer Chat-Prompt fuer Fortsetzung nach 0.2.58G erstellt.
+
 ## 0.2.58G - Media Index Diff Effective Change Counts
 
 - `strictChangedOnAgentCount`, `strictUnchangedCount`, `effectiveChangedOnAgentCount`, `effectiveUnchangedCount` und `effectiveNoopChangedOnAgentCount` ergaenzt.

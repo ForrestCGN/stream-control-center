@@ -16,8 +16,9 @@
 - [x] ModifiedAt-Delta-Diagnose in Diff-Route ergaenzen
 - [x] ModifiedAt-Soft-Match-Policy in Diff-Route ergaenzen
 - [x] Effective-/Strict-Change-Counts in Diff-Route ergaenzen
+- [x] 0.2.58G Webserver-Test dokumentieren
 - [ ] DB-Read-Source UI final sichtpruefen
-- [ ] Effective-Counts nach 0.2.58G bewerten
-- [ ] Gated Delta-Upsert fuer harte Unterschiede separat planen
+- [ ] Full-Sync-/Compact-Snapshot-Verhaeltnis fuer Missing/Tombstone planen
+- [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen
 - [ ] Online->Agent Queue separat planen

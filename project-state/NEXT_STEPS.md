@@ -2,19 +2,17 @@
 
 ## Naechster Schritt
 
-Webserver-Diff nach 0.2.58G testen und Effective-Counts bewerten.
+`RDAP_0.2.58H_MEDIA_INDEX_DIFF_FULL_SYNC_EFFECTIVE_COMPARE_PLAN`
 
 Ziel:
-- Erwartung pruefen:
-  - `strictChangedOnAgentCount = 120`
-  - `effectiveChangedOnAgentCount = 0`
-  - `effectiveUnchangedCount = 120`
-  - `effectiveNoopChangedOnAgentCount = 120`
-- Wenn `effectiveChangedOnAgentCount=0`, kein Delta-Upsert noetig.
+- Klaeren, warum Compact-Agent-Snapshot nur 120 Items returned, aber 333 totalSeen meldet.
+- Planen, wie spaeter eine belastbare Missing-/Tombstone-Bewertung nicht auf trunciertem Compact-Snapshot basiert.
+- Full-Sync-/DB-Basis fuer spaetere effektive Vergleiche bewerten.
+- Kein Write.
+- Kein Upsert.
 - Kein Tombstone/Delete.
+- Kein Online->Agent-Trigger.
 
-## Danach
+## Wichtig
 
-- Gated Delta-Upsert fuer echte Hard-Changes separat planen.
-- Tombstone/`deleted=1` fuer fehlende Dateien separat planen.
-- Online->Agent Queue separat und nur mit expliziten Permission-/Audit-/Confirm-Gates planen.
+Solange `effectiveChangedOnAgentCount=0`, ist kein Delta-Upsert fuer Hard-Changes noetig.

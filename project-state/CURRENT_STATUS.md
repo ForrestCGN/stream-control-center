@@ -2,19 +2,40 @@
 
 Aktueller Stand: `0.2.58G - Media Index Diff Effective Change Counts`
 
-## Kurzstatus
+## Bestaetigter Webserver-Stand
 
-- Agent-Full-Sync in Chunks funktioniert.
-- Remote-Receiver empfaengt vollstaendige Full-Syncs.
-- `remote_media_index` wurde kontrolliert mit 333 Items befuellt.
-- MEDIA_INDEX Write/Data/FullSync Gates sind deaktiviert.
-- `/api/remote/media/status` nutzt online `remote_media_index` read-only als primaere Media-Quelle.
-- UI-Inventar zeigt 333 Medien aus der DB.
-- 0.2.58D reparierte den lokalen Initial-Media-Inventory-Send.
-- Webserver-Diff sieht wieder 120 Agent-Items.
-- 0.2.58F zeigte: 120 Strict-Changes, aber 0 Hard-Changes und 120 Soft-Timestamp-only Matches.
-- 0.2.58G trennt Strict-Counts von Effective-Counts, damit Upsert-Entscheidungen nicht auf Soft-Timestamp-Offsets basieren.
+0.2.58G ist getestet und aktiv:
+
+```text
+rdap_media_index_diff_effective_change_counts_058g.v1
+RDAP_0.2.58G_MEDIA_INDEX_DIFF_EFFECTIVE_CHANGE_COUNTS
+```
+
+Befund:
+
+```text
+agentSnapshotDiagnostic.reason = agent_snapshot_available
+mediaInventoryItems = 120
+mediaInventoryTotalSeen = 333
+mediaInventoryTruncated = true
+
+matchedCount = 120
+strictChangedOnAgentCount = 120
+hardChangedOnAgentCount = 0
+effectiveChangedOnAgentCount = 0
+softModifiedAtOnlyCount = 120
+effectiveUnchangedCount = 120
+missingOnAgentReliable = false
+```
+
+## Interpretation
+
+- Keine echten Hard-Changes.
+- Kein Delta-Upsert noetig.
+- Strict changes sind nur bekannte `modifiedAt`-Offsets.
+- Missing/Tombstone ist nicht belastbar, weil Compact-Agent-Snapshot trunciert ist.
+- Full-Sync sieht 332/333 Items, bleibt aber write-blocked/gate-geschuetzt.
 
 ## Sicherheit
 
-0.2.58G schreibt nichts. Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, kein Agent-Trigger, keine Datei-Inhalte, keine absoluten Pfade.
+Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, kein Agent-Trigger, keine Datei-Inhalte, keine absoluten Pfade.
