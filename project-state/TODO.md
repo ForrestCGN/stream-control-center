@@ -1,16 +1,25 @@
 # TODO
 
+## Aktueller Step
+
 ```text
-[ ] 0.2.51 Doku-/Handoff-Step lokal einspielen
+[ ] 0.2.52 ZIP lokal einspielen
+[ ] JS-Syntaxchecks ausfuehren
 [ ] git status pruefen
-[ ] stepdone.cmd fuer 0.2.51 ausfuehren
-[ ] Danach im neuen Chat mit PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_50.md starten
+[ ] Lokales Dashboard testen
+[ ] Media-Liste: Suche testen
+[ ] Media-Liste: Sortierung Name/Bereich/Groesse/Geaendert testen
+[ ] Media-Liste: Paging testen
+[ ] Media-Liste: Info-Fenster testen
+[ ] Upload/Edit/Delete bleiben unsichtbar/gesperrt pruefen
+[ ] Bei Erfolg stepdone.cmd fuer 0.2.52 ausfuehren
+[ ] Danach Webserver-Deploy, weil remote-modboard/public UI geaendert wurde
 ```
 
-## Naechster Funktions-Step
+## Danach
 
 ```text
-[ ] 0.2.52 Media Search/Sort/Paging planen
-[ ] Online- und Lokal-Pfade parallel pruefen
-[ ] Keine Backend/API/DB/Writes ohne ausdruecklichen Grund
+[ ] 0.2.53 Media Metadata Konzept / sprechende Namen planen
+[ ] Klaeren, wo Media-Anzeigenamen/Kategorien/Tags spaeter gespeichert werden duerfen
+[ ] Vor Writes eigenen Security-/Audit-/Confirm-Scope planen
 ```

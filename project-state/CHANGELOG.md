@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 0.2.52 - Media Mod Usable List
+
+```text
+- Media-Liste online und lokal fuer Mods besser bedienbar gemacht.
+- Suche nach Datei, Bereich oder Typ ergaenzt.
+- Sortierung nach Name, Bereich, Groesse und Geaendert ergaenzt.
+- Paging mit 50 Eintraegen pro Seite ergaenzt.
+- Hauptkarten kompakter gemacht.
+- Typ/Bereich sichtbarer gemacht.
+- Pfad aus der Hauptansicht entfernt.
+- Info-Fenster pro Medium fuer technische Details ergaenzt.
+- Filter und Neu laden bleiben erhalten.
+- Keine Backend-Aenderung.
+- Keine API-Aenderung.
+- Kein neuer Endpoint.
+- Keine DB-Item-Reads.
+- Keine SQL-Ausfuehrung.
+- Keine DB-Migration.
+- Keine Writes.
+- Kein Upload/Edit/Delete.
+```
+
 ## 0.2.51 - Media 0.2.50 Live Handoff Docs
 
 ```text

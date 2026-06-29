@@ -1,46 +1,46 @@
 # NEXT STEPS
 
-## Naechster sinnvoller funktionaler Step
+## Naechster sinnvoller Step nach 0.2.52
 
 ```text
-RDAP_0.2.52_REMOTE_AND_LOCAL_MEDIA_SEARCH_SORT_PAGING
+0.2.53 Media Metadata Konzept / sprechende Namen planen
 ```
 
 ## Ziel
 
 ```text
-Media-Inventar fuer Mods besser bedienbar machen.
+Medien spaeter fuer Mods mit sprechenden Namen, Kategorien, Tags oder kurzen Beschreibungen anzeigen koennen.
 ```
 
-## Moegliche Inhalte
+## Wichtig
 
 ```text
-- Suche nach Dateiname.
-- Sortierung nach Name.
-- Sortierung nach Bereich.
-- Sortierung nach Groesse.
-- Sortierung nach Geaendert.
-- Anzeige-Begrenzung oder Paging, z.B. 50 pro Seite.
-- Filter beibehalten.
-- Neu laden beibehalten.
+Das ist nicht mehr nur UI, sobald Daten gespeichert oder bearbeitet werden.
+Vor produktiven Media-Metadaten braucht es einen separaten Scope:
+- Datenquelle/Speicherung klaeren
+- Auth pruefen
+- Permission pruefen
+- Confirm-Write einbauen
+- Audit einbauen
+- Lock/Readback/Test klaeren
+- Backup/Rollback-Konzept klaeren
 ```
 
-## Zu pruefende Dateien
+## Weiterhin offen / moeglich
 
 ```text
-remote-modboard/backend/public/assets/modules/media/library.js
-htdocs/dashboard-v2/assets/modules/media/library.js
-remote-modboard/backend/public/assets/modules/module-manifest.js
-htdocs/dashboard-v2/assets/modules/module-manifest.js
+- Detailfenster optisch feiner machen.
+- Optional Vorschau fuer Bilder/Sounds/Videos vorbereiten, read-only.
+- Admin-/Diagnoseansicht fuer technische Media-Rohdaten spaeter trennen.
 ```
 
-## Grenzen
+## Grenzen bleiben
 
 ```text
-Keine Backend-Write-Routen.
-Keine neue API, wenn nicht noetig.
-Kein neuer Endpoint, wenn nicht noetig.
-Keine DB-Item-Reads.
+Keine Backend-Write-Routen ohne eigenen Scope.
+Keine neue API ohne ausdruecklichen Grund.
+Kein neuer Endpoint ohne ausdruecklichen Grund.
+Keine DB-Item-Reads ohne eigenen Scope.
 Keine SQL-Ausfuehrung.
 Keine DB-Migration.
 Keine INSERT/UPDATE/DELETE.

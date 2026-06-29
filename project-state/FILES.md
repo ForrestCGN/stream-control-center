@@ -1,10 +1,12 @@
 # FILES
 
-## 0.2.51
+## 0.2.52
 
 ```text
-docs/current/RDAP_0.2.51_MEDIA_0_2_50_LIVE_HANDOFF_DOCS.md
-docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_50.md
+remote-modboard/backend/public/assets/modules/media/library.js
+htdocs/dashboard-v2/assets/modules/media/library.js
+docs/current/RDAP_0.2.52_REMOTE_AND_LOCAL_MEDIA_MOD_USABLE_LIST.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_52.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
