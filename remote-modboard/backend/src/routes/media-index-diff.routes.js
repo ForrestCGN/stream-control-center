@@ -5,10 +5,10 @@ const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-ru
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_compare_normalization_058a.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_readonly_058.v1';
-const BUILD = 'RDAP_0.2.58A_MEDIA_INDEX_DIFF_COMPARE_NORMALIZATION';
-const PREVIOUS_BUILD = 'RDAP_0.2.58_MEDIA_INDEX_DIFF_DIAGNOSTIC_READONLY';
+const STATUS_API_VERSION = 'rdap_media_index_diff_agent_empty_unreliable_058b.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_compare_normalization_058a.v1';
+const BUILD = 'RDAP_0.2.58B_MEDIA_INDEX_DIFF_AGENT_EMPTY_UNRELIABLE';
+const PREVIOUS_BUILD = 'RDAP_0.2.58A_MEDIA_INDEX_DIFF_COMPARE_NORMALIZATION';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -31,6 +31,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
   const previewLimit = readPreviewLimit(req);
   const agentStatus = safeBuildAgentMediaInventoryStatus();
   const agentInventory = sanitizeAgentInventory(agentStatus);
+  const agentSnapshotUnavailable = isAgentSnapshotUnavailable(agentInventory);
 
   let dbInventory;
   try {
@@ -42,7 +43,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58A',
+      moduleVersion: context.appVersion || '0.2.58B',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -55,24 +56,34 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       active: false,
       status: code,
       error: code,
-      agent: buildAgentSummary(agentInventory),
+      agent: buildAgentSummary(agentInventory, agentSnapshotUnavailable),
       database: { table: PERSISTENT_INDEX_TABLE, readOnly: true, total: 0, active: false },
       counts: buildEmptyCounts(),
       previewLimit,
       previews: buildEmptyPreviews(),
       comparePolicy: buildComparePolicy(),
+      reliability: buildReliabilityBlock({ agentInventory, agentSnapshotUnavailable, dbInventory: { truncated: false }, diff: { counts: buildEmptyCounts() } }),
       safety: buildSafetyBlock(),
       note: 'Diff-Diagnose konnte die Online-DB nicht read-only lesen. Es wurden keine Writes ausgefuehrt.'
     };
   }
 
-  const diff = buildDiff({ agentItems: agentInventory.items, dbItems: dbInventory.items, previewLimit, agentTruncated: agentInventory.truncated });
+  const diff = buildDiff({
+    agentItems: agentInventory.items,
+    dbItems: dbInventory.items,
+    previewLimit,
+    agentTruncated: agentInventory.truncated,
+    agentSnapshotUnavailable,
+    dbTruncated: dbInventory.truncated
+  });
+
+  const reliability = buildReliabilityBlock({ agentInventory, agentSnapshotUnavailable, dbInventory, diff });
 
   return {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58A',
+    moduleVersion: context.appVersion || '0.2.58B',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -83,32 +94,25 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     readOnly: true,
     writeEnabled: false,
     active: true,
-    status: agentInventory.truncated ? 'diff_available_agent_snapshot_truncated' : 'diff_available',
+    status: agentSnapshotUnavailable ? 'diff_available_agent_snapshot_unavailable' : (agentInventory.truncated ? 'diff_available_agent_snapshot_truncated' : 'diff_available'),
     source: 'agent_snapshot_vs_remote_media_index_readonly',
-    agent: buildAgentSummary(agentInventory),
+    agent: buildAgentSummary(agentInventory, agentSnapshotUnavailable),
     database: { table: PERSISTENT_INDEX_TABLE, readOnly: true, total: dbInventory.total, returned: dbInventory.items.length, truncated: dbInventory.truncated, active: dbInventory.items.length > 0 },
     counts: diff.counts,
     previewLimit,
     previews: diff.previews,
     comparePolicy: buildComparePolicy(),
-    reliability: {
-      agentSnapshotTruncated: agentInventory.truncated,
-      databaseSnapshotTruncated: dbInventory.truncated,
-      newAndChangedReliableForReturnedAgentItems: true,
-      missingOnAgentReliable: !agentInventory.truncated && !dbInventory.truncated,
-      metadataCompareWarnings: diff.counts.metadataCompareWarnings,
-      note: agentInventory.truncated
-        ? 'Agent-Snapshot ist gekuerzt. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loeschstatus bewertet.'
-        : 'Agent- und DB-Snapshot sind nicht als gekuerzt gemeldet.'
-    },
+    reliability,
     safety: buildSafetyBlock(),
     nextSteps: [
-      'Diff-Ergebnis erneut pruefen: changedOnAgentCount sollte nur noch belastbare Metadatenabweichungen zeigen.',
+      'Agent-Snapshot-Verfuegbarkeit pruefen, bevor missingOnAgent als Loeschstatus bewertet wird.',
       'Gated Delta-Upsert separat planen.',
       'Tombstone/deleted=1 nur spaeter mit eigenem Gate, Confirm, Audit/Lock und Readback planen.',
       'Upload/Edit/Delete bleibt aus.'
     ],
-    note: 'Diese Route vergleicht nur read-only Agent-Snapshot und remote_media_index. 0.2.58A normalisiert Metadatenvergleiche robuster. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+    note: agentSnapshotUnavailable
+      ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; daraus wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
+      : 'Diese Route vergleicht nur read-only Agent-Snapshot und remote_media_index. 0.2.58B schuetzt vor falschen missingOnAgent-Schluessen bei leerem Agent-Snapshot. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -143,6 +147,14 @@ function sanitizeAgentInventory(agentStatus) {
   };
 }
 
+function isAgentSnapshotUnavailable(agentInventory) {
+  const inventory = agentInventory && typeof agentInventory === 'object' && !Array.isArray(agentInventory) ? agentInventory : {};
+  if (inventory.active !== true) return true;
+  if (!Array.isArray(inventory.items) || inventory.items.length <= 0) return true;
+  if (!inventory.lastMediaInventorySyncAt) return true;
+  return false;
+}
+
 async function readPersistentIndexItems(config) {
   return await withReadOnlyConnection(config, async (connection) => {
     const [rows] = await connection.query(
@@ -160,7 +172,7 @@ async function readPersistentIndexItems(config) {
   });
 }
 
-function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated }) {
+function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSnapshotUnavailable, dbTruncated }) {
   const agentById = indexById(agentItems);
   const dbById = indexById(dbItems);
   const newOnAgent = [];
@@ -183,7 +195,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated }) {
     }
   }
 
-  const missingOnAgentReliable = !agentTruncated;
+  const missingOnAgentReliable = !agentSnapshotUnavailable && !agentTruncated && !dbTruncated;
   const missingOnAgent = [];
   if (missingOnAgentReliable) {
     for (const dbItem of dbById.values()) {
@@ -201,6 +213,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated }) {
       changedOnAgentCount: changedOnAgent.length,
       missingOnAgentCount: missingOnAgentReliable ? missingOnAgent.length : null,
       missingOnAgentReliable,
+      agentSnapshotUnavailable: agentSnapshotUnavailable === true,
       unchangedCount: unchanged.length,
       comparableAgentItems: agentItems.length,
       metadataCompareWarnings: compareStats.metadataCompareWarnings,
@@ -214,6 +227,29 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated }) {
       missingOnAgent: missingOnAgentReliable ? missingOnAgent.slice(0, previewLimit).map(safePreviewItem) : [],
       unchanged: unchanged.slice(0, previewLimit).map(safePreviewItem)
     }
+  };
+}
+
+function buildReliabilityBlock({ agentInventory, agentSnapshotUnavailable, dbInventory, diff }) {
+  const dbTruncated = dbInventory && dbInventory.truncated === true;
+  const metadataCompareWarnings = diff && diff.counts ? safeNonNegativeNumber(diff.counts.metadataCompareWarnings) : 0;
+  const missingOnAgentReliable = !agentSnapshotUnavailable && !(agentInventory && agentInventory.truncated === true) && !dbTruncated;
+  let note = 'Agent- und DB-Snapshot sind nicht als gekuerzt gemeldet.';
+  if (agentSnapshotUnavailable) {
+    note = 'Agent-Snapshot ist leer oder nicht verfuegbar. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loesch-/Tombstone-Status bewertet.';
+  } else if (agentInventory && agentInventory.truncated === true) {
+    note = 'Agent-Snapshot ist gekuerzt. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loeschstatus bewertet.';
+  } else if (dbTruncated) {
+    note = 'DB-Snapshot ist gekuerzt. Fehlende Agent-Eintraege werden deshalb nicht vollstaendig bewertet.';
+  }
+  return {
+    agentSnapshotUnavailable: agentSnapshotUnavailable === true,
+    agentSnapshotTruncated: agentInventory && agentInventory.truncated === true,
+    databaseSnapshotTruncated: dbTruncated,
+    newAndChangedReliableForReturnedAgentItems: !agentSnapshotUnavailable,
+    missingOnAgentReliable,
+    metadataCompareWarnings,
+    note
   };
 }
 
@@ -313,7 +349,7 @@ function safePreviewItem(item) {
   return preview;
 }
 
-function buildAgentSummary(agentInventory) {
+function buildAgentSummary(agentInventory, agentSnapshotUnavailable = false) {
   return {
     active: agentInventory.active,
     connected: agentInventory.connected,
@@ -323,7 +359,8 @@ function buildAgentSummary(agentInventory) {
     totalSeen: agentInventory.totalSeen,
     truncated: agentInventory.truncated,
     hasMore: agentInventory.hasMore,
-    lastMediaInventorySyncAt: agentInventory.lastMediaInventorySyncAt
+    lastMediaInventorySyncAt: agentInventory.lastMediaInventorySyncAt,
+    snapshotUnavailable: agentSnapshotUnavailable === true
   };
 }
 
@@ -336,6 +373,7 @@ function buildEmptyCounts() {
     changedOnAgentCount: 0,
     missingOnAgentCount: null,
     missingOnAgentReliable: false,
+    agentSnapshotUnavailable: true,
     unchangedCount: 0,
     comparableAgentItems: 0,
     metadataCompareWarnings: 0,
@@ -352,10 +390,12 @@ function buildEmptyPreviews() {
 function buildComparePolicy() {
   return {
     build: BUILD,
+    previousBuild: PREVIOUS_BUILD,
     readOnly: true,
     compares: ['sizeBytes', 'kind', 'modifiedAt'],
     modifiedAtToleranceMs: MODIFIED_AT_TOLERANCE_MS,
     uncomparableMetadataDoesNotMarkChanged: true,
+    emptyAgentSnapshotDoesNotMarkMissingReliable: true,
     warningFields: ['metadataCompareWarnings', 'metadataWarnings'],
     noFileContentHashing: true
   };

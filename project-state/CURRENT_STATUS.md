@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58A - Media Index Diff Compare Normalization`
+Aktueller Stand: `0.2.58B - Media Index Diff Agent Empty Unreliable`
 
 ## Kurzstatus
 
@@ -12,7 +12,8 @@ Aktueller Stand: `0.2.58A - Media Index Diff Compare Normalization`
 - UI-Inventar zeigt 333 Medien aus der DB.
 - 0.2.57 dokumentiert den Delta-Sync-/Loeschstatus-Plan.
 - 0.2.58 ergaenzt eine read-only Diff-Diagnose Agent-Snapshot vs. `remote_media_index`.
-- 0.2.58A normalisiert den Diff-Metadatenvergleich robuster, damit `changedOnAgent` belastbarer wird.
+- 0.2.58A normalisiert den Diff-Metadatenvergleich robuster.
+- 0.2.58B verhindert falsche Missing-/Loeschstatus-Schluesse bei leerem Agent-Snapshot.
 
 ## Route
 
@@ -22,4 +23,4 @@ GET /api/remote/media/index/diff/status
 
 ## Sicherheit
 
-0.2.58A schreibt nichts. Keine DB-Writes, kein Upsert, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade.
+0.2.58B schreibt nichts. Keine DB-Writes, kein Upsert, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade.

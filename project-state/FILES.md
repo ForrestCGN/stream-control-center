@@ -1,12 +1,12 @@
 # FILES
 
-## 0.2.58A
+## 0.2.58B
 
 Geaendert:
 
 - `remote-modboard/backend/src/routes/media-index-diff.routes.js`
-- `docs/current/RDAP_0.2.58A_MEDIA_INDEX_DIFF_COMPARE_NORMALIZATION.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58A.md`
+- `docs/current/RDAP_0.2.58B_MEDIA_INDEX_DIFF_AGENT_EMPTY_UNRELIABLE.md`
+- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58B.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
