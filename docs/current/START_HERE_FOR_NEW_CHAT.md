@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.22E - Local/Online OBS Status Parity read-only, fast gut; spaeter in echten Situationen testen`.
+Aktueller Stand: `RDAP_0.2.23_PARK_OBS_START_MEDIA_DOCS` - OBS ist bei `0.2.22E` geparkt, naechster Fokus ist Media-System im Remote-Modboard.
 
 Verbindlich:
 
@@ -13,7 +13,7 @@ Lokales dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 Keine zweite lokale UI.
 ```
 
-## Bestaetigter Stand
+## OBS-Stand beim Parken
 
 ```text
 0.2.20C: Stream-PC-Agent verbindet per WSS; Heartbeat slim; OBS-Live-Szene kommt online an.
@@ -24,7 +24,7 @@ Keine zweite lokale UI.
 0.2.22E: Lokale und Online-OBS-Seite nutzen gleiche Anzeige-/Refresh-Logik.
 ```
 
-## Bestaetigte Werte
+Bestaetigte Werte:
 
 ```text
 Online Inventory: scenes=19, sources=48, audioSources=35, total=102.
@@ -32,12 +32,21 @@ Lokales Inventory: scenes=19, sources=48, audioSources=35, total=102.
 currentScene: Live Gameplay Forrest&Engel.
 ```
 
-## Datenklassen
+OBS bleibt geparkt. Offene OBS-Sichttests und spaetere Mod-UX-Korrekturen stehen in `project-state/PARKED_TODOS.md`.
+
+## Neuer Fokus
 
 ```text
-Heartbeat = klein/stabil, Verbindung/Agent-Zustand, ca. 30s.
-Live-State = schnelle kleine Daten, aktuell OBS-Szene, ca. 500ms.
-Inventory-Sync = Szenen/Quellen/Audio separat, read-only, ca. 30s.
+Media-System ins Remote-Modboard bringen.
+```
+
+Naechster Schritt:
+
+```text
+1. Echte Media-/Sound-/Dashboard-Dateien aus GitHub/dev lesen.
+2. Bestehende Media-/Sound-Struktur aufnehmen.
+3. Kleinen read-only Media-Modboard-Step planen.
+4. Auf go warten.
 ```
 
 ## Sicherheitsgrenzen
@@ -49,24 +58,6 @@ Keine produktiven Writes.
 Keine DB-Migration.
 Keine Shell-/Datei-/Prozess-Actions.
 Keine freien OBS requestType Payloads.
-Webserver baut keine OBS-WebSocket-Verbindung auf.
-Live-State und Inventory-Sync nur in Memory.
+Keine Media-Uploads oder Deletes ohne separaten freigegebenen Write-Step.
+Keine Secrets in Logs, Status, UI oder Doku.
 ```
-
-## Noch zu testen
-
-```text
-OBS an/aus.
-Agent an/aus.
-Szenenwechsel.
-OBS-Neustart.
-Webserver-Neustart.
-Lokal vs online.
-Reload vs ohne Reload.
-Inventory-Sync nach ca. 30s.
-Live -> Wartet/Offline ohne Reload.
-```
-
-## Naechster sinnvoller Step
-
-Erst nach Sichttest entscheiden. Wahrscheinlich: OBS-Seite sprachlich/mod-tauglich nachschaerfen oder naechster read-only Bedienvorbereitungs-Step. Keine OBS-Actions ohne separaten freigegebenen Control-Step.

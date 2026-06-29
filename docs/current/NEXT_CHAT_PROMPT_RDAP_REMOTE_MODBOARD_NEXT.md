@@ -28,29 +28,25 @@ Startdateien zuerst lesen:
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
+docs/current/LOCAL_DASHBOARD_REPLACEMENT_PLAN_CURRENT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-backend/modules/remote_agent.js
-backend/modules/obs_shared.js
-backend/modules/local_remote_modboard_adapter.js
-backend/modules/obs_live_status.js
-remote-modboard/backend/server.js
-remote-modboard/backend/src/services/agent-runtime.service.js
-remote-modboard/backend/src/routes/obs-readonly.routes.js
-remote-modboard/backend/public/assets/modules/system/obs.js
-htdocs/dashboard-v2/assets/modules/system/obs.js
+project-state/PARKED_TODOS.md
 ```
 
 Aktueller Stand:
 
 ```text
-0.2.22E - Local/Online OBS Status Parity read-only, fast gut; spaeter mit echten Situationen testen.
+RDAP_0.2.23_PARK_OBS_START_MEDIA_DOCS
+OBS ist bei 0.2.22E geparkt.
+Naechster aktiver Fokus: Media-System ins Remote-Modboard bringen.
 ```
 
-Bestaetigt:
+OBS-Stand beim Parken:
 
 ```text
 - Stream-PC-Agent verbindet per WSS.
@@ -60,15 +56,23 @@ Bestaetigt:
 - Online Inventory bestaetigt: 19 Szenen, 48 Quellen, 35 Audioquellen.
 - Lokales Inventory bestaetigt: 19 Szenen, 48 Quellen, 35 Audioquellen.
 - currentScene: Live Gameplay Forrest&Engel.
-- Lokale und Online-OBS-Seite sollen dieselbe Status-/Refresh-Logik nutzen.
+- Lokale und Online-OBS-Seite nutzen gleiche Status-/Refresh-Logik.
 ```
 
-Architektur:
+OBS-Offenpunkte sind geparkt in:
 
 ```text
-Heartbeat = klein/stabil, Verbindung, ca. 30s.
-Live-State = schnelle kleine Daten, aktuell OBS-Szene, ca. 500ms.
-Inventory-Sync = groessere OBS-Listen, separat, read-only, ca. 30s.
+project-state/PARKED_TODOS.md
+```
+
+Wichtig fuer den naechsten Chat:
+
+```text
+Forrest moechte OBS jetzt pausieren und das Media-System ins Modboard bringen.
+Nicht mit OBS 0.2.20 weitermachen. GitHub/dev ist weiter: 0.2.22E.
+Vor Media-Planung echte Media-/Sound-/Dashboard-Dateien aus GitHub/dev lesen.
+Keine Media-Uploads, Deletes, produktiven Writes oder DB-Migrationen im ersten Media-Step ohne separate Freigabe.
+Modboard bleibt die einzige UI-Wahrheit; lokales dashboard-v2 ist nur dasselbe Runtime-Profil.
 ```
 
 Sicherheitsgrenzen:
@@ -80,37 +84,11 @@ Keine Writes.
 Keine DB-Migration.
 Keine Shell-/Datei-/Prozess-Actions.
 Keine freien OBS-Payloads.
-Webserver baut keine OBS-WebSocket-Verbindung auf.
-Live-State und Inventory nur in Memory.
-```
-
-Offener Testplan:
-
-```text
-OBS an/aus.
-Agent an/aus.
-Szenenwechsel.
-OBS-Neustart.
-Webserver-Neustart.
-Lokal vs online.
-Reload vs ohne Reload.
-Inventory nach ca. 30s.
-Live -> Wartet/Offline ohne Reload.
-```
-
-Wichtig fuer den naechsten Chat:
-
-```text
-Forrest war unzufrieden mit unnoetigen Mini-/Kosmetik-Schritten und zu viel technischem Text.
-Nicht nur Anzeigen kaschieren, wenn echte Daten fehlen.
-Mod-Ansicht muss fuer Mods verstaendlich sein: keine Diagnosebegriffe wie Inventory, Endpoint, Payload, unless in Admin/Diagnose.
-Bei Fehlern kurz sagen, was Fakt ist, was der echte Fix ist, und nicht lange erklaeren.
+Keine Secrets in Logs, Status, UI oder Doku.
 ```
 
 Naechster sinnvoller Schritt:
 
 ```text
-Erst Sichttest mit echten Situationen.
-Danach entweder kleine Sprach-/Mod-UX-Korrektur oder naechster read-only Bedienvorbereitungs-Step.
-Keine OBS-Actions ohne separaten Control-Step.
+Echte Media-System-Dateien aus GitHub/dev lesen, Ist-Stand zusammenfassen, kleinen read-only Plan fuer die erste Media-System-Integration ins Remote-Modboard nennen, dann auf go warten.
 ```

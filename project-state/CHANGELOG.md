@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.23 - Park OBS / Start Media Docs
+
+- Doku-only: OBS-Ausbau bei `0.2.22E` bewusst geparkt.
+- Offene OBS-Sichttests und spaetere Mod-UX-Korrektur in `project-state/PARKED_TODOS.md` aufgenommen.
+- Aktiven Fokus auf Media-System im Remote-Modboard umgestellt.
+- Naechster Schritt: echte Media-/Sound-/Dashboard-Dateien aus GitHub/dev lesen und ersten kleinen read-only Media-Modboard-Step planen.
+- Keine Codeaenderung, keine OBS-Steuerung, keine Agent-Actions, keine Writes, keine DB-Migration.
+
 ## 0.2.22E - Local/Online Status Parity read-only
 
 - Lokale OBS-Seite nutzt lokalen Live-Endpunkt zuerst.

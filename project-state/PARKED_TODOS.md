@@ -1,7 +1,7 @@
 # PARKED_TODOS - zentrale Merkstelle fuer zurueckgestellte Arbeit
 
-Stand: 2026-06-27  
-Step: `RDAP_TODO_RESCUE_2_ARCHIVE_SOURCE_DEEP_SCAN`
+Stand: 2026-06-29  
+Step: `RDAP_0.2.23_PARK_OBS_START_MEDIA_DOCS`
 
 ## Zweck
 
@@ -238,3 +238,19 @@ Weiterhin moeglich, aber nicht blockierend:
 - [ ] Bei konkretem Feature-Fokus alte Modul-Dokus erneut themenspezifisch durchsuchen, bevor geplant wird.
 - [ ] Bei jedem neuen geparkten Punkt diese Datei direkt aktualisieren.
 - [ ] Wenn Forrest sich an weitere alte Planungen erinnert, diese als neue Quelle aufnehmen und mit Datum/Quelle eintragen.
+
+## P. OBS / Agent-WSS / Mod-Bedienflaeche - geparkt ab 0.2.23
+
+Stand beim Parken: `0.2.22E - Local/Online OBS Status Parity read-only`.
+
+- [ ] OBS-Modul spaeter fortsetzen, aber aktuell zugunsten Media-System pausiert.
+- [ ] Vor weiterer OBS-Arbeit wieder echte OBS-/Agent-Dateien aus GitHub/dev lesen.
+- [ ] Sichttest mit echten Situationen nachholen: OBS an/aus, Agent an/aus, Szenenwechsel, OBS-Neustart, Webserver-Neustart, lokal vs. online, Reload vs. ohne Reload.
+- [ ] Pruefen, ob Live -> Wartet/Offline lokal und online ohne Browser-Reload sauber wirkt.
+- [ ] Mod-Ansicht spaeter sprachlich vereinfachen: keine Diagnosebegriffe wie Inventory, Endpoint oder Payload fuer normale Mods.
+- [ ] Keine OBS-Steuerung aktivieren, bevor ein separater Control-Step ausdruecklich freigegeben ist.
+- [ ] Spaetere OBS-Aktionen nur ueber feste Action-Endpunkte mit Rechtepruefung, Allowlist und Audit.
+- [ ] Keine freien OBS-Payloads wie `POST /obs/call { requestType: ... }`.
+- [ ] Webserver baut weiterhin keine eigene OBS-WebSocket-Verbindung auf; OBS-Daten kommen read-only vom Stream-PC-Agent.
+- [ ] Heartbeat bleibt klein/stabil, Live-State schnell/klein, Inventory-Sync separat.
+

@@ -1,27 +1,36 @@
 # Next Steps
 
-Nach `0.2.22E`:
+Nach `RDAP_0.2.23_PARK_OBS_START_MEDIA_DOCS`:
+
+## Aktiver naechster Fokus
 
 ```text
-1. Sichttest mit echten Situationen:
-   - OBS an/aus
-   - Agent an/aus
-   - Szenenwechsel
-   - OBS-Neustart
-   - Webserver-Neustart
-   - lokal vs online
-   - Reload vs ohne Reload
-   - Inventory-Sync nach ca. 30s
+Media-System ins Remote-Modboard bringen.
+```
 
-2. Danach entscheiden:
-   - kleiner Mod-UX-/Text-Fix fuer OBS-Seite
-   - oder naechster read-only Bedienvorbereitungs-Step
+Vorgehen im naechsten Code-/Planungsstep:
+
+```text
+1. Echte Dateien aus GitHub/dev lesen, nicht aus Erinnerung arbeiten.
+2. Media-System Ist-Stand erfassen: Backend-Routen, Services/Module, Datenquellen, Dashboard-/Frontend-Dateien, Sound-Bezuege.
+3. Bestehende Struktur bevorzugen; keine neuen parallelen Module erfinden.
+4. Ersten kleinen read-only Media-Modboard-Step planen.
+5. Auf ausdrueckliches go warten, bevor ZIP/Code gebaut wird.
+```
+
+## OBS
+
+```text
+OBS-Ausbau ist bei 0.2.22E geparkt.
+Offene OBS-Sichttests und spaetere Mod-UX-Korrekturen stehen in project-state/PARKED_TODOS.md.
 ```
 
 Nicht tun:
 
 ```text
 Keine OBS-Actions aktivieren.
-Keine UI-Kosmetik statt fehlender Daten.
-Keine grossen Daten in Heartbeat/Live-State packen.
+Keine Media-Uploads oder Deletes ohne separaten freigegebenen Write-Step.
+Keine produktiven Writes.
+Keine DB-Migration.
+Keine Secrets in Status/UI/Doku.
 ```
