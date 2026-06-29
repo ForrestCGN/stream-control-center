@@ -1,12 +1,7 @@
 # TODO
 
-- [ ] 0.2.54 lokal einspielen.
-- [ ] Syntaxchecks ausfuehren.
-- [ ] `/api/remote/media/index/write-gate/status` lokal pruefen.
-- [ ] `/api/remote/media/index/schema/status` lokal pruefen.
-- [ ] `git status --short` pruefen.
-- [ ] `stepdone.cmd` fuer 0.2.54 ausfuehren.
-- [ ] Webserver-Deploy aus GitHub/dev.
-- [ ] Online Gate-/Schema-Status pruefen.
-
-Danach: 0.2.55 fuer kontrollierte Schema-Vorbereitung oder Full-Sync Chunk Receiver planen.
+- 0.2.55 Full-Sync Chunk Receiver planen.
+- Media-Index-Datenwrites nur ueber MEDIA_INDEX Gates und Confirm-Protokoll erlauben.
+- Danach DB-Index als read source separat aktivieren.
+- Delta-Sync danach separat.
+- Online->Agent Queue danach separat.

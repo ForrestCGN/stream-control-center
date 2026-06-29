@@ -1,18 +1,17 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.54 - Media Index Schema and Write Gate`
+Aktueller Stand: `0.2.54A - Media Agent Inventory Source Fix`
 
 ## Kurzstatus
 
-0.2.54 ist ein Backend-/Status-Foundation-Step fuer den Online-Media-Index.
+0.2.54A ist ein Hotfix auf 0.2.54.
 
-- Separates Media-Index-Write-Gate vorbereitet.
-- Media-Index-Writes sind von Auth-/Session-Writes getrennt.
-- Schema-/Write-Gate-Statusrouten vorbereitet.
-- Schema-Prepare-Route ist vorhanden, aber standardmaessig blockiert.
-- Schema-Prepare bleibt local-only und confirm-geschuetzt.
-- Keine Media-Datenwrites, keine Datei-Inhalte, keine absoluten Pfade.
+- 0.2.54 hat Media-Index-Write-Gates und Schema-Status vorbereitet.
+- `remote_media_index` ist auf dem Webserver vorhanden und schema-kompatibel.
+- 0.2.54A behebt im lokalen Agent den Fehler `ReferenceError: source is not defined` in `preparedMediaInventory()`.
+- Dadurch kann `/api/remote-agent/media/inventory/status` wieder lokal antworten.
+- Der Agent kann wieder Media-Inventory-Frames fuer den Online-Memory-Sync bauen/senden.
 
 ## Sicherheit
 
-Upload/Edit/Delete bleiben deaktiviert. Full-Sync-Datenwrites, Delta-Sync und Online->Agent-Auftraege folgen separat.
+Keine DB-Writes, keine Schema-Writes, keine Media-Datenwrites, keine Upload/Edit/Delete-Funktion, keine Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade.

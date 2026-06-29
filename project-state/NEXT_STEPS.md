@@ -2,18 +2,19 @@
 
 ## Naechster technischer Schritt
 
-`RDAP_0.2.55_MEDIA_INDEX_SCHEMA_PREPARE_CONFIRMED_OR_FULL_SYNC_CHUNK_RECEIVER`
+`RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER`
 
 Ziel:
 
-- Nach Status-/Gate-Pruefung remote_media_index Schema kontrolliert vorbereiten.
-- Danach Full-Sync Chunk Receiver fuer Agent -> Online-DB bauen.
-- Alle validen Media-Dateien in Chunks uebertragen, nicht als 120er Compact-Memory-Liste.
-- Remote-Modboard liest online spaeter aus DB-Index statt aus Memory.
+- Full-Sync-Agent -> Webserver in Chunks.
+- Server validiert Chunks streng.
+- Schreiben nach `remote_media_index` nur mit separaten MEDIA_INDEX Gates und expliziten Confirm-/Sync-Gates.
+- DB-Index danach mit Media-Daten befuellen.
+- Remote-Modboard-Lesequelle erst in einem separaten Folgeschritt kontrolliert von Agent-Memory auf DB-Index umstellen.
 
 ## Grenzen
 
-- Keine Upload/Edit/Delete-Buttons ohne separaten Permission-/Audit-/Confirm-Step.
+- Keine Upload/Edit/Delete-Buttons.
 - Keine Datei-Inhalte.
 - Keine absoluten Pfade.
-- Online->Agent-Auftragsqueue erst nach stabilen Agent->Online-Syncs.
+- Keine Online->Agent-Dateiaktionen.
