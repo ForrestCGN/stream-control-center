@@ -3,13 +3,17 @@
 const fs = require('fs');
 const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
-const { buildDatabaseReadiness, withReadOnlyConnection, publicDbError } = require('../services/db.service');
+const { buildDatabaseReadiness, withReadOnlyConnection, withWriteConnection, publicDbError } = require('../services/db.service');
 
 const STATUS_API_VERSION = 'rdap_media_status_compact_source_info_046.v1';
 const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
 const BUILD = 'RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_STATUS_COMPACT_SOURCE_INFO';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
+const MEDIA_INDEX_SCHEMA_GATE_BUILD = 'RDAP_0.2.54_MEDIA_INDEX_SCHEMA_AND_WRITE_GATE';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
+const MEDIA_INDEX_WRITE_GATE_STATUS_PATH = '/api/remote/media/index/write-gate/status';
+const MEDIA_INDEX_SCHEMA_STATUS_PATH = '/api/remote/media/index/schema/status';
+const MEDIA_INDEX_SCHEMA_PREPARE_PATH = '/api/remote/media/index/schema/prepare';
 const PERSISTENT_INDEX_SCHEMA_MODULE = 'remote_media_index';
 const PERSISTENT_INDEX_SCHEMA_VERSION = 1;
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
@@ -40,6 +44,19 @@ function registerMediaReadonlyRoutes(app, context) {
   app.get(MEDIA_STATUS_PATH, async (req, res) => {
     res.json(await buildMediaReadonlyStatus(context, req));
   });
+
+  app.get(MEDIA_INDEX_WRITE_GATE_STATUS_PATH, async (req, res) => {
+    res.json(await buildMediaIndexWriteGateStatus(context, req));
+  });
+
+  app.get(MEDIA_INDEX_SCHEMA_STATUS_PATH, async (req, res) => {
+    res.json(await buildMediaIndexSchemaStatus(context, req));
+  });
+
+  app.post(MEDIA_INDEX_SCHEMA_PREPARE_PATH, async (req, res) => {
+    const result = await prepareMediaIndexSchema(context, req);
+    res.status(result.httpStatus || 200).json(result.body || result);
+  });
 }
 
 async function buildMediaReadonlyStatus(context = {}, req = null) {
@@ -62,6 +79,7 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
     moduleVersion: context.appVersion || '0.2.46',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
+    mediaIndexSchemaGateBuild: MEDIA_INDEX_SCHEMA_GATE_BUILD,
     statusApiVersion: STATUS_API_VERSION,
     previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
     route: MEDIA_STATUS_PATH,
@@ -87,9 +105,11 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
     },
     permissions: buildPermissionBlock(),
     sourceInfo,
-    syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo }),
-    syncFoundation: buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStatus, persistentIndex }),
-    onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex }),
+    syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo, config: context.config }),
+    syncFoundation: buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStatus, persistentIndex, config: context.config }),
+    onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex, config: context.config }),
+    mediaIndexWriteGate: buildMediaIndexWriteGate(context.config),
+    mediaIndexSchemaGate: buildMediaIndexSchemaGate({ persistentIndex, config: context.config }),
     persistentIndex,
     inventory,
     plannedRoots: MEDIA_PLANNED_ROOTS.map(item => ({ ...item })),
@@ -151,10 +171,12 @@ function buildOnlineSummary(inventory) {
   return `Online-Media-Inventar ist per Agent-WSS aktiv. Es werden ${returned} Eintraege angezeigt. Upload, Bearbeiten und Loeschen bleiben aus.`;
 }
 
-function buildOnlineIndexTarget({ persistentIndex } = {}) {
+function buildOnlineIndexTarget({ persistentIndex, config } = {}) {
+  const writeGate = buildMediaIndexWriteGate(config);
   return {
     prepared: true,
-    build: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
+    build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+    previousBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
     planned: true,
     activeAsReadSource: false,
     database: 'remote_modboard_mariadb',
@@ -163,20 +185,86 @@ function buildOnlineIndexTarget({ persistentIndex } = {}) {
     schemaVersion: PERSISTENT_INDEX_SCHEMA_VERSION,
     schemaDiagnosticAvailable: true,
     schemaDetected: persistentIndex && persistentIndex.detected === true,
-    writesEnabled: false,
-    dataWritesEnabled: false,
-    migrationEnabled: false,
+    schemaPrepareRoute: MEDIA_INDEX_SCHEMA_PREPARE_PATH,
+    schemaStatusRoute: MEDIA_INDEX_SCHEMA_STATUS_PATH,
+    writeGateStatusRoute: MEDIA_INDEX_WRITE_GATE_STATUS_PATH,
+    writesEnabled: writeGate.writeEnabled,
+    schemaWritesEnabled: writeGate.schemaWriteEnabled,
+    dataWritesEnabled: writeGate.dataWriteEnabled,
+    migrationEnabled: writeGate.schemaWriteEnabled,
     itemReadsEnabledInThisStep: false,
-    note: 'Online soll der Media-Index persistent in MariaDB liegen. 0.2.53 bereitet Status/Zielbild vor, schreibt aber noch keine Media-Daten.'
+    uploadEditDeleteEnabled: false,
+    note: writeGate.schemaWriteEnabled
+      ? 'Schema-Write-Gate ist aktiv. Die Schema-Prepare-Route bleibt zusaetzlich local-only und confirm-geschuetzt.'
+      : 'Online soll der Media-Index persistent in MariaDB liegen. 0.2.54 trennt Media-Index-Writes per Gate von Auth-/Session-Writes; ohne MEDIA_INDEX_* Gates wird nichts geschrieben.'
   };
 }
 
-function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStatus, persistentIndex } = {}) {
+function buildMediaIndexWriteGate(config = {}) {
+  const mediaIndex = config && config.mediaIndex ? config.mediaIndex : {};
+  const database = config && config.database ? config.database : {};
+  const dbConfigured = Boolean(database.host && database.name && database.user && database.passwordConfigured);
+  return {
+    prepared: true,
+    build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+    readOnlyByDefault: true,
+    separateFromAuthSessionWrites: true,
+    databaseConfigured: dbConfigured,
+    writeRequested: mediaIndex.writeRequested === true,
+    writeEnabled: mediaIndex.writeEnabled === true,
+    schemaWriteRequested: mediaIndex.schemaWriteRequested === true,
+    schemaWriteEnabled: mediaIndex.schemaWriteEnabled === true,
+    dataWriteRequested: mediaIndex.dataWriteRequested === true,
+    dataWriteEnabled: mediaIndex.dataWriteEnabled === true,
+    fullSyncRequested: mediaIndex.fullSyncRequested === true,
+    fullSyncEnabled: mediaIndex.fullSyncEnabled === true,
+    schemaPrepareRoute: MEDIA_INDEX_SCHEMA_PREPARE_PATH,
+    schemaStatusRoute: MEDIA_INDEX_SCHEMA_STATUS_PATH,
+    writeGateStatusRoute: MEDIA_INDEX_WRITE_GATE_STATUS_PATH,
+    requiredEnv: {
+      mediaIndexWrite: 'MEDIA_INDEX_WRITE_ENABLED=true',
+      schemaWrite: 'MEDIA_INDEX_SCHEMA_WRITE_ENABLED=true',
+      dataWrite: 'MEDIA_INDEX_DATA_WRITE_ENABLED=true',
+      fullSync: 'MEDIA_INDEX_FULL_SYNC_ENABLED=true'
+    },
+    activeWrites: mediaIndex.schemaWriteEnabled === true || mediaIndex.dataWriteEnabled === true,
+    uploadEditDeleteEnabled: false,
+    fileContentWritesEnabled: false,
+    absolutePathWritesEnabled: false,
+    note: 'Media-Index-Writes sind separat gegated. Dieser Status aktiviert keine Mod-Upload/Edit/Delete-Aktionen.'
+  };
+}
+
+function buildMediaIndexSchemaGate({ persistentIndex, config } = {}) {
+  const writeGate = buildMediaIndexWriteGate(config);
+  return {
+    prepared: true,
+    build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+    tableName: PERSISTENT_INDEX_TABLE,
+    targetSchemaVersion: PERSISTENT_INDEX_SCHEMA_VERSION,
+    statusRoute: MEDIA_INDEX_SCHEMA_STATUS_PATH,
+    prepareRoute: MEDIA_INDEX_SCHEMA_PREPARE_PATH,
+    detected: persistentIndex && persistentIndex.detected === true,
+    compatibleForRead: persistentIndex && persistentIndex.compatibleForRead === true,
+    schemaWritesEnabled: writeGate.schemaWriteEnabled,
+    localOnlyPrepareRoute: true,
+    confirmWriteRequired: true,
+    schemaOnlyRequired: true,
+    writesMediaItems: false,
+    writesFileContent: false,
+    writesAbsolutePaths: false,
+    uploadEditDeleteEnabled: false,
+    note: '0.2.54 bereitet nur Schema und Write-Gates vor. Full-Sync-Datenwrites folgen separat.'
+  };
+}
+
+function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStatus, persistentIndex, config } = {}) {
   const counts = inventory && inventory.counts ? inventory.counts : {};
   const returned = Number(counts.returned || counts.total || 0);
   const totalSeen = Number(counts.totalSeen || counts.total || 0);
   const truncated = inventory && inventory.truncated === true;
   const agentSync = agentMediaStatus && agentMediaStatus.syncFoundation ? agentMediaStatus.syncFoundation : null;
+  const writeGate = buildMediaIndexWriteGate(config);
   const progress = agentSync && agentSync.progress ? agentSync.progress : {
     state: localRuntime ? 'local_direct_read' : (truncated ? 'compact_limited' : (returned > 0 ? 'available' : 'pending')),
     returned,
@@ -186,11 +274,16 @@ function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStat
   };
   return {
     prepared: true,
-    build: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
+    build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+    previousBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
     readOnly: true,
     localRuntime,
     localIsFileTruth: true,
     onlineDatabaseIndexPlanned: true,
+    mediaIndexWriteGatePrepared: true,
+    mediaIndexWriteEnabled: writeGate.writeEnabled,
+    mediaIndexSchemaWriteEnabled: writeGate.schemaWriteEnabled,
+    mediaIndexDataWriteEnabled: writeGate.dataWriteEnabled,
     onlineDatabaseTarget: 'remote_modboard_mariadb.' + PERSISTENT_INDEX_TABLE,
     currentOnlineSource: localRuntime ? 'local_filesystem_direct' : 'agent_memory_compact_until_db_index_enabled',
     fullSyncPrepared: true,
@@ -204,16 +297,17 @@ function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStat
     progress,
     currentLimitProblemVisible: !localRuntime && (truncated || (totalSeen > returned)),
     persistentIndexDetected: persistentIndex && persistentIndex.detected === true,
-    activeWrites: false,
+    activeWrites: writeGate.schemaWriteEnabled === true || writeGate.dataWriteEnabled === true,
     uploadEditDeleteEnabled: false,
     note: localRuntime
       ? 'Lokal kann die Datei-Wahrheit direkt gelesen werden. Online soll spaeter aus der persistenten DB lesen.'
-      : 'Online nutzt aktuell noch Agent-Memory. 0.2.53 macht die Sync-/DB-Zielarchitektur und den Fortschrittsstatus sichtbar; produktive Index-Writes folgen separat.'
+      : 'Online nutzt aktuell noch Agent-Memory. 0.2.54 macht Write-Gates und Schema-Foundation und den Fortschrittsstatus sichtbar; produktive Index-Writes folgen separat.'
   };
 }
 
-function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo }) {
+function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo, config }) {
   const counts = inventory && inventory.counts ? inventory.counts : {};
+  const writeGate = buildMediaIndexWriteGate(config);
   return {
     prepared: true,
     readOnly: true,
@@ -232,6 +326,10 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     persistentIndexFallbackEnabled: false,
     mediaIndexSyncFoundationBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
     onlineDatabaseIndexPlanned: true,
+    mediaIndexWriteGatePrepared: true,
+    mediaIndexWriteEnabled: writeGate.writeEnabled,
+    mediaIndexSchemaWriteEnabled: writeGate.schemaWriteEnabled,
+    mediaIndexDataWriteEnabled: writeGate.dataWriteEnabled,
     fullSyncPrepared: true,
     fullSyncChunkProtocolPlanned: true,
     deltaSyncPrepared: true,
@@ -640,6 +738,148 @@ function mediaKindForExtension(ext) {
   return 'media';
 }
 
+
+async function buildMediaIndexWriteGateStatus(context = {}, req = null) {
+  const persistentIndex = req && req.query && String(req.query.db || '') === '1'
+    ? await inspectPersistentIndexSchema(context)
+    : ensurePersistentIndexFoundation(context);
+  return {
+    ok: true,
+    service: 'remote-modboard',
+    module: 'remote_media_index_write_gate',
+    build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+    route: MEDIA_INDEX_WRITE_GATE_STATUS_PATH,
+    generatedAt: new Date().toISOString(),
+    readOnly: true,
+    writeGate: buildMediaIndexWriteGate(context.config),
+    schemaGate: buildMediaIndexSchemaGate({ persistentIndex, config: context.config }),
+    onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex, config: context.config }),
+    safety: buildSafetyBlock()
+  };
+}
+
+async function buildMediaIndexSchemaStatus(context = {}, req = null) {
+  const persistentIndex = await inspectPersistentIndexSchema(context);
+  return {
+    ok: true,
+    service: 'remote-modboard',
+    module: 'remote_media_index_schema_status',
+    build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+    route: MEDIA_INDEX_SCHEMA_STATUS_PATH,
+    generatedAt: new Date().toISOString(),
+    readOnly: true,
+    persistentIndex,
+    writeGate: buildMediaIndexWriteGate(context.config),
+    schemaGate: buildMediaIndexSchemaGate({ persistentIndex, config: context.config }),
+    safety: buildSafetyBlock()
+  };
+}
+
+async function prepareMediaIndexSchema(context = {}, req = null) {
+  const writeGate = buildMediaIndexWriteGate(context.config);
+  const body = req && req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+  if (!isLocalRequest(req)) {
+    return { httpStatus: 403, body: buildSchemaPrepareBlocked('local_request_required', writeGate) };
+  }
+  if (body.confirmWrite !== true || body.schemaOnly !== true) {
+    return { httpStatus: 400, body: buildSchemaPrepareBlocked('confirmWrite_and_schemaOnly_required', writeGate) };
+  }
+  if (writeGate.schemaWriteEnabled !== true) {
+    return { httpStatus: 423, body: buildSchemaPrepareBlocked('media_index_schema_write_gate_disabled', writeGate) };
+  }
+
+  try {
+    const result = await withWriteConnection(context.config, async (connection) => {
+      await connection.query(buildRemoteMediaIndexSchemaSql());
+      return await inspectPersistentIndexSchema(context);
+    }, { scope: 'media_index_schema' });
+
+    return {
+      httpStatus: 200,
+      body: {
+        ok: true,
+        service: 'remote-modboard',
+        module: 'remote_media_index_schema_prepare',
+        build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+        route: MEDIA_INDEX_SCHEMA_PREPARE_PATH,
+        readOnly: false,
+        schemaOnly: true,
+        mediaDataWrites: false,
+        uploadEditDeleteEnabled: false,
+        persistentIndex: result,
+        writeGate,
+        safety: buildSafetyBlock()
+      }
+    };
+  } catch (err) {
+    return {
+      httpStatus: 500,
+      body: {
+        ok: false,
+        service: 'remote-modboard',
+        module: 'remote_media_index_schema_prepare',
+        build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+        route: MEDIA_INDEX_SCHEMA_PREPARE_PATH,
+        error: publicDbError(err).code,
+        readOnly: false,
+        schemaOnly: true,
+        mediaDataWrites: false,
+        uploadEditDeleteEnabled: false,
+        writeGate,
+        safety: buildSafetyBlock()
+      }
+    };
+  }
+}
+
+function buildSchemaPrepareBlocked(reason, writeGate) {
+  return {
+    ok: false,
+    service: 'remote-modboard',
+    module: 'remote_media_index_schema_prepare',
+    build: MEDIA_INDEX_SCHEMA_GATE_BUILD,
+    route: MEDIA_INDEX_SCHEMA_PREPARE_PATH,
+    reason,
+    prepared: true,
+    readOnly: true,
+    writeEnabled: false,
+    schemaOnly: true,
+    mediaDataWrites: false,
+    uploadEditDeleteEnabled: false,
+    writeGate,
+    requiredBody: { confirmWrite: true, schemaOnly: true },
+    safety: buildSafetyBlock()
+  };
+}
+
+function isLocalRequest(req) {
+  const ip = String((req && (req.ip || (req.socket && req.socket.remoteAddress))) || '');
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip.endsWith('127.0.0.1');
+}
+
+function buildRemoteMediaIndexSchemaSql() {
+  return `CREATE TABLE IF NOT EXISTS ${PERSISTENT_INDEX_TABLE} (
+    id VARCHAR(260) NOT NULL,
+    root_key VARCHAR(30) NOT NULL,
+    kind VARCHAR(20) NOT NULL,
+    relative_path VARCHAR(220) NOT NULL,
+    name VARCHAR(140) NOT NULL,
+    extension VARCHAR(12) NOT NULL,
+    size_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    modified_at DATETIME NULL,
+    first_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
+    source VARCHAR(80) NOT NULL DEFAULT 'agent_full_sync',
+    sync_version BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY idx_remote_media_index_root_path (root_key, relative_path),
+    KEY idx_remote_media_index_kind (kind),
+    KEY idx_remote_media_index_deleted_last_seen (deleted, last_seen_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
+}
+
 function buildPermissionBlock() {
   return {
     prepared: true,
@@ -665,6 +905,7 @@ function buildSafetyBlock() {
     fileWrite: false,
     databaseWrite: false,
     migrationEnabled: false,
+    mediaIndexSchemaWritePrepared: true,
     mediaIndexDataWrite: false,
     shellOrProcessActions: false,
     agentActionsEnabled: false,
@@ -678,9 +919,11 @@ function buildSafetyBlock() {
 
 function buildMediaRoutesSummary(context = {}) {
   const persistentIndex = ensurePersistentIndexFoundation(context);
+  const writeGate = buildMediaIndexWriteGate(context.config);
   return {
     prepared: true,
     routeBuild: BUILD,
+    mediaIndexSchemaGateBuild: MEDIA_INDEX_SCHEMA_GATE_BUILD,
     statusApiVersion: STATUS_API_VERSION,
     previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
     runtimeMode: context && context.config && context.config.runtimeMode ? String(context.config.runtimeMode) : 'online',
@@ -692,6 +935,10 @@ function buildMediaRoutesSummary(context = {}) {
     onlineAgentInventoryReadonlyPrepared: true,
     mediaIndexSyncFoundationBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
     onlineDatabaseIndexPlanned: true,
+    mediaIndexWriteGatePrepared: true,
+    mediaIndexWriteEnabled: writeGate.writeEnabled,
+    mediaIndexSchemaWriteEnabled: writeGate.schemaWriteEnabled,
+    mediaIndexDataWriteEnabled: writeGate.dataWriteEnabled,
     fullSyncPrepared: true,
     fullSyncChunkProtocolPlanned: true,
     deltaSyncPrepared: true,
@@ -708,8 +955,10 @@ function buildMediaRoutesSummary(context = {}) {
       fallbackEnabled: false,
       writesEnabled: false
     },
-    onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex }),
-    syncFoundation: buildMediaIndexSyncFoundation({ localRuntime: false, inventory: null, agentMediaStatus: null, persistentIndex }),
+    onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex, config: context.config }),
+    mediaIndexWriteGate: writeGate,
+    mediaIndexSchemaGate: buildMediaIndexSchemaGate({ persistentIndex, config: context.config }),
+    syncFoundation: buildMediaIndexSyncFoundation({ localRuntime: false, inventory: null, agentMediaStatus: null, persistentIndex, config: context.config }),
     persistentIndex,
     persistentIndexSchemaStatusReadonly: {
       prepared: true,
@@ -722,13 +971,17 @@ function buildMediaRoutesSummary(context = {}) {
       readsItems: false,
       compatibleForReadPrepared: true,
       compatibleForWrite: false,
-      writeEnabled: false,
-      dataWritesEnabled: false,
-      migrationEnabled: false
+      writeEnabled: writeGate.writeEnabled,
+      schemaWritesEnabled: writeGate.schemaWriteEnabled,
+      dataWritesEnabled: writeGate.dataWriteEnabled,
+      migrationEnabled: writeGate.schemaWriteEnabled
     },
     scanPolicy: { defaultLimit: MEDIA_SCAN_DEFAULT_LIMIT, hardLimit: MEDIA_SCAN_HARD_LIMIT, maxDepth: MEDIA_SCAN_MAX_DEPTH, cursorPreparedLater: true },
     routes: [
-      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status mit kompakter sourceInfo; Persistent Index Schema-Diagnose optional mit ?db=1; keine DB-Item-Reads, keine Uploads, keine Deletes, keine Media-Daten-Writes', readOnly: true }
+      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status mit Media-Index-Write-Gate; Persistent Index Schema-Diagnose optional mit ?db=1', readOnly: true },
+      { method: 'GET', path: MEDIA_INDEX_WRITE_GATE_STATUS_PATH, description: 'Media-Index Write-Gate Status; zeigt separate MEDIA_INDEX_* Gates ohne Writes', readOnly: true },
+      { method: 'GET', path: MEDIA_INDEX_SCHEMA_STATUS_PATH, description: 'Media-Index Schema-Status; read-only INFORMATION_SCHEMA Diagnose', readOnly: true },
+      { method: 'POST', path: MEDIA_INDEX_SCHEMA_PREPARE_PATH, description: 'Schema-Prepare local-only, confirmWrite+schemaOnly und MEDIA_INDEX_SCHEMA_WRITE_ENABLED erforderlich; schreibt keine Media-Daten', readOnly: false, schemaOnly: true, disabledByDefault: true }
     ],
     safety: { noFileWrite: true, mediaIndexDataWrite: false, noAgentActionExecution: true, noShellOrProcessActions: true }
   };
@@ -741,6 +994,9 @@ module.exports = {
   registerMediaReadonlyRoutes,
   buildMediaReadonlyStatus,
   buildMediaRoutesSummary,
+  buildMediaIndexWriteGateStatus,
+  buildMediaIndexSchemaStatus,
+  prepareMediaIndexSchema,
   ensurePersistentIndexFoundation,
   inspectPersistentIndexSchema
 };

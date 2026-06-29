@@ -1,17 +1,18 @@
 # CHANGELOG
 
+## 0.2.54 - Media Index Schema and Write Gate
+
+- Separates Media-Index-Write-Gate vorbereitet.
+- `MEDIA_INDEX_*` ENV-Gates fuer Schema/Data/Full-Sync vorbereitet.
+- DB-Write-Scopes in `db.service.js` vorbereitet, ohne bestehende Auth-/Session-Write-Logik freizuschalten.
+- Media-Status liefert `mediaIndexWriteGate` und `mediaIndexSchemaGate`.
+- Neue Statusrouten fuer Write-Gate und Schema-Diagnose.
+- Schema-Prepare-Route ist local-only, confirm-geschuetzt und standardmaessig durch Gates blockiert.
+- Keine Media-Datenwrites.
+- Keine Upload/Edit/Delete-Funktion.
+- Keine Datei-Inhalte oder absoluten Pfade.
+
 ## 0.2.53B - Media Sync Card replaces Hinweis
 
-- Hinweis-Karte aus der Media-Seite entfernt.
-- Media-Sync-Status an die bisherige Hinweis-Position gesetzt.
-- Medienliste bleibt full-width unter Bereiche/Sync.
-- Read-only-Hinweis bleibt nur noch kompakt ueber Status/Chips sichtbar.
-- Keine Backend-/API-/DB-/Write-Aenderungen.
-
-## 0.2.53A - Media UI Layout Hotfix
-
-- Media-Sync-Status kompakt gemacht.
-- Medienliste auf volle Breite gelegt.
-- Karten kompakter gemacht.
-- Dateiname/Pfad-Detail aus der Hauptkarten-Unterzeile entfernt; Details bleiben im Info-Fenster.
-- Keine Backend-/API-/DB-/Write-Aenderungen.
+- Hinweis-Karte durch Sync-Status ersetzt.
+- Medienliste darunter full-width.

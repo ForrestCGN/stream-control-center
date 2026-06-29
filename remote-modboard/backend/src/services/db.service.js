@@ -25,6 +25,10 @@ function buildDatabaseReadiness(config) {
     configured,
     writeEnabled: Boolean(config.database.writeEnabled),
     migrationEnabled: false,
+    mediaIndexWriteGatePrepared: Boolean(config.mediaIndex && config.mediaIndex.writeGatePrepared),
+    mediaIndexWriteEnabled: Boolean(config.mediaIndex && config.mediaIndex.writeEnabled),
+    mediaIndexSchemaWriteEnabled: Boolean(config.mediaIndex && config.mediaIndex.schemaWriteEnabled),
+    mediaIndexDataWriteEnabled: Boolean(config.mediaIndex && config.mediaIndex.dataWriteEnabled),
     error: configured && loaded.driverAvailable ? null : (loaded.error || 'db_env_not_configured')
   };
 }
@@ -72,10 +76,20 @@ async function createReadOnlyConnection(config) {
   return createConnection(config, { readOnly: true });
 }
 
-async function createWriteConnection(config) {
-  if (!config.database || config.database.writeEnabled !== true) {
-    const err = new Error('db_write_disabled');
-    err.code = 'db_write_disabled';
+function isWriteScopeEnabled(config, scope) {
+  const requestedScope = String(scope || 'general');
+  const mediaIndex = config && config.mediaIndex ? config.mediaIndex : {};
+  if (requestedScope === 'media_index_schema') return mediaIndex.schemaWriteEnabled === true;
+  if (requestedScope === 'media_index_data') return mediaIndex.dataWriteEnabled === true;
+  return Boolean(config && config.database && config.database.writeEnabled === true);
+}
+
+async function createWriteConnection(config, options = {}) {
+  const scope = options.scope || 'general';
+  if (!isWriteScopeEnabled(config, scope)) {
+    const err = new Error(scope === 'general' ? 'db_write_disabled' : `${scope}_write_disabled`);
+    err.code = scope === 'general' ? 'db_write_disabled' : `${scope}_write_disabled`;
+    err.scope = scope;
     throw err;
   }
 
@@ -99,11 +113,11 @@ async function withReadOnlyConnection(config, fn) {
   }
 }
 
-async function withWriteConnection(config, fn) {
+async function withWriteConnection(config, fn, options = {}) {
   let connection = null;
 
   try {
-    connection = await createWriteConnection(config);
+    connection = await createWriteConnection(config, options);
     return await fn(connection);
   } finally {
     if (connection) {
@@ -130,6 +144,7 @@ module.exports = {
   buildDatabaseReadiness,
   createReadOnlyConnection,
   createWriteConnection,
+  isWriteScopeEnabled,
   withReadOnlyConnection,
   withWriteConnection,
   publicDbError

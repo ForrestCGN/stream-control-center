@@ -66,6 +66,43 @@ function loadConfig() {
     && oauthStateSecretConfigured
     && dbConfigured;
 
+  const mediaIndexWriteRequested = readBoolean('MEDIA_INDEX_WRITE_ENABLED', false);
+  const mediaIndexSchemaWriteRequested = readBoolean('MEDIA_INDEX_SCHEMA_WRITE_ENABLED', false);
+  const mediaIndexDataWriteRequested = readBoolean('MEDIA_INDEX_DATA_WRITE_ENABLED', false);
+  const mediaIndexFullSyncRequested = readBoolean('MEDIA_INDEX_FULL_SYNC_ENABLED', false);
+  const mediaIndexWriteEnabled = dbConfigured && mediaIndexWriteRequested;
+  const mediaIndexSchemaWriteEnabled = mediaIndexWriteEnabled && mediaIndexSchemaWriteRequested;
+  const mediaIndexDataWriteEnabled = mediaIndexWriteEnabled && mediaIndexDataWriteRequested;
+  const mediaIndexFullSyncEnabled = mediaIndexDataWriteEnabled && mediaIndexFullSyncRequested;
+
+  const mediaIndex = {
+    prepared: true,
+    build: 'RDAP_0.2.54_MEDIA_INDEX_SCHEMA_AND_WRITE_GATE',
+    databaseTarget: 'remote_modboard_mariadb.remote_media_index',
+    table: 'remote_media_index',
+    dbConfigured,
+    writeGatePrepared: true,
+    writeRequested: mediaIndexWriteRequested,
+    writeEnabled: mediaIndexWriteEnabled,
+    schemaWriteRequested: mediaIndexSchemaWriteRequested,
+    schemaWriteEnabled: mediaIndexSchemaWriteEnabled,
+    dataWriteRequested: mediaIndexDataWriteRequested,
+    dataWriteEnabled: mediaIndexDataWriteEnabled,
+    fullSyncRequested: mediaIndexFullSyncRequested,
+    fullSyncEnabled: mediaIndexFullSyncEnabled,
+    migrationEnabled: mediaIndexSchemaWriteEnabled,
+    uploadEditDeleteEnabled: false,
+    fileContentSyncEnabled: false,
+    absolutePathSyncEnabled: false,
+    envGates: {
+      mediaIndexWrite: 'MEDIA_INDEX_WRITE_ENABLED',
+      schemaWrite: 'MEDIA_INDEX_SCHEMA_WRITE_ENABLED',
+      dataWrite: 'MEDIA_INDEX_DATA_WRITE_ENABLED',
+      fullSync: 'MEDIA_INDEX_FULL_SYNC_ENABLED'
+    },
+    note: 'Media-Index-Writes sind bewusst von Auth-/Session-Writes getrennt und bleiben aus, bis die separaten MEDIA_INDEX_* Gates gesetzt sind.'
+  };
+
   const localTwitchStartPath = '/api/remote/auth/twitch/start';
   const loginEntryPath = '/api/remote/auth/login/start';
   const returnToDefault = publicBaseUrl.replace(/\/+$/, '/') || 'https://mods.forrestcgn.de/';
@@ -116,8 +153,13 @@ function loadConfig() {
     database: {
       ...database,
       writeEnabled: authEffective,
-      migrationEnabled: false
+      migrationEnabled: false,
+      mediaIndexWriteGatePrepared: true,
+      mediaIndexWriteEnabled: mediaIndex.writeEnabled,
+      mediaIndexSchemaWriteEnabled: mediaIndex.schemaWriteEnabled,
+      mediaIndexDataWriteEnabled: mediaIndex.dataWriteEnabled
     },
+    mediaIndex,
     dashboardAccess: {
       allowedLogins: readList('DASHBOARD_ALLOWED_LOGINS', ['forrestcgn']),
       allowedUserUids: readList('DASHBOARD_ALLOWED_USER_UIDS', []),
@@ -231,6 +273,7 @@ function buildPublicConfigSummary(config = {}) {
   const database = config.database || {};
   const agentRuntime = config.agent && config.agent.runtime ? config.agent.runtime : {};
   const auth = config.auth || {};
+  const mediaIndex = config.mediaIndex || {};
 
   return {
     service: config.service || 'remote-modboard',
@@ -249,7 +292,29 @@ function buildPublicConfigSummary(config = {}) {
       driver: database.driver,
       configured: isDatabaseConfigured(config),
       writeEnabled: false,
-      migrationEnabled: false
+      migrationEnabled: false,
+      mediaIndexWriteGatePrepared: true,
+      mediaIndexWriteEnabled: mediaIndex.writeEnabled === true,
+      mediaIndexSchemaWriteEnabled: mediaIndex.schemaWriteEnabled === true,
+      mediaIndexDataWriteEnabled: mediaIndex.dataWriteEnabled === true
+    },
+    mediaIndex: {
+      prepared: mediaIndex.prepared === true,
+      build: mediaIndex.build || 'RDAP_0.2.54_MEDIA_INDEX_SCHEMA_AND_WRITE_GATE',
+      databaseTarget: mediaIndex.databaseTarget || 'remote_modboard_mariadb.remote_media_index',
+      table: mediaIndex.table || 'remote_media_index',
+      writeGatePrepared: mediaIndex.writeGatePrepared === true,
+      writeRequested: mediaIndex.writeRequested === true,
+      writeEnabled: mediaIndex.writeEnabled === true,
+      schemaWriteRequested: mediaIndex.schemaWriteRequested === true,
+      schemaWriteEnabled: mediaIndex.schemaWriteEnabled === true,
+      dataWriteRequested: mediaIndex.dataWriteRequested === true,
+      dataWriteEnabled: mediaIndex.dataWriteEnabled === true,
+      fullSyncRequested: mediaIndex.fullSyncRequested === true,
+      fullSyncEnabled: mediaIndex.fullSyncEnabled === true,
+      uploadEditDeleteEnabled: false,
+      fileContentSyncEnabled: false,
+      absolutePathSyncEnabled: false
     },
     dashboardAccess: config.dashboardAccess || {},
     agent: {

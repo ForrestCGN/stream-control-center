@@ -1,17 +1,12 @@
 # TODO
 
-## 0.2.53B
+- [ ] 0.2.54 lokal einspielen.
+- [ ] Syntaxchecks ausfuehren.
+- [ ] `/api/remote/media/index/write-gate/status` lokal pruefen.
+- [ ] `/api/remote/media/index/schema/status` lokal pruefen.
+- [ ] `git status --short` pruefen.
+- [ ] `stepdone.cmd` fuer 0.2.54 ausfuehren.
+- [ ] Webserver-Deploy aus GitHub/dev.
+- [ ] Online Gate-/Schema-Status pruefen.
 
-- [ ] ZIP lokal einspielen
-- [ ] Syntaxchecks ausfuehren
-- [ ] Media-Seite lokal testen
-- [ ] git status pruefen
-- [ ] stepdone.cmd ausfuehren
-- [ ] Webserver-Deploy nach Push
-- [ ] Online-Layout pruefen
-
-## Danach
-
-- [ ] Full-Sync/DB-Index technisch umsetzen
-- [ ] Delta-Sync planen
-- [ ] Online -> Agent Auftragsqueue planen
+Danach: 0.2.55 fuer kontrollierte Schema-Vorbereitung oder Full-Sync Chunk Receiver planen.
