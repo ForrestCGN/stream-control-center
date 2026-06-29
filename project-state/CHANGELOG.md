@@ -1,17 +1,33 @@
 # Changelog
 
+## 0.2.40 - Remote-Modboard MariaDB Media Schema Migration Confirmed Docs
+
+- Dokumentiert die erfolgreich ausgefuehrte MariaDB-Schema-Migration fuer `remote_media_index`.
+- Bestaetigt Backup vor Migration:
+  - `/opt/stream-control-center/_runtime_tmp/remote_modboard_before_remote_media_index_20260629_113811.sql`
+  - Groesse: `44K`
+- Bestaetigt ausgefuehrte SQL-Datei aus frischem GitHub/dev Clone:
+  - `tools/rdap_0.2.39_remote_media_index_schema.sql`
+- Bestaetigt Readback:
+  - Tabelle `remote_media_index` existiert.
+  - Spalten sind vorhanden.
+  - Indizes sind vorhanden.
+  - `row_count = 0`.
+- Bestaetigt: kein Service-Restart.
+- Bestaetigt: kein Webserver-Deploy.
+- Bestaetigt: keine Runtime-Code-Aenderung.
+- Bestaetigt: keine Media-Daten-Writes.
+- Bestaetigt: kein Upload/Edit/Delete.
+
 ## 0.2.39 - Remote-Modboard MariaDB Media Schema Migration File No Execute
 
-- Erstellt die SQL-Datei fuer spaetere Schema-Migration:
+- Erstellt SQL-Datei fuer spaetere Remote-Modboard-MariaDB-Media-Schema-Migration:
   - `tools/rdap_0.2.39_remote_media_index_schema.sql`
 - SQL enthaelt `CREATE TABLE IF NOT EXISTS remote_media_index`.
-- SQL-Datei enthaelt Warnhinweise: nicht automatisch ausfuehren, keine Migration in 0.2.39.
-- Fuegt Step-Doku fuer 0.2.39 hinzu.
-- Aktualisiert Projektstatus und Next Steps auf den naechsten separaten Server-Migration-Confirm-Step.
-- Bestaetigt: keine Runtime-Aenderung.
+- SQL-Datei nennt klar: nicht automatisch ausfuehren.
 - Bestaetigt: keine SQL-Ausfuehrung.
-- Bestaetigt: keine DB-Migration.
-- Bestaetigt: keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung auf Server/DB.
+- Bestaetigt: keine DB-Migration in 0.2.39.
+- Bestaetigt: keine Runtime-Aenderung.
 - Bestaetigt: keine Media-Daten-Writes.
 - Bestaetigt: kein Webserver-Deploy noetig.
 

@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.39 - Remote-Modboard MariaDB Media Schema Migration File No Execute`.
+Aktueller Stand: `0.2.40 - Remote-Modboard MariaDB Media Schema Migration Confirmed Docs`.
 
 ## Verbindlich
 
@@ -163,10 +163,45 @@ Step-Doku:
 docs/current/RDAP_0.2.39_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_FILE_NO_EXECUTE.md
 ```
 
+## 0.2.40 Ergebnis
+
+```text
+Server-Migration fuer remote_media_index wurde nach explizitem go migration ausgefuehrt.
+
+Ausgefuehrt:
+- frischer GitHub/dev Clone unter /opt/stream-control-center/_deploy_tmp/RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED_20260629_113811
+- SQL-Datei aus dem Clone:
+  tools/rdap_0.2.39_remote_media_index_schema.sql
+- MariaDB CREATE TABLE IF NOT EXISTS remote_media_index
+
+Backup:
+- /opt/stream-control-center/_runtime_tmp/remote_modboard_before_remote_media_index_20260629_113811.sql
+- Backup-Groesse: 44K
+
+Readback:
+- Tabelle remote_media_index existiert
+- Spalten vorhanden
+- Indizes vorhanden
+- row_count = 0
+
+Nicht passiert:
+- keine Runtime-Code-Aenderung
+- kein Service-Restart
+- kein Webserver-Deploy
+- keine Media-Daten-Writes
+- kein Upload/Edit/Delete
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED_DOCS.md
+```
+
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED
+RDAP_0.2.41_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_READONLY_STATUS_PLAN
 ```
 
-Nur nach separatem ausdruecklichem Forrest-Confirm. Dann erstmals serverkritisch: Env sicher pruefen, Backup erstellen und pruefen, Vorab-Read-only-Checks, SQL aus frischem _deploy_tmp Clone ausfuehren, Readback pruefen, row_count=0 erwarten. Weiterhin keine Media-Daten schreiben.
+Nur planen: read-only Status-/Diagnose-Sicht auf das vorhandene remote_media_index Schema vorbereiten. Keine Media-Writes, keine Agent-Writes, kein Upload/Edit/Delete.
