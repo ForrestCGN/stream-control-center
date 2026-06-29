@@ -1,15 +1,15 @@
 # CURRENT STATUS
 
-Aktueller Stand: `0.2.48 - Remote-Modboard Media Mod View Cleanup Handoff Docs`.
+Aktueller Stand: `0.2.50 - Remote and Local Media List Readability Cleanup`.
 
 ## Kurzstatus
 
 ```text
-Media-API funktioniert.
-Agent-Memory ist aktiv.
-Media-UI rendert nach 0.2.47B wieder sichtbar.
-Normale Media-Seite zeigt aktuell aber zu viele technische Details fuer Mods.
-Technische sourceInfo-/DB-/Fallback-/Writes-Details sollen in Admin-/Diagnosebereich.
+Online- und lokale Media-Library sind synchron.
+Media-Mod-Ansicht ist enttechnisiert.
+Medienliste ist als lesbare Karten-/Listenansicht umgesetzt.
+Filter und Neu laden bleiben erhalten.
+Upload/Edit/Delete bleiben deaktiviert.
 ```
 
 ## Sicherheitsgrenzen
