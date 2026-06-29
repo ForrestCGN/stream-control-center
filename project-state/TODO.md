@@ -2,22 +2,21 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY` lokal einspielen.
-- [ ] Lokale Syntaxchecks ausfuehren.
-- [ ] Lokale Media-Seite Sichttest.
-- [ ] Online Media-Seite Sichttest nach Deploy.
-- [ ] Online Status pruefen: Agent-Sync aktiv, memoryOnly=true, serverPersistence=false.
-- [ ] Pruefen: truncated=true wird verstaendlich angezeigt.
-- [ ] Pruefen: upload/edit/delete bleiben false.
-- [ ] Pruefen: keine absoluten Pfade in Online-Response.
+- [ ] `RDAP_0.2.29_MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN` lokal einspielen.
+- [ ] Pruefen: Doku-Datei `docs/current/MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN_0.2.29.md` vorhanden.
+- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.29.
+- [ ] Pruefen: `CURRENT_STATUS.md`, `NEXT_STEPS.md`, `FILES.md`, `CHANGELOG.md` aktualisiert.
+- [ ] Pruefen: keine Runtime-Dateien geaendert.
+- [ ] Pruefen: keine DB-Migration enthalten.
 - [ ] Wenn sauber: `stepdone.cmd`.
 
-## Danach planen
+## Naechster Code-Plan
 
-- [ ] `RDAP_0.2.29_MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN` vorbereiten.
-- [ ] Persistenten Media-Index nur als Metadaten-Cache planen, keine Datei-Inhalte.
-- [ ] Lokal bleibt Master/Wahrheit fuer produktive Media-Dateien.
-- [ ] Bidirektionale Aenderungen nur spaeter mit Permission, Confirm, Audit, Conflict-Handling und Agent-Apply-Queue planen.
+- [ ] Fuer `0.2.30` echte DB-/Storage-/Service-Dateien aus GitHub/dev lesen.
+- [ ] Vor Code entscheiden: vorhandene Projekt-DB/Helper bevorzugen oder Alternative sauber begruenden.
+- [ ] Persistent Index nur metadata-only und read-only planen.
+- [ ] Keine Datei-Inhalte und keine absoluten Pfade speichern.
+- [ ] Lokal bleibt Master.
 
 ## Immer beachten
 
