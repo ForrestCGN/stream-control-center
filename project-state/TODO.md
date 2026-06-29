@@ -12,8 +12,10 @@
 - [x] Diff-Metadatenvergleich normalisieren
 - [x] Leeren Agent-Snapshot als nicht belastbar fuer Missing/Loeschstatus markieren
 - [x] Agent-Snapshot-Diagnose in Diff-Route ergaenzen
+- [x] Lokalen Agent-Initial-Media-Inventory-Retry und Diagnose ergaenzen
+- [x] ModifiedAt-Delta-Diagnose in Diff-Route ergaenzen
 - [ ] DB-Read-Source UI final sichtpruefen
-- [ ] Agent-Snapshot-Verfuegbarkeit nach Restart/Deploy klaeren
+- [ ] ModifiedAt-Delta-Stats bewerten
 - [ ] Gated Delta-Upsert separat planen
 - [ ] Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen
 - [ ] Online->Agent Queue separat planen

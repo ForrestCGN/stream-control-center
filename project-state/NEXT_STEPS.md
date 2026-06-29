@@ -2,16 +2,14 @@
 
 ## Naechster Schritt
 
-Agent-Snapshot anhand der 0.2.58C-Diagnose wieder belastbar machen bzw. Sync-Ablauf klaeren.
+Webserver-Diff nach 0.2.58E testen und `modifiedAtDeltaStats` bewerten.
 
 Ziel:
-- Pruefen, ob Agent verbunden ist.
-- Pruefen, ob seit Restart/Deploy ein Media-Inventory-Sync angekommen ist.
-- Pruefen, ob Media-Inventory rejected wurde.
-- Pruefen, ob Full-Sync-State aktuell ist.
-- Keine Online->Agent-Dateiaktion.
+- Klaeren, ob `modifiedAt`-Abweichung konstant, zeitzonenartig, rundungsartig oder importbedingt ist.
+- Pruefen, ob fuer den ersten gated Delta-Upsert `modifiedAt` als hartes Change-Kriterium taugt.
 - Keine DB-Writes.
-- Erst nach belastbarem Agent-Snapshot Diff erneut bewerten.
+- Kein Upsert.
+- Kein Tombstone/Delete.
 
 ## Danach
 

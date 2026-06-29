@@ -8,10 +8,10 @@ const {
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_agent_snapshot_diagnostic_058c.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_agent_empty_unreliable_058b.v1';
-const BUILD = 'RDAP_0.2.58C_MEDIA_INDEX_DIFF_AGENT_SNAPSHOT_STATUS_DIAGNOSTIC';
-const PREVIOUS_BUILD = 'RDAP_0.2.58B_MEDIA_INDEX_DIFF_AGENT_EMPTY_UNRELIABLE';
+const STATUS_API_VERSION = 'rdap_media_index_diff_modified_at_db_diagnostic_058e.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_agent_snapshot_diagnostic_058c.v1';
+const BUILD = 'RDAP_0.2.58E_MEDIA_INDEX_DIFF_MODIFIED_AT_DB_DIAGNOSTIC';
+const PREVIOUS_BUILD = 'RDAP_0.2.58C_MEDIA_INDEX_DIFF_AGENT_SNAPSHOT_STATUS_DIAGNOSTIC';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -49,7 +49,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58C',
+      moduleVersion: context.appVersion || '0.2.58E',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -95,7 +95,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58C',
+    moduleVersion: context.appVersion || '0.2.58E',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -126,7 +126,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ],
     note: agentSnapshotUnavailable
       ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
-      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58C ergaenzt Snapshot-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58E ergaenzt modifiedAt-DB-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -260,7 +260,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
   const newOnAgent = [];
   const changedOnAgent = [];
   const unchanged = [];
-  const compareStats = { metadataCompareWarnings: 0, changeReasonCounts: {} };
+  const compareStats = { metadataCompareWarnings: 0, changeReasonCounts: {}, modifiedAtDeltasMs: [] };
 
   for (const agentItem of agentById.values()) {
     const dbItem = dbById.get(agentItem.id);
@@ -271,7 +271,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
     const change = compareMediaItems(agentItem, dbItem);
     addCompareStats(compareStats, change);
     if (change.changed) {
-      changedOnAgent.push({ ...agentItem, changeReasons: change.reasons, metadataWarnings: change.warnings });
+      changedOnAgent.push({ ...agentItem, changeReasons: change.reasons, metadataWarnings: change.warnings, compareDetails: change.details });
     } else {
       unchanged.push(change.warnings.length ? { ...agentItem, metadataWarnings: change.warnings } : agentItem);
     }
@@ -300,6 +300,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
       comparableAgentItems: agentItems.length,
       metadataCompareWarnings: compareStats.metadataCompareWarnings,
       changeReasonCounts: compareStats.changeReasonCounts,
+      modifiedAtDeltaStats: buildModifiedAtDeltaStats(compareStats.modifiedAtDeltasMs),
       readOnly: true,
       writesEnabled: false
     },
@@ -342,31 +343,54 @@ function buildReliabilityBlock({ agentInventory, agentSnapshotDiagnostic, dbInve
 function compareMediaItems(agentItem, dbItem) {
   const reasons = [];
   const warnings = [];
+  const details = {};
 
   const agentSize = safeComparableNumber(agentItem.sizeBytes);
   const dbSize = safeComparableNumber(dbItem.sizeBytes);
   if (agentSize !== null && dbSize !== null && agentSize !== dbSize) reasons.push('size_changed');
   else if ((agentSize === null) !== (dbSize === null)) warnings.push('size_uncomparable');
 
-  const agentModified = dateMs(agentItem.modifiedAt);
-  const dbModified = dateMs(dbItem.modifiedAt);
+  const agentModifiedIso = safeIsoOrNull(agentItem.modifiedAt);
+  const dbModifiedIso = safeIsoOrNull(dbItem.modifiedAt);
+  const agentModified = dateMs(agentModifiedIso);
+  const dbModified = dateMs(dbModifiedIso);
   if (agentModified !== null && dbModified !== null) {
-    if (Math.abs(agentModified - dbModified) > MODIFIED_AT_TOLERANCE_MS) reasons.push('modified_at_changed');
+    const modifiedAtDeltaMs = agentModified - dbModified;
+    if (Math.abs(modifiedAtDeltaMs) > MODIFIED_AT_TOLERANCE_MS) {
+      reasons.push('modified_at_changed');
+      details.modifiedAt = {
+        agentModifiedAt: agentModifiedIso,
+        dbModifiedAt: dbModifiedIso,
+        modifiedAtDeltaMs,
+        modifiedAtDeltaAbsMs: Math.abs(modifiedAtDeltaMs),
+        toleranceMs: MODIFIED_AT_TOLERANCE_MS
+      };
+    }
   } else if ((agentModified === null) !== (dbModified === null)) {
     warnings.push('modified_at_uncomparable');
+    details.modifiedAt = {
+      agentModifiedAt: agentModifiedIso,
+      dbModifiedAt: dbModifiedIso,
+      modifiedAtDeltaMs: null,
+      modifiedAtDeltaAbsMs: null,
+      toleranceMs: MODIFIED_AT_TOLERANCE_MS
+    };
   }
 
   const agentKind = safeKind(agentItem.kind);
   const dbKind = safeKind(dbItem.kind);
   if (agentKind && dbKind && agentKind !== dbKind) reasons.push('kind_changed');
 
-  return { changed: reasons.length > 0, reasons, warnings };
+  return { changed: reasons.length > 0, reasons, warnings, details };
 }
 
 function addCompareStats(stats, change) {
   if (!stats || !change) return;
   for (const reason of Array.isArray(change.reasons) ? change.reasons : []) {
     stats.changeReasonCounts[reason] = safeNonNegativeNumber(stats.changeReasonCounts[reason]) + 1;
+  }
+  if (change.details && change.details.modifiedAt && Number.isFinite(change.details.modifiedAt.modifiedAtDeltaMs)) {
+    stats.modifiedAtDeltasMs.push(change.details.modifiedAt.modifiedAtDeltaMs);
   }
   for (const warning of Array.isArray(change.warnings) ? change.warnings : []) {
     stats.metadataCompareWarnings += 1;
@@ -453,6 +477,13 @@ function safePreviewItem(item) {
   };
   if (Array.isArray(item.changeReasons)) preview.changeReasons = item.changeReasons.filter(Boolean).slice(0, 5);
   if (Array.isArray(item.metadataWarnings)) preview.metadataWarnings = item.metadataWarnings.filter(Boolean).slice(0, 5);
+  if (item.compareDetails && item.compareDetails.modifiedAt) {
+    preview.agentModifiedAt = item.compareDetails.modifiedAt.agentModifiedAt || null;
+    preview.dbModifiedAt = item.compareDetails.modifiedAt.dbModifiedAt || null;
+    preview.modifiedAtDeltaMs = Number.isFinite(item.compareDetails.modifiedAt.modifiedAtDeltaMs) ? item.compareDetails.modifiedAt.modifiedAtDeltaMs : null;
+    preview.modifiedAtDeltaAbsMs = Number.isFinite(item.compareDetails.modifiedAt.modifiedAtDeltaAbsMs) ? item.compareDetails.modifiedAt.modifiedAtDeltaAbsMs : null;
+    preview.modifiedAtToleranceMs = item.compareDetails.modifiedAt.toleranceMs || MODIFIED_AT_TOLERANCE_MS;
+  }
   return preview;
 }
 
@@ -476,6 +507,44 @@ function buildAgentSummary(agentInventory, agentSnapshotUnavailable = false) {
   };
 }
 
+function buildModifiedAtDeltaStats(deltas) {
+  const values = (Array.isArray(deltas) ? deltas : []).filter(Number.isFinite);
+  if (values.length <= 0) {
+    return {
+      count: 0,
+      minMs: null,
+      maxMs: null,
+      avgMs: null,
+      minAbsMs: null,
+      maxAbsMs: null,
+      avgAbsMs: null,
+      allPositive: false,
+      allNegative: false,
+      mixedSigns: false,
+      toleranceMs: MODIFIED_AT_TOLERANCE_MS
+    };
+  }
+  const sum = values.reduce((acc, value) => acc + value, 0);
+  const absValues = values.map(value => Math.abs(value));
+  const absSum = absValues.reduce((acc, value) => acc + value, 0);
+  const allPositive = values.every(value => value > 0);
+  const allNegative = values.every(value => value < 0);
+  return {
+    count: values.length,
+    minMs: Math.min(...values),
+    maxMs: Math.max(...values),
+    avgMs: Math.round(sum / values.length),
+    minAbsMs: Math.min(...absValues),
+    maxAbsMs: Math.max(...absValues),
+    avgAbsMs: Math.round(absSum / values.length),
+    allPositive,
+    allNegative,
+    mixedSigns: !allPositive && !allNegative,
+    toleranceMs: MODIFIED_AT_TOLERANCE_MS
+  };
+}
+
+
 function buildEmptyCounts() {
   return {
     agentTotal: 0,
@@ -490,6 +559,7 @@ function buildEmptyCounts() {
     comparableAgentItems: 0,
     metadataCompareWarnings: 0,
     changeReasonCounts: {},
+    modifiedAtDeltaStats: buildModifiedAtDeltaStats([]),
     readOnly: true,
     writesEnabled: false
   };
@@ -509,6 +579,7 @@ function buildComparePolicy() {
     uncomparableMetadataDoesNotMarkChanged: true,
     emptyAgentSnapshotDoesNotMarkMissingReliable: true,
     agentSnapshotDiagnosticEnabled: true,
+    modifiedAtDeltaDiagnosticEnabled: true,
     diagnosticDoesNotTriggerAgentAction: true,
     warningFields: ['metadataCompareWarnings', 'metadataWarnings'],
     noFileContentHashing: true

@@ -20,9 +20,9 @@ let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.8C';
-const MODULE_BUILD = 'RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER';
-const STATUS_API_VERSION = 'rdap_agent_media_full_sync_055.v1';
+const MODULE_VERSION = '0.1.8D';
+const MODULE_BUILD = 'RDAP_0.2.58D_MEDIA_AGENT_INVENTORY_SYNC_RECONNECT_DIAGNOSTIC';
+const STATUS_API_VERSION = 'rdap_agent_media_inventory_reconnect_diagnostic_058d.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -248,6 +248,13 @@ const CONNECTION_STATE = {
   mediaInventorySync: null,
   mediaInventorySyncSendErrorAt: null,
   mediaInventorySyncSendError: null,
+  mediaInventoryInitialSendPrepared: true,
+  mediaInventoryInitialSendDelaysMs: [1500, 5000, 15000],
+  mediaInventoryInitialSendScheduledAt: null,
+  mediaInventoryInitialSendAttempts: 0,
+  lastMediaInventoryInitialSendAttemptAt: null,
+  lastMediaInventoryInitialSendSuccessAt: null,
+  mediaInventoryInitialSendCompleted: false,
   mediaFullSyncProtocolVersion: MEDIA_FULL_SYNC_PROTOCOL_VERSION,
   mediaFullSyncPrepared: true,
   mediaFullSyncSeq: 0,
@@ -395,8 +402,37 @@ function handleOpen(config) {
   sendHeartbeat(config);
   sendLiveState(config);
   setTimeout(() => sendInventorySync(config, 'initial'), 1000).unref?.();
-  setTimeout(() => sendMediaInventorySync(config, 'initial'), 1500).unref?.();
+  scheduleInitialMediaInventorySync(config);
 }
+
+function scheduleInitialMediaInventorySync(config) {
+  const delays = Array.isArray(CONNECTION_STATE.mediaInventoryInitialSendDelaysMs)
+    ? CONNECTION_STATE.mediaInventoryInitialSendDelaysMs
+    : [1500, 5000, 15000];
+  CONNECTION_STATE.mediaInventoryInitialSendPrepared = true;
+  CONNECTION_STATE.mediaInventoryInitialSendScheduledAt = new Date().toISOString();
+  CONNECTION_STATE.mediaInventoryInitialSendAttempts = 0;
+  CONNECTION_STATE.lastMediaInventoryInitialSendAttemptAt = null;
+  CONNECTION_STATE.lastMediaInventoryInitialSendSuccessAt = null;
+  CONNECTION_STATE.mediaInventoryInitialSendCompleted = false;
+  for (let index = 0; index < delays.length; index += 1) {
+    const delay = Math.max(0, Number(delays[index]) || 0);
+    const timer = setTimeout(() => {
+      void attemptInitialMediaInventorySync(config, index + 1, delay);
+    }, delay);
+    if (timer && typeof timer.unref === 'function') timer.unref();
+  }
+}
+
+async function attemptInitialMediaInventorySync(config, attempt, delayMs) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  if (CONNECTION_STATE.mediaInventoryInitialSendCompleted === true) return;
+  CONNECTION_STATE.mediaInventoryInitialSendAttempts += 1;
+  CONNECTION_STATE.lastMediaInventoryInitialSendAttemptAt = new Date().toISOString();
+  CONNECTION_STATE.reason = `media_inventory_initial_send_attempt_${attempt}`;
+  await sendMediaInventorySync(config, `initial_retry_${attempt}_${delayMs}ms`);
+}
+
 
 function handleClose(config, reason) {
   stopHeartbeatTimer();
@@ -616,6 +652,7 @@ async function sendMediaInventorySync(config, reason) {
     if (!built || !built.json || !built.payload) {
       CONNECTION_STATE.mediaInventorySyncSendErrorAt = new Date().toISOString();
       CONNECTION_STATE.mediaInventorySyncSendError = 'media_inventory_payload_too_large_after_compact';
+      CONNECTION_STATE.reason = 'media_inventory_sync_failed_payload_too_large_after_compact';
       return;
     }
     ws.send(built.json);
@@ -630,10 +667,15 @@ async function sendMediaInventorySync(config, reason) {
     CONNECTION_STATE.mediaInventorySyncSendError = null;
     CONNECTION_STATE.actionsEnabled = false;
     CONNECTION_STATE.productiveActionsEnabled = false;
+    if (String(reason || '').startsWith('initial')) {
+      CONNECTION_STATE.mediaInventoryInitialSendCompleted = true;
+      CONNECTION_STATE.lastMediaInventoryInitialSendSuccessAt = now;
+    }
     await sendMediaFullSyncChunks(config, inventory, reason || 'timer');
   } catch (err) {
     CONNECTION_STATE.mediaInventorySyncSendErrorAt = new Date().toISOString();
     CONNECTION_STATE.mediaInventorySyncSendError = err && err.message ? safeError(err.message) : 'media_inventory_sync_failed';
+    CONNECTION_STATE.reason = 'media_inventory_sync_failed';
   }
 }
 
@@ -1018,7 +1060,15 @@ function buildMediaInventoryStatusResponse(req = null) {
       agentName: CONNECTION_STATE.agentName,
       lastSeenAt: CONNECTION_STATE.lastSeenAt,
       lastMediaInventorySyncAt: CONNECTION_STATE.mediaInventorySyncUpdatedAt,
-      mediaInventorySyncSeq: CONNECTION_STATE.mediaInventorySyncSeq
+      mediaInventorySyncSeq: CONNECTION_STATE.mediaInventorySyncSeq,
+      mediaInventorySyncSendErrorAt: CONNECTION_STATE.mediaInventorySyncSendErrorAt,
+      mediaInventorySyncSendError: CONNECTION_STATE.mediaInventorySyncSendError,
+      mediaInventoryInitialSendPrepared: CONNECTION_STATE.mediaInventoryInitialSendPrepared,
+      mediaInventoryInitialSendScheduledAt: CONNECTION_STATE.mediaInventoryInitialSendScheduledAt,
+      mediaInventoryInitialSendAttempts: CONNECTION_STATE.mediaInventoryInitialSendAttempts,
+      lastMediaInventoryInitialSendAttemptAt: CONNECTION_STATE.lastMediaInventoryInitialSendAttemptAt,
+      lastMediaInventoryInitialSendSuccessAt: CONNECTION_STATE.lastMediaInventoryInitialSendSuccessAt,
+      mediaInventoryInitialSendCompleted: CONNECTION_STATE.mediaInventoryInitialSendCompleted
     },
     inventory,
     items: inventory.items || [],
@@ -1554,14 +1604,14 @@ function buildStatusResponse() {
   const state = buildConnectionStatus();
   return buildBaseResponse({
     displayName: 'Streaming-PC Verbindung',
-    status: { connected: state.connected, connectionState: state.connectionState, reason: state.reason, lastSeenAt: state.lastSeenAt, connectedSince: state.connectedSince, lastHeartbeatAt: state.lastHeartbeatAt, heartbeatSeq: state.heartbeatSeq, heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt), lastLiveStateAt: state.lastLiveStateAt, liveStateSeq: state.liveStateSeq, lastInventorySyncAt: state.lastInventorySyncAt, inventorySyncSeq: state.inventorySyncSeq, inventorySyncAgeMs: calculateHeartbeatAgeMs(state.lastInventorySyncAt), lastMediaInventorySyncAt: state.lastMediaInventorySyncAt, mediaInventorySyncSeq: state.mediaInventorySyncSeq, mediaInventorySyncAgeMs: calculateHeartbeatAgeMs(state.lastMediaInventorySyncAt), liveStateAgeMs: calculateHeartbeatAgeMs(state.lastLiveStateAt), reconnectCount: state.reconnectCount, stale: isHeartbeatStale(state.lastHeartbeatAt) },
+    status: { connected: state.connected, connectionState: state.connectionState, reason: state.reason, lastSeenAt: state.lastSeenAt, connectedSince: state.connectedSince, lastHeartbeatAt: state.lastHeartbeatAt, heartbeatSeq: state.heartbeatSeq, heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt), lastLiveStateAt: state.lastLiveStateAt, liveStateSeq: state.liveStateSeq, lastInventorySyncAt: state.lastInventorySyncAt, inventorySyncSeq: state.inventorySyncSeq, inventorySyncAgeMs: calculateHeartbeatAgeMs(state.lastInventorySyncAt), lastMediaInventorySyncAt: state.lastMediaInventorySyncAt, mediaInventorySyncSeq: state.mediaInventorySyncSeq, mediaInventorySyncAgeMs: calculateHeartbeatAgeMs(state.lastMediaInventorySyncAt), mediaInventorySyncSendErrorAt: state.mediaInventorySyncSendErrorAt, mediaInventorySyncSendError: state.mediaInventorySyncSendError, mediaInventoryInitialSendAttempts: state.mediaInventoryInitialSendAttempts, lastMediaInventoryInitialSendAttemptAt: state.lastMediaInventoryInitialSendAttemptAt, lastMediaInventoryInitialSendSuccessAt: state.lastMediaInventoryInitialSendSuccessAt, mediaInventoryInitialSendCompleted: state.mediaInventoryInitialSendCompleted, liveStateAgeMs: calculateHeartbeatAgeMs(state.lastLiveStateAt), reconnectCount: state.reconnectCount, stale: isHeartbeatStale(state.lastHeartbeatAt) },
     streamingPcConnection: state,
     agent: { agentId: state.agentId, agentName: state.agentName, agentVersion: state.agentVersion, protocolVersion: state.protocolVersion, heartbeatProtocolVersion: state.heartbeatProtocolVersion, liveStateProtocolVersion: state.liveStateProtocolVersion, mediaInventorySyncProtocolVersion: state.mediaInventorySyncProtocolVersion, expectedAgentId: 'stream-pc-main', expectedAgentName: 'Forrest Stream-PC' },
     host: { dashboardServer: 'local-stream-control-center', hostname: safeHostname(), platform: process.platform, nodeVersion: process.version, processUptimeSec: Math.floor(process.uptime()), localTime: now },
     remoteTarget: { publicDashboardUrl: 'https://mods.forrestcgn.de', remoteWsUrl: state.remoteWsUrl, plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws', plannedWsPath: state.wsPath, streamPcPublicPortRequired: false, outgoingConnectionOnly: true },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
-    warnings: ['Version 0.1.8 sendet schlanke Heartbeats plus separaten read-only OBS-Live-State, OBS-Inventory-Sync und Media-Slow-Sync ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS- und Media-Listen werden separat langsam als Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
+    warnings: ['Version 0.1.8D sendet schlanke Heartbeats plus separaten read-only OBS-Live-State, OBS-Inventory-Sync und Media-Slow-Sync ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS- und Media-Listen werden separat langsam als Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
 }
@@ -1604,6 +1654,17 @@ function buildConnectionStatus() {
     mediaInventorySync: CONNECTION_STATE.mediaInventorySync,
     mediaInventorySyncSendErrorAt: CONNECTION_STATE.mediaInventorySyncSendErrorAt,
     mediaInventorySyncSendError: CONNECTION_STATE.mediaInventorySyncSendError,
+    mediaInventoryInitialSendPrepared: CONNECTION_STATE.mediaInventoryInitialSendPrepared,
+    mediaInventoryInitialSendDelaysMs: CONNECTION_STATE.mediaInventoryInitialSendDelaysMs,
+    mediaInventoryInitialSendScheduledAt: CONNECTION_STATE.mediaInventoryInitialSendScheduledAt,
+    mediaInventoryInitialSendAttempts: CONNECTION_STATE.mediaInventoryInitialSendAttempts,
+    lastMediaInventoryInitialSendAttemptAt: CONNECTION_STATE.lastMediaInventoryInitialSendAttemptAt,
+    lastMediaInventoryInitialSendSuccessAt: CONNECTION_STATE.lastMediaInventoryInitialSendSuccessAt,
+    mediaInventoryInitialSendCompleted: CONNECTION_STATE.mediaInventoryInitialSendCompleted,
+    mediaFullSyncState: CONNECTION_STATE.mediaFullSyncState,
+    mediaFullSyncSentItems: CONNECTION_STATE.mediaFullSyncSentItems,
+    mediaFullSyncTotalItems: CONNECTION_STATE.mediaFullSyncTotalItems,
+    mediaFullSyncLastError: CONNECTION_STATE.mediaFullSyncLastError,
     lastLiveStateAt: CONNECTION_STATE.lastLiveStateAt,
     liveStateUpdatedAt: CONNECTION_STATE.liveStateUpdatedAt,
     liveState: CONNECTION_STATE.liveState || buildObsLiveState({}),

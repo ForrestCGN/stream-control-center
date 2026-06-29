@@ -1,12 +1,12 @@
 # FILES
 
-## 0.2.58C
+## 0.2.58E
 
 Geaendert:
 
 - `remote-modboard/backend/src/routes/media-index-diff.routes.js`
-- `docs/current/RDAP_0.2.58C_MEDIA_INDEX_DIFF_AGENT_SNAPSHOT_STATUS_DIAGNOSTIC.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58C.md`
+- `docs/current/RDAP_0.2.58E_MEDIA_INDEX_DIFF_MODIFIED_AT_DB_DIAGNOSTIC.md`
+- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58E.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -15,11 +15,11 @@ Geaendert:
 
 Nicht geaendert:
 
+- `backend/modules/remote_agent.js`
 - `remote-modboard/backend/src/app.js`
 - `remote-modboard/backend/src/routes/media-readonly.routes.js`
 - `remote-modboard/backend/src/routes/routes.routes.js`
 - `remote-modboard/backend/src/services/agent-runtime.service.js`
-- `backend/modules/remote_agent.js`
 - `remote-modboard/backend/public/assets/modules/media/library.js`
 - `htdocs/dashboard-v2/assets/modules/media/library.js`
 - `remote-modboard/backend/src/services/config.service.js`
