@@ -8,10 +8,10 @@ const {
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_modified_at_soft_match_058f.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_modified_at_db_diagnostic_058e.v1';
-const BUILD = 'RDAP_0.2.58F_MEDIA_INDEX_DIFF_MODIFIED_AT_SOFT_MATCH_POLICY';
-const PREVIOUS_BUILD = 'RDAP_0.2.58E_MEDIA_INDEX_DIFF_MODIFIED_AT_DB_DIAGNOSTIC';
+const STATUS_API_VERSION = 'rdap_media_index_diff_effective_change_counts_058g.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_modified_at_soft_match_058f.v1';
+const BUILD = 'RDAP_0.2.58G_MEDIA_INDEX_DIFF_EFFECTIVE_CHANGE_COUNTS';
+const PREVIOUS_BUILD = 'RDAP_0.2.58F_MEDIA_INDEX_DIFF_MODIFIED_AT_SOFT_MATCH_POLICY';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -54,7 +54,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58F',
+      moduleVersion: context.appVersion || '0.2.58G',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -100,7 +100,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58F',
+    moduleVersion: context.appVersion || '0.2.58G',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -131,7 +131,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ],
     note: agentSnapshotUnavailable
       ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
-      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58F klassifiziert bekannte modifiedAt-Offsets als Soft-Match. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58G ergaenzt Effective-/Strict-Change-Counts. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -264,6 +264,8 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
   const dbById = indexById(dbItems);
   const newOnAgent = [];
   const changedOnAgent = [];
+  const softChangedOnAgent = [];
+  const effectiveChangedOnAgent = [];
   const unchanged = [];
   const compareStats = { metadataCompareWarnings: 0, changeReasonCounts: {}, modifiedAtDeltasMs: [], hardChangedOnAgentCount: 0, softModifiedAtOnlyCount: 0 };
 
@@ -276,7 +278,10 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
     const change = compareMediaItems(agentItem, dbItem);
     addCompareStats(compareStats, change);
     if (change.changed) {
-      changedOnAgent.push({ ...agentItem, changeReasons: change.reasons, metadataWarnings: change.warnings, compareDetails: change.details, changeClass: change.changeClass, modifiedAtOffsetBucket: change.modifiedAtOffsetBucket });
+      const changedItem = { ...agentItem, changeReasons: change.reasons, metadataWarnings: change.warnings, compareDetails: change.details, changeClass: change.changeClass, modifiedAtOffsetBucket: change.modifiedAtOffsetBucket };
+      changedOnAgent.push(changedItem);
+      if (change.changeClass === 'soft_modified_at_offset_only') softChangedOnAgent.push(changedItem);
+      else effectiveChangedOnAgent.push(changedItem);
     } else {
       unchanged.push(change.warnings.length ? { ...agentItem, metadataWarnings: change.warnings } : agentItem);
     }
@@ -298,13 +303,18 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
       matchedCount,
       newOnAgentCount: newOnAgent.length,
       changedOnAgentCount: changedOnAgent.length,
+      strictChangedOnAgentCount: changedOnAgent.length,
       hardChangedOnAgentCount: compareStats.hardChangedOnAgentCount,
+      effectiveChangedOnAgentCount: compareStats.hardChangedOnAgentCount,
       softChangedOnAgentCount: compareStats.softModifiedAtOnlyCount,
       softModifiedAtOnlyCount: compareStats.softModifiedAtOnlyCount,
+      effectiveNoopChangedOnAgentCount: compareStats.softModifiedAtOnlyCount,
       missingOnAgentCount: missingOnAgentReliable ? missingOnAgent.length : null,
       missingOnAgentReliable,
       agentSnapshotUnavailable: agentSnapshotUnavailable === true,
       unchangedCount: unchanged.length,
+      strictUnchangedCount: unchanged.length,
+      effectiveUnchangedCount: unchanged.length + compareStats.softModifiedAtOnlyCount,
       comparableAgentItems: agentItems.length,
       metadataCompareWarnings: compareStats.metadataCompareWarnings,
       changeReasonCounts: compareStats.changeReasonCounts,
@@ -315,6 +325,9 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
     previews: {
       newOnAgent: newOnAgent.slice(0, previewLimit).map(safePreviewItem),
       changedOnAgent: changedOnAgent.slice(0, previewLimit).map(safePreviewItem),
+      strictChangedOnAgent: changedOnAgent.slice(0, previewLimit).map(safePreviewItem),
+      softChangedOnAgent: softChangedOnAgent.slice(0, previewLimit).map(safePreviewItem),
+      effectiveChangedOnAgent: effectiveChangedOnAgent.slice(0, previewLimit).map(safePreviewItem),
       missingOnAgent: missingOnAgentReliable ? missingOnAgent.slice(0, previewLimit).map(safePreviewItem) : [],
       unchanged: unchanged.slice(0, previewLimit).map(safePreviewItem)
     }
@@ -603,13 +616,18 @@ function buildEmptyCounts() {
     matchedCount: 0,
     newOnAgentCount: 0,
     changedOnAgentCount: 0,
+    strictChangedOnAgentCount: 0,
     hardChangedOnAgentCount: 0,
+    effectiveChangedOnAgentCount: 0,
     softChangedOnAgentCount: 0,
     softModifiedAtOnlyCount: 0,
+    effectiveNoopChangedOnAgentCount: 0,
     missingOnAgentCount: null,
     missingOnAgentReliable: false,
     agentSnapshotUnavailable: true,
     unchangedCount: 0,
+    strictUnchangedCount: 0,
+    effectiveUnchangedCount: 0,
     comparableAgentItems: 0,
     metadataCompareWarnings: 0,
     changeReasonCounts: {},
@@ -620,7 +638,7 @@ function buildEmptyCounts() {
 }
 
 function buildEmptyPreviews() {
-  return { newOnAgent: [], changedOnAgent: [], missingOnAgent: [], unchanged: [] };
+  return { newOnAgent: [], changedOnAgent: [], strictChangedOnAgent: [], softChangedOnAgent: [], effectiveChangedOnAgent: [], missingOnAgent: [], unchanged: [] };
 }
 
 function buildComparePolicy() {
@@ -635,6 +653,8 @@ function buildComparePolicy() {
     agentSnapshotDiagnosticEnabled: true,
     modifiedAtDeltaDiagnosticEnabled: true,
     modifiedAtSoftMatchPolicyEnabled: true,
+    effectiveChangeCountsEnabled: true,
+    changedOnAgentCountCompatibilityMode: 'strict_includes_soft_matches',
     modifiedAtSoftOffsetBuckets: MODIFIED_AT_SOFT_OFFSET_BUCKETS.map(bucket => ({ key: bucket.key, ms: bucket.ms })),
     modifiedAtSoftOffsetToleranceMs: MODIFIED_AT_SOFT_OFFSET_TOLERANCE_MS,
     diagnosticDoesNotTriggerAgentAction: true,

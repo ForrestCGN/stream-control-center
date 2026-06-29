@@ -15,8 +15,9 @@
 - [x] Lokalen Agent-Initial-Media-Inventory-Retry und Diagnose ergaenzen
 - [x] ModifiedAt-Delta-Diagnose in Diff-Route ergaenzen
 - [x] ModifiedAt-Soft-Match-Policy in Diff-Route ergaenzen
+- [x] Effective-/Strict-Change-Counts in Diff-Route ergaenzen
 - [ ] DB-Read-Source UI final sichtpruefen
-- [ ] Hard-/Soft-Diff-Counts nach 0.2.58F bewerten
+- [ ] Effective-Counts nach 0.2.58G bewerten
 - [ ] Gated Delta-Upsert fuer harte Unterschiede separat planen
 - [ ] Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen
 - [ ] Online->Agent Queue separat planen

@@ -1,11 +1,15 @@
 # CHANGELOG
 
+## 0.2.58G - Media Index Diff Effective Change Counts
+
+- `strictChangedOnAgentCount`, `strictUnchangedCount`, `effectiveChangedOnAgentCount`, `effectiveUnchangedCount` und `effectiveNoopChangedOnAgentCount` ergaenzt.
+- `previews.strictChangedOnAgent`, `previews.softChangedOnAgent` und `previews.effectiveChangedOnAgent` ergaenzt.
+- `changedOnAgentCount` bleibt kompatibel strict.
+- Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone/`deleted=1`, kein Agent-Trigger.
+
 ## 0.2.58F - Media Index Diff ModifiedAt Soft-Match Policy
 
-- Bekannte 1h/2h `modifiedAt`-Offsets werden als `soft_modified_at_offset_only` klassifiziert, wenn Size/Kind gleich sind und keine weiteren harten Unterschiede vorliegen.
-- `counts.hardChangedOnAgentCount`, `counts.softChangedOnAgentCount` und `counts.softModifiedAtOnlyCount` ergaenzt.
-- Preview zeigt `changeClass` und `modifiedAtOffsetBucket`.
-- Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone/`deleted=1`, kein Agent-Trigger.
+- Bekannte 1h/2h `modifiedAt`-Offsets werden als `soft_modified_at_offset_only` klassifiziert.
 
 ## 0.2.58E - Media Index Diff ModifiedAt DB Diagnostic
 

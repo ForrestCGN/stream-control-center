@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58F - Media Index Diff ModifiedAt Soft-Match Policy`
+Aktueller Stand: `0.2.58G - Media Index Diff Effective Change Counts`
 
 ## Kurzstatus
 
@@ -12,9 +12,9 @@ Aktueller Stand: `0.2.58F - Media Index Diff ModifiedAt Soft-Match Policy`
 - UI-Inventar zeigt 333 Medien aus der DB.
 - 0.2.58D reparierte den lokalen Initial-Media-Inventory-Send.
 - Webserver-Diff sieht wieder 120 Agent-Items.
-- 0.2.58E zeigte: alle 120 Changes sind `modified_at_changed`, mit positiven Deltas um 1h/2h.
-- 0.2.58F klassifiziert bekannte 1h/2h modifiedAt-Offsets als Soft-Match, wenn Size/Kind gleich sind und keine weiteren harten Unterschiede vorliegen.
+- 0.2.58F zeigte: 120 Strict-Changes, aber 0 Hard-Changes und 120 Soft-Timestamp-only Matches.
+- 0.2.58G trennt Strict-Counts von Effective-Counts, damit Upsert-Entscheidungen nicht auf Soft-Timestamp-Offsets basieren.
 
 ## Sicherheit
 
-0.2.58F schreibt nichts. Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, kein Agent-Trigger, keine Datei-Inhalte, keine absoluten Pfade.
+0.2.58G schreibt nichts. Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, kein Agent-Trigger, keine Datei-Inhalte, keine absoluten Pfade.
