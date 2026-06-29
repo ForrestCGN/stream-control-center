@@ -2,17 +2,17 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.45_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_SOURCE_STATUS_PLAN` lokal einspielen.
-- [ ] Doku-Check per Select-String ausfuehren.
+- [ ] `RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_STATUS_COMPACT_SOURCE_INFO` lokal einspielen.
+- [ ] Node-Syntaxchecks ausfuehren.
 - [ ] `git status` pruefen.
 - [ ] Wenn sauber: `stepdone.cmd`.
-- [ ] Kein Webserver-Deploy, weil Doku-/State-only.
+- [ ] Danach Webserver-Deploy ueber `tools/server/remote-modboard-deploy-step.sh`.
+- [ ] Server-Readback fuer `.sourceInfo` ohne und mit `db=1` pruefen.
 
 ## Danach
 
-- [ ] Nur falls wirklich noetig: 0.2.46 als kleines Status-Skeleton planen.
-- [ ] Keine neuen Module aufblasen, solange bestehende Media-Readonly-Route reicht.
-- [ ] Keine DB-Item-Reads ohne eigenen Plan.
+- [ ] Deploy/Readback dokumentieren oder direkt eine sichtbare Media-UI-/Filterverbesserung planen.
+- [ ] Keine weiteren Mini-Skeleton-Steps ohne Funktionsgewinn.
 - [ ] Keine Media-Writes bis separater Confirm-Write-Step existiert.
 - [ ] Keine Agent-Writes bis eigener Scope freigegeben ist.
 - [ ] Kein Upload/Edit/Delete.

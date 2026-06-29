@@ -5,9 +5,9 @@ const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
 const { buildDatabaseReadiness, withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
-const STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_persistent_index_foundation_blocked_034b.v1';
-const BUILD = 'RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY';
+const STATUS_API_VERSION = 'rdap_media_status_compact_source_info_046.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
+const BUILD = 'RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_STATUS_COMPACT_SOURCE_INFO';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 const PERSISTENT_INDEX_SCHEMA_MODULE = 'remote_media_index';
 const PERSISTENT_INDEX_SCHEMA_VERSION = 1;
@@ -25,29 +25,12 @@ const MEDIA_PLANNED_ROOTS = Object.freeze([
   { key: 'videos', label: 'Videos', localPathHint: 'htdocs/assets/videos', publicBasePath: '/assets/videos', types: ['video'] },
   { key: 'images', label: 'Bilder', localPathHint: 'htdocs/assets/images', publicBasePath: '/assets/images', types: ['image'] }
 ]);
-
 const EXPECTED_PERSISTENT_INDEX_COLUMNS = Object.freeze([
-  'id',
-  'root_key',
-  'kind',
-  'relative_path',
-  'name',
-  'extension',
-  'size_bytes',
-  'modified_at',
-  'first_seen_at',
-  'last_seen_at',
-  'deleted',
-  'source',
-  'sync_version',
-  'updated_at'
+  'id', 'root_key', 'kind', 'relative_path', 'name', 'extension', 'size_bytes',
+  'modified_at', 'first_seen_at', 'last_seen_at', 'deleted', 'source', 'sync_version', 'updated_at'
 ]);
-
 const EXPECTED_PERSISTENT_INDEX_KEYS = Object.freeze([
-  'PRIMARY',
-  'idx_remote_media_index_root_path',
-  'idx_remote_media_index_kind',
-  'idx_remote_media_index_deleted_last_seen'
+  'PRIMARY', 'idx_remote_media_index_root_path', 'idx_remote_media_index_kind', 'idx_remote_media_index_deleted_last_seen'
 ]);
 
 let persistentIndexSchemaState = null;
@@ -64,19 +47,18 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
   const localRuntime = runtimeMode === 'local';
   const limit = readLimit(req);
   const inspectDatabase = shouldInspectPersistentIndex(req);
-  const persistentIndex = inspectDatabase
-    ? await inspectPersistentIndexSchema(context)
-    : ensurePersistentIndexFoundation(context);
+  const persistentIndex = inspectDatabase ? await inspectPersistentIndexSchema(context) : ensurePersistentIndexFoundation(context);
   const agentMediaStatus = localRuntime ? null : safeBuildAgentMediaInventoryStatus();
   const inventory = localRuntime
     ? scanLocalInventory({ limit, generatedAt })
     : buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus });
+  const sourceInfo = buildSourceInfo({ localRuntime, inventory, persistentIndex, inspectDatabase });
 
   return {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_media_readonly',
-    moduleVersion: context.appVersion || '0.2.42',
+    moduleVersion: context.appVersion || '0.2.46',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -91,9 +73,7 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
       ? (inventory.active ? 'local_media_inventory_available' : 'local_media_inventory_empty')
       : (inventory.active ? (inventory.truncated ? 'online_media_inventory_compact_available' : 'online_media_inventory_available') : 'online_media_inventory_sync_pending'),
     title: 'Media-System',
-    summary: localRuntime
-      ? 'Lokales Media-Inventar wurde read-only erfasst. Upload, Bearbeiten und Loeschen bleiben aus.'
-      : buildOnlineSummary(inventory),
+    summary: localRuntime ? 'Lokales Media-Inventar wurde read-only erfasst. Upload, Bearbeiten und Loeschen bleiben aus.' : buildOnlineSummary(inventory),
     mode: {
       local: localRuntime,
       online: !localRuntime,
@@ -105,7 +85,8 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
       localDashboardProfileUsesSameUi: true
     },
     permissions: buildPermissionBlock(),
-    syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex }),
+    sourceInfo,
+    syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo }),
     persistentIndex,
     inventory,
     plannedRoots: MEDIA_PLANNED_ROOTS.map(item => ({ ...item })),
@@ -123,9 +104,36 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
     nextSteps: [
       inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert; kompakte Listen koennen truncated=true melden.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.',
       inspectDatabase ? 'Persistent-Index-Schema wurde read-only ueber Remote-Modboard-MariaDB diagnostiziert.' : 'Persistent-Index-Schema kann mit ?db=1 read-only ueber Remote-Modboard-MariaDB diagnostiziert werden.',
-      'Filter/Paging spaeter ohne Breaking Change ueber limit/root/type/cursor ausbauen.',
+      'sourceInfo fasst primaere Quelle und DB-Index-Diagnose kompakt zusammen; fallbackEnabled bleibt false.',
       'Upload/Edit/Delete erst nach separatem Permission-/Audit-/Confirm-Step.'
     ]
+  };
+}
+
+function buildSourceInfo({ localRuntime, inventory, persistentIndex, inspectDatabase }) {
+  const primary = localRuntime ? 'local_filesystem' : 'agent_memory';
+  const dbIndexAvailable = inspectDatabase ? Boolean(persistentIndex && persistentIndex.detected === true && persistentIndex.compatibleForRead === true) : null;
+  const dbIndexItemCount = inspectDatabase && persistentIndex && Number.isFinite(Number(persistentIndex.itemCount)) ? Number(persistentIndex.itemCount) : null;
+  return {
+    prepared: true,
+    compact: true,
+    readOnly: true,
+    primary,
+    primaryActive: Boolean(inventory && inventory.active === true),
+    primarySource: inventory && inventory.source ? inventory.source : (localRuntime ? 'local_stream_pc_filesystem_readonly' : 'agent_wss_media_inventory_sync_memory_only'),
+    dbIndexChecked: Boolean(inspectDatabase),
+    dbIndexAvailable,
+    dbIndexItemCount,
+    dbIndexTable: PERSISTENT_INDEX_TABLE,
+    fallbackCandidate: dbIndexAvailable === true,
+    fallbackEnabled: false,
+    writesEnabled: false,
+    mediaWritesEnabled: false,
+    agentWritesEnabled: false,
+    uploadEditDeleteEnabled: false,
+    note: inspectDatabase
+      ? 'DB-Index wurde nur diagnostisch bewertet. Agent-Memory bleibt primaere Online-Wahrheit; Fallback bleibt aus.'
+      : 'Keine DB-Abfrage in diesem Aufruf. Mit ?db=1 wird nur read-only diagnostiziert.'
   };
 }
 
@@ -140,13 +148,15 @@ function buildOnlineSummary(inventory) {
   return `Online-Media-Inventar ist per Agent-WSS aktiv. Es werden ${returned} Eintraege angezeigt. Upload, Bearbeiten und Loeschen bleiben aus.`;
 }
 
-function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex }) {
+function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo }) {
   const counts = inventory && inventory.counts ? inventory.counts : {};
   return {
     prepared: true,
     readOnly: true,
     runtimeMode: localRuntime ? 'local' : 'online',
     source: inventory && inventory.source ? inventory.source : (localRuntime ? 'local_stream_pc_filesystem_readonly' : 'agent_wss_media_inventory_sync_memory_only'),
+    sourceInfoPrepared: true,
+    primarySource: sourceInfo.primary,
     localIsMaster: true,
     serverPersistence: false,
     serverPersistenceFoundation: false,
@@ -186,7 +196,6 @@ function getProjectRoot() {
 
 function ensurePersistentIndexFoundation(context = {}) {
   if (persistentIndexSchemaState) return { ...persistentIndexSchemaState, cached: true };
-
   const configDatabase = context && context.config && context.config.database ? context.config.database : {};
   persistentIndexSchemaState = buildPersistentIndexState({
     reason: 'schema_status_readonly_available_with_db_query',
@@ -233,7 +242,7 @@ function buildPersistentIndexState(input = {}) {
     missingIndexes: [],
     itemCount: 0,
     database: input.database || null,
-    note: '0.2.42 haelt den Media-Index read-only. Echte Schema-Diagnose erfolgt nur bei ?db=1 ueber die bestehende Remote-Modboard-MariaDB-Schicht.'
+    note: 'Media-Index bleibt read-only. Echte Schema-Diagnose erfolgt nur bei ?db=1 ueber die bestehende Remote-Modboard-MariaDB-Schicht.'
   };
 }
 
@@ -254,76 +263,27 @@ async function inspectPersistentIndexSchema(context = {}) {
   });
 
   if (!readiness.configured || !readiness.driverAvailable) {
-    return {
-      ...base,
-      ok: false,
-      blocked: true,
-      inspected: false,
-      detected: false,
-      reason: readiness.error || 'db_not_ready',
-      error: readiness.error || 'db_not_ready'
-    };
+    return { ...base, ok: false, blocked: true, inspected: false, detected: false, reason: readiness.error || 'db_not_ready', error: readiness.error || 'db_not_ready' };
   }
 
   try {
     return await withReadOnlyConnection(config, async (connection) => {
       const [tableRows] = await connection.query(
-        `
-          SELECT TABLE_NAME AS table_name
-          FROM INFORMATION_SCHEMA.TABLES
-          WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = ?
-          LIMIT 1
-        `,
+        `SELECT TABLE_NAME AS table_name FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? LIMIT 1`,
         [PERSISTENT_INDEX_TABLE]
       );
       const detected = Array.isArray(tableRows) && tableRows.length > 0;
-
-      if (!detected) {
-        return {
-          ...base,
-          ok: false,
-          blocked: true,
-          inspected: true,
-          detected: false,
-          reason: 'remote_media_index_table_missing',
-          itemCount: 0
-        };
-      }
+      if (!detected) return { ...base, ok: false, blocked: true, inspected: true, detected: false, reason: 'remote_media_index_table_missing', itemCount: 0 };
 
       const [columnRows] = await connection.query(
-        `
-          SELECT
-            COLUMN_NAME AS column_name,
-            DATA_TYPE AS data_type,
-            IS_NULLABLE AS is_nullable,
-            COLUMN_DEFAULT AS column_default,
-            COLUMN_KEY AS column_key,
-            EXTRA AS extra,
-            ORDINAL_POSITION AS ordinal_position
-          FROM INFORMATION_SCHEMA.COLUMNS
-          WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = ?
-          ORDER BY ORDINAL_POSITION ASC
-        `,
+        `SELECT COLUMN_NAME AS column_name, DATA_TYPE AS data_type, IS_NULLABLE AS is_nullable, COLUMN_DEFAULT AS column_default, COLUMN_KEY AS column_key, EXTRA AS extra, ORDINAL_POSITION AS ordinal_position FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION ASC`,
         [PERSISTENT_INDEX_TABLE]
       );
       const [indexRows] = await connection.query(
-        `
-          SELECT
-            INDEX_NAME AS index_name,
-            NON_UNIQUE AS non_unique,
-            SEQ_IN_INDEX AS seq_in_index,
-            COLUMN_NAME AS column_name
-          FROM INFORMATION_SCHEMA.STATISTICS
-          WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = ?
-          ORDER BY INDEX_NAME ASC, SEQ_IN_INDEX ASC
-        `,
+        `SELECT INDEX_NAME AS index_name, NON_UNIQUE AS non_unique, SEQ_IN_INDEX AS seq_in_index, COLUMN_NAME AS column_name FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? ORDER BY INDEX_NAME ASC, SEQ_IN_INDEX ASC`,
         [PERSISTENT_INDEX_TABLE]
       );
       const [countRows] = await connection.query(`SELECT COUNT(*) AS row_count FROM ${PERSISTENT_INDEX_TABLE}`);
-
       const columns = normalizeColumnRows(columnRows);
       const indexes = normalizeIndexRows(indexRows);
       const detectedColumnNames = columns.map(column => column.name);
@@ -332,7 +292,6 @@ async function inspectPersistentIndexSchema(context = {}) {
       const missingIndexes = EXPECTED_PERSISTENT_INDEX_KEYS.filter(index => !detectedIndexNames.includes(index));
       const itemCount = Number(countRows && countRows[0] && countRows[0].row_count ? countRows[0].row_count : 0);
       const compatibleForRead = missingColumns.length === 0 && missingIndexes.length === 0;
-
       return {
         ...base,
         ok: compatibleForRead,
@@ -352,26 +311,13 @@ async function inspectPersistentIndexSchema(context = {}) {
         dataWritesEnabled: false,
         migrationEnabled: false,
         fallbackReadsEnabled: false,
-        database: {
-          ...base.database,
-          reachable: true,
-          writeEnabled: false,
-          migrationEnabled: false
-        },
+        database: { ...base.database, reachable: true, writeEnabled: false, migrationEnabled: false },
         note: 'remote_media_index wurde read-only ueber INFORMATION_SCHEMA und SELECT COUNT(*) geprueft. Es wurden keine Media-Daten geschrieben.'
       };
     });
   } catch (err) {
     const publicError = publicDbError(err).code;
-    return {
-      ...base,
-      ok: false,
-      blocked: true,
-      inspected: false,
-      detected: false,
-      reason: publicError || 'persistent_index_schema_read_failed',
-      error: publicError || 'persistent_index_schema_read_failed'
-    };
+    return { ...base, ok: false, blocked: true, inspected: false, detected: false, reason: publicError || 'persistent_index_schema_read_failed', error: publicError || 'persistent_index_schema_read_failed' };
   }
 }
 
@@ -392,19 +338,10 @@ function normalizeIndexRows(rows) {
   for (const row of Array.isArray(rows) ? rows : []) {
     const name = String(row.index_name || '');
     if (!name) continue;
-    if (!byName.has(name)) {
-      byName.set(name, {
-        name,
-        unique: Number(row.non_unique || 0) === 0,
-        columns: []
-      });
-    }
+    if (!byName.has(name)) byName.set(name, { name, unique: Number(row.non_unique || 0) === 0, columns: [] });
     byName.get(name).columns.push(String(row.column_name || ''));
   }
-  return Array.from(byName.values()).map(index => ({
-    ...index,
-    columns: index.columns.filter(Boolean)
-  }));
+  return Array.from(byName.values()).map(index => ({ ...index, columns: index.columns.filter(Boolean) }));
 }
 
 function buildPendingInventory({ localRuntime, limit }) {
@@ -438,10 +375,7 @@ function safeBuildAgentMediaInventoryStatus() {
 function buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus }) {
   const status = agentMediaStatus && typeof agentMediaStatus === 'object' ? agentMediaStatus : null;
   const source = status && status.inventory && typeof status.inventory === 'object' ? status.inventory : null;
-  if (!status || !source || status.active !== true) {
-    return buildPendingInventory({ localRuntime: false, limit });
-  }
-
+  if (!status || !source || status.active !== true) return buildPendingInventory({ localRuntime: false, limit });
   const rawItems = Array.isArray(source.items) ? source.items : [];
   const items = rawItems.slice(0, limit).map(sanitizeOnlineMediaItem).filter(Boolean);
   const truncated = source.truncated === true || rawItems.length > items.length;
@@ -478,8 +412,7 @@ function buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus }
 function sanitizeOnlineMediaItem(item) {
   const source = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
   const rootKey = String(source.rootKey || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 30);
-  const allowedRoot = MEDIA_PLANNED_ROOTS.some(root => root.key === rootKey);
-  if (!allowedRoot) return null;
+  if (!MEDIA_PLANNED_ROOTS.some(root => root.key === rootKey)) return null;
   const relativePath = normalizeRelativePath(source.relativePath || '');
   if (!relativePath || relativePath.includes('..') || /^[a-zA-Z]:/.test(relativePath)) return null;
   const ext = path.extname(relativePath).toLowerCase() || String(source.extension || '').toLowerCase();
@@ -551,30 +484,17 @@ function scanLocalInventory({ limit, generatedAt }) {
   const counts = { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 };
   const errors = [];
   let truncated = false;
-
   for (const root of MEDIA_PLANNED_ROOTS) {
     const absoluteRoot = path.resolve(projectRoot, root.localPathHint);
-    if (!absoluteRoot.startsWith(projectRoot)) {
-      errors.push({ rootKey: root.key, error: 'root_outside_project' });
-      continue;
-    }
-    if (!fs.existsSync(absoluteRoot)) {
-      groups[root.key].exists = false;
-      groups[root.key].emptyReason = 'root_missing';
-      continue;
-    }
+    if (!absoluteRoot.startsWith(projectRoot)) { errors.push({ rootKey: root.key, error: 'root_outside_project' }); continue; }
+    if (!fs.existsSync(absoluteRoot)) { groups[root.key].exists = false; groups[root.key].emptyReason = 'root_missing'; continue; }
     walkRoot({ root, absoluteRoot, currentDir: absoluteRoot, depth: 0, limit, items, groups, counts, errors, truncatedRef: () => truncated, setTruncated: () => { truncated = true; } });
     if (truncated) break;
   }
-
   items.sort((a, b) => String(a.rootKey).localeCompare(String(b.rootKey)) || String(a.relativePath).localeCompare(String(b.relativePath)));
-  for (const key of Object.keys(groups)) {
-    groups[key].items.sort((a, b) => String(a.relativePath).localeCompare(String(b.relativePath)));
-  }
-
+  for (const key of Object.keys(groups)) groups[key].items.sort((a, b) => String(a.relativePath).localeCompare(String(b.relativePath)));
   counts.total = items.length;
   counts.returned = items.length;
-
   return {
     prepared: true,
     active: items.length > 0,
@@ -606,68 +526,28 @@ function buildEmptyGroups() {
 
 function walkRoot({ root, absoluteRoot, currentDir, depth, limit, items, groups, counts, errors, truncatedRef, setTruncated }) {
   if (truncatedRef()) return;
-  if (depth > MEDIA_SCAN_MAX_DEPTH) {
-    counts.skipped += 1;
-    return;
-  }
-
+  if (depth > MEDIA_SCAN_MAX_DEPTH) { counts.skipped += 1; return; }
   let entries = [];
-  try {
-    entries = fs.readdirSync(currentDir, { withFileTypes: true });
-  } catch (err) {
-    errors.push({ rootKey: root.key, error: 'read_dir_failed' });
-    return;
-  }
-
+  try { entries = fs.readdirSync(currentDir, { withFileTypes: true }); } catch (err) { errors.push({ rootKey: root.key, error: 'read_dir_failed' }); return; }
   entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
     if (truncatedRef()) return;
     if (!entry || !entry.name || entry.name.startsWith('.')) continue;
     const absolutePath = path.join(currentDir, entry.name);
-    if (!absolutePath.startsWith(absoluteRoot)) {
-      counts.skipped += 1;
-      continue;
-    }
-    if (entry.isSymbolicLink()) {
-      counts.skipped += 1;
-      continue;
-    }
-    if (entry.isDirectory()) {
-      walkRoot({ root, absoluteRoot, currentDir: absolutePath, depth: depth + 1, limit, items, groups, counts, errors, truncatedRef, setTruncated });
-      continue;
-    }
+    if (!absolutePath.startsWith(absoluteRoot)) { counts.skipped += 1; continue; }
+    if (entry.isSymbolicLink()) { counts.skipped += 1; continue; }
+    if (entry.isDirectory()) { walkRoot({ root, absoluteRoot, currentDir: absolutePath, depth: depth + 1, limit, items, groups, counts, errors, truncatedRef, setTruncated }); continue; }
     if (!entry.isFile()) continue;
     const ext = path.extname(entry.name).toLowerCase();
-    if (!MEDIA_ALLOWED_EXTENSIONS.includes(ext)) {
-      counts.skipped += 1;
-      continue;
-    }
+    if (!MEDIA_ALLOWED_EXTENSIONS.includes(ext)) { counts.skipped += 1; continue; }
     counts.totalSeen += 1;
-    if (items.length >= limit) {
-      setTruncated();
-      return;
-    }
+    if (items.length >= limit) { setTruncated(); return; }
     const rel = normalizeRelativePath(path.relative(absoluteRoot, absolutePath));
-    if (!rel || rel.includes('..')) {
-      counts.skipped += 1;
-      continue;
-    }
+    if (!rel || rel.includes('..')) { counts.skipped += 1; continue; }
     let stat = null;
     try { stat = fs.statSync(absolutePath); } catch (err) { counts.skipped += 1; continue; }
     const kind = mediaKindForExtension(ext);
-    const item = {
-      id: `${root.key}:${rel}`,
-      rootKey: root.key,
-      rootLabel: root.label,
-      kind,
-      name: path.basename(rel),
-      relativePath: rel,
-      publicPath: `${root.publicBasePath}/${rel}`,
-      extension: ext,
-      sizeBytes: stat.size,
-      modifiedAt: stat.mtime ? stat.mtime.toISOString() : null,
-      readOnly: true
-    };
+    const item = { id: `${root.key}:${rel}`, rootKey: root.key, rootLabel: root.label, kind, name: path.basename(rel), relativePath: rel, publicPath: `${root.publicBasePath}/${rel}`, extension: ext, sizeBytes: stat.size, modifiedAt: stat.mtime ? stat.mtime.toISOString() : null, readOnly: true };
     items.push(item);
     groups[root.key].items.push(item);
     groups[root.key].count += 1;
@@ -737,6 +617,17 @@ function buildMediaRoutesSummary(context = {}) {
     permissionModelPrepared: true,
     localInventoryReadonlyPrepared: true,
     onlineAgentInventoryReadonlyPrepared: true,
+    sourceInfoPrepared: true,
+    sourceInfo: {
+      prepared: true,
+      route: MEDIA_STATUS_PATH,
+      compact: true,
+      primary: 'agent_memory_online_or_local_filesystem_local',
+      dbIndexCheckedOnlyWithDbQuery: true,
+      dbIndexItemReadsEnabled: false,
+      fallbackEnabled: false,
+      writesEnabled: false
+    },
     persistentIndex,
     persistentIndexSchemaStatusReadonly: {
       prepared: true,
@@ -746,6 +637,7 @@ function buildMediaRoutesSummary(context = {}) {
       usesInformationSchemaColumns: true,
       usesInformationSchemaStatistics: true,
       readsRowCount: true,
+      readsItems: false,
       compatibleForReadPrepared: true,
       compatibleForWrite: false,
       writeEnabled: false,
@@ -754,14 +646,9 @@ function buildMediaRoutesSummary(context = {}) {
     },
     scanPolicy: { defaultLimit: MEDIA_SCAN_DEFAULT_LIMIT, hardLimit: MEDIA_SCAN_HARD_LIMIT, maxDepth: MEDIA_SCAN_MAX_DEPTH, cursorPreparedLater: true },
     routes: [
-      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status, lokales Inventar im Lokalmodus und Online-Inventar aus Agent-WSS-Memory-Cache; Persistent Index Schema-Diagnose optional mit ?db=1 ueber Remote-Modboard-MariaDB; keine Uploads, keine Deletes, keine Media-Daten-Writes', readOnly: true }
+      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status mit kompakter sourceInfo; Persistent Index Schema-Diagnose optional mit ?db=1; keine DB-Item-Reads, keine Uploads, keine Deletes, keine Media-Daten-Writes', readOnly: true }
     ],
-    safety: {
-      noFileWrite: true,
-      mediaIndexDataWrite: false,
-      noAgentActionExecution: true,
-      noShellOrProcessActions: true
-    }
+    safety: { noFileWrite: true, mediaIndexDataWrite: false, noAgentActionExecution: true, noShellOrProcessActions: true }
   };
 }
 

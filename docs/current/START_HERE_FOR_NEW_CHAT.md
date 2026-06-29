@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.45 - Remote-Modboard Media Index Readonly Source Status Plan`.
+Aktueller Stand: `0.2.46 - Remote-Modboard Media Status Compact Source Info`.
 
 ## Verbindlich
 
@@ -12,6 +12,7 @@ Remote-Modboard ist die einzige UI-Wahrheit.
 Lokal 8080 und Webserver 3010 strikt trennen.
 Keine zweite lokale UI.
 Keine Online-Sonder-UI.
+Funktion geht vor: keine unnoetigen Mini-/Skelett-Steps.
 ```
 
 ## Harte Laufzeit-Trennung
@@ -47,12 +48,6 @@ Keine Media-Daten-Writes.
 Kein Upload/Edit/Delete.
 ```
 
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED_DOCS.md
-```
-
 ## 0.2.41 Ergebnis
 
 ```text
@@ -64,12 +59,6 @@ Keine Media-Daten-Writes.
 Keine Agent-Writes.
 Kein Upload/Edit/Delete.
 Kein Webserver-Deploy.
-```
-
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.41_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_READONLY_STATUS_PLAN.md
 ```
 
 ## 0.2.42 Ergebnis
@@ -91,12 +80,6 @@ Keine Agent-Writes.
 Kein Upload/Edit/Delete.
 ```
 
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY.md
-```
-
 ## 0.2.43 Ergebnis
 
 ```text
@@ -110,12 +93,6 @@ Keine Media-Daten-Writes.
 Keine Agent-Writes.
 Kein Upload/Edit/Delete.
 Kein Webserver-Deploy fuer 0.2.43, weil Doku-only.
-```
-
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONFIRMED_DOCS.md
 ```
 
 ## 0.2.44 Ergebnis
@@ -136,48 +113,59 @@ Kein Upload/Edit/Delete.
 Kein Webserver-Deploy.
 ```
 
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN.md
-```
-
 ## 0.2.45 Ergebnis
 
 ```text
 Schlanker Doku-/State-only Plan fuer eine spaetere read-only DB-Quelle/Fallback-Statusstruktur.
 Funktion geht vor: keine neuen Runtime-Module, keine uebergrosse Statusstruktur.
+Agent-Memory bleibt primaere Online-Wahrheit.
+persistentIndexSource darf spaeter nur als kleiner Statusblock geplant werden.
+DB-Quelle bleibt disabled, bis ein eigener Runtime-Step kommt.
+itemCount=0 ist kein Fehler.
+deleted=1 ist nicht normal sichtbar.
+stale ist nur diagnostisch sichtbar.
+fallbackEnabled bleibt false.
+Keine Runtime-Code-Aenderung.
+Keine SQL-Ausfuehrung.
+Keine DB-Migration.
+Keine SELECT-Item-Liste aus remote_media_index.
+Keine Media-Daten-Writes.
+Keine Agent-Writes.
+Kein Upload/Edit/Delete.
+Kein Webserver-Deploy.
+```
 
-Dokumentiert:
-- Agent-Memory bleibt primaere Online-Wahrheit.
-- persistentIndexSource darf spaeter nur als kleiner Statusblock geplant werden.
-- DB-Quelle bleibt disabled, bis ein eigener Runtime-Step kommt.
-- itemCount=0 ist kein Fehler.
-- deleted=1 ist nicht normal sichtbar.
-- stale ist nur diagnostisch sichtbar.
-- fallbackEnabled bleibt false.
+## 0.2.46 Ergebnis
 
-Nicht passiert:
-- keine Runtime-Code-Aenderung
-- keine SQL-Ausfuehrung
-- keine DB-Migration
-- keine SELECT-Item-Liste aus remote_media_index
-- keine Media-Daten-Writes
-- keine Agent-Writes
-- kein Upload/Edit/Delete
-- kein Webserver-Deploy
+```text
+Kompakter Runtime-Step in bestehender Media-Route.
+Kein neues Modul.
+Kein neuer Endpoint.
+Route bleibt: /api/remote/media/status und /api/remote/media/status?db=1.
+Neu: sourceInfo Block fuer kompakte Quellen-/DB-Diagnose.
+Ohne db=1: keine DB-Abfrage, dbIndexChecked=false.
+Mit db=1: nutzt bestehende read-only Schema-/COUNT-Diagnose, keine DB-Item-Reads.
+Agent-Memory bleibt primaere Online-Wahrheit.
+fallbackEnabled=false.
+writesEnabled=false.
+Keine SQL-Ausfuehrung.
+Keine DB-Migration.
+Keine INSERT/UPDATE/DELETE.
+Keine Media-Daten-Writes.
+Keine Agent-Writes.
+Kein Upload/Edit/Delete.
 ```
 
 Step-Doku:
 
 ```text
-docs/current/RDAP_0.2.45_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_SOURCE_STATUS_PLAN.md
+docs/current/RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_STATUS_COMPACT_SOURCE_INFO.md
 ```
 
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_INDEX_SOURCE_STATUS_READONLY_SKELETON
+RDAP_0.2.46_SERVER_DEPLOY_AND_READBACK
 ```
 
-Nur wenn wirklich noetig: eine sehr kleine read-only Status-Ergaenzung vorbereiten. Keine DB-Item-Reads, keine Writes, keine Agent-Writes, kein Upload/Edit/Delete.
+Nach lokalem Abschluss und GitHub/dev-Push: Webserver-Deploy und Readback fuer `.sourceInfo` ohne und mit `db=1`.
