@@ -5,13 +5,16 @@ const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-ru
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_readonly_058.v1';
-const BUILD = 'RDAP_0.2.58_MEDIA_INDEX_DIFF_DIAGNOSTIC_READONLY';
+const STATUS_API_VERSION = 'rdap_media_index_diff_compare_normalization_058a.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_readonly_058.v1';
+const BUILD = 'RDAP_0.2.58A_MEDIA_INDEX_DIFF_COMPARE_NORMALIZATION';
+const PREVIOUS_BUILD = 'RDAP_0.2.58_MEDIA_INDEX_DIFF_DIAGNOSTIC_READONLY';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
 const MAX_PREVIEW_LIMIT = 50;
 const MAX_DB_ROWS = 2000;
+const MODIFIED_AT_TOLERANCE_MS = 1500;
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
 const MEDIA_ROOT_KEYS = new Set(['sounds', 'videos', 'images']);
@@ -39,10 +42,12 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58',
+      moduleVersion: context.appVersion || '0.2.58A',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
+      previousRouteBuild: PREVIOUS_BUILD,
       statusApiVersion: STATUS_API_VERSION,
+      previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
       route: ROUTE,
       generatedAt,
       readOnly: true,
@@ -55,6 +60,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       counts: buildEmptyCounts(),
       previewLimit,
       previews: buildEmptyPreviews(),
+      comparePolicy: buildComparePolicy(),
       safety: buildSafetyBlock(),
       note: 'Diff-Diagnose konnte die Online-DB nicht read-only lesen. Es wurden keine Writes ausgefuehrt.'
     };
@@ -66,10 +72,12 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58',
+    moduleVersion: context.appVersion || '0.2.58A',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
+    previousRouteBuild: PREVIOUS_BUILD,
     statusApiVersion: STATUS_API_VERSION,
+    previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
     route: ROUTE,
     generatedAt,
     readOnly: true,
@@ -82,22 +90,25 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     counts: diff.counts,
     previewLimit,
     previews: diff.previews,
+    comparePolicy: buildComparePolicy(),
     reliability: {
       agentSnapshotTruncated: agentInventory.truncated,
       databaseSnapshotTruncated: dbInventory.truncated,
       newAndChangedReliableForReturnedAgentItems: true,
       missingOnAgentReliable: !agentInventory.truncated && !dbInventory.truncated,
+      metadataCompareWarnings: diff.counts.metadataCompareWarnings,
       note: agentInventory.truncated
         ? 'Agent-Snapshot ist gekuerzt. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loeschstatus bewertet.'
         : 'Agent- und DB-Snapshot sind nicht als gekuerzt gemeldet.'
     },
     safety: buildSafetyBlock(),
     nextSteps: [
+      'Diff-Ergebnis erneut pruefen: changedOnAgentCount sollte nur noch belastbare Metadatenabweichungen zeigen.',
       'Gated Delta-Upsert separat planen.',
       'Tombstone/deleted=1 nur spaeter mit eigenem Gate, Confirm, Audit/Lock und Readback planen.',
       'Upload/Edit/Delete bleibt aus.'
     ],
-    note: 'Diese Route vergleicht nur read-only Agent-Snapshot und remote_media_index. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+    note: 'Diese Route vergleicht nur read-only Agent-Snapshot und remote_media_index. 0.2.58A normalisiert Metadatenvergleiche robuster. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -155,6 +166,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated }) {
   const newOnAgent = [];
   const changedOnAgent = [];
   const unchanged = [];
+  const compareStats = { metadataCompareWarnings: 0, changeReasonCounts: {} };
 
   for (const agentItem of agentById.values()) {
     const dbItem = dbById.get(agentItem.id);
@@ -163,8 +175,12 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated }) {
       continue;
     }
     const change = compareMediaItems(agentItem, dbItem);
-    if (change.changed) changedOnAgent.push({ ...agentItem, changeReasons: change.reasons });
-    else unchanged.push(agentItem);
+    addCompareStats(compareStats, change);
+    if (change.changed) {
+      changedOnAgent.push({ ...agentItem, changeReasons: change.reasons, metadataWarnings: change.warnings });
+    } else {
+      unchanged.push(change.warnings.length ? { ...agentItem, metadataWarnings: change.warnings } : agentItem);
+    }
   }
 
   const missingOnAgentReliable = !agentTruncated;
@@ -187,6 +203,8 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated }) {
       missingOnAgentReliable,
       unchangedCount: unchanged.length,
       comparableAgentItems: agentItems.length,
+      metadataCompareWarnings: compareStats.metadataCompareWarnings,
+      changeReasonCounts: compareStats.changeReasonCounts,
       readOnly: true,
       writesEnabled: false
     },
@@ -201,12 +219,37 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated }) {
 
 function compareMediaItems(agentItem, dbItem) {
   const reasons = [];
-  if (safeNonNegativeNumber(agentItem.sizeBytes) !== safeNonNegativeNumber(dbItem.sizeBytes)) reasons.push('sizeBytes');
+  const warnings = [];
+
+  const agentSize = safeComparableNumber(agentItem.sizeBytes);
+  const dbSize = safeComparableNumber(dbItem.sizeBytes);
+  if (agentSize !== null && dbSize !== null && agentSize !== dbSize) reasons.push('size_changed');
+  else if ((agentSize === null) !== (dbSize === null)) warnings.push('size_uncomparable');
+
   const agentModified = dateMs(agentItem.modifiedAt);
   const dbModified = dateMs(dbItem.modifiedAt);
-  if (agentModified !== null && dbModified !== null && agentModified !== dbModified) reasons.push('modifiedAt');
-  if (String(agentItem.kind || '') !== String(dbItem.kind || '')) reasons.push('kind');
-  return { changed: reasons.length > 0, reasons };
+  if (agentModified !== null && dbModified !== null) {
+    if (Math.abs(agentModified - dbModified) > MODIFIED_AT_TOLERANCE_MS) reasons.push('modified_at_changed');
+  } else if ((agentModified === null) !== (dbModified === null)) {
+    warnings.push('modified_at_uncomparable');
+  }
+
+  const agentKind = safeKind(agentItem.kind);
+  const dbKind = safeKind(dbItem.kind);
+  if (agentKind && dbKind && agentKind !== dbKind) reasons.push('kind_changed');
+
+  return { changed: reasons.length > 0, reasons, warnings };
+}
+
+function addCompareStats(stats, change) {
+  if (!stats || !change) return;
+  for (const reason of Array.isArray(change.reasons) ? change.reasons : []) {
+    stats.changeReasonCounts[reason] = safeNonNegativeNumber(stats.changeReasonCounts[reason]) + 1;
+  }
+  for (const warning of Array.isArray(change.warnings) ? change.warnings : []) {
+    stats.metadataCompareWarnings += 1;
+    stats.changeReasonCounts[warning] = safeNonNegativeNumber(stats.changeReasonCounts[warning]) + 1;
+  }
 }
 
 function indexById(items) {
@@ -266,6 +309,7 @@ function safePreviewItem(item) {
     modifiedAt: safe.modifiedAt || null
   };
   if (Array.isArray(item.changeReasons)) preview.changeReasons = item.changeReasons.filter(Boolean).slice(0, 5);
+  if (Array.isArray(item.metadataWarnings)) preview.metadataWarnings = item.metadataWarnings.filter(Boolean).slice(0, 5);
   return preview;
 }
 
@@ -294,6 +338,8 @@ function buildEmptyCounts() {
     missingOnAgentReliable: false,
     unchangedCount: 0,
     comparableAgentItems: 0,
+    metadataCompareWarnings: 0,
+    changeReasonCounts: {},
     readOnly: true,
     writesEnabled: false
   };
@@ -301,6 +347,18 @@ function buildEmptyCounts() {
 
 function buildEmptyPreviews() {
   return { newOnAgent: [], changedOnAgent: [], missingOnAgent: [], unchanged: [] };
+}
+
+function buildComparePolicy() {
+  return {
+    build: BUILD,
+    readOnly: true,
+    compares: ['sizeBytes', 'kind', 'modifiedAt'],
+    modifiedAtToleranceMs: MODIFIED_AT_TOLERANCE_MS,
+    uncomparableMetadataDoesNotMarkChanged: true,
+    warningFields: ['metadataCompareWarnings', 'metadataWarnings'],
+    noFileContentHashing: true
+  };
 }
 
 function buildSafetyBlock() {
@@ -359,6 +417,12 @@ function safeStatus(value) {
 function safeNonNegativeNumber(value) {
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0) return 0;
+  return Math.floor(num);
+}
+
+function safeComparableNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return null;
   return Math.floor(num);
 }
 

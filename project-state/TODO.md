@@ -9,7 +9,9 @@
 - [x] DB-Read-Source in UI-Sync-Karte korrekt anzeigen
 - [x] Delta-Sync / Loeschstatus separat planen
 - [x] Read-only Diff-Diagnose Agent vs. `remote_media_index` bauen
+- [x] Diff-Metadatenvergleich normalisieren
 - [ ] DB-Read-Source UI final sichtpruefen
+- [ ] 0.2.58A Diff-Ergebnis Webserver bewerten
 - [ ] Gated Delta-Upsert separat planen
 - [ ] Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen
 - [ ] Online->Agent Queue separat planen

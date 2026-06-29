@@ -12,6 +12,11 @@ Ziel:
 - Keine Datei-Inhalte, keine absoluten Pfade.
 - Keine dauerhafte Write-Aktivierung.
 
+## Davor pruefen
+
+- 0.2.58A Webserver-Ergebnis gegen `/api/remote/media/index/diff/status` anschauen.
+- Besonders `changedOnAgentCount`, `unchangedCount`, `metadataCompareWarnings` und `changeReasonCounts` bewerten.
+
 ## Danach
 
 - Tombstone/`deleted=1` fuer fehlende Dateien separat planen.

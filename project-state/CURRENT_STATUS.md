@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58 - Media Index Diff Diagnostic Read-only`
+Aktueller Stand: `0.2.58A - Media Index Diff Compare Normalization`
 
 ## Kurzstatus
 
@@ -12,8 +12,9 @@ Aktueller Stand: `0.2.58 - Media Index Diff Diagnostic Read-only`
 - UI-Inventar zeigt 333 Medien aus der DB.
 - 0.2.57 dokumentiert den Delta-Sync-/Loeschstatus-Plan.
 - 0.2.58 ergaenzt eine read-only Diff-Diagnose Agent-Snapshot vs. `remote_media_index`.
+- 0.2.58A normalisiert den Diff-Metadatenvergleich robuster, damit `changedOnAgent` belastbarer wird.
 
-## Neue Route
+## Route
 
 ```text
 GET /api/remote/media/index/diff/status
@@ -21,4 +22,4 @@ GET /api/remote/media/index/diff/status
 
 ## Sicherheit
 
-0.2.58 schreibt nichts. Keine DB-Writes, kein Upsert, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade.
+0.2.58A schreibt nichts. Keine DB-Writes, kein Upsert, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade.
