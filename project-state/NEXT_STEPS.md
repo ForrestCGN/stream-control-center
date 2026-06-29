@@ -2,11 +2,13 @@
 
 ## Naechster Schritt
 
-`RDAP_0.2.58C_MEDIA_INDEX_DIFF_AGENT_SNAPSHOT_RECOVERY_OR_SYNC_TRIGGER_PLAN`
+Agent-Snapshot anhand der 0.2.58C-Diagnose wieder belastbar machen bzw. Sync-Ablauf klaeren.
 
 Ziel:
-- Klaeren, warum der Agent-Snapshot nach Webserver-Restart/Deploy leer sein kann.
-- Agent-Status/Agent-Memory read-only diagnostizieren.
+- Pruefen, ob Agent verbunden ist.
+- Pruefen, ob seit Restart/Deploy ein Media-Inventory-Sync angekommen ist.
+- Pruefen, ob Media-Inventory rejected wurde.
+- Pruefen, ob Full-Sync-State aktuell ist.
 - Keine Online->Agent-Dateiaktion.
 - Keine DB-Writes.
 - Erst nach belastbarem Agent-Snapshot Diff erneut bewerten.

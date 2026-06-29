@@ -1,14 +1,17 @@
 'use strict';
 
 const path = require('path');
-const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
+const {
+  buildAgentMediaInventoryStatusResponse,
+  buildAgentConnectionSummary
+} = require('../services/agent-runtime.service');
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_agent_empty_unreliable_058b.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_compare_normalization_058a.v1';
-const BUILD = 'RDAP_0.2.58B_MEDIA_INDEX_DIFF_AGENT_EMPTY_UNRELIABLE';
-const PREVIOUS_BUILD = 'RDAP_0.2.58A_MEDIA_INDEX_DIFF_COMPARE_NORMALIZATION';
+const STATUS_API_VERSION = 'rdap_media_index_diff_agent_snapshot_diagnostic_058c.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_agent_empty_unreliable_058b.v1';
+const BUILD = 'RDAP_0.2.58C_MEDIA_INDEX_DIFF_AGENT_SNAPSHOT_STATUS_DIAGNOSTIC';
+const PREVIOUS_BUILD = 'RDAP_0.2.58B_MEDIA_INDEX_DIFF_AGENT_EMPTY_UNRELIABLE';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -30,20 +33,23 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
   const generatedAt = new Date().toISOString();
   const previewLimit = readPreviewLimit(req);
   const agentStatus = safeBuildAgentMediaInventoryStatus();
-  const agentInventory = sanitizeAgentInventory(agentStatus);
-  const agentSnapshotUnavailable = isAgentSnapshotUnavailable(agentInventory);
+  const connectionSummary = safeBuildAgentConnectionSummary();
+  const agentInventory = sanitizeAgentInventory(agentStatus, connectionSummary);
+  const agentSnapshotDiagnostic = buildAgentSnapshotDiagnostic({ agentInventory, connectionSummary });
+  const agentSnapshotUnavailable = agentSnapshotDiagnostic.available !== true;
 
   let dbInventory;
   try {
     dbInventory = await readPersistentIndexItems(context.config || {});
   } catch (err) {
     const code = publicDbError(err).code || 'media_index_diff_db_read_failed';
+    const emptyCounts = buildEmptyCounts();
     return {
       ok: false,
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58B',
+      moduleVersion: context.appVersion || '0.2.58C',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -57,12 +63,18 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       status: code,
       error: code,
       agent: buildAgentSummary(agentInventory, agentSnapshotUnavailable),
+      agentSnapshotDiagnostic,
       database: { table: PERSISTENT_INDEX_TABLE, readOnly: true, total: 0, active: false },
-      counts: buildEmptyCounts(),
+      counts: emptyCounts,
       previewLimit,
       previews: buildEmptyPreviews(),
       comparePolicy: buildComparePolicy(),
-      reliability: buildReliabilityBlock({ agentInventory, agentSnapshotUnavailable, dbInventory: { truncated: false }, diff: { counts: buildEmptyCounts() } }),
+      reliability: buildReliabilityBlock({
+        agentInventory,
+        agentSnapshotDiagnostic,
+        dbInventory: { truncated: false },
+        diff: { counts: emptyCounts }
+      }),
       safety: buildSafetyBlock(),
       note: 'Diff-Diagnose konnte die Online-DB nicht read-only lesen. Es wurden keine Writes ausgefuehrt.'
     };
@@ -77,13 +89,13 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     dbTruncated: dbInventory.truncated
   });
 
-  const reliability = buildReliabilityBlock({ agentInventory, agentSnapshotUnavailable, dbInventory, diff });
+  const reliability = buildReliabilityBlock({ agentInventory, agentSnapshotDiagnostic, dbInventory, diff });
 
   return {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58B',
+    moduleVersion: context.appVersion || '0.2.58C',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -97,6 +109,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     status: agentSnapshotUnavailable ? 'diff_available_agent_snapshot_unavailable' : (agentInventory.truncated ? 'diff_available_agent_snapshot_truncated' : 'diff_available'),
     source: 'agent_snapshot_vs_remote_media_index_readonly',
     agent: buildAgentSummary(agentInventory, agentSnapshotUnavailable),
+    agentSnapshotDiagnostic,
     database: { table: PERSISTENT_INDEX_TABLE, readOnly: true, total: dbInventory.total, returned: dbInventory.items.length, truncated: dbInventory.truncated, active: dbInventory.items.length > 0 },
     counts: diff.counts,
     previewLimit,
@@ -106,13 +119,14 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     safety: buildSafetyBlock(),
     nextSteps: [
       'Agent-Snapshot-Verfuegbarkeit pruefen, bevor missingOnAgent als Loeschstatus bewertet wird.',
+      'Bei agent_snapshot_available den Diff erneut bewerten.',
       'Gated Delta-Upsert separat planen.',
       'Tombstone/deleted=1 nur spaeter mit eigenem Gate, Confirm, Audit/Lock und Readback planen.',
       'Upload/Edit/Delete bleibt aus.'
     ],
     note: agentSnapshotUnavailable
-      ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; daraus wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
-      : 'Diese Route vergleicht nur read-only Agent-Snapshot und remote_media_index. 0.2.58B schuetzt vor falschen missingOnAgent-Schluessen bei leerem Agent-Snapshot. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+      ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
+      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58C ergaenzt Snapshot-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -125,7 +139,16 @@ function safeBuildAgentMediaInventoryStatus() {
   }
 }
 
-function sanitizeAgentInventory(agentStatus) {
+function safeBuildAgentConnectionSummary() {
+  try {
+    if (typeof buildAgentConnectionSummary !== 'function') return {};
+    return buildAgentConnectionSummary() || {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function sanitizeAgentInventory(agentStatus, connectionSummary = {}) {
   const status = agentStatus && typeof agentStatus === 'object' && !Array.isArray(agentStatus) ? agentStatus : {};
   const inventory = status.inventory && typeof status.inventory === 'object' && !Array.isArray(status.inventory) ? status.inventory : {};
   const rawItems = Array.isArray(inventory.items) ? inventory.items : [];
@@ -133,11 +156,21 @@ function sanitizeAgentInventory(agentStatus) {
   const counts = inventory.counts && typeof inventory.counts === 'object' && !Array.isArray(inventory.counts) ? inventory.counts : {};
   const totalSeen = safeNonNegativeNumber(counts.totalSeen || counts.total || rawItems.length);
   const returned = safeNonNegativeNumber(counts.returned || items.length);
+  const summary = connectionSummary && typeof connectionSummary === 'object' && !Array.isArray(connectionSummary) ? connectionSummary : {};
   return {
     active: status.active === true || inventory.active === true || items.length > 0,
-    connected: status.agent && status.agent.connected === true,
-    connectionState: status.agent && status.agent.connectionState ? safeStatus(status.agent.connectionState) : null,
-    lastMediaInventorySyncAt: status.agent && status.agent.lastMediaInventorySyncAt ? safeIsoOrNull(status.agent.lastMediaInventorySyncAt) : null,
+    connected: Boolean((status.agent && status.agent.connected === true) || summary.connected === true),
+    connectionState: safeStatus((status.agent && status.agent.connectionState) || summary.connectionState || ''),
+    lastSeenAt: safeIsoOrNull((status.agent && status.agent.lastSeenAt) || summary.lastSeenAt),
+    lastHeartbeatAt: safeIsoOrNull((status.agent && status.agent.lastHeartbeatAt) || summary.lastHeartbeatAt),
+    heartbeatAgeMs: safeNullableNumber((status.agent && status.agent.heartbeatAgeMs) || summary.heartbeatAgeMs),
+    stale: Boolean((status.agent && status.agent.stale === true) || summary.stale === true),
+    lastMediaInventorySyncAt: safeIsoOrNull((status.agent && status.agent.lastMediaInventorySyncAt) || summary.lastMediaInventorySyncAt),
+    mediaInventorySyncSeq: safeNullableNumber(summary.mediaInventorySyncSeq),
+    mediaInventorySyncRejectCount: safeNonNegativeNumber(summary.mediaInventorySyncRejectCount),
+    lastMediaInventorySyncRejectAt: safeIsoOrNull(summary.lastMediaInventorySyncRejectAt),
+    lastMediaInventorySyncRejectReason: safeReason(summary.lastMediaInventorySyncRejectReason),
+    mediaFullSync: sanitizeMediaFullSync(summary.mediaFullSync),
     source: safeStatus(inventory.source || 'agent_memory'),
     items,
     returned: returned || items.length,
@@ -147,12 +180,61 @@ function sanitizeAgentInventory(agentStatus) {
   };
 }
 
-function isAgentSnapshotUnavailable(agentInventory) {
+function buildAgentSnapshotDiagnostic({ agentInventory, connectionSummary }) {
   const inventory = agentInventory && typeof agentInventory === 'object' && !Array.isArray(agentInventory) ? agentInventory : {};
-  if (inventory.active !== true) return true;
-  if (!Array.isArray(inventory.items) || inventory.items.length <= 0) return true;
-  if (!inventory.lastMediaInventorySyncAt) return true;
-  return false;
+  const connection = connectionSummary && typeof connectionSummary === 'object' && !Array.isArray(connectionSummary) ? connectionSummary : {};
+  const connected = inventory.connected === true || connection.connected === true;
+  const itemCount = Array.isArray(inventory.items) ? inventory.items.length : 0;
+  const lastMediaInventorySyncAt = inventory.lastMediaInventorySyncAt || safeIsoOrNull(connection.lastMediaInventorySyncAt);
+  const rejectCount = safeNonNegativeNumber(inventory.mediaInventorySyncRejectCount || connection.mediaInventorySyncRejectCount);
+  const lastRejectReason = safeReason(inventory.lastMediaInventorySyncRejectReason || connection.lastMediaInventorySyncRejectReason);
+  const fullSync = sanitizeMediaFullSync(inventory.mediaFullSync || connection.mediaFullSync);
+  const active = inventory.active === true;
+  let reason = 'agent_snapshot_available';
+
+  if (!connected) reason = 'agent_not_connected';
+  else if (rejectCount > 0 && !lastMediaInventorySyncAt && lastRejectReason) reason = 'media_inventory_rejected';
+  else if (!lastMediaInventorySyncAt) reason = 'media_inventory_not_received_since_restart';
+  else if (!active || itemCount <= 0) reason = 'media_inventory_empty';
+
+  const available = reason === 'agent_snapshot_available';
+
+  return {
+    prepared: true,
+    build: BUILD,
+    readOnly: true,
+    available,
+    reason,
+    agentConnected: connected,
+    connectionState: safeStatus(inventory.connectionState || connection.connectionState || ''),
+    lastSeenAt: inventory.lastSeenAt || safeIsoOrNull(connection.lastSeenAt),
+    lastHeartbeatAt: inventory.lastHeartbeatAt || safeIsoOrNull(connection.lastHeartbeatAt),
+    heartbeatAgeMs: safeNullableNumber(inventory.heartbeatAgeMs || connection.heartbeatAgeMs),
+    stale: inventory.stale === true || connection.stale === true,
+    mediaInventoryActive: active,
+    mediaInventoryItems: itemCount,
+    mediaInventoryReturned: safeNonNegativeNumber(inventory.returned || itemCount),
+    mediaInventoryTotalSeen: safeNonNegativeNumber(inventory.totalSeen || itemCount),
+    mediaInventoryTruncated: inventory.truncated === true,
+    lastMediaInventorySyncAt,
+    mediaInventorySyncSeq: safeNullableNumber(inventory.mediaInventorySyncSeq || connection.mediaInventorySyncSeq),
+    mediaInventoryRejectCount: rejectCount,
+    lastMediaInventoryRejectAt: inventory.lastMediaInventorySyncRejectAt || safeIsoOrNull(connection.lastMediaInventorySyncRejectAt),
+    lastMediaInventoryRejectReason: lastRejectReason,
+    mediaFullSync: fullSync,
+    noAgentActionTriggered: true,
+    noOnlineToAgentAction: true,
+    noDatabaseWrite: true,
+    note: diagnosticNote(reason)
+  };
+}
+
+function diagnosticNote(reason) {
+  if (reason === 'agent_not_connected') return 'Agent ist nicht verbunden; der In-Memory-Snapshot kann nach Restart/Deploy leer sein.';
+  if (reason === 'media_inventory_rejected') return 'Media-Inventory wurde nicht akzeptiert oder zuletzt abgelehnt; Reject-Grund pruefen.';
+  if (reason === 'media_inventory_not_received_since_restart') return 'Seit dem letzten Webserver-Start wurde noch kein Media-Inventory-Snapshot empfangen.';
+  if (reason === 'media_inventory_empty') return 'Agent-Verbindung ist vorhanden, aber der Media-Inventory-Snapshot enthaelt keine Items.';
+  return 'Agent-Snapshot ist fuer Diff-Auswertung vorhanden.';
 }
 
 async function readPersistentIndexItems(config) {
@@ -230,20 +312,24 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
   };
 }
 
-function buildReliabilityBlock({ agentInventory, agentSnapshotUnavailable, dbInventory, diff }) {
+function buildReliabilityBlock({ agentInventory, agentSnapshotDiagnostic, dbInventory, diff }) {
   const dbTruncated = dbInventory && dbInventory.truncated === true;
+  const agentSnapshotUnavailable = agentSnapshotDiagnostic && agentSnapshotDiagnostic.available !== true;
   const metadataCompareWarnings = diff && diff.counts ? safeNonNegativeNumber(diff.counts.metadataCompareWarnings) : 0;
   const missingOnAgentReliable = !agentSnapshotUnavailable && !(agentInventory && agentInventory.truncated === true) && !dbTruncated;
   let note = 'Agent- und DB-Snapshot sind nicht als gekuerzt gemeldet.';
   if (agentSnapshotUnavailable) {
-    note = 'Agent-Snapshot ist leer oder nicht verfuegbar. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loesch-/Tombstone-Status bewertet.';
+    note = agentSnapshotDiagnostic && agentSnapshotDiagnostic.note
+      ? agentSnapshotDiagnostic.note
+      : 'Agent-Snapshot ist leer oder nicht verfuegbar. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loesch-/Tombstone-Status bewertet.';
   } else if (agentInventory && agentInventory.truncated === true) {
     note = 'Agent-Snapshot ist gekuerzt. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loeschstatus bewertet.';
   } else if (dbTruncated) {
     note = 'DB-Snapshot ist gekuerzt. Fehlende Agent-Eintraege werden deshalb nicht vollstaendig bewertet.';
   }
   return {
-    agentSnapshotUnavailable: agentSnapshotUnavailable === true,
+    agentSnapshotUnavailable,
+    agentSnapshotReason: agentSnapshotDiagnostic ? agentSnapshotDiagnostic.reason : 'unknown',
     agentSnapshotTruncated: agentInventory && agentInventory.truncated === true,
     databaseSnapshotTruncated: dbTruncated,
     newAndChangedReliableForReturnedAgentItems: !agentSnapshotUnavailable,
@@ -334,6 +420,27 @@ function sanitizeMediaItem(item) {
   };
 }
 
+function sanitizeMediaFullSync(input) {
+  const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  return {
+    state: safeStatus(source.state || 'unknown'),
+    syncId: source.syncId ? String(source.syncId).replace(/[^\w:.-]/g, '_').slice(0, 120) : null,
+    receivedChunks: safeNonNegativeNumber(source.receivedChunks),
+    totalChunks: safeNonNegativeNumber(source.totalChunks),
+    receivedItems: safeNonNegativeNumber(source.receivedItems),
+    totalItems: safeNonNegativeNumber(source.totalItems),
+    startedAt: safeIsoOrNull(source.startedAt),
+    lastChunkAt: safeIsoOrNull(source.lastChunkAt),
+    completedAt: safeIsoOrNull(source.completedAt),
+    lastError: safeReason(source.lastError),
+    lastRejectAt: safeIsoOrNull(source.lastRejectAt),
+    lastRejectReason: safeReason(source.lastRejectReason),
+    writeEnabled: source.writeEnabled === true,
+    writesBlocked: source.writesBlocked !== false,
+    uploadEditDeleteEnabled: false
+  };
+}
+
 function safePreviewItem(item) {
   const safe = sanitizeMediaItem(item) || {};
   const preview = {
@@ -359,7 +466,12 @@ function buildAgentSummary(agentInventory, agentSnapshotUnavailable = false) {
     totalSeen: agentInventory.totalSeen,
     truncated: agentInventory.truncated,
     hasMore: agentInventory.hasMore,
+    lastSeenAt: agentInventory.lastSeenAt,
+    lastHeartbeatAt: agentInventory.lastHeartbeatAt,
     lastMediaInventorySyncAt: agentInventory.lastMediaInventorySyncAt,
+    mediaInventorySyncSeq: agentInventory.mediaInventorySyncSeq,
+    mediaInventorySyncRejectCount: agentInventory.mediaInventorySyncRejectCount,
+    lastMediaInventorySyncRejectReason: agentInventory.lastMediaInventorySyncRejectReason,
     snapshotUnavailable: agentSnapshotUnavailable === true
   };
 }
@@ -396,6 +508,8 @@ function buildComparePolicy() {
     modifiedAtToleranceMs: MODIFIED_AT_TOLERANCE_MS,
     uncomparableMetadataDoesNotMarkChanged: true,
     emptyAgentSnapshotDoesNotMarkMissingReliable: true,
+    agentSnapshotDiagnosticEnabled: true,
+    diagnosticDoesNotTriggerAgentAction: true,
     warningFields: ['metadataCompareWarnings', 'metadataWarnings'],
     noFileContentHashing: true
   };
@@ -454,9 +568,20 @@ function safeStatus(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9_.:-]/g, '_').slice(0, 80);
 }
 
+function safeReason(value) {
+  const reason = safeStatus(value);
+  return reason || null;
+}
+
 function safeNonNegativeNumber(value) {
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0) return 0;
+  return Math.floor(num);
+}
+
+function safeNullableNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return null;
   return Math.floor(num);
 }
 
