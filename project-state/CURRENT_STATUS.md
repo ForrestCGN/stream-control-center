@@ -2,36 +2,30 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.27B - Media Sync Compact Frame Fix`.
+Aktuell: `0.2.28 - Media Agent Slow Sync Status Polish Readonly`.
 
 ## Technischer Stand
 
 ```text
-- 0.2.27 ist lokal getestet und auf GitHub/dev gewesen.
-- Webserver-Deploy zeigte: Agent verbindet, aber nach Media-Sync fiel WSS wieder offline.
-- Ursache im Deploy-Test: `agent_payload_too_large_64bit_frame` nach Media-Sync.
-- 0.2.27B reduziert den Media-WSS-Transport auf kompakte Payloads.
-- Media-Sync bleibt eigenes Protokoll: rdap-agent-media-inventory.v1.
-- Media-System bleibt fachliches Modul.
-- Online liest Media aus Webserver-Memory-Cache, sobald Agent-Media-Sync angenommen wurde.
-- Lokal liefert Media read-only Inventar aus htdocs/assets/sounds, htdocs/assets/videos und htdocs/assets/images.
-- OBS-Inventar-Protokoll bleibt getrennt und wird nicht fuer Media missbraucht.
+- 0.2.27B ist lokal und online getestet: Agent bleibt nach Media-Sync verbunden.
+- Webserver-Check bestaetigt: connected=true, lastMediaSync gesetzt, mediaReject=null, heartbeatReject=null.
+- Online /api/remote/agent/media/inventory/status liefert Media-Inventar aus Agent-Memory.
+- Aktueller Online-Stand im Test: 120 Eintraege, truncated=true, Quelle agent-wss-media-inventory-sync.
+- 0.2.28 verfeinert nur Status-/UI-Texte fuer den kompakten Agent-Memory-Index.
+- Es gibt weiterhin keinen persistenten Server-Cache fuer Media-Daten.
+- Lokal bleibt Master/Wahrheit fuer echte Media-Dateien unter htdocs/assets/*.
+- Media-System bleibt fachliches Modul; Agent/Sync/Cache bleiben Infrastruktur.
 - Upload/Edit/Delete bleiben false.
 - Keine Datei-Inhalte, keine absoluten Pfade, keine DB-Migration, keine Shell-/Prozess-Actions.
 - OBS-Modul bleibt bei 0.2.22E geparkt.
 ```
 
-## Architekturentscheidungen
+## Naechste Architekturentscheidung
 
 ```text
-- Eine UI, zwei Runtime-Profile.
-- Remote-Modboard UI ist einzige UI-Wahrheit.
-- Lokales dashboard-v2 ist dieselbe UI mit runtimeMode=local.
-- Online ist dieselbe UI mit runtimeMode=online.
-- Module sind fachlich, nicht technisch.
-- Sync, Agent, Cache und Runtime-Profil sind Infrastruktur.
-- Gleiche Funktionen bleiben im gleichen fachlichen Modul.
-- Jede Funktion wird mit Rechte-/User-/Rollenmodell geplant.
+Persistenter Server-Index ist sinnvoll, aber nur als separater read-only Plan-/Code-Step.
+Kein voller bidirektionaler Datei-Sync ohne Permission, Confirm, Audit, Conflict-Handling und lokalen Agent-Apply-Mechanismus.
+Lokal bleibt wichtigste Quelle, weil dort die produktiven Medien benutzt werden.
 ```
 
 ## Standard-Arbeitsweise Zusatz

@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.27 - Media Agent Slow Sync Readonly`.
+Aktueller Stand: `0.2.28 - Media Agent Slow Sync Status Polish Readonly`.
 
 ## Verbindlich
 
@@ -66,7 +66,7 @@ OBS ist bei 0.2.22E geparkt.
 0.2.26: Architekturstandard fuer Runtime-Profile, fachliche Module, Sync-Klassen und Rechte dokumentiert.
 0.2.27: Media Agent Slow Sync read-only gebaut.
 0.2.27B: Media-WSS-Payload kompakt gemacht, damit kein 64-bit WebSocket-Frame-Abbruch entsteht.
-0.2.27: Media-Agent-WSS-Slow-Sync read-only vorbereitet.
+0.2.28: Media-Slow-Sync Status/UI polish read-only; kein DB-Cache, keine Persistenz.
 ```
 
 ## Lokal/Online
@@ -74,7 +74,7 @@ OBS ist bei 0.2.22E geparkt.
 ```text
 Lokal: echte Media-Dateien liegen auf dem Stream-PC unter htdocs/assets/*.
 Online: Webserver hat keinen direkten Zugriff auf lokale Stream-PC-Dateien.
-Online-Media-Inventar kommt per Agent-WSS-Slow-Sync, memory-only.
+Online-Media-Inventar kommt per Agent-WSS-Slow-Sync, memory-only. Server-Persistenz/Index-Cache ist nur fuer spaeter geplant.
 ```
 
 ## Sicherheitsgrenzen
@@ -99,7 +99,7 @@ docs/current/RDAP_RUNTIME_PROFILE_MODULE_PERMISSION_STANDARD.md
 ## Naechster sinnvoller Step
 
 ```text
-Nach 0.2.27: Media-Sync testen und danach naechsten kleinen read-only Ausbau planen
+Nach 0.2.28: Persistent Media Index Cache read-only separat planen; keine Upload/Delete/Edit-Writes ohne eigene Steps
 ```
 
 Nur bauen, nachdem GitHub/dev gelesen wurde und ein Plan bestaetigt ist.

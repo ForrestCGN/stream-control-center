@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.28 - Media Agent Slow Sync Status Polish Readonly
+
+- Status-/UI-Polish fuer den getesteten Media-Agent-Slow-Sync.
+- Online-Media-Seite beschreibt Agent-Sync, kompakte Liste, Memory-only und fehlende Server-Persistenz klarer.
+- `GET /api/remote/media/status` liefert `syncInfo` mit `memoryOnly`, `serverPersistence=false`, `compactTransport` und `localIsMaster`.
+- Gekuerzte Online-Liste (`truncated=true`) wird als erwartete kompakte Liste dargestellt, nicht als Fehler.
+- Persistenter Server-Index wird nur als naechster separater Plan-Step vorbereitet.
+- Keine Uploads, Edits, Deletes, DB-Migrationen, Datei-Inhalte, absoluten Pfade oder Shell-/Prozess-Actions.
+
 ## 0.2.27B - Media Sync Compact Frame Fix
 
 - Hotfix fuer Deploy-Befund nach 0.2.27.

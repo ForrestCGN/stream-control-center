@@ -144,9 +144,12 @@
     const counts = inventory.counts || {};
     const statusText = state.error ? 'Fehler' : (state.loading ? 'Lade...' : (data.summary || 'Media-System read-only vorbereitet.'));
     const runtimeLabel = data.runtimeMode === 'local' || mode.local ? 'Lokal' : 'Online';
-    const inventoryStatus = inventory.active ? `${counts.returned || counts.total || 0} Medien` : 'Inventar folgt';
+    const syncInfo = data.syncInfo || {};
+    const inventoryStatus = inventory.active ? `${counts.returned || counts.total || 0} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt';
+    const syncLabel = mode.local ? 'lokale Datei-Wahrheit' : (inventory.active ? 'Agent-Sync aktiv' : 'wartet auf Agent');
     const extensionList = Array.isArray(data.allowedExtensions) ? data.allowedExtensions.join(', ') : '';
-    const truncatedNotice = inventory.truncated ? `<div class="admin-lock-note"><i>!</i><div><strong>Liste gekuerzt.</strong><span>Es werden ${escapeHtml(String(inventory.limit || 0))} Medien angezeigt. Weitere Filter/Paging sind vorbereitet.</span></div></div>` : '';
+    const truncatedNotice = inventory.truncated ? `<div class="admin-lock-note"><i>!</i><div><strong>Kompakte Liste gekuerzt.</strong><span>Es werden ${escapeHtml(String(counts.returned || counts.total || inventory.limit || 0))} Medien angezeigt. Weitere lokale Medien sind vorhanden; Paging/Persistenz wird separat geplant.</span></div></div>` : '';
+    const syncNotice = `<div class="admin-lock-note"><i>i</i><div><strong>${escapeHtml(syncLabel)}</strong><span>${escapeHtml(syncInfo.note || (mode.local ? 'Lokal bleibt die Datei-Wahrheit.' : 'Online zeigt nur den read-only Agent-Memory-Index, keine Server-Speicherung.'))}</span></div></div>`;
 
     mountPanel(`
       <section class="rdap-view" data-page-panel="${PAGE_ID}">
@@ -156,17 +159,17 @@
 
         <section class="metric-grid">
           <article class="metric-card cgn-card"><span>Modus</span><strong>${escapeHtml(runtimeLabel)}</strong><small>gleiche UI lokal und online</small><div class="cgn-progress"><i style="width:70%"></i></div></article>
-          <article class="metric-card cgn-card"><span>Inventar</span><strong>${escapeHtml(inventoryStatus)}</strong><small>${escapeHtml(inventory.source || 'read-only')}</small><div class="cgn-progress ${inventory.active ? '' : 'cgn-progress--warn'}"><i style="width:${inventory.active ? '80' : '15'}%"></i></div></article>
-          <article class="metric-card cgn-card"><span>Upload</span><strong>Aus</strong><small>separater Rechte-Step noetig</small><div class="cgn-progress cgn-progress--warn"><i style="width:0%"></i></div></article>
+          <article class="metric-card cgn-card"><span>Inventar</span><strong>${escapeHtml(inventoryStatus)}</strong><small>${escapeHtml(syncLabel)}</small><div class="cgn-progress ${inventory.active ? '' : 'cgn-progress--warn'}"><i style="width:${inventory.active ? '80' : '15'}%"></i></div></article>
+          <article class="metric-card cgn-card"><span>Server-Cache</span><strong>${escapeHtml(syncInfo.serverPersistence ? 'An' : 'Aus')}</strong><small>Persistenz spaeter separat</small><div class="cgn-progress cgn-progress--warn"><i style="width:0%"></i></div></article>
           <article class="metric-card cgn-card"><span>Loeschen</span><strong>Aus</strong><small>keine gefaehrlichen Aktionen</small><div class="cgn-progress cgn-progress--warn"><i style="width:0%"></i></div></article>
         </section>
 
         <section class="page-grid">
           <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Grundlage</p><h2>Media-Bereiche</h2></div>${chip('read-only', 'info')}</div><div class="module-list">${renderRootRows(data)}</div></article>
           <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Rechte</p><h2>Bedienung bleibt gesperrt</h2></div>${chip('sicher', 'warn')}</div><div class="self-profile-grid self-profile-grid--compact">${renderPermissionRows(data)}</div><div class="admin-lock-note"><i>!</i><div><strong>Upload, Bearbeiten und Loeschen sind absichtlich deaktiviert.</strong><span>Erst wenn serverseitige Media-Rechte, Audit und Sicherheitsabfragen fertig sind, werden Buttons aktiviert.</span></div></div></article>
-          <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Lokal / Online</p><h2>Wo liegen die Dateien?</h2></div>${chip(runtimeLabel, 'info')}</div><div class="admin-lock-note"><i>i</i><div><strong>${escapeHtml(mode.local ? 'Lokal liegen die echten Stream-PC-Dateien.' : 'Online hat der Webserver keinen direkten Zugriff auf Stream-PC-Dateien.')}</strong><span>${escapeHtml(mode.local ? 'Das lokale Inventar wird read-only aus den lokalen Assets gelesen.' : 'Online kommt das Inventar per Agent-WSS-Slow-Sync, memory-only und ohne Upload/Delete.')}</span></div></div></article>
+          <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Lokal / Online</p><h2>Wo liegen die Dateien?</h2></div>${chip(runtimeLabel, 'info')}</div><div class="admin-lock-note"><i>i</i><div><strong>${escapeHtml(mode.local ? 'Lokal liegen die echten Stream-PC-Dateien.' : 'Online hat der Webserver keinen direkten Zugriff auf Stream-PC-Dateien.')}</strong><span>${escapeHtml(mode.local ? 'Das lokale Inventar wird read-only aus den lokalen Assets gelesen.' : 'Online kommt das Inventar per Agent-WSS-Slow-Sync als kompakter Memory-Index, ohne Server-Persistenz und ohne Upload/Delete.')}</span></div></div></article>
           <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Dateitypen</p><h2>Erlaubte Endungen</h2></div>${chip('Allowlist', 'ok')}</div><div class="admin-lock-note"><i>✓</i><div><strong>${escapeHtml(extensionList || 'Noch nicht geladen')}</strong><span>Freie Pfade und absolute Pfade werden nicht als Bedienmodell genutzt.</span></div></div></article>
-          <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div>${chip(inventory.active ? 'Inventar aktiv' : 'wartet', inventory.active ? 'ok' : 'warn')}</div><div class="login-actions" style="justify-content:flex-start;flex-wrap:wrap;margin-bottom:12px">${renderFilters(data)} <button class="secondaryButton small" type="button" data-media-refresh="1">Neu laden</button></div>${truncatedNotice}${renderInventoryTable()}</article>
+          <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div>${chip(inventory.active ? 'Inventar aktiv' : 'wartet', inventory.active ? 'ok' : 'warn')}</div><div class="login-actions" style="justify-content:flex-start;flex-wrap:wrap;margin-bottom:12px">${renderFilters(data)} <button class="secondaryButton small" type="button" data-media-refresh="1">Neu laden</button></div>${syncNotice}${truncatedNotice}${renderInventoryTable()}</article>
         </section>
       </section>`);
   }

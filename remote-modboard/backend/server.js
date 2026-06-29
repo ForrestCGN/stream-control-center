@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.27B';
-const BUILD_NAME = 'Media Sync Compact Frame Fix';
-const STEP_REF = 'RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX';
+const APP_VERSION = '0.2.28';
+const BUILD_NAME = 'Media Agent Slow Sync Status Polish Readonly';
+const STEP_REF = 'RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY';
 const MODULE_BUILD = STEP_REF;
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
   const app = createApp({ config, moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] v${APP_VERSION} - ${BUILD_NAME} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' mediaLocalInventoryReadonlyPrepared=true mediaAgentSlowSyncReadonlyPrepared=true mediaUploadEnabled=false mediaDeleteEnabled=false localOnlineAware=true actions=false remoteWritesControlled=true');
+    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' mediaLocalInventoryReadonlyPrepared=true mediaAgentSlowSyncReadonlyPrepared=true mediaAgentSlowSyncStatusPolish=true mediaUploadEnabled=false mediaDeleteEnabled=false localOnlineAware=true actions=false remoteWritesControlled=true');
   });
 
   registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });

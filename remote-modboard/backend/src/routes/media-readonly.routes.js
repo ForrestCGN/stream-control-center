@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
 
-const STATUS_API_VERSION = 'rdap_media_agent_slow_sync_readonly_027b.v1';
-const BUILD = 'RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX';
+const STATUS_API_VERSION = 'rdap_media_agent_slow_sync_status_polish_028.v1';
+const BUILD = 'RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
@@ -41,7 +41,7 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_media_readonly',
-    moduleVersion: context.appVersion || '0.2.25',
+    moduleVersion: context.appVersion || '0.2.28',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -53,11 +53,11 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     active: true,
     status: localRuntime
       ? (inventory.active ? 'local_media_inventory_available' : 'local_media_inventory_empty')
-      : (inventory.active ? 'online_media_inventory_available' : 'online_media_inventory_sync_pending'),
+      : (inventory.active ? (inventory.truncated ? 'online_media_inventory_compact_available' : 'online_media_inventory_available') : 'online_media_inventory_sync_pending'),
     title: 'Media-System',
     summary: localRuntime
       ? 'Lokales Media-Inventar wurde read-only erfasst. Upload, Bearbeiten und Loeschen bleiben aus.'
-      : (inventory.active ? 'Online-Media-Inventar wurde read-only per Agent-WSS Slow-Sync uebernommen. Upload, Bearbeiten und Loeschen bleiben aus.' : 'Online-Media-Grundlage ist vorbereitet. Echte lokale Medien kommen nur ueber read-only Agent-WSS Slow-Sync.'),
+      : buildOnlineSummary(inventory),
     mode: {
       local: localRuntime,
       online: !localRuntime,
@@ -69,6 +69,7 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
       localDashboardProfileUsesSameUi: true
     },
     permissions: buildPermissionBlock(),
+    syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus }),
     inventory,
     plannedRoots: MEDIA_PLANNED_ROOTS.map(item => ({ ...item })),
     allowedExtensions: MEDIA_ALLOWED_EXTENSIONS.slice(),
@@ -83,10 +84,45 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     },
     safety: buildSafetyBlock(),
     nextSteps: [
-      inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.',
+      inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert; kompakte Listen koennen truncated=true melden.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.',
       'Filter/Paging spaeter ohne Breaking Change ueber limit/root/type/cursor ausbauen.',
       'Upload/Edit/Delete erst nach separatem Permission-/Audit-/Confirm-Step.'
     ]
+  };
+}
+
+
+function buildOnlineSummary(inventory) {
+  if (!inventory || inventory.active !== true) {
+    return 'Online-Media-Grundlage ist vorbereitet. Echte lokale Medien kommen nur ueber read-only Agent-WSS Slow-Sync.';
+  }
+  const returned = inventory.counts && Number.isFinite(Number(inventory.counts.returned)) ? Number(inventory.counts.returned) : 0;
+  if (inventory.truncated === true) {
+    return `Online-Media-Inventar ist per Agent-WSS aktiv. Es werden ${returned} Eintraege kompakt angezeigt; weitere lokale Medien sind vorhanden. Upload, Bearbeiten und Loeschen bleiben aus.`;
+  }
+  return `Online-Media-Inventar ist per Agent-WSS aktiv. Es werden ${returned} Eintraege angezeigt. Upload, Bearbeiten und Loeschen bleiben aus.`;
+}
+
+function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus }) {
+  const counts = inventory && inventory.counts ? inventory.counts : {};
+  return {
+    prepared: true,
+    readOnly: true,
+    runtimeMode: localRuntime ? 'local' : 'online',
+    source: inventory && inventory.source ? inventory.source : (localRuntime ? 'local_stream_pc_filesystem_readonly' : 'agent_wss_media_inventory_sync_memory_only'),
+    localIsMaster: true,
+    serverPersistence: false,
+    memoryOnly: !localRuntime,
+    compactTransport: !localRuntime,
+    active: inventory && inventory.active === true,
+    returned: Number(counts.returned || counts.total || 0),
+    truncated: inventory && inventory.truncated === true,
+    hasMore: inventory && inventory.hasMore === true,
+    lastMediaSyncAt: agentMediaStatus && agentMediaStatus.agent ? agentMediaStatus.agent.lastMediaInventorySyncAt || null : null,
+    status: inventory && inventory.active === true ? (inventory.truncated === true ? 'compact_inventory_available' : 'inventory_available') : 'inventory_pending',
+    note: localRuntime
+      ? 'Lokal bleibt die Datei-Wahrheit; das Inventar wird direkt read-only aus den Assets gelesen.'
+      : 'Online zeigt einen read-only Agent-Memory-Index. Dieser Step speichert keine Media-Daten dauerhaft auf dem Server.'
   };
 }
 
@@ -145,6 +181,7 @@ function buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus }
     prepared: true,
     active: items.length > 0,
     source: 'agent_wss_media_inventory_sync_memory_only',
+    transportMode: 'agent_wss_compact_memory_only',
     routePreparedLater: '/api/remote/agent/media/inventory/status',
     scannedAt: source.scannedAt || source.checkedAt || generatedAt,
     receivedAt: source.receivedAt || status.generatedAt || generatedAt,
@@ -162,7 +199,9 @@ function buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus }
     errors: [],
     emptyReason: items.length ? null : 'agent_media_inventory_empty',
     memoryOnly: true,
-    persistsToDatabase: false
+    persistsToDatabase: false,
+    compactTransport: true,
+    serverPersistencePlannedLater: true
   };
 }
 

@@ -2,16 +2,22 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX` lokal einspielen.
+- [ ] `RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY` lokal einspielen.
 - [ ] Lokale Syntaxchecks ausfuehren.
-- [ ] Lokal Media-Inventar weiterhin aktiv pruefen.
-- [ ] Agent-Verbindung online pruefen.
-- [ ] Pruefen, dass Agent nach Media-Sync verbunden bleibt.
-- [ ] Online Media-Inventar nach Slow-Sync pruefen.
-- [ ] Pruefen: kein `agent_payload_too_large_64bit_frame` mehr.
+- [ ] Lokale Media-Seite Sichttest.
+- [ ] Online Media-Seite Sichttest nach Deploy.
+- [ ] Online Status pruefen: Agent-Sync aktiv, memoryOnly=true, serverPersistence=false.
+- [ ] Pruefen: truncated=true wird verstaendlich angezeigt.
 - [ ] Pruefen: upload/edit/delete bleiben false.
 - [ ] Pruefen: keine absoluten Pfade in Online-Response.
 - [ ] Wenn sauber: `stepdone.cmd`.
+
+## Danach planen
+
+- [ ] `RDAP_0.2.29_MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN` vorbereiten.
+- [ ] Persistenten Media-Index nur als Metadaten-Cache planen, keine Datei-Inhalte.
+- [ ] Lokal bleibt Master/Wahrheit fuer produktive Media-Dateien.
+- [ ] Bidirektionale Aenderungen nur spaeter mit Permission, Confirm, Audit, Conflict-Handling und Agent-Apply-Queue planen.
 
 ## Immer beachten
 

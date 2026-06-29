@@ -1,23 +1,21 @@
 # Next Steps
 
-Nach `0.2.27B`:
+Nach `0.2.28`:
 
 ## 1. Direkt testen
 
 ```text
-RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX
+RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY
 ```
 
 Pruefen:
 
 ```text
-- Lokal Media-Inventar weiterhin aktiv.
-- Agent-Verbindung online bleibt nach Media-Sync verbunden.
-- Webserver Reject `agent_payload_too_large_64bit_frame` tritt nicht mehr auf.
-- Online /api/remote/agent/media/inventory/status zeigt Agent-Media-Memory-Cache.
-- Online /api/remote/media/status uebernimmt Media-Inventar aus Agent-Memory.
-- Counts lokal/online plausibel; online darf wegen Compact-Transport weniger Items melden.
-- truncated darf true sein und ist kein Fehler.
+- Remote-Modboard Media-Seite online zeigt Agent-Sync aktiv / kompakte Liste verstaendlich an.
+- Lokal Media-Seite bleibt lokale Datei-Wahrheit.
+- Online /api/remote/media/status meldet syncInfo.memoryOnly=true und syncInfo.serverPersistence=false.
+- Online /api/remote/agent/media/inventory/status bleibt active=true, connected=true, rejects=null.
+- truncated=true wird als gekuerzte kompakte Liste angezeigt, nicht als Fehler.
 - upload/edit/delete bleiben false.
 - Keine absoluten Pfade in Online-Response.
 ```
@@ -25,18 +23,18 @@ Pruefen:
 ## 2. Danach sinnvoll
 
 ```text
-RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY
+RDAP_0.2.29_MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN
 ```
 
 Ziel:
 
 ```text
-- Sichttest Media-Seite lokal/online.
-- Kleine UI-Statusverfeinerung nur falls noetig.
-- Optional Paging/Filter-Limit sauber planen.
-- Keine Writes.
-- Keine Uploads/Deletes/Edits.
-- Keine DB-Migration.
+- Persistenten Server-Index nur planen, nicht blind bauen.
+- Klaeren: SQLite/DB-Cache vs. JSON-Cache vs. bestehende DB-Struktur.
+- Lokal bleibt Master fuer echte Media-Dateien.
+- Server speichert hoechstens Metadaten-Index, keine Datei-Inhalte.
+- Agent sendet spaeter Snapshot/Deltas und bringt Server-Index bei Reconnect auf Stand.
+- Upload/Edit/Delete bleiben separate spaetere Steps mit Permission, Confirm, Audit, Conflict-Handling.
 ```
 
 ## 3. Nicht tun
@@ -48,7 +46,8 @@ Kein OBS-Inventory-Protokoll fuer Media missbrauchen.
 Keine Upload-/Delete-Buttons aktivieren.
 Keine lokalen absoluten Pfade anzeigen.
 Keine grossen Listen ohne Limit/Paging laden.
-Keine Rechte-/Rollenfragen nach hinten schieben.
+Keine DB-Migration ohne eigenen bestaetigten Step.
+Keine bidirektionale Datei-Synchronisation ohne Sicherheitsmodell.
 ```
 
 ## 4. Standard-Arbeitsweise Zusatz
