@@ -2,81 +2,26 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.41 - Remote-Modboard Media Index Schema Readonly Status Plan`.
+Aktuell vorbereitet: `0.2.42 - Remote-Modboard Media Index Schema Status Readonly`.
 
 ## Technischer Stand
 
 ```text
-- 0.2.33 ist lokal/online bestaetigt: keine rohen Media-i18n-Keys mehr.
-- 0.2.34 wurde deployt, Route lief, aber persistentIndex.ok=false mit database_layer_unavailable.
-- Ursache: 0.2.34 nutzte falsch die lokale Repo-root-SQLite-Schicht backend/core/database.js.
-- Online-Remote-Modboard nutzt bereits DB-Konfiguration ueber MariaDB/mysql2.
-- 0.2.34B blockiert den falschen DB-Ansatz.
-- 0.2.35 plant die spaetere MariaDB-Media-Index-Richtung ohne Code.
-- 0.2.36 inventarisiert die vorhandene Remote-Modboard-DB-Nutzung ohne Code.
-- 0.2.37 dokumentiert das remote_media_index Schema als Dry-Run ohne Migration.
-- 0.2.38 dokumentiert den Confirm-/Migrationsplan ohne Code und ohne SQL-Ausfuehrung.
-- 0.2.39 erstellt die SQL-Datei tools/rdap_0.2.39_remote_media_index_schema.sql, fuehrt sie aber nicht aus.
 - 0.2.40 hat die MariaDB-Tabelle remote_media_index auf dem Webserver angelegt.
-- 0.2.41 plant nur die spaetere read-only Schema-Status-/Diagnose-Sicht.
+- Readback aus 0.2.40: Tabelle existiert, Spalten vorhanden, Indizes vorhanden, row_count = 0.
+- 0.2.41 hat den read-only Status-/Diagnose-Plan dokumentiert.
+- 0.2.42 erweitert die bestehende Media-Statusroute optional um ?db=1.
+- Die Diagnose nutzt die vorhandene Remote-Modboard-MariaDB-Schicht ueber db.service.js / withReadOnlyConnection().
+- Ohne ?db=1 bleibt die Media-Route leichtgewichtig.
 - Media bleibt online read-only ueber Agent-Memory.
-- Media-Schema ist vorhanden.
-- Keine Media-Persistenz-Daten aktiv.
 - Keine Upload/Edit/Delete-Funktion aktiv.
+- Keine Media-Daten-Writes aktiv.
 ```
 
-## Vorhandene Online-DB-Schicht
+## Geaendert in 0.2.42
 
 ```text
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/services/db-health.service.js
-remote-modboard/backend/src/services/db.service.js
-```
-
-## Vorhandene Read-only DB-Nutzung
-
-```text
-remote-modboard/backend/src/services/auth-db-read.service.js
-remote-modboard/backend/src/services/auth-session-read.service.js
-remote-modboard/backend/src/services/audit-read.service.js
-```
-
-## 0.2.40 Server-Migration bestaetigt
-
-```text
-Ausgefuehrt:
-- SQL aus frischem GitHub/dev Clone unter _deploy_tmp
-- SQL-Datei: tools/rdap_0.2.39_remote_media_index_schema.sql
-- CREATE TABLE IF NOT EXISTS remote_media_index
-
-Backup:
-- /opt/stream-control-center/_runtime_tmp/remote_modboard_before_remote_media_index_20260629_113811.sql
-- Groesse: 44K
-
-Readback:
-- remote_media_index existiert
-- Spalten vorhanden
-- Indizes vorhanden
-- row_count = 0
-
-Nicht passiert:
-- kein Service-Restart
-- kein Webserver-Deploy
-- keine Media-Daten-Writes
-- kein Upload/Edit/Delete
-```
-
-## 0.2.41 Plan-Status
-
-```text
-- Doku-/State-only.
-- Plant spaetere read-only Diagnose fuer remote_media_index.
-- Geplante Quellen: INFORMATION_SCHEMA.COLUMNS, INFORMATION_SCHEMA.STATISTICS, SELECT COUNT(*).
-- compatibleForRead wird nur bewertet.
-- compatibleForWrite bleibt false.
-- writeEnabled bleibt false.
-- Keine Runtime-Dateien geaendert.
-- Kein Webserver-Deploy noetig.
+remote-modboard/backend/src/routes/media-readonly.routes.js
 ```
 
 ## Sicherheitsstatus
@@ -85,11 +30,10 @@ Nicht passiert:
 lokal 8080 != webserver 3010
 Live-Pfad ist kein Git-Repo
 keine manuellen DB-/Datei-Kopien in /opt/stream-control-center/remote-modboard
-keine SQLite-/Repo-root-DB fuer Online-Remote-Modboard annehmen
-db.service.js ist die relevante Online-DB-Schicht
-remote_media_index Schema existiert auf MariaDB
-remote_media_index ist leer
-keine produktiven Media-DB-Writes
-keine Agent-Writes
-kein Upload/Edit/Delete
+keine SQLite-/Repo-root-DB fuer Online-Remote-Modboard
+remote_media_index Schema wird nur read-only gelesen
+compatibleForWrite=false
+writeEnabled=false
+dataWritesEnabled=false
+migrationEnabled=false
 ```

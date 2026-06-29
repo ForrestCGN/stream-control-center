@@ -3,10 +3,11 @@
 const fs = require('fs');
 const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
+const { buildDatabaseReadiness, withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
-const STATUS_API_VERSION = 'rdap_media_persistent_index_foundation_blocked_034b.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_persistent_index_foundation_034.v1';
-const BUILD = 'RDAP_0.2.34B_MEDIA_PERSISTENT_INDEX_FOUNDATION_BLOCKED_DOCS_FIX';
+const STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_persistent_index_foundation_blocked_034b.v1';
+const BUILD = 'RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 const PERSISTENT_INDEX_SCHEMA_MODULE = 'remote_media_index';
 const PERSISTENT_INDEX_SCHEMA_VERSION = 1;
@@ -25,20 +26,47 @@ const MEDIA_PLANNED_ROOTS = Object.freeze([
   { key: 'images', label: 'Bilder', localPathHint: 'htdocs/assets/images', publicBasePath: '/assets/images', types: ['image'] }
 ]);
 
+const EXPECTED_PERSISTENT_INDEX_COLUMNS = Object.freeze([
+  'id',
+  'root_key',
+  'kind',
+  'relative_path',
+  'name',
+  'extension',
+  'size_bytes',
+  'modified_at',
+  'first_seen_at',
+  'last_seen_at',
+  'deleted',
+  'source',
+  'sync_version',
+  'updated_at'
+]);
+
+const EXPECTED_PERSISTENT_INDEX_KEYS = Object.freeze([
+  'PRIMARY',
+  'idx_remote_media_index_root_path',
+  'idx_remote_media_index_kind',
+  'idx_remote_media_index_deleted_last_seen'
+]);
+
 let persistentIndexSchemaState = null;
 
 function registerMediaReadonlyRoutes(app, context) {
-  app.get(MEDIA_STATUS_PATH, (req, res) => {
-    res.json(buildMediaReadonlyStatus(context, req));
+  app.get(MEDIA_STATUS_PATH, async (req, res) => {
+    res.json(await buildMediaReadonlyStatus(context, req));
   });
 }
 
-function buildMediaReadonlyStatus(context = {}, req = null) {
+async function buildMediaReadonlyStatus(context = {}, req = null) {
   const runtimeMode = context && context.config && context.config.runtimeMode ? String(context.config.runtimeMode) : 'online';
   const generatedAt = new Date().toISOString();
   const localRuntime = runtimeMode === 'local';
   const limit = readLimit(req);
-  const persistentIndex = ensurePersistentIndexFoundation(context);
+  const inspectDatabase = shouldInspectPersistentIndex(req);
+  const persistentIndex = inspectDatabase
+    ? await inspectPersistentIndexSchema(context)
+    : ensurePersistentIndexFoundation(context);
   const agentMediaStatus = localRuntime ? null : safeBuildAgentMediaInventoryStatus();
   const inventory = localRuntime
     ? scanLocalInventory({ limit, generatedAt })
@@ -48,7 +76,7 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_media_readonly',
-    moduleVersion: context.appVersion || '0.2.34B',
+    moduleVersion: context.appVersion || '0.2.42',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -94,7 +122,7 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     safety: buildSafetyBlock(),
     nextSteps: [
       inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert; kompakte Listen koennen truncated=true melden.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.',
-      'Persistent-Index-Schema bleibt blockiert: Online-Remote-Modboard nutzt MariaDB-Konfiguration, nicht die lokale Repo-root-SQLite-Schicht.',
+      inspectDatabase ? 'Persistent-Index-Schema wurde read-only ueber Remote-Modboard-MariaDB diagnostiziert.' : 'Persistent-Index-Schema kann mit ?db=1 read-only ueber Remote-Modboard-MariaDB diagnostiziert werden.',
       'Filter/Paging spaeter ohne Breaking Change ueber limit/root/type/cursor ausbauen.',
       'Upload/Edit/Delete erst nach separatem Permission-/Audit-/Confirm-Step.'
     ]
@@ -138,8 +166,12 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     status: inventory && inventory.active === true ? (inventory.truncated === true ? 'compact_inventory_available' : 'inventory_available') : 'inventory_pending',
     note: localRuntime
       ? 'Lokal bleibt die Datei-Wahrheit; das Inventar wird direkt read-only aus den Assets gelesen.'
-      : 'Online zeigt weiter den read-only Agent-Memory-Index. Persistent Index ist blockiert, bis eine MariaDB-kompatible Remote-Modboard-DB-Schicht geplant ist.'
+      : 'Online zeigt weiter den read-only Agent-Memory-Index. Persistent Index wird nur bei ?db=1 diagnostisch aus MariaDB gelesen; Writes bleiben aus.'
   };
+}
+
+function shouldInspectPersistentIndex(req) {
+  return Boolean(req && req.query && String(req.query.db || '') === '1');
 }
 
 function readLimit(req) {
@@ -157,7 +189,7 @@ function ensurePersistentIndexFoundation(context = {}) {
 
   const configDatabase = context && context.config && context.config.database ? context.config.database : {};
   persistentIndexSchemaState = buildPersistentIndexState({
-    reason: 'blocked_wrong_database_layer_removed_remote_mariadb_required',
+    reason: 'schema_status_readonly_available_with_db_query',
     database: {
       engine: configDatabase.engine || 'MariaDB',
       driver: configDatabase.driver || 'mysql2/promise',
@@ -174,25 +206,205 @@ function buildPersistentIndexState(input = {}) {
     prepared: true,
     ok: false,
     blocked: true,
+    inspected: false,
+    detected: null,
     readOnly: true,
     tableName: PERSISTENT_INDEX_TABLE,
     schemaModule: PERSISTENT_INDEX_SCHEMA_MODULE,
     schemaVersion: 0,
     targetSchemaVersion: PERSISTENT_INDEX_SCHEMA_VERSION,
-    reason: input.reason || 'persistent_index_blocked_until_remote_mariadb_schema_step',
+    reason: input.reason || 'persistent_index_schema_status_readonly_not_requested',
     targetDatabase: 'remote_modboard_mariadb',
     rejectedDatabaseLayer: 'backend/core/database.js sqlite repo-root layer',
     migrationEnabled: false,
+    writeEnabled: false,
     dataWritesEnabled: false,
+    compatibleForRead: false,
+    compatibleForWrite: false,
     fallbackReadsEnabled: false,
     localIsMaster: true,
     storesFileContents: false,
     storesAbsolutePaths: false,
     columns: [],
+    indexes: [],
+    expectedColumns: EXPECTED_PERSISTENT_INDEX_COLUMNS.slice(),
+    expectedIndexes: EXPECTED_PERSISTENT_INDEX_KEYS.slice(),
+    missingColumns: [],
+    missingIndexes: [],
     itemCount: 0,
     database: input.database || null,
-    note: '0.2.34B blockiert den falschen SQLite/Repo-root-DB-Ansatz. Online-Persistenz darf spaeter nur ueber die bestehende Remote-Modboard-MariaDB-Konfiguration geplant werden.'
+    note: '0.2.42 haelt den Media-Index read-only. Echte Schema-Diagnose erfolgt nur bei ?db=1 ueber die bestehende Remote-Modboard-MariaDB-Schicht.'
   };
+}
+
+async function inspectPersistentIndexSchema(context = {}) {
+  const config = context && context.config ? context.config : {};
+  const readiness = buildDatabaseReadiness(config);
+  const base = buildPersistentIndexState({
+    reason: 'schema_inspection_requested_readonly',
+    database: {
+      engine: config.database && config.database.engine ? config.database.engine : 'MariaDB',
+      driver: config.database && config.database.driver ? config.database.driver : 'mysql2/promise',
+      configured: readiness.configured,
+      driverAvailable: readiness.driverAvailable,
+      writeEnabled: false,
+      migrationEnabled: false,
+      error: readiness.error
+    }
+  });
+
+  if (!readiness.configured || !readiness.driverAvailable) {
+    return {
+      ...base,
+      ok: false,
+      blocked: true,
+      inspected: false,
+      detected: false,
+      reason: readiness.error || 'db_not_ready',
+      error: readiness.error || 'db_not_ready'
+    };
+  }
+
+  try {
+    return await withReadOnlyConnection(config, async (connection) => {
+      const [tableRows] = await connection.query(
+        `
+          SELECT TABLE_NAME AS table_name
+          FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = ?
+          LIMIT 1
+        `,
+        [PERSISTENT_INDEX_TABLE]
+      );
+      const detected = Array.isArray(tableRows) && tableRows.length > 0;
+
+      if (!detected) {
+        return {
+          ...base,
+          ok: false,
+          blocked: true,
+          inspected: true,
+          detected: false,
+          reason: 'remote_media_index_table_missing',
+          itemCount: 0
+        };
+      }
+
+      const [columnRows] = await connection.query(
+        `
+          SELECT
+            COLUMN_NAME AS column_name,
+            DATA_TYPE AS data_type,
+            IS_NULLABLE AS is_nullable,
+            COLUMN_DEFAULT AS column_default,
+            COLUMN_KEY AS column_key,
+            EXTRA AS extra,
+            ORDINAL_POSITION AS ordinal_position
+          FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = ?
+          ORDER BY ORDINAL_POSITION ASC
+        `,
+        [PERSISTENT_INDEX_TABLE]
+      );
+      const [indexRows] = await connection.query(
+        `
+          SELECT
+            INDEX_NAME AS index_name,
+            NON_UNIQUE AS non_unique,
+            SEQ_IN_INDEX AS seq_in_index,
+            COLUMN_NAME AS column_name
+          FROM INFORMATION_SCHEMA.STATISTICS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = ?
+          ORDER BY INDEX_NAME ASC, SEQ_IN_INDEX ASC
+        `,
+        [PERSISTENT_INDEX_TABLE]
+      );
+      const [countRows] = await connection.query(`SELECT COUNT(*) AS row_count FROM ${PERSISTENT_INDEX_TABLE}`);
+
+      const columns = normalizeColumnRows(columnRows);
+      const indexes = normalizeIndexRows(indexRows);
+      const detectedColumnNames = columns.map(column => column.name);
+      const detectedIndexNames = indexes.map(index => index.name);
+      const missingColumns = EXPECTED_PERSISTENT_INDEX_COLUMNS.filter(column => !detectedColumnNames.includes(column));
+      const missingIndexes = EXPECTED_PERSISTENT_INDEX_KEYS.filter(index => !detectedIndexNames.includes(index));
+      const itemCount = Number(countRows && countRows[0] && countRows[0].row_count ? countRows[0].row_count : 0);
+      const compatibleForRead = missingColumns.length === 0 && missingIndexes.length === 0;
+
+      return {
+        ...base,
+        ok: compatibleForRead,
+        blocked: false,
+        inspected: true,
+        detected: true,
+        schemaVersion: compatibleForRead ? PERSISTENT_INDEX_SCHEMA_VERSION : 0,
+        reason: compatibleForRead ? 'schema_compatible_for_read_readonly' : 'schema_incomplete_for_read',
+        columns,
+        indexes,
+        missingColumns,
+        missingIndexes,
+        itemCount,
+        compatibleForRead,
+        compatibleForWrite: false,
+        writeEnabled: false,
+        dataWritesEnabled: false,
+        migrationEnabled: false,
+        fallbackReadsEnabled: false,
+        database: {
+          ...base.database,
+          reachable: true,
+          writeEnabled: false,
+          migrationEnabled: false
+        },
+        note: 'remote_media_index wurde read-only ueber INFORMATION_SCHEMA und SELECT COUNT(*) geprueft. Es wurden keine Media-Daten geschrieben.'
+      };
+    });
+  } catch (err) {
+    const publicError = publicDbError(err).code;
+    return {
+      ...base,
+      ok: false,
+      blocked: true,
+      inspected: false,
+      detected: false,
+      reason: publicError || 'persistent_index_schema_read_failed',
+      error: publicError || 'persistent_index_schema_read_failed'
+    };
+  }
+}
+
+function normalizeColumnRows(rows) {
+  return (Array.isArray(rows) ? rows : []).map(row => ({
+    name: String(row.column_name || ''),
+    dataType: String(row.data_type || ''),
+    nullable: String(row.is_nullable || '').toUpperCase() === 'YES',
+    defaultValue: row.column_default === null || typeof row.column_default === 'undefined' ? null : String(row.column_default),
+    key: String(row.column_key || ''),
+    extra: String(row.extra || ''),
+    ordinal: Number(row.ordinal_position || 0)
+  })).filter(column => column.name);
+}
+
+function normalizeIndexRows(rows) {
+  const byName = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const name = String(row.index_name || '');
+    if (!name) continue;
+    if (!byName.has(name)) {
+      byName.set(name, {
+        name,
+        unique: Number(row.non_unique || 0) === 0,
+        columns: []
+      });
+    }
+    byName.get(name).columns.push(String(row.column_name || ''));
+  }
+  return Array.from(byName.values()).map(index => ({
+    ...index,
+    columns: index.columns.filter(Boolean)
+  }));
 }
 
 function buildPendingInventory({ localRuntime, limit }) {
@@ -314,7 +526,7 @@ function buildCountsFromItems(items, sourceCounts) {
 }
 
 function safePublicMediaPath(value) {
-  const raw = String(value || '').replace(/\\/g, '/').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 260);
+  const raw = String(value || '').replace(/\\/g, '/').replace(/[\u0000-\u001f<>":|?*]/g, '').slice(0, 260);
   if (!raw || raw.includes('..') || /^[a-zA-Z]:/.test(raw) || raw.startsWith('http://') || raw.startsWith('https://')) return '';
   return raw.startsWith('/') ? raw : `/${raw}`;
 }
@@ -526,9 +738,23 @@ function buildMediaRoutesSummary(context = {}) {
     localInventoryReadonlyPrepared: true,
     onlineAgentInventoryReadonlyPrepared: true,
     persistentIndex,
+    persistentIndexSchemaStatusReadonly: {
+      prepared: true,
+      route: MEDIA_STATUS_PATH,
+      query: 'db=1',
+      tableName: PERSISTENT_INDEX_TABLE,
+      usesInformationSchemaColumns: true,
+      usesInformationSchemaStatistics: true,
+      readsRowCount: true,
+      compatibleForReadPrepared: true,
+      compatibleForWrite: false,
+      writeEnabled: false,
+      dataWritesEnabled: false,
+      migrationEnabled: false
+    },
     scanPolicy: { defaultLimit: MEDIA_SCAN_DEFAULT_LIMIT, hardLimit: MEDIA_SCAN_HARD_LIMIT, maxDepth: MEDIA_SCAN_MAX_DEPTH, cursorPreparedLater: true },
     routes: [
-      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status, lokales Inventar im Lokalmodus und Online-Inventar aus Agent-WSS-Memory-Cache; Persistent Index blockiert bis Remote-Modboard-MariaDB-Schicht geplant ist; keine Uploads, keine Deletes, keine Media-Daten-Writes', readOnly: true }
+      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status, lokales Inventar im Lokalmodus und Online-Inventar aus Agent-WSS-Memory-Cache; Persistent Index Schema-Diagnose optional mit ?db=1 ueber Remote-Modboard-MariaDB; keine Uploads, keine Deletes, keine Media-Daten-Writes', readOnly: true }
     ],
     safety: {
       noFileWrite: true,
@@ -546,5 +772,6 @@ module.exports = {
   registerMediaReadonlyRoutes,
   buildMediaReadonlyStatus,
   buildMediaRoutesSummary,
-  ensurePersistentIndexFoundation
+  ensurePersistentIndexFoundation,
+  inspectPersistentIndexSchema
 };

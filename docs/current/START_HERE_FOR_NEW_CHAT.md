@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.41 - Remote-Modboard Media Index Schema Readonly Status Plan`.
+Aktueller Stand: `0.2.42 - Remote-Modboard Media Index Schema Status Readonly`.
 
 ## Verbindlich
 
@@ -26,7 +26,6 @@ Webserver / Remote-Modboard:
 - Port 3010
 - Live-Pfad: /opt/stream-control-center/remote-modboard
 - kein Git-Repo im Live-Pfad
-- keine lokale Repo-root-SQLite-Schicht
 - Online-DB ueber remote-modboard config/db/db-health und MariaDB/mysql2
 
 Deploy:
@@ -34,162 +33,18 @@ Deploy:
 - Live-Pfad nicht fuer git pull benutzen
 ```
 
-## 0.2.34B Ergebnis
-
-```text
-0.2.34 war als DB-Foundation mit falscher DB-Schicht angesetzt.
-0.2.34B blockiert diesen Ansatz sauber.
-media-readonly.routes.js versucht nicht mehr, backend/core/database.js zu laden.
-Persistent Index bleibt blocked/failsafe.
-Keine DB-Migration.
-Keine Media-Daten-Writes.
-Route bleibt read-only ueber Agent-Memory/Local-Scan.
-```
-
-## 0.2.35 Ergebnis
-
-```text
-No-Code-Architekturplan fuer spaetere Remote-Modboard-MariaDB-Media-Index-Arbeit.
-Keine Runtime-Aenderung.
-Keine Migration.
-Kein Webserver-Deploy.
-```
-
-## 0.2.36 Ergebnis
-
-```text
-No-Code-Inventur der vorhandenen Online-DB-Nutzung.
-Gelesene Remote-Modboard-DB-Schicht:
-- remote-modboard/backend/src/services/config.service.js
-- remote-modboard/backend/src/services/db-health.service.js
-- remote-modboard/backend/src/services/db.service.js
-- remote-modboard/backend/src/services/auth-db-read.service.js
-- remote-modboard/backend/src/services/auth-session-read.service.js
-- remote-modboard/backend/src/services/audit-read.service.js
-
-Ergebnis:
-- Online nutzt MariaDB/mysql2.
-- db.service.js ist die relevante Remote-Modboard-DB-Schicht.
-- Read-only Muster existieren.
-- writeEnabled/migrationEnabled bleiben false.
-- Kein Media-Index-Schema aktiv.
-- Keine Media-DB-Writes aktiv.
-```
-
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.36_REMOTE_MODBOARD_MARIADB_DB_USAGE_INVENTORY_NO_CODE.md
-```
-
-## 0.2.37 Ergebnis
-
-```text
-No-Code/No-Migration Schema-Dry-Run fuer spaetere Remote-Modboard-MariaDB-Media-Index-Arbeit.
-
-Dokumentiert:
-- geplantes Tabellenmodell remote_media_index
-- zulaessige DB-Schicht db.service.js/config.service.js
-- read-only Vorpruefungen ueber INFORMATION_SCHEMA
-- Backup-Vorgabe fuer spaetere Migration
-- Rollback-Vorgabe fuer spaetere Migration
-
-Nicht passiert:
-- keine Runtime-Aenderung
-- keine DB-Migration
-- keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung
-- keine Media-Daten-Writes
-- kein Webserver-Deploy
-```
-
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.37_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_DRY_RUN_NO_MIGRATION.md
-```
-
-## 0.2.38 Ergebnis
-
-```text
-No-Code Confirm-/Migrationsplan fuer spaetere Remote-Modboard-MariaDB-Media-Schema-Arbeit.
-
-Dokumentiert:
-- geplanter SQL-Dateipfad fuer spaeter: tools/rdap_0.2.39_remote_media_index_schema.sql
-- geplantes CREATE TABLE IF NOT EXISTS remote_media_index als Plan
-- konkrete Backup-Pflicht mit mysqldump
-- konkrete Readback-Checks ueber INFORMATION_SCHEMA und row_count
-- konkrete Rollback-Grenzen fuer leere Tabelle
-
-Nicht passiert:
-- keine Runtime-Aenderung
-- keine SQL-Datei erstellt
-- keine DB-Migration
-- keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung
-- keine Media-Daten-Writes
-- kein Webserver-Deploy
-```
-
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.38_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_CONFIRMATION_PLAN_NO_CODE.md
-```
-
-## 0.2.39 Ergebnis
-
-```text
-SQL-Datei fuer spaetere Remote-Modboard-MariaDB-Media-Schema-Migration wurde vorbereitet.
-
-Erstellt:
-- tools/rdap_0.2.39_remote_media_index_schema.sql
-
-Dokumentiert:
-- CREATE TABLE IF NOT EXISTS remote_media_index
-- SQL-Datei darf nicht automatisch ausgefuehrt werden
-- Ausfuehrung erst in eigenem Server-Migration-Confirm-Step
-
-Nicht passiert:
-- keine Runtime-Aenderung
-- keine SQL-Ausfuehrung
-- keine DB-Migration
-- keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung auf Server/DB
-- keine Media-Daten-Writes
-- kein Webserver-Deploy
-```
-
-Step-Doku:
-
-```text
-docs/current/RDAP_0.2.39_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_FILE_NO_EXECUTE.md
-```
-
 ## 0.2.40 Ergebnis
 
 ```text
 Server-Migration fuer remote_media_index wurde nach explizitem go migration ausgefuehrt.
-
-Ausgefuehrt:
-- frischer GitHub/dev Clone unter /opt/stream-control-center/_deploy_tmp/RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED_20260629_113811
-- SQL-Datei aus dem Clone:
-  tools/rdap_0.2.39_remote_media_index_schema.sql
-- MariaDB CREATE TABLE IF NOT EXISTS remote_media_index
-
-Backup:
-- /opt/stream-control-center/_runtime_tmp/remote_modboard_before_remote_media_index_20260629_113811.sql
-- Backup-Groesse: 44K
-
-Readback:
-- Tabelle remote_media_index existiert
-- Spalten vorhanden
-- Indizes vorhanden
-- row_count = 0
-
-Nicht passiert:
-- keine Runtime-Code-Aenderung
-- kein Service-Restart
-- kein Webserver-Deploy
-- keine Media-Daten-Writes
-- kein Upload/Edit/Delete
+Backup: /opt/stream-control-center/_runtime_tmp/remote_modboard_before_remote_media_index_20260629_113811.sql
+Backup-Groesse: 44K
+Readback: Tabelle existiert, Spalten vorhanden, Indizes vorhanden, row_count = 0
+Keine Runtime-Code-Aenderung.
+Kein Service-Restart.
+Kein Webserver-Deploy.
+Keine Media-Daten-Writes.
+Kein Upload/Edit/Delete.
 ```
 
 Step-Doku:
@@ -201,24 +56,14 @@ docs/current/RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRME
 ## 0.2.41 Ergebnis
 
 ```text
-Doku-/State-only Plan fuer die naechste read-only Media-Index-Schema-Diagnose.
-
-Dokumentiert:
-- remote_media_index Schema-Status nur lesen
-- INFORMATION_SCHEMA.COLUMNS / INFORMATION_SCHEMA.STATISTICS nur als Plan
-- row_count nur read-only lesen
-- compatibleForRead planen
-- compatibleForWrite=false festhalten
-- writeEnabled=false festhalten
-
-Nicht passiert:
-- keine Runtime-Code-Aenderung
-- keine SQL-Ausfuehrung
-- keine DB-Migration
-- keine Media-Daten-Writes
-- keine Agent-Writes
-- kein Upload/Edit/Delete
-- kein Webserver-Deploy
+Doku-/State-only Plan fuer die read-only Media-Index-Schema-Diagnose.
+Keine Runtime-Code-Aenderung.
+Keine SQL-Ausfuehrung.
+Keine DB-Migration.
+Keine Media-Daten-Writes.
+Keine Agent-Writes.
+Kein Upload/Edit/Delete.
+Kein Webserver-Deploy.
 ```
 
 Step-Doku:
@@ -227,10 +72,35 @@ Step-Doku:
 docs/current/RDAP_0.2.41_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_READONLY_STATUS_PLAN.md
 ```
 
+## 0.2.42 Ergebnis
+
+```text
+Runtime-Read-only-Diagnose fuer remote_media_index vorbereitet.
+Route: GET /api/remote/media/status?db=1
+Nutzt: remote-modboard/backend/src/services/db.service.js / withReadOnlyConnection()
+Liest: INFORMATION_SCHEMA.TABLES, INFORMATION_SCHEMA.COLUMNS, INFORMATION_SCHEMA.STATISTICS, SELECT COUNT(*)
+compatibleForRead wird aus Schema/Indizes abgeleitet.
+compatibleForWrite=false.
+writeEnabled=false.
+dataWritesEnabled=false.
+migrationEnabled=false.
+Keine SQL-Ausfuehrung.
+Keine DB-Migration.
+Keine Media-Daten-Writes.
+Keine Agent-Writes.
+Kein Upload/Edit/Delete.
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY.md
+```
+
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY
+RDAP_0.2.42_SERVER_DEPLOY_AND_READBACK
 ```
 
-Nur nach neuem Plan/go: read-only Runtime-Diagnose ueber die vorhandene Remote-Modboard-MariaDB-Schicht vorbereiten. Keine Media-Writes, keine Agent-Writes, kein Upload/Edit/Delete.
+Nur nach lokalem Abschluss und GitHub/dev-Push: Webserver-Deploy ueber `tools/server/remote-modboard-deploy-step.sh`, danach Readback auf `/api/remote/media/status?db=1`.
