@@ -1,6 +1,14 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.47B - Remote-Modboard Media UI Source Info Runtime Fix`.
+Aktueller Stand: `0.2.48 - Remote-Modboard Media Mod View Cleanup Handoff Docs`.
+
+## Pflichtkontext zuerst lesen
+
+```text
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_MEDIA_MOD_VIEW_CLEANUP.md
+```
 
 ## Verbindlich
 
@@ -15,67 +23,65 @@ Keine Online-Sonder-UI.
 Funktion geht vor: keine unnoetigen Mini-/Skelett-Steps.
 ```
 
-## 0.2.46 Ergebnis
+## Harte Laufzeit-Trennung
 
 ```text
-Kompakter Runtime-Step in bestehender Media-Route.
-Kein neues Modul.
-Kein neuer Endpoint.
-Route bleibt: /api/remote/media/status und /api/remote/media/status?db=1.
-Neu: sourceInfo Block fuer kompakte Quellen-/DB-Diagnose.
-Ohne db=1: keine DB-Abfrage, dbIndexChecked=false.
-Mit db=1: nutzt bestehende read-only Schema-/COUNT-Diagnose, keine DB-Item-Reads.
-Agent-Memory bleibt primaere Online-Wahrheit.
-fallbackEnabled=false.
-writesEnabled=false.
-Keine SQL-Ausfuehrung.
-Keine DB-Migration.
-Keine INSERT/UPDATE/DELETE.
-Keine Media-Daten-Writes.
-Keine Agent-Writes.
-Kein Upload/Edit/Delete.
-```
+Lokal / Stream-PC:
+- Port 8080
+- lokale Schicht: backend/modules/local_remote_modboard_adapter.js
+- lokale Datei-/Media-Wahrheit
 
-## 0.2.47 Ergebnis
+Webserver / Remote-Modboard:
+- Port 3010
+- Live-Pfad: /opt/stream-control-center/remote-modboard
+- kein Git-Repo im Live-Pfad
+- Online-DB ueber remote-modboard config/db/db-health und MariaDB/mysql2
 
-```text
-Media-UI nutzt sourceInfo sichtbar.
-Quelle / Agent / DB / Fallback / Writes werden angezeigt.
-Keine Backend-Route.
-Kein neuer Endpoint.
-Kein neues Modul.
-Keine DB-Item-Reads.
-Keine Writes.
+Deploy:
+- Quelle ist frischer Clone unter /opt/stream-control-center/_deploy_tmp/<STEP>
+- Live-Pfad nicht fuer git pull benutzen
 ```
 
 ## 0.2.47B Ergebnis
 
 ```text
-Runtime-Fix fuer leere Media-UI.
-Nur bestehendes UI-Modul geaendert:
-remote-modboard/backend/public/assets/modules/media/library.js
+Media-UI Runtime-Fix ist aktiv.
+Media-Seite rendert wieder sichtbar.
+Agent-Memory ist aktiv.
+Media-System zeigt Inventar, Media-Bereiche und sourceInfo.
+Fallback/Writes bleiben aus.
+Upload/Edit/Delete bleiben aus.
+```
 
-Fix:
-- install() laeuft nur noch einmal.
-- Installation wartet bei Bedarf auf DOMContentLoaded.
-- safeRender() faengt Runtime-Renderfehler ab.
-- Fehler werden in der UI sichtbar statt leerer Seite.
-- sourceInfo/Inventory/Permissions werden defensiv gelesen.
+## 0.2.48 Ergebnis
+
+```text
+Doku-/Handoff-only.
+Problem dokumentiert:
+- normale Media-Seite zeigt zu viele technische Details fuer Mods.
+- Agent/DB/Fallback/Writes/sourceInfo gehoeren nicht prominent in die Mod-Ansicht.
+- technische Details sollen in Admin-/Diagnosebereich.
 
 Nicht passiert:
-- keine Backend-Aenderung
-- kein neuer Endpoint
+- keine Runtime-Code-Aenderung
+- kein Backend
 - keine API-Aenderung
 - keine DB-Item-Reads
-- keine SQL-Ausfuehrung
-- keine DB-Migration
-- keine Media-Daten-Writes
-- keine Agent-Writes
-- kein Upload/Edit/Delete
+- keine Writes
+- kein Deploy
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.48_REMOTE_MODBOARD_MEDIA_MOD_VIEW_CLEANUP_HANDOFF_DOCS.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_MEDIA_MOD_VIEW_CLEANUP.md
 ```
 
 ## Naechster sinnvoller Step
 
 ```text
-Nach lokalem Abschluss und GitHub/dev-Push: Webserver-Deploy und Browser-Readback fuer Media-System.
+RDAP_0.2.49_REMOTE_MODBOARD_MEDIA_MOD_VIEW_CLEANUP_ADMIN_DIAG_SPLIT
 ```
+
+Ziel: normale Media-Mod-Ansicht enttechnisieren und Quelle/DB/Fallback/Writes in Admin-/Diagnosebereich verschieben oder dort vorbereiten. Keine Writes, keine DB-Item-Reads, kein Upload/Edit/Delete.

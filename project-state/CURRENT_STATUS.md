@@ -1,14 +1,15 @@
 # CURRENT STATUS
 
-Aktueller Stand: `0.2.47B - Remote-Modboard Media UI Source Info Runtime Fix`.
+Aktueller Stand: `0.2.48 - Remote-Modboard Media Mod View Cleanup Handoff Docs`.
 
 ## Kurzstatus
 
 ```text
 Media-API funktioniert.
-Agent-Memory ist aktiv moeglich.
-sourceInfo ist in /api/remote/media/status vorhanden.
-Media-UI zeigt sourceInfo und ist gegen Runtime-Renderfehler abgesichert.
+Agent-Memory ist aktiv.
+Media-UI rendert nach 0.2.47B wieder sichtbar.
+Normale Media-Seite zeigt aktuell aber zu viele technische Details fuer Mods.
+Technische sourceInfo-/DB-/Fallback-/Writes-Details sollen in Admin-/Diagnosebereich.
 ```
 
 ## Sicherheitsgrenzen

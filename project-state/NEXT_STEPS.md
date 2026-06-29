@@ -1,16 +1,26 @@
 # NEXT STEPS
 
-## Direkt nach 0.2.47B
+## Naechster funktionaler Step
 
 ```text
-Webserver deployen.
-Browser hart neu laden.
-Media-System pruefen.
-Wenn UI sichtbar ist: 0.2.47B abschliessen und GitHub/dev pushen.
+RDAP_0.2.49_REMOTE_MODBOARD_MEDIA_MOD_VIEW_CLEANUP_ADMIN_DIAG_SPLIT
 ```
 
-## Danach
+## Ziel
 
 ```text
-Naechster Step soll wieder eine sichtbare Funktion verbessern, keine unnoetigen Mini-/Skelett-Steps.
+Normale Media-Ansicht fuer Mods enttechnisieren.
+Quelle/DB/Fallback/Writes/sourceInfo nicht prominent in der Mod-Ansicht zeigen.
+Technische Details in Admin-/Diagnosebereich verschieben oder dort vorbereiten.
+Keine neuen APIs/Endpoints, wenn nicht noetig.
+Keine Writes.
+```
+
+## Vor Umsetzung lesen
+
+```text
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+docs/current/MASTER_PROMPT_RDAP_WORKFLOW_ADDENDUM_2026-06-24.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_MEDIA_MOD_VIEW_CLEANUP.md
+remote-modboard/backend/public/assets/modules/media/library.js
 ```
