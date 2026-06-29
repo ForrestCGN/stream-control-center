@@ -2,7 +2,7 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.37 - Remote-Modboard MariaDB Media Schema Dry Run No Migration`.
+Aktuell: `0.2.38 - Remote-Modboard MariaDB Media Schema Confirmation Plan No Code`.
 
 ## Technischer Stand
 
@@ -15,6 +15,7 @@ Aktuell: `0.2.37 - Remote-Modboard MariaDB Media Schema Dry Run No Migration`.
 - 0.2.35 plant die spaetere MariaDB-Media-Index-Richtung ohne Code.
 - 0.2.36 inventarisiert die vorhandene Remote-Modboard-DB-Nutzung ohne Code.
 - 0.2.37 dokumentiert das remote_media_index Schema als Dry-Run ohne Migration.
+- 0.2.38 dokumentiert den Confirm-/Migrationsplan ohne Code und ohne SQL-Ausfuehrung.
 - Media bleibt online read-only ueber Agent-Memory.
 - Keine Media-Persistenz aktiv.
 - Keine DB-Migration aktiv.
@@ -47,6 +48,17 @@ remote-modboard/backend/src/services/audit-read.service.js
 - Backup-Vorgabe fuer spaetere Migration
 - Rollback-Vorgabe fuer spaetere Migration
 - Status-/Diagnose-Idee fuer spaeter
+```
+
+## 0.2.38 Dokumentiert
+
+```text
+- geplanter SQL-Dateipfad: tools/rdap_0.2.39_remote_media_index_schema.sql
+- geplantes CREATE TABLE IF NOT EXISTS remote_media_index nur als Plan
+- konkrete Backup-Pflicht mit mysqldump
+- konkrete Readback-Checks ueber INFORMATION_SCHEMA und row_count
+- konkrete Rollback-Grenzen fuer leere Tabelle
+- naechster Step bleibt SQL-Datei ohne Ausfuehrung
 ```
 
 ## Sicherheitsstatus

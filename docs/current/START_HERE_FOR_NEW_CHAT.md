@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.37 - Remote-Modboard MariaDB Media Schema Dry Run No Migration`.
+Aktueller Stand: `0.2.38 - Remote-Modboard MariaDB Media Schema Confirmation Plan No Code`.
 
 ## Verbindlich
 
@@ -108,10 +108,37 @@ Step-Doku:
 docs/current/RDAP_0.2.37_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_DRY_RUN_NO_MIGRATION.md
 ```
 
+## 0.2.38 Ergebnis
+
+```text
+No-Code Confirm-/Migrationsplan fuer spaetere Remote-Modboard-MariaDB-Media-Schema-Arbeit.
+
+Dokumentiert:
+- geplanter SQL-Dateipfad fuer spaeter: tools/rdap_0.2.39_remote_media_index_schema.sql
+- geplantes CREATE TABLE IF NOT EXISTS remote_media_index als Plan
+- konkrete Backup-Pflicht mit mysqldump
+- konkrete Readback-Checks ueber INFORMATION_SCHEMA und row_count
+- konkrete Rollback-Grenzen fuer leere Tabelle
+
+Nicht passiert:
+- keine Runtime-Aenderung
+- keine SQL-Datei erstellt
+- keine DB-Migration
+- keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung
+- keine Media-Daten-Writes
+- kein Webserver-Deploy
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.38_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_CONFIRMATION_PLAN_NO_CODE.md
+```
+
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.38_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_CONFIRMATION_PLAN_NO_CODE
+RDAP_0.2.39_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_FILE_NO_EXECUTE
 ```
 
-Nur Confirm-/Migrationsplanung mit konkretem Backup/Readback/Rollback. Keine Migration und keine Writes, bis Forrest einen separaten MariaDB-Migration-Step ausdruecklich freigibt.
+Nur SQL-Datei im Repo vorbereiten. Keine Ausfuehrung, keine Migration, keine Runtime-Dateien, keine Media-Writes, bis Forrest einen separaten Server-Migration-Confirm-Step ausdruecklich freigibt.

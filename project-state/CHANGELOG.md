@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.38 - Remote-Modboard MariaDB Media Schema Confirmation Plan No Code
+
+- Fuegt reine Doku fuer den Confirm-/Migrationsplan hinzu.
+- Dokumentiert geplanten SQL-Dateipfad fuer spaeter:
+  - `tools/rdap_0.2.39_remote_media_index_schema.sql`
+- Dokumentiert geplantes `CREATE TABLE IF NOT EXISTS remote_media_index` nur als Plan.
+- Dokumentiert konkrete Backup-Pflicht mit `mysqldump`.
+- Dokumentiert konkrete Readback-Checks ueber `INFORMATION_SCHEMA` und `row_count`.
+- Dokumentiert Rollback-Grenzen fuer eine leere Tabellenanlage.
+- Bestaetigt: keine Runtime-Aenderung.
+- Bestaetigt: keine SQL-Datei erstellt.
+- Bestaetigt: keine DB-Migration.
+- Bestaetigt: keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung.
+- Bestaetigt: keine Media-Daten-Writes.
+- Bestaetigt: kein Webserver-Deploy noetig.
+
 ## 0.2.37 - Remote-Modboard MariaDB Media Schema Dry Run No Migration
 
 - Fuegt reine Doku fuer einen MariaDB-Schema-Dry-Run hinzu.
