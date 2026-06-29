@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58G - Media Index Diff Effective Change Counts`
+Aktueller Stand: `0.2.58H - Media Index Diff Full-Sync Effective Compare Plan`
 
 ## Bestaetigter Webserver-Stand
 
@@ -11,7 +11,9 @@ rdap_media_index_diff_effective_change_counts_058g.v1
 RDAP_0.2.58G_MEDIA_INDEX_DIFF_EFFECTIVE_CHANGE_COUNTS
 ```
 
-Befund:
+0.2.58H ist Doku-only und aendert keinen laufenden Webserver-Code.
+
+## Befund aus 0.2.58G
 
 ```text
 agentSnapshotDiagnostic.reason = agent_snapshot_available
@@ -35,6 +37,24 @@ missingOnAgentReliable = false
 - Strict changes sind nur bekannte `modifiedAt`-Offsets.
 - Missing/Tombstone ist nicht belastbar, weil Compact-Agent-Snapshot trunciert ist.
 - Full-Sync sieht 332/333 Items, bleibt aber write-blocked/gate-geschuetzt.
+- 0.2.58H klaert: `120/333` ist eine erwartete Compact-WSS-Transportbegrenzung, kein DB-Fehler.
+
+## 0.2.58H Entscheidung
+
+Der naechste Code-Step soll nicht Delta-Upsert sein.
+
+Der naechste sinnvolle Code-Step ist:
+
+```text
+RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT
+```
+
+Ziel:
+
+- Full-Sync-Chunks read-only als temporaere Vergleichsbasis puffern.
+- Optional Diff-/Diagnosefelder fuer Full-Sync-Compare bereitstellen.
+- Missing/Tombstone nur als reliable markieren, wenn die Full-Sync-Basis vollstaendig ist.
+- Weiterhin keine DB-Writes, kein Upsert, kein Tombstone/Delete, kein Online->Agent-Trigger.
 
 ## Sicherheit
 

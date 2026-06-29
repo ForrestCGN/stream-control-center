@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.2.58H - Media Index Diff Full-Sync Effective Compare Plan
+
+- Ursache fuer `120 returned / 333 totalSeen` dokumentiert.
+- Compact-Agent-Snapshot ist bewusst durch WSS-Payloadgroesse und Limits `[120, 80, 40, 20]` begrenzt.
+- Full-Sync ist separater 50er-Chunk-Transport.
+- Missing/Tombstone bleibt aus Compact-Snapshot nicht belastbar.
+- Naechster sinnvoller Code-Step als read-only Full-Sync-Compare-Snapshot festgelegt.
+- Doku-only: keine Code-Aenderung, kein Webserver-Deploy, keine DB-Writes.
+
 ## 0.2.58G Final Documentation
 
 - Webserver-Test nach 0.2.58G dokumentiert.
