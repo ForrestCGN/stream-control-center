@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.2.56A - Media Sync Status DB Source UI
+
+- UI-Sync-Karte nutzt bei aktiver DB-Read-Source die DB-Inventarzaehler statt die alte Compact-Agent-Progress-Anzeige.
+- Online-DB aktiv zeigt jetzt 333 / 333 Dateien und 100%, sobald `/api/remote/media/status` aus `remote_media_index` liest.
+- Sync-Info-Dialog beschreibt die aktive DB-Read-Source.
+- Agent-Memory-Fallback per `?source=agent` bleibt unveraendert.
+- Keine Backend-Write-Aktivierung, keine Upload/Edit/Delete-Funktion, keine Datei-Inhalte, keine absoluten Pfade.
+
 ## 0.2.56 - Media Index Read Source
 
 - `/api/remote/media/status` liest online `remote_media_index` read-only als primaere Media-Quelle, wenn die Tabelle kompatibel und befuellt ist.

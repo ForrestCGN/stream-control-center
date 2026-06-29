@@ -1,17 +1,18 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.56 - Media Index Read Source`
+Aktueller Stand: `0.2.56A - Media Sync Status DB Source UI`
 
 ## Kurzstatus
 
 - Agent-Full-Sync in Chunks funktioniert.
 - Remote-Receiver empfaengt vollstaendige Full-Syncs.
-- `remote_media_index` wurde im kontrollierten Gate-Test mit 333 Items befuellt.
+- `remote_media_index` wurde kontrolliert mit 333 Items befuellt.
 - MEDIA_INDEX Write/Data/FullSync Gates sind wieder deaktiviert.
-- `/api/remote/media/status` nutzt online jetzt `remote_media_index` read-only als primaere Media-Quelle, wenn die Tabelle kompatibel und befuellt ist.
-- Agent-Memory bleibt Fallback und kann mit `?source=agent` gezielt geprueft werden.
-- UI/Status ist damit nicht mehr auf das 120er Compact-Memory-Limit angewiesen.
+- `/api/remote/media/status` nutzt online `remote_media_index` read-only als primaere Media-Quelle.
+- UI-Inventar zeigt 333 Medien aus der DB.
+- Sync-Status-Karte nutzt bei DB-Read-Source jetzt ebenfalls DB-Zaehler: 333 / 333, 100%, vollstaendig.
+- Agent-Memory bleibt Fallback und ist per `?source=agent` pruefbar.
 
 ## Sicherheit
 
-Es werden nur read-only SELECTs aus `remote_media_index` ausgefuehrt. Keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade, keine aktiven Media-Index-Writes.
+Nur UI-/Status-Mapping. Es werden keine DB-Writes aktiviert. Keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade.

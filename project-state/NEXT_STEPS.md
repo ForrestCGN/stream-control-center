@@ -2,12 +2,12 @@
 
 ## Naechster Schritt
 
-`RDAP_0.2.57_MEDIA_INDEX_READ_SOURCE_UI_POLISH_AND_DB_SOURCE_CONFIRMATION`
+`RDAP_0.2.57_MEDIA_INDEX_READ_SOURCE_CONFIRMATION_AND_NEXT_DELTA_PLAN`
 
 Ziel:
-- Online-UI gegen DB-Read-Source sichtbar pruefen
-- Quellen-/Sync-Hinweise fuer Mods klarer machen
-- Agent-Memory-Fallback sichtbar, aber nicht prominent
+- Online-UI gegen DB-Read-Source final sichtbar bestaetigen
+- Media-Liste/Filter/Paging mit 333 DB-Items pruefen
+- naechsten Delta-/Loeschstatus-Schritt planen
 - keine Upload/Edit/Delete-Funktion
 - keine Datei-Inhalte, keine absoluten Pfade
 

@@ -511,10 +511,41 @@
     return safeObject(data.syncFoundation || (safeObject(data.syncInfo).syncFoundation) || safeObject(safeObject(data.inventory).syncFoundation));
   }
 
+  function mediaDbReadActive(data) {
+    const safeData = safeObject(data);
+    const sourceInfo = safeObject(safeData.sourceInfo);
+    const onlineIndex = safeObject(safeData.onlineIndexTarget);
+    const inventory = safeObject(safeData.inventory);
+    const source = String(inventory.source || sourceInfo.primary || '').toLowerCase();
+    return source === 'remote_media_index_readonly'
+      || String(sourceInfo.primary || '').toLowerCase() === 'remote_media_index'
+      || onlineIndex.activeAsReadSource === true;
+  }
+
   function syncProgress(sync) {
+    const data = safeObject(state.data);
+    const inventory = safeObject(data.inventory);
+    const counts = safeObject(inventory.counts);
+    const dbReadActive = mediaDbReadActive(data);
+
+    if (dbReadActive) {
+      const itemLength = Array.isArray(inventory.items) ? inventory.items.length : 0;
+      const returned = Number(counts.returned || counts.total || itemLength || 0);
+      const totalSeen = Number(counts.totalSeen || counts.total || returned || 0);
+      const truncated = inventory.truncated === true || returned < totalSeen;
+      const percent = totalSeen > 0 ? Math.round((returned / totalSeen) * 100) : 0;
+      return {
+        state: truncated ? 'compact_limited' : 'complete',
+        returned,
+        totalSeen,
+        percent: Math.max(0, Math.min(100, Math.round(percent))),
+        truncated
+      };
+    }
+
     const progress = safeObject(sync && sync.progress);
-    const returned = Number(progress.returned || safeObject(safeObject(state.data).inventory).counts?.returned || 0);
-    const totalSeen = Number(progress.totalSeen || safeObject(safeObject(safeObject(state.data).inventory).counts).totalSeen || returned || 0);
+    const returned = Number(progress.returned || counts.returned || 0);
+    const totalSeen = Number(progress.totalSeen || counts.totalSeen || returned || 0);
     const percent = Number.isFinite(Number(progress.percent)) ? Number(progress.percent) : (totalSeen > 0 ? Math.round((returned / totalSeen) * 100) : 0);
     return {
       state: progress.state || (sync && sync.currentLimitProblemVisible ? 'compact_limited' : 'idle'),
@@ -542,19 +573,24 @@
     const progress = syncProgress(sync);
     const onlineIndex = safeObject(data.onlineIndexTarget);
     const isOnline = data.runtimeMode !== 'local' && !safeObject(data.mode).local;
+    const dbReadActive = mediaDbReadActive(data);
     const status = syncStateLabel(progress.state);
     const dbText = isOnline
-      ? (onlineIndex.activeAsReadSource ? 'Online-DB aktiv' : 'Online-DB vorbereitet')
+      ? (dbReadActive ? 'Online-DB aktiv' : 'Online-DB vorbereitet')
       : 'Lokal liest direkt';
-    const detail = sync.currentLimitProblemVisible
-      ? `Aktuell kommen ${progress.returned} von ${progress.totalSeen} Dateien online an. Full-Sync in Chunks ist als naechster DB-Schritt vorbereitet.`
-      : (isOnline ? 'Online-Index und Sync-Fortschritt sind vorbereitet. Produktive DB-Writes folgen separat.' : 'Lokal ist der Stream-PC die Datei-Wahrheit.');
+    const detail = dbReadActive
+      ? `${progress.returned} Medien aus dem Online-Index geladen. DB-Read-Source ist read-only aktiv.`
+      : (sync.currentLimitProblemVisible
+        ? `Aktuell kommen ${progress.returned} von ${progress.totalSeen} Dateien online an. Full-Sync in Chunks ist als naechster DB-Schritt vorbereitet.`
+        : (isOnline ? 'Online-Index und Sync-Fortschritt sind vorbereitet. Produktive DB-Writes folgen separat.' : 'Lokal ist der Stream-PC die Datei-Wahrheit.'));
+    const chipKind = progress.truncated ? 'warn' : 'info';
+    const footerLabel = dbReadActive ? 'DB Read-only' : 'Read-only Foundation';
     return `<article class="cgn-card span2 rdap-media-sync-card">
-      <div class="card-head"><div><p class="cgn-eyebrow">Sync-Status</p><h2>Media-Synchronisierung</h2></div>${chip(status, sync.currentLimitProblemVisible ? 'warn' : 'info')}</div>
+      <div class="card-head"><div><p class="cgn-eyebrow">Sync-Status</p><h2>Media-Synchronisierung</h2></div>${chip(status, chipKind)}</div>
       <div class="rdap-media-sync-progress">
         <div class="rdap-media-sync-meta"><strong>${escapeHtml(dbText)}</strong><span>${escapeHtml(detail)}</span></div>
         <div class="rdap-media-sync-bar" aria-label="Sync-Fortschritt"><i style="width:${escapeHtml(String(progress.percent))}%"></i></div>
-        <div class="rdap-media-sync-meta"><span>${escapeHtml(String(progress.returned))} / ${escapeHtml(String(progress.totalSeen || progress.returned))} Dateien</span><span>${escapeHtml(String(progress.percent))}%</span><span>Read-only Foundation</span></div>
+        <div class="rdap-media-sync-meta"><span>${escapeHtml(String(progress.returned))} / ${escapeHtml(String(progress.totalSeen || progress.returned))} Dateien</span><span>${escapeHtml(String(progress.percent))}%</span><span>${escapeHtml(footerLabel)}</span></div>
       </div>
       <div class="login-actions" style="justify-content:flex-start;flex-wrap:wrap"><button class="secondaryButton small" type="button" data-media-sync-detail="1">Sync-Info</button></div>
     </article>`;
@@ -570,11 +606,11 @@
       ['Status', syncStateLabel(progress.state)],
       ['Fortschritt', `${progress.returned} / ${progress.totalSeen || progress.returned} Dateien (${progress.percent}%)`],
       ['Online-Ziel', onlineIndex.table ? `${onlineIndex.database || 'remote_modboard_mariadb'}.${onlineIndex.table}` : (sync.onlineDatabaseTarget || 'remote_modboard_mariadb.remote_media_index')],
-      ['Full-Sync', sync.fullSyncPrepared || sync.fullSyncChunkProtocolPlanned ? 'vorbereitet, spaeter in Chunks' : 'nicht aktiv'],
+      ['Full-Sync', mediaDbReadActive(data) ? 'Online-Index ist befuellt und als Read-Source aktiv' : (sync.fullSyncPrepared || sync.fullSyncChunkProtocolPlanned ? 'vorbereitet, spaeter in Chunks' : 'nicht aktiv')],
       ['Delta-Sync', sync.deltaSyncPrepared ? 'vorbereitet' : 'nicht aktiv'],
       ['Online → Agent', sync.onlineToAgentQueuePlanned || sync.bidirectionalSyncPlanned ? 'Auftragsqueue geplant' : 'nicht aktiv'],
       ['Aktive Writes', sync.activeWrites || onlineIndex.activeWrites || onlineIndex.dataWritesEnabled ? 'ja' : 'nein'],
-      ['Hinweis', sync.note || '0.2.53 bereitet Status und Zielarchitektur vor.']
+      ['Hinweis', mediaDbReadActive(data) ? '0.2.56A zeigt den DB-Read-Source-Status in der UI korrekt an. Writes bleiben deaktiviert.' : (sync.note || '0.2.53 bereitet Status und Zielarchitektur vor.')]
     ];
     return `<div class="rdap-media-detail-backdrop" data-media-close-sync="1" role="presentation">
       <section class="rdap-media-detail-dialog" role="dialog" aria-modal="true" aria-label="Media-Sync-Status">
