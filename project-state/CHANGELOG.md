@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.41 - Remote-Modboard Media Index Schema Readonly Status Plan
+
+- Fuegt einen Doku-/State-only Plan fuer die spaetere read-only Diagnose von `remote_media_index` hinzu.
+- Dokumentiert geplante read-only Quellen:
+  - `INFORMATION_SCHEMA.TABLES`
+  - `INFORMATION_SCHEMA.COLUMNS`
+  - `INFORMATION_SCHEMA.STATISTICS`
+  - `SELECT COUNT(*) FROM remote_media_index`
+- Dokumentiert geplante Statusfelder:
+  - `compatibleForRead`
+  - `compatibleForWrite=false`
+  - `writeEnabled=false`
+  - `migrationEnabled=false`
+  - `mediaDataWritesEnabled=false`
+  - `agentWritesEnabled=false`
+- Bestaetigt: keine Runtime-Code-Aenderung.
+- Bestaetigt: keine SQL-Ausfuehrung.
+- Bestaetigt: keine DB-Migration.
+- Bestaetigt: keine Media-Daten-Writes.
+- Bestaetigt: keine Agent-Writes.
+- Bestaetigt: kein Upload/Edit/Delete.
+- Bestaetigt: kein Webserver-Deploy.
+- Bereinigt den Projektstatus: 0.2.40 ist in GitHub/dev dokumentiert, naechster aktiver lokaler Step ist 0.2.41.
+
 ## 0.2.40 - Remote-Modboard MariaDB Media Schema Migration Confirmed Docs
 
 - Dokumentiert die erfolgreich ausgefuehrte MariaDB-Schema-Migration fuer `remote_media_index`.
@@ -98,6 +122,6 @@
 
 ## 0.2.34 - Media Persistent Index Migration Foundation Readonly
 
-- Deploy kam an, aber `persistentIndex.ok=false` mit `database_layer_unavailable`.
+- Deploy kam an, aber `persistentIndex.ok=false` mit database_layer_unavailable.
 - Ursache: falsche DB-Schicht fuer Online-Remote-Modboard angenommen.
 - Wird durch 0.2.34B blockiert/korrigiert.

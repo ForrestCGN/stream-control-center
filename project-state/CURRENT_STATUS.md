@@ -2,7 +2,7 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.40 - Remote-Modboard MariaDB Media Schema Migration Confirmed Docs`.
+Aktuell: `0.2.41 - Remote-Modboard Media Index Schema Readonly Status Plan`.
 
 ## Technischer Stand
 
@@ -18,6 +18,7 @@ Aktuell: `0.2.40 - Remote-Modboard MariaDB Media Schema Migration Confirmed Docs
 - 0.2.38 dokumentiert den Confirm-/Migrationsplan ohne Code und ohne SQL-Ausfuehrung.
 - 0.2.39 erstellt die SQL-Datei tools/rdap_0.2.39_remote_media_index_schema.sql, fuehrt sie aber nicht aus.
 - 0.2.40 hat die MariaDB-Tabelle remote_media_index auf dem Webserver angelegt.
+- 0.2.41 plant nur die spaetere read-only Schema-Status-/Diagnose-Sicht.
 - Media bleibt online read-only ueber Agent-Memory.
 - Media-Schema ist vorhanden.
 - Keine Media-Persistenz-Daten aktiv.
@@ -38,16 +39,6 @@ remote-modboard/backend/src/services/db.service.js
 remote-modboard/backend/src/services/auth-db-read.service.js
 remote-modboard/backend/src/services/auth-session-read.service.js
 remote-modboard/backend/src/services/audit-read.service.js
-```
-
-## 0.2.39 Erstellt
-
-```text
-- tools/rdap_0.2.39_remote_media_index_schema.sql
-- CREATE TABLE IF NOT EXISTS remote_media_index
-- SQL-Datei war nur vorbereitet, nicht in 0.2.39 ausgefuehrt
-- keine Runtime-Dateien geaendert
-- kein Webserver-Deploy noetig
 ```
 
 ## 0.2.40 Server-Migration bestaetigt
@@ -75,6 +66,19 @@ Nicht passiert:
 - kein Upload/Edit/Delete
 ```
 
+## 0.2.41 Plan-Status
+
+```text
+- Doku-/State-only.
+- Plant spaetere read-only Diagnose fuer remote_media_index.
+- Geplante Quellen: INFORMATION_SCHEMA.COLUMNS, INFORMATION_SCHEMA.STATISTICS, SELECT COUNT(*).
+- compatibleForRead wird nur bewertet.
+- compatibleForWrite bleibt false.
+- writeEnabled bleibt false.
+- Keine Runtime-Dateien geaendert.
+- Kein Webserver-Deploy noetig.
+```
+
 ## Sicherheitsstatus
 
 ```text
@@ -86,4 +90,6 @@ db.service.js ist die relevante Online-DB-Schicht
 remote_media_index Schema existiert auf MariaDB
 remote_media_index ist leer
 keine produktiven Media-DB-Writes
+keine Agent-Writes
+kein Upload/Edit/Delete
 ```

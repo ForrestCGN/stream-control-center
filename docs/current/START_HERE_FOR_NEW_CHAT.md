@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.40 - Remote-Modboard MariaDB Media Schema Migration Confirmed Docs`.
+Aktueller Stand: `0.2.41 - Remote-Modboard Media Index Schema Readonly Status Plan`.
 
 ## Verbindlich
 
@@ -198,10 +198,39 @@ Step-Doku:
 docs/current/RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED_DOCS.md
 ```
 
+## 0.2.41 Ergebnis
+
+```text
+Doku-/State-only Plan fuer die naechste read-only Media-Index-Schema-Diagnose.
+
+Dokumentiert:
+- remote_media_index Schema-Status nur lesen
+- INFORMATION_SCHEMA.COLUMNS / INFORMATION_SCHEMA.STATISTICS nur als Plan
+- row_count nur read-only lesen
+- compatibleForRead planen
+- compatibleForWrite=false festhalten
+- writeEnabled=false festhalten
+
+Nicht passiert:
+- keine Runtime-Code-Aenderung
+- keine SQL-Ausfuehrung
+- keine DB-Migration
+- keine Media-Daten-Writes
+- keine Agent-Writes
+- kein Upload/Edit/Delete
+- kein Webserver-Deploy
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.41_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_READONLY_STATUS_PLAN.md
+```
+
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.41_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_READONLY_STATUS_PLAN
+RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY
 ```
 
-Nur planen: read-only Status-/Diagnose-Sicht auf das vorhandene remote_media_index Schema vorbereiten. Keine Media-Writes, keine Agent-Writes, kein Upload/Edit/Delete.
+Nur nach neuem Plan/go: read-only Runtime-Diagnose ueber die vorhandene Remote-Modboard-MariaDB-Schicht vorbereiten. Keine Media-Writes, keine Agent-Writes, kein Upload/Edit/Delete.

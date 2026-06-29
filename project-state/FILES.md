@@ -1,10 +1,10 @@
 # Files
 
-## 0.2.40 geaendert
+## 0.2.41 geaendert
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED_DOCS.md
+docs/current/RDAP_0.2.41_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_READONLY_STATUS_PLAN.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -12,16 +12,19 @@ project-state/FILES.md
 project-state/CHANGELOG.md
 ```
 
-## 0.2.40 nur gelesen / Grundlage
+## 0.2.41 nur gelesen / Grundlage
 
 ```text
 docs/current/RDAP_0.2.39_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_FILE_NO_EXECUTE.md
+docs/current/RDAP_0.2.40_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_MIGRATION_CONFIRMED_DOCS.md
 tools/rdap_0.2.39_remote_media_index_schema.sql
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/db-health.service.js
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/services/audit-read.service.js
+remote-modboard/backend/src/routes/media-readonly.routes.js
+backend/modules/local_remote_modboard_adapter.js
 ```
 
 ## 0.2.40 auf Webserver ausgefuehrt
@@ -37,7 +40,7 @@ Backup:
  /opt/stream-control-center/_runtime_tmp/remote_modboard_before_remote_media_index_20260629_113811.sql
 ```
 
-## Wichtige DB-Dateien fuer spaeter
+## Wichtige DB-Dateien fuer 0.2.42 spaeter
 
 ```text
 remote-modboard/backend/src/services/config.service.js
@@ -60,4 +63,4 @@ Diese gehoeren nicht automatisch in den Webserver-Live-Pfad `/opt/stream-control
 remote_media_index
 ```
 
-Stand 0.2.40: auf MariaDB angelegt, readback bestaetigt, row_count = 0, keine Media-Writes.
+Stand 0.2.41: auf MariaDB angelegt, readback bestaetigt, row_count = 0, keine Media-Writes. 0.2.41 plant nur read-only Schema-Status/Dokumentation.
