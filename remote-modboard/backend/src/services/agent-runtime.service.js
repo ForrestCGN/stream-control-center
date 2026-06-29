@@ -4,8 +4,8 @@ const crypto = require('crypto');
 const { withWriteConnection, publicDbError } = require('./db.service');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC';
-const STATUS_API_VERSION = 'rdap_agent_media_full_sync_runtime_055b.v1';
+const MODULE_BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
+const STATUS_API_VERSION = 'rdap_agent_media_full_sync_compare_snapshot_058i.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -14,7 +14,8 @@ const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
 const MEDIA_FULL_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-full-sync.v1';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
-const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC';
+const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
+const MEDIA_FULL_SYNC_COMPARE_SNAPSHOT_BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
@@ -163,6 +164,38 @@ const EMPTY_MEDIA_FULL_SYNC_STATE = Object.freeze({
   noAbsolutePaths: true
 });
 
+const EMPTY_MEDIA_FULL_SYNC_COMPARE_SNAPSHOT = Object.freeze({
+  prepared: true,
+  build: MEDIA_FULL_SYNC_COMPARE_SNAPSHOT_BUILD,
+  protocolVersion: MEDIA_FULL_SYNC_PROTOCOL_VERSION,
+  readOnly: true,
+  inMemoryOnly: true,
+  persistsToDatabase: false,
+  source: 'agent_full_sync_readonly_memory_snapshot',
+  available: false,
+  complete: false,
+  status: 'pending',
+  syncId: null,
+  receivedChunks: 0,
+  totalChunks: 0,
+  receivedItems: 0,
+  totalItems: 0,
+  itemCount: 0,
+  items: [],
+  truncated: false,
+  startedAt: null,
+  lastChunkAt: null,
+  completedAt: null,
+  lastError: null,
+  writeEnabled: false,
+  writesBlocked: true,
+  noFileContent: true,
+  noAbsolutePaths: true,
+  noAgentActionExecution: true,
+  noDatabaseWrite: true,
+  uploadEditDeleteEnabled: false
+});
+
 const CONNECTION_STATE = {
   prepared: true,
   inMemoryOnly: true,
@@ -252,7 +285,9 @@ const CONNECTION_STATE = {
   mediaFullSyncExecutesActions: false,
   mediaFullSyncAcceptsCommands: false,
   mediaFullSync: clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE),
-  mediaFullSyncReceivedChunkIndexes: new Set()
+  mediaFullSyncReceivedChunkIndexes: new Set(),
+  mediaFullSyncCompareSnapshot: clonePlain(EMPTY_MEDIA_FULL_SYNC_COMPARE_SNAPSHOT),
+  mediaFullSyncCompareItemsByChunk: new Map()
 };
 
 const REJECT_DIAGNOSTIC = {
@@ -1087,9 +1122,20 @@ function recordMediaInventorySyncReject(reason) {
 
 function resetMediaFullSyncState(input = {}) {
   CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes = new Set();
+  CONNECTION_STATE.mediaFullSyncCompareItemsByChunk = new Map();
   CONNECTION_STATE.mediaFullSync = {
     ...clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE),
     state: input.state || 'pending',
+    syncId: input.syncId || null,
+    totalChunks: input.totalChunks || 0,
+    totalItems: input.totalItems || 0,
+    startedAt: input.startedAt || null,
+    writeEnabled: input.writeEnabled === true,
+    writesBlocked: input.writeEnabled !== true
+  };
+  CONNECTION_STATE.mediaFullSyncCompareSnapshot = {
+    ...clonePlain(EMPTY_MEDIA_FULL_SYNC_COMPARE_SNAPSHOT),
+    status: input.state || 'pending',
     syncId: input.syncId || null,
     totalChunks: input.totalChunks || 0,
     totalItems: input.totalItems || 0,
@@ -1112,6 +1158,58 @@ function recordMediaFullSyncReject(reason) {
   };
 }
 
+
+function recordMediaFullSyncCompareSnapshotChunk(validation, now, writeGate = {}) {
+  if (!validation || !validation.syncId) return;
+  if (!(CONNECTION_STATE.mediaFullSyncCompareItemsByChunk instanceof Map)) CONNECTION_STATE.mediaFullSyncCompareItemsByChunk = new Map();
+  const chunkItems = Array.isArray(validation.items) ? validation.items.map(item => ({ ...item })) : [];
+  CONNECTION_STATE.mediaFullSyncCompareItemsByChunk.set(validation.chunkIndex, chunkItems);
+
+  const receivedChunks = CONNECTION_STATE.mediaFullSyncCompareItemsByChunk.size;
+  const receivedItems = Array.from(CONNECTION_STATE.mediaFullSyncCompareItemsByChunk.values()).reduce((sum, items) => sum + (Array.isArray(items) ? items.length : 0), 0);
+  const complete = receivedChunks >= validation.totalChunks && receivedItems >= validation.totalItems;
+  const assembled = [];
+  if (complete) {
+    for (let index = 1; index <= validation.totalChunks; index += 1) {
+      const items = CONNECTION_STATE.mediaFullSyncCompareItemsByChunk.get(index) || [];
+      for (const item of items) assembled.push({ ...item });
+    }
+  }
+  const previous = CONNECTION_STATE.mediaFullSyncCompareSnapshot || clonePlain(EMPTY_MEDIA_FULL_SYNC_COMPARE_SNAPSHOT);
+  CONNECTION_STATE.mediaFullSyncCompareSnapshot = {
+    ...previous,
+    prepared: true,
+    build: MEDIA_FULL_SYNC_COMPARE_SNAPSHOT_BUILD,
+    protocolVersion: MEDIA_FULL_SYNC_PROTOCOL_VERSION,
+    readOnly: true,
+    inMemoryOnly: true,
+    persistsToDatabase: false,
+    source: 'agent_full_sync_readonly_memory_snapshot',
+    available: complete && assembled.length > 0,
+    complete,
+    status: complete ? 'complete_readonly_compare_snapshot' : 'collecting_readonly_compare_snapshot',
+    syncId: validation.syncId,
+    receivedChunks,
+    totalChunks: validation.totalChunks,
+    receivedItems: Math.min(validation.totalItems, receivedItems),
+    totalItems: validation.totalItems,
+    itemCount: complete ? assembled.length : 0,
+    items: complete ? assembled : [],
+    truncated: complete ? assembled.length < validation.totalItems : false,
+    startedAt: previous.startedAt || now,
+    lastChunkAt: now,
+    completedAt: complete ? (previous.completedAt || now) : null,
+    lastError: null,
+    writeEnabled: writeGate.enabled === true,
+    writesBlocked: writeGate.enabled !== true,
+    noFileContent: true,
+    noAbsolutePaths: true,
+    noAgentActionExecution: true,
+    noDatabaseWrite: true,
+    uploadEditDeleteEnabled: false
+  };
+}
+
 async function processMediaFullSyncChunkPayload(payload, details = {}, payloadBytes = 0) {
   if (payloadBytes > MAX_MEDIA_INVENTORY_SYNC_PAYLOAD_BYTES) {
     recordMediaFullSyncReject('media_full_sync_chunk_payload_too_large');
@@ -1128,6 +1226,7 @@ async function processMediaFullSyncChunkPayload(payload, details = {}, payloadBy
   if (validation.chunkIndex === 1 || !CONNECTION_STATE.mediaFullSync || CONNECTION_STATE.mediaFullSync.syncId !== validation.syncId) {
     resetMediaFullSyncState({ state: 'running', syncId: validation.syncId, totalChunks: validation.totalChunks, totalItems: validation.totalItems, startedAt: now, writeEnabled: writeGate.enabled });
   }
+  recordMediaFullSyncCompareSnapshotChunk(validation, now, writeGate);
   if (!writeGate.enabled) {
     const previousState = CONNECTION_STATE.mediaFullSync || clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE);
     CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes.add(validation.chunkIndex);
@@ -1408,6 +1507,8 @@ function clearConnectionState(reason) {
   CONNECTION_STATE.mediaInventorySync = clonePlain(EMPTY_MEDIA_INVENTORY_SYNC);
   CONNECTION_STATE.mediaFullSync = clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE);
   CONNECTION_STATE.mediaFullSyncReceivedChunkIndexes = new Set();
+  CONNECTION_STATE.mediaFullSyncCompareSnapshot = clonePlain(EMPTY_MEDIA_FULL_SYNC_COMPARE_SNAPSHOT);
+  CONNECTION_STATE.mediaFullSyncCompareItemsByChunk = new Map();
   CONNECTION_STATE.mediaInventorySyncUpdatedAt = null;
   CONNECTION_STATE.lastMediaInventorySyncAt = null;
   CONNECTION_STATE.mediaInventorySyncSeq = null;
@@ -1546,6 +1647,17 @@ function buildRejectDiagnosticSummary() {
   };
 }
 
+
+function buildMediaFullSyncCompareSnapshotSummary() {
+  const snapshot = clonePlain(CONNECTION_STATE.mediaFullSyncCompareSnapshot || EMPTY_MEDIA_FULL_SYNC_COMPARE_SNAPSHOT);
+  snapshot.items = [];
+  return snapshot;
+}
+
+function buildMediaFullSyncCompareSnapshotStatusResponse() {
+  return clonePlain(CONNECTION_STATE.mediaFullSyncCompareSnapshot || EMPTY_MEDIA_FULL_SYNC_COMPARE_SNAPSHOT);
+}
+
 function buildAgentConnectionSummary() {
   updateDerivedHeartbeatState();
   return {
@@ -1627,6 +1739,7 @@ function buildAgentConnectionSummary() {
     mediaFullSyncProtocolVersion: MEDIA_FULL_SYNC_PROTOCOL_VERSION,
     mediaFullSyncPersistsToDatabase: CONNECTION_STATE.mediaFullSyncPersistsToDatabase === true,
     mediaFullSync: clonePlain(CONNECTION_STATE.mediaFullSync || EMPTY_MEDIA_FULL_SYNC_STATE),
+    mediaFullSyncCompareSnapshot: buildMediaFullSyncCompareSnapshotSummary(),
     componentStatus: clonePlain(CONNECTION_STATE.componentStatus || EMPTY_COMPONENT_STATUS),
     componentStatusUpdatedAt: CONNECTION_STATE.componentStatusUpdatedAt,
     componentStatusInMemoryOnly: true,
@@ -1785,6 +1898,7 @@ function buildAgentMediaInventoryStatusResponse() {
     counts,
     syncFoundation: inventory.syncFoundation || buildMediaSyncFoundationStatus(inventory),
     fullSync: clonePlain(CONNECTION_STATE.mediaFullSync || EMPTY_MEDIA_FULL_SYNC_STATE),
+    fullSyncCompareSnapshot: buildMediaFullSyncCompareSnapshotSummary(),
     onlineIndexTarget: inventory.onlineIndexTarget || { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false, inMemoryOnly: true, persistsToDatabase: CONNECTION_STATE.mediaFullSyncPersistsToDatabase === true }
   };
@@ -1943,6 +2057,7 @@ module.exports = {
   registerAgentRuntime,
   buildRegistrationSummary,
   buildAgentConnectionSummary,
+  buildMediaFullSyncCompareSnapshotStatusResponse,
   buildAgentObsLiveStatusResponse,
   buildAgentObsInventoryStatusResponse,
   buildAgentMediaInventoryStatusResponse,

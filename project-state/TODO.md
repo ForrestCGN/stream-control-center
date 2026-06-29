@@ -18,8 +18,9 @@
 - [x] Effective-/Strict-Change-Counts in Diff-Route ergaenzen
 - [x] 0.2.58G Webserver-Test dokumentieren
 - [x] Full-Sync-/Compact-Snapshot-Verhaeltnis fuer Missing/Tombstone planen
+- [x] Full-Sync read-only Compare-Snapshot bauen
+- [ ] 0.2.58I Webserver-Test dokumentieren
 - [ ] DB-Read-Source UI final sichtpruefen
-- [ ] Full-Sync read-only Compare-Snapshot bauen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen
 - [ ] Online->Agent Queue separat planen

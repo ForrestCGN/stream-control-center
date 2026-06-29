@@ -1,30 +1,23 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster Schritt nach 0.2.58I
 
-`RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT`
+0.2.58I lokal testen, committen und auf dem Webserver deployen.
 
-Ziel:
-- Full-Sync-Chunks read-only als temporaere Vergleichsbasis puffern.
-- Diff-/Diagnose-Route optional um Full-Sync-Compare-Felder erweitern.
-- Missing nur dann als reliable markieren, wenn Full-Sync-Basis vollstaendig ist.
-- Keine Writes.
-- Kein Upsert.
-- Kein Tombstone/Delete.
-- Kein Online->Agent-Trigger.
+Danach pruefen:
 
-## Vorheriger klaerender Doku-Step
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/media/index/diff/status | jq '.statusApiVersion, .routeBuild, .fullSyncCompare.prepared, .fullSyncCompare.readOnly, .fullSyncCompare.available, .fullSyncCompare.complete, .fullSyncCompare.receivedItems, .fullSyncCompare.totalItems, .fullSyncCompare.missingOnAgentReliable'
+```
 
-`RDAP_0.2.58H_MEDIA_INDEX_DIFF_FULL_SYNC_EFFECTIVE_COMPARE_PLAN`
+## Danach
 
-Ergebnis:
-- Compact-Agent-Snapshot ist bewusst auf WSS-Payloadgroesse begrenzt.
-- Aktuelle Limits: ca. 60 KB und `[120, 80, 40, 20]`.
-- Full-Sync ist separater 50er-Chunk-Transport.
-- Missing/Tombstone darf nicht aus dem truncierten Compact-Snapshot abgeleitet werden.
+- Full-Sync-Compare-Werte auswerten.
+- DB-Read-Source UI final sichtpruefen.
+- Gated Delta-Upsert fuer echte Hard-Changes separat planen.
+- Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen.
+- Online->Agent Queue separat planen.
 
 ## Wichtig
 
-Solange `effectiveChangedOnAgentCount=0`, ist kein Delta-Upsert fuer Hard-Changes noetig.
-
-Tombstone/Loeschstatus bleibt nur Diagnose, bis ein eigener Gate-/Confirm-/Audit-/Lock-Step freigegeben ist.
+Auch wenn `fullSyncCompare.missingOnAgentReliable=true` wird, bleibt Tombstone/Delete nur Diagnose bis zu einem eigenen freigegebenen Write-Step.
