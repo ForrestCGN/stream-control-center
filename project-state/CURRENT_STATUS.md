@@ -2,7 +2,7 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.36 - Remote-Modboard MariaDB DB Usage Inventory No Code`.
+Aktuell: `0.2.37 - Remote-Modboard MariaDB Media Schema Dry Run No Migration`.
 
 ## Technischer Stand
 
@@ -14,6 +14,7 @@ Aktuell: `0.2.36 - Remote-Modboard MariaDB DB Usage Inventory No Code`.
 - 0.2.34B blockiert den falschen DB-Ansatz.
 - 0.2.35 plant die spaetere MariaDB-Media-Index-Richtung ohne Code.
 - 0.2.36 inventarisiert die vorhandene Remote-Modboard-DB-Nutzung ohne Code.
+- 0.2.37 dokumentiert das remote_media_index Schema als Dry-Run ohne Migration.
 - Media bleibt online read-only ueber Agent-Memory.
 - Keine Media-Persistenz aktiv.
 - Keine DB-Migration aktiv.
@@ -36,6 +37,18 @@ remote-modboard/backend/src/services/auth-session-read.service.js
 remote-modboard/backend/src/services/audit-read.service.js
 ```
 
+## 0.2.37 Dokumentiert
+
+```text
+- geplantes Tabellenmodell remote_media_index
+- nur sanitisiertes Media-Inventar
+- keine absoluten Pfade / keine Datei-Inhalte / keine Secrets
+- read-only Vorpruefungen ueber INFORMATION_SCHEMA
+- Backup-Vorgabe fuer spaetere Migration
+- Rollback-Vorgabe fuer spaetere Migration
+- Status-/Diagnose-Idee fuer spaeter
+```
+
 ## Sicherheitsstatus
 
 ```text
@@ -43,7 +56,8 @@ lokal 8080 != webserver 3010
 Live-Pfad ist kein Git-Repo
 keine manuellen DB-/Datei-Kopien auf dem Server
 keine SQLite-/Repo-root-DB fuer Online-Remote-Modboard annehmen
-Media Persistent Index erst wieder ueber echte Remote-Modboard-MariaDB-Planung
 db.service.js ist die relevante Online-DB-Schicht
 writeEnabled=false und migrationEnabled=false bleiben fuer Media unveraendert
+remote_media_index ist nur geplant/dokumentiert, nicht migriert
+keine produktiven Media-DB-Writes
 ```

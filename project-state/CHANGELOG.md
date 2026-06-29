@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.37 - Remote-Modboard MariaDB Media Schema Dry Run No Migration
+
+- Fuegt reine Doku fuer einen MariaDB-Schema-Dry-Run hinzu.
+- Dokumentiert geplantes Tabellenmodell `remote_media_index`.
+- Dokumentiert erlaubte Online-DB-Schicht:
+  - `remote-modboard/backend/src/services/db.service.js`
+  - `remote-modboard/backend/src/services/config.service.js`
+  - `mysql2/promise`
+  - MariaDB
+- Dokumentiert read-only Vorpruefungen ueber `INFORMATION_SCHEMA`.
+- Dokumentiert Backup-/Rollback-Vorgaben fuer einen spaeteren eigenen Migration-Step.
+- Bestaetigt: keine Runtime-Aenderung.
+- Bestaetigt: keine DB-Migration.
+- Bestaetigt: keine CREATE/ALTER/INSERT/UPDATE/DELETE-Ausfuehrung.
+- Bestaetigt: keine Media-Daten-Writes.
+- Bestaetigt: kein Webserver-Deploy noetig.
+
 ## 0.2.36 - Remote-Modboard MariaDB DB Usage Inventory No Code
 
 - Fuegt reine Doku-/Inventur fuer vorhandene Online-DB-Nutzung hinzu.
