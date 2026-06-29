@@ -1,33 +1,54 @@
 # Changelog
 
-## 0.2.43 - Remote-Modboard Media Index Schema Status Readonly Confirmed Docs
+## 0.2.44 - Remote-Modboard Media Index Readonly Usage Plan
 
-- Dokumentiert den erfolgreichen Webserver-Deploy und Readback von `0.2.42 - Remote-Modboard Media Index Schema Status Readonly`.
-- Bestaetigt Readback fuer:
-  - `GET /api/remote/media/status?db=1`
-- Bestaetigt `persistentIndex`:
-  - `ok=true`
-  - `inspected=true`
-  - `detected=true`
-  - `tableName=remote_media_index`
-  - `itemCount=0`
-  - `compatibleForRead=true`
-  - `compatibleForWrite=false`
-  - `writeEnabled=false`
-  - `dataWritesEnabled=false`
-  - `migrationEnabled=false`
-- Bestaetigt Routes-Summary:
-  - `.mediaReadonly.persistentIndexSchemaStatusReadonly.prepared=true`
-  - `usesInformationSchemaColumns=true`
-  - `usesInformationSchemaStatistics=true`
-  - `readsRowCount=true`
-- Bestaetigt: keine Runtime-Code-Aenderung in 0.2.43.
+- Dokumentiert den Plan fuer spaetere read-only Nutzung von `remote_media_index` als Quelle oder Fallback.
+- Haelt fest: Agent-Memory bleibt vorerst primaere Online-Wahrheit.
+- Benennt erlaubte sichere DB-Lesefelder:
+  - `id`
+  - `root_key`
+  - `kind`
+  - `relative_path`
+  - `name`
+  - `extension`
+  - `size_bytes`
+  - `modified_at`
+  - `first_seen_at`
+  - `last_seen_at`
+  - `deleted`
+  - `source`
+  - `sync_version`
+  - `updated_at`
+- Dokumentiert spaeter zu klaerende read-only Bewertungsregeln fuer:
+  - `deleted`
+  - `last_seen_at`
+  - stale Daten
+  - `itemCount`
+- Bestaetigt: keine Runtime-Code-Aenderung.
 - Bestaetigt: keine SQL-Ausfuehrung.
 - Bestaetigt: keine DB-Migration.
 - Bestaetigt: keine Media-Daten-Writes.
 - Bestaetigt: keine Agent-Writes.
 - Bestaetigt: kein Upload/Edit/Delete.
-- Bestaetigt: kein Webserver-Deploy fuer 0.2.43, weil Doku-only.
+- Bestaetigt: kein Webserver-Deploy noetig.
+
+## 0.2.43 - Remote-Modboard Media Index Schema Status Readonly Confirmed Docs
+
+- Dokumentiert Webserver-Deploy und Readback fuer 0.2.42.
+- Bestaetigt `GET /api/remote/media/status?db=1`:
+  - `persistentIndex.ok = true`
+  - `inspected = true`
+  - `detected = true`
+  - `tableName = remote_media_index`
+  - `itemCount = 0`
+  - `compatibleForRead = true`
+  - `compatibleForWrite = false`
+  - `writeEnabled = false`
+  - `dataWritesEnabled = false`
+  - `migrationEnabled = false`
+- Bestaetigt Routes-Readback fuer `.mediaReadonly.persistentIndexSchemaStatusReadonly`.
+- Keine Runtime-Code-Aenderung in 0.2.43.
+- Kein Webserver-Deploy fuer 0.2.43.
 
 ## 0.2.42 - Remote-Modboard Media Index Schema Status Readonly
 

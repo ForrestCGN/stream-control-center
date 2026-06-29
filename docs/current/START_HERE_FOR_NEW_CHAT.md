@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.43 - Remote-Modboard Media Index Schema Status Readonly Confirmed Docs`.
+Aktueller Stand: `0.2.44 - Remote-Modboard Media Index Readonly Usage Plan`.
 
 ## Verbindlich
 
@@ -141,10 +141,38 @@ Step-Doku:
 docs/current/RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONFIRMED_DOCS.md
 ```
 
+## 0.2.44 Ergebnis
+
+```text
+Doku-/State-only Plan fuer spaetere read-only Nutzung von remote_media_index.
+
+Dokumentiert:
+- Agent-Memory bleibt vorerst primaere Online-Wahrheit.
+- remote_media_index darf spaeter nur als read-only Quelle/Fallback geplant werden.
+- erlaubte sichere DB-Lesefelder wurden benannt.
+- deleted/last_seen_at/stale/itemCount Bewertung wurde als spaeter zu klaerende Regel dokumentiert.
+- Kein Umschalten der produktiven Media-Quelle.
+
+Nicht passiert:
+- keine Runtime-Code-Aenderung
+- keine SQL-Ausfuehrung
+- keine DB-Migration
+- keine Media-Daten-Writes
+- keine Agent-Writes
+- kein Upload/Edit/Delete
+- kein Webserver-Deploy
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN.md
+```
+
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN
+RDAP_0.2.45_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_SOURCE_STATUS_PLAN
 ```
 
-Nur planen: ob/wie der vorhandene `remote_media_index` spaeter als echte read-only Quelle/Fallback genutzt werden darf. Keine Writes, keine Agent-Writes, kein Upload/Edit/Delete.
+Nur planen oder gezielt vorbereiten, wie eine read-only DB-Quelle/Fallback-Statusstruktur aussehen darf. Keine Writes, keine Agent-Writes, kein Upload/Edit/Delete.

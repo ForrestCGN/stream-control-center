@@ -2,7 +2,7 @@
 
 Stand: 2026-06-29
 
-Aktuell bestaetigt: `0.2.43 - Remote-Modboard Media Index Schema Status Readonly Confirmed Docs`.
+Aktuell vorbereitet: `0.2.44 - Remote-Modboard Media Index Readonly Usage Plan`.
 
 ## Technischer Stand
 
@@ -12,6 +12,7 @@ Aktuell bestaetigt: `0.2.43 - Remote-Modboard Media Index Schema Status Readonly
 - 0.2.41 hat den read-only Status-/Diagnose-Plan dokumentiert.
 - 0.2.42 hat die bestehende Media-Statusroute optional um ?db=1 erweitert.
 - 0.2.42 wurde auf dem Webserver deployed und read-only geprueft.
+- 0.2.43 hat Deploy und Readback dokumentiert.
 - /api/remote/media/status?db=1 meldet persistentIndex.ok=true, inspected=true, detected=true.
 - tableName=remote_media_index.
 - itemCount=0.
@@ -20,17 +21,17 @@ Aktuell bestaetigt: `0.2.43 - Remote-Modboard Media Index Schema Status Readonly
 - writeEnabled=false.
 - dataWritesEnabled=false.
 - migrationEnabled=false.
-- /api/remote/routes meldet persistentIndexSchemaStatusReadonly.prepared=true.
-- Media bleibt online read-only ueber Agent-Memory.
+- 0.2.44 plant nur, ob/wie remote_media_index spaeter als read-only Quelle/Fallback genutzt werden darf.
+- Agent-Memory bleibt vorerst primaere Online-Wahrheit.
 - Keine Upload/Edit/Delete-Funktion aktiv.
 - Keine Media-Daten-Writes aktiv.
 ```
 
-## Geaendert in 0.2.43
+## Geaendert in 0.2.44
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONFIRMED_DOCS.md
+docs/current/RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -46,6 +47,7 @@ Live-Pfad ist kein Git-Repo
 keine manuellen DB-/Datei-Kopien in /opt/stream-control-center/remote-modboard
 keine SQLite-/Repo-root-DB fuer Online-Remote-Modboard
 remote_media_index Schema wird nur read-only gelesen
+Agent-Memory bleibt primaere Online-Wahrheit
 compatibleForWrite=false
 writeEnabled=false
 dataWritesEnabled=false

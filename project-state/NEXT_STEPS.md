@@ -1,17 +1,17 @@
 # Next Steps
 
-Nach `0.2.43`:
+Nach `0.2.44`:
 
 ## 1. Direkt lokal pruefen
 
 ```text
-RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONFIRMED_DOCS
+RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN
 ```
 
 Checks:
 
 ```powershell
-Select-String -Path .\docs\current\RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONFIRMED_DOCS.md -Pattern "media/status?db=1","remote_media_index","itemCount = 0","compatibleForRead = true","compatibleForWrite = false","writeEnabled = false","Keine Media-Daten-Writes","Kein Webserver-Deploy"
+Select-String -Path .\docs\current\RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN.md -Pattern "Agent-Memory","remote_media_index","read-only Quelle","Fallback","deleted","last_seen_at","Keine Media-Daten-Writes","Kein Webserver-Deploy"
 
 git status
 ```
@@ -19,26 +19,26 @@ git status
 Wenn sauber:
 
 ```powershell
-.\stepdone.cmd "RDAP 0.2.43 Media Index Schema Status Readonly Deploy und Readback dokumentiert; itemCount 0, compatibleForRead true, Writes blockiert"
+.\stepdone.cmd "RDAP 0.2.44 Media Index Readonly Usage Plan dokumentiert; Agent-Memory bleibt primaer, keine Writes"
 ```
 
-## 2. Danach nur read-only Nutzungsplan vorbereiten
+## 2. Danach nur naechsten read-only Source-Status planen
 
 ```text
-RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN
+RDAP_0.2.45_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_SOURCE_STATUS_PLAN
 ```
 
 Ziel:
 
 ```text
-- nur planen, ob/wie remote_media_index spaeter als echte read-only Quelle/Fallback genutzt werden darf.
-- klaeren, ob Agent-Memory weiterhin primäre Online-Wahrheit bleibt.
-- klaeren, welche API-Felder aus DB gelesen werden duerften.
-- klaeren, wie stale/deleted/last_seen_at bewertet werden duerften.
+- nur planen oder gezielt vorbereiten, wie eine read-only DB-Quelle/Fallback-Statusstruktur aussehen darf.
+- Agent-Memory bleibt primaere Online-Wahrheit, solange kein separater Scope anderes freigibt.
+- remote_media_index nur als read-only Quelle/Fallback markieren.
+- itemCount=0 korrekt als leerer DB-Index darstellen.
+- deleted/stale/last_seen_at nur auswerten, nicht schreiben.
 - keine Media-Daten schreiben.
 - keine Agent-Writes.
 - kein Upload/Edit/Delete.
-- keine produktiven Media-DB-Writes ohne separaten Confirm-Write-Step.
 ```
 
 ## Nicht tun
