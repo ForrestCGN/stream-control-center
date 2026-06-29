@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.44 - Remote-Modboard Media Index Readonly Usage Plan`.
+Aktueller Stand: `0.2.45 - Remote-Modboard Media Index Readonly Source Status Plan`.
 
 ## Verbindlich
 
@@ -101,38 +101,15 @@ docs/current/RDAP_0.2.42_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY.md
 
 ```text
 0.2.42 wurde auf dem Webserver deployed und read-only geprueft.
-
-Deploy/Readback bestaetigt:
-- GET /api/remote/media/status?db=1
-- persistentIndex.ok = true
-- inspected = true
-- detected = true
-- tableName = remote_media_index
-- itemCount = 0
-- compatibleForRead = true
-- compatibleForWrite = false
-- writeEnabled = false
-- dataWritesEnabled = false
-- migrationEnabled = false
-
-Routes-Readback bestaetigt:
-- .mediaReadonly.persistentIndexSchemaStatusReadonly.prepared = true
-- usesInformationSchemaColumns = true
-- usesInformationSchemaStatistics = true
-- readsRowCount = true
-- compatibleForWrite = false
-- writeEnabled = false
-- dataWritesEnabled = false
-- migrationEnabled = false
-
-Nicht passiert:
-- keine Runtime-Code-Aenderung in 0.2.43
-- keine SQL-Ausfuehrung
-- keine DB-Migration
-- keine Media-Daten-Writes
-- keine Agent-Writes
-- kein Upload/Edit/Delete
-- kein Webserver-Deploy fuer 0.2.43, weil Doku-only
+Deploy/Readback bestaetigt: /api/remote/media/status?db=1 ok, inspected, detected, itemCount=0, compatibleForRead=true, Writes=false.
+Routes-Readback bestaetigt: persistentIndexSchemaStatusReadonly.prepared=true.
+Keine Runtime-Code-Aenderung in 0.2.43.
+Keine SQL-Ausfuehrung.
+Keine DB-Migration.
+Keine Media-Daten-Writes.
+Keine Agent-Writes.
+Kein Upload/Edit/Delete.
+Kein Webserver-Deploy fuer 0.2.43, weil Doku-only.
 ```
 
 Step-Doku:
@@ -145,18 +122,46 @@ docs/current/RDAP_0.2.43_REMOTE_MODBOARD_MEDIA_INDEX_SCHEMA_STATUS_READONLY_CONF
 
 ```text
 Doku-/State-only Plan fuer spaetere read-only Nutzung von remote_media_index.
+Agent-Memory bleibt vorerst primaere Online-Wahrheit.
+remote_media_index darf spaeter nur als read-only Quelle/Fallback geplant werden.
+erlaubte sichere DB-Lesefelder wurden benannt.
+deleted/last_seen_at/stale/itemCount Bewertung wurde als spaeter zu klaerende Regel dokumentiert.
+Kein Umschalten der produktiven Media-Quelle.
+Keine Runtime-Code-Aenderung.
+Keine SQL-Ausfuehrung.
+Keine DB-Migration.
+Keine Media-Daten-Writes.
+Keine Agent-Writes.
+Kein Upload/Edit/Delete.
+Kein Webserver-Deploy.
+```
+
+Step-Doku:
+
+```text
+docs/current/RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN.md
+```
+
+## 0.2.45 Ergebnis
+
+```text
+Schlanker Doku-/State-only Plan fuer eine spaetere read-only DB-Quelle/Fallback-Statusstruktur.
+Funktion geht vor: keine neuen Runtime-Module, keine uebergrosse Statusstruktur.
 
 Dokumentiert:
-- Agent-Memory bleibt vorerst primaere Online-Wahrheit.
-- remote_media_index darf spaeter nur als read-only Quelle/Fallback geplant werden.
-- erlaubte sichere DB-Lesefelder wurden benannt.
-- deleted/last_seen_at/stale/itemCount Bewertung wurde als spaeter zu klaerende Regel dokumentiert.
-- Kein Umschalten der produktiven Media-Quelle.
+- Agent-Memory bleibt primaere Online-Wahrheit.
+- persistentIndexSource darf spaeter nur als kleiner Statusblock geplant werden.
+- DB-Quelle bleibt disabled, bis ein eigener Runtime-Step kommt.
+- itemCount=0 ist kein Fehler.
+- deleted=1 ist nicht normal sichtbar.
+- stale ist nur diagnostisch sichtbar.
+- fallbackEnabled bleibt false.
 
 Nicht passiert:
 - keine Runtime-Code-Aenderung
 - keine SQL-Ausfuehrung
 - keine DB-Migration
+- keine SELECT-Item-Liste aus remote_media_index
 - keine Media-Daten-Writes
 - keine Agent-Writes
 - kein Upload/Edit/Delete
@@ -166,13 +171,13 @@ Nicht passiert:
 Step-Doku:
 
 ```text
-docs/current/RDAP_0.2.44_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_USAGE_PLAN.md
+docs/current/RDAP_0.2.45_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_SOURCE_STATUS_PLAN.md
 ```
 
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.45_REMOTE_MODBOARD_MEDIA_INDEX_READONLY_SOURCE_STATUS_PLAN
+RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_INDEX_SOURCE_STATUS_READONLY_SKELETON
 ```
 
-Nur planen oder gezielt vorbereiten, wie eine read-only DB-Quelle/Fallback-Statusstruktur aussehen darf. Keine Writes, keine Agent-Writes, kein Upload/Edit/Delete.
+Nur wenn wirklich noetig: eine sehr kleine read-only Status-Ergaenzung vorbereiten. Keine DB-Item-Reads, keine Writes, keine Agent-Writes, kein Upload/Edit/Delete.
