@@ -2,17 +2,19 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.27 - Media Agent Slow Sync Readonly`.
+Aktuell: `0.2.27B - Media Sync Compact Frame Fix`.
 
 ## Technischer Stand
 
 ```text
-- 0.2.27 ist vorbereitet als read-only Code-Step.
+- 0.2.27 ist lokal getestet und auf GitHub/dev gewesen.
+- Webserver-Deploy zeigte: Agent verbindet, aber nach Media-Sync fiel WSS wieder offline.
+- Ursache im Deploy-Test: `agent_payload_too_large_64bit_frame` nach Media-Sync.
+- 0.2.27B reduziert den Media-WSS-Transport auf kompakte Payloads.
+- Media-Sync bleibt eigenes Protokoll: rdap-agent-media-inventory.v1.
 - Media-System bleibt fachliches Modul.
-- Media-Statusroute existiert weiterhin: GET /api/remote/media/status.
+- Online liest Media aus Webserver-Memory-Cache, sobald Agent-Media-Sync angenommen wurde.
 - Lokal liefert Media read-only Inventar aus htdocs/assets/sounds, htdocs/assets/videos und htdocs/assets/images.
-- Online liest Media jetzt aus Webserver-Memory-Cache, sobald der Agent `media_inventory_sync` gesendet hat.
-- Agent-WSS bekommt ein eigenes Media-Protokoll: rdap-agent-media-inventory.v1.
 - OBS-Inventar-Protokoll bleibt getrennt und wird nicht fuer Media missbraucht.
 - Upload/Edit/Delete bleiben false.
 - Keine Datei-Inhalte, keine absoluten Pfade, keine DB-Migration, keine Shell-/Prozess-Actions.
@@ -40,6 +42,11 @@ Wenn GitHub/dev ueber Connector nur unvollstaendig oder abgeschnitten verfuegbar
 2. Forrest fuehrt es lokal im Repo aus und laedt die Source-ZIP hoch.
 3. Assistant baut daraus erst danach den echten Install-Step-ZIP mit echten Repo-Zielpfaden.
 4. Source-ZIP ist niemals Install-ZIP.
+
+Server-/API-Checks:
+- Standardmaessig kurze `jq '{...}'` Ausgaben verwenden.
+- Volles JSON nur bei Fehlerdiagnose oder ausdruecklicher Anforderung.
+- Lokal unter Windows PowerShell `Invoke-RestMethod` statt jq verwenden.
 ```
 
 ## Sicherheitsgrenzen

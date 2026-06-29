@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.27B - Media Sync Compact Frame Fix
+
+- Hotfix fuer Deploy-Befund nach 0.2.27.
+- Ursache: Media-WSS-Payload kam als 64-bit WebSocket-Frame an und wurde vom Webserver-Decoder mit `agent_payload_too_large_64bit_frame` abgelehnt.
+- Lokaler Agent baut Media-Sync jetzt als kompakte Transport-Payload.
+- Transport-Limits werden stufenweise reduziert: 120, 80, 40, 20 Items.
+- `groups.items` werden im WSS-Transport nicht doppelt mitgeschickt; der Webserver baut Gruppen aus `items` neu auf.
+- Agent sendet keine zu grosse Media-Payload mehr und soll nach Media-Sync verbunden bleiben.
+- Media bleibt read-only, memory-only und nutzt weiter eigenes Protokoll `rdap-agent-media-inventory.v1`.
+- Upload, Edit und Delete bleiben deaktiviert.
+- Keine Datei-Inhalte, keine absoluten Pfade, keine DB-Migration, keine Shell-/Prozess-Actions.
+- Standard-Arbeitsweise ergaenzt: Server-/API-Checks standardmaessig kurz ausgeben, volles JSON nur bei Diagnose.
+
 ## 0.2.27 - Media Agent Slow Sync Readonly
 
 - Media-Agent-WSS-Slow-Sync read-only vorbereitet.

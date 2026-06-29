@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
 
-const STATUS_API_VERSION = 'rdap_media_agent_slow_sync_readonly_027.v1';
-const BUILD = 'RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY';
+const STATUS_API_VERSION = 'rdap_media_agent_slow_sync_readonly_027b.v1';
+const BUILD = 'RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);

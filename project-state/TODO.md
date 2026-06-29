@@ -2,15 +2,15 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY` lokal einspielen.
+- [ ] `RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX` lokal einspielen.
 - [ ] Lokale Syntaxchecks ausfuehren.
 - [ ] Lokal Media-Inventar weiterhin aktiv pruefen.
 - [ ] Agent-Verbindung online pruefen.
+- [ ] Pruefen, dass Agent nach Media-Sync verbunden bleibt.
 - [ ] Online Media-Inventar nach Slow-Sync pruefen.
-- [ ] Counts lokal/online plausibel vergleichen.
+- [ ] Pruefen: kein `agent_payload_too_large_64bit_frame` mehr.
 - [ ] Pruefen: upload/edit/delete bleiben false.
 - [ ] Pruefen: keine absoluten Pfade in Online-Response.
-- [ ] Pruefen: Payload-Limit/Truncated bleibt stabil.
 - [ ] Wenn sauber: `stepdone.cmd`.
 
 ## Immer beachten
@@ -30,3 +30,4 @@
 - [ ] Source-ZIP vom Nutzer als Quellmaterial nutzen.
 - [ ] Source-ZIP nie als Install-ZIP behandeln.
 - [ ] Echten Install-ZIP erst nach bestaetigtem Plan/Go und mit echten Zielpfaden bauen.
+- [ ] Check-Ausgaben standardmaessig kurz halten; volles JSON nur bei Diagnose.

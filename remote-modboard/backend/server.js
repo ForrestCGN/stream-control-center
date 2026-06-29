@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.27';
-const BUILD_NAME = 'Media Agent Slow Sync Readonly';
-const STEP_REF = 'RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY';
+const APP_VERSION = '0.2.27B';
+const BUILD_NAME = 'Media Sync Compact Frame Fix';
+const STEP_REF = 'RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX';
 const MODULE_BUILD = STEP_REF;
 
 async function main() {

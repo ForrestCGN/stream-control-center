@@ -1,24 +1,25 @@
 # Next Steps
 
-Nach `0.2.27`:
+Nach `0.2.27B`:
 
 ## 1. Direkt testen
 
 ```text
-RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY
+RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX
 ```
 
 Pruefen:
 
 ```text
 - Lokal Media-Inventar weiterhin aktiv.
-- Agent-Verbindung online aktiv.
+- Agent-Verbindung online bleibt nach Media-Sync verbunden.
+- Webserver Reject `agent_payload_too_large_64bit_frame` tritt nicht mehr auf.
 - Online /api/remote/agent/media/inventory/status zeigt Agent-Media-Memory-Cache.
 - Online /api/remote/media/status uebernimmt Media-Inventar aus Agent-Memory.
-- Counts lokal/online plausibel.
+- Counts lokal/online plausibel; online darf wegen Compact-Transport weniger Items melden.
+- truncated darf true sein und ist kein Fehler.
 - upload/edit/delete bleiben false.
 - Keine absoluten Pfade in Online-Response.
-- Payload-Limit/Truncated bleibt stabil.
 ```
 
 ## 2. Danach sinnvoll
@@ -32,6 +33,7 @@ Ziel:
 ```text
 - Sichttest Media-Seite lokal/online.
 - Kleine UI-Statusverfeinerung nur falls noetig.
+- Optional Paging/Filter-Limit sauber planen.
 - Keine Writes.
 - Keine Uploads/Deletes/Edits.
 - Keine DB-Migration.
@@ -57,4 +59,9 @@ Wenn GitHub/dev per Connector unvollstaendig/abgeschnitten ist:
 - Source-ZIP vom Nutzer abwarten.
 - Erst aus Source-ZIP echten Step-ZIP bauen.
 - ZIP fuer Installation muss echte Zielpfade enthalten, keinen Wrapper-Ordner.
+
+Check-Ausgaben:
+- Keine vollen JSON-Waende als Standard.
+- Webserver: `curl ... | jq '{kurze:Felder}'`.
+- Windows lokal: PowerShell `Invoke-RestMethod` + `[pscustomobject]`.
 ```

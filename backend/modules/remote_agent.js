@@ -20,9 +20,9 @@ let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.8';
-const MODULE_BUILD = 'RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_media_slow_sync_027.v1';
+const MODULE_VERSION = '0.1.8B';
+const MODULE_BUILD = 'RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX';
+const STATUS_API_VERSION = 'rdap_agent_media_slow_sync_027b.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -38,6 +38,8 @@ const MEDIA_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif'
 const MEDIA_SCAN_DEFAULT_LIMIT = 500;
 const MEDIA_SCAN_HARD_LIMIT = 2000;
 const MEDIA_SCAN_MAX_DEPTH = 5;
+const MEDIA_WSS_TRANSPORT_MAX_BYTES = 60000;
+const MEDIA_WSS_TRANSPORT_LIMITS = Object.freeze([120, 80, 40, 20]);
 const MEDIA_ROOTS = Object.freeze([
   { key: 'sounds', label: 'Sounds', localPathHint: 'htdocs/assets/sounds', publicBasePath: '/assets/sounds', types: ['audio', 'video'] },
   { key: 'videos', label: 'Videos', localPathHint: 'htdocs/assets/videos', publicBasePath: '/assets/videos', types: ['video'] },
@@ -559,26 +561,20 @@ async function sendMediaInventorySync(config, reason) {
   CONNECTION_STATE.mediaInventorySyncSeq += 1;
   try {
     const inventory = buildMediaInventorySyncSnapshot(reason || 'timer');
-    const payload = {
-      type: 'media_inventory_sync',
-      protocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
-      agentId: config.agentId,
-      seq: CONNECTION_STATE.mediaInventorySyncSeq,
-      collectedAt: inventory.scannedAt,
-      inventory: buildMediaInventoryTransportPayload(inventory)
-    };
-    const json = JSON.stringify(payload);
-    if (Buffer.byteLength(json, 'utf8') > 60000) {
-      payload.inventory = buildMediaInventoryTransportPayload(inventory, { compact: true });
+    const built = buildCompactMediaInventoryFrame(config, inventory, CONNECTION_STATE.mediaInventorySyncSeq);
+    if (!built || !built.json || !built.payload) {
+      CONNECTION_STATE.mediaInventorySyncSendErrorAt = new Date().toISOString();
+      CONNECTION_STATE.mediaInventorySyncSendError = 'media_inventory_payload_too_large_after_compact';
+      return;
     }
-    ws.send(JSON.stringify(payload));
+    ws.send(built.json);
     const now = new Date().toISOString();
     CONNECTION_STATE.lastMediaInventorySyncAt = now;
     CONNECTION_STATE.mediaInventorySyncUpdatedAt = now;
-    CONNECTION_STATE.mediaInventorySync = payload.inventory;
+    CONNECTION_STATE.mediaInventorySync = built.payload.inventory;
     CONNECTION_STATE.lastSeenAt = now;
     CONNECTION_STATE.connectionState = 'connected';
-    CONNECTION_STATE.reason = 'media_inventory_sync_sent';
+    CONNECTION_STATE.reason = 'media_inventory_sync_sent_compact';
     CONNECTION_STATE.mediaInventorySyncSendErrorAt = null;
     CONNECTION_STATE.mediaInventorySyncSendError = null;
     CONNECTION_STATE.actionsEnabled = false;
@@ -587,6 +583,22 @@ async function sendMediaInventorySync(config, reason) {
     CONNECTION_STATE.mediaInventorySyncSendErrorAt = new Date().toISOString();
     CONNECTION_STATE.mediaInventorySyncSendError = err && err.message ? safeError(err.message) : 'media_inventory_sync_failed';
   }
+}
+
+function buildCompactMediaInventoryFrame(config, inventory, seq) {
+  for (const limit of MEDIA_WSS_TRANSPORT_LIMITS) {
+    const payload = {
+      type: 'media_inventory_sync',
+      protocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+      agentId: config.agentId,
+      seq,
+      collectedAt: inventory.scannedAt,
+      inventory: buildMediaInventoryTransportPayload(inventory, { transport: true, compact: true, limit, omitGroupItems: true })
+    };
+    const json = JSON.stringify(payload);
+    if (Buffer.byteLength(json, 'utf8') <= MEDIA_WSS_TRANSPORT_MAX_BYTES) return { payload, json };
+  }
+  return null;
 }
 
 function buildMediaInventorySyncSnapshot(reason) {
@@ -598,9 +610,10 @@ function buildMediaInventorySyncSnapshot(reason) {
 function buildMediaInventoryTransportPayload(inventory, options = {}) {
   const source = inventory && typeof inventory === 'object' && !Array.isArray(inventory) ? inventory : {};
   const compact = options.compact === true;
-  const limit = compact ? 250 : MEDIA_SCAN_DEFAULT_LIMIT;
+  const requestedLimit = Number(options.limit || (compact ? MEDIA_WSS_TRANSPORT_LIMITS[0] : MEDIA_SCAN_DEFAULT_LIMIT));
+  const limit = Math.max(1, Math.min(Number.isFinite(requestedLimit) ? Math.floor(requestedLimit) : MEDIA_SCAN_DEFAULT_LIMIT, MEDIA_SCAN_HARD_LIMIT));
   const items = Array.isArray(source.items) ? source.items.slice(0, limit).map(sanitizeMediaTransportItem).filter(Boolean) : [];
-  const groups = buildMediaGroupsFromItems(items, source.groups);
+  const groups = options.omitGroupItems === true ? stripMediaGroupItems(buildMediaGroupsFromItems(items, source.groups)) : buildMediaGroupsFromItems(items, source.groups);
   const counts = buildMediaCountsFromItems(items, source.counts);
   return {
     prepared: true,
@@ -803,6 +816,20 @@ function buildMediaGroupsFromItems(items, sourceGroups) {
     groups[item.rootKey].count += 1;
   }
   return groups;
+}
+
+function stripMediaGroupItems(groups) {
+  const safeGroups = groups && typeof groups === 'object' && !Array.isArray(groups) ? groups : emptyMediaGroups();
+  const result = emptyMediaGroups();
+  for (const key of Object.keys(result)) {
+    const source = safeGroups[key] && typeof safeGroups[key] === 'object' ? safeGroups[key] : {};
+    result[key].prepared = true;
+    result[key].exists = source.exists === false ? false : true;
+    result[key].count = Number.isFinite(Number(source.count)) ? Math.max(0, Math.floor(Number(source.count))) : 0;
+    result[key].emptyReason = source.emptyReason ? safeReason(source.emptyReason) : null;
+    result[key].items = [];
+  }
+  return result;
 }
 
 function buildMediaCountsFromItems(items, sourceCounts) {

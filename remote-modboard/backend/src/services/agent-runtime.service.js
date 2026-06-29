@@ -3,8 +3,8 @@
 const crypto = require('crypto');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_media_slow_sync_runtime_027.v1';
+const MODULE_BUILD = 'RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX';
+const STATUS_API_VERSION = 'rdap_agent_media_slow_sync_runtime_027b.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';

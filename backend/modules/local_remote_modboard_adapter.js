@@ -6,8 +6,8 @@ const http = require("http");
 const express = require("express");
 
 const MODULE_NAME = "local_remote_modboard_adapter";
-const MODULE_VERSION = "0.2.27";
-const MODULE_BUILD = "RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY";
+const MODULE_VERSION = "0.2.27B";
+const MODULE_BUILD = "RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX";
 const API_PREFIX = "/api/remote";
 const INVENTORY_SOURCE_MODE = "local_adapter_remote_agent_component_status";
 
@@ -843,7 +843,7 @@ function localMediaStatusPayload(req = null) {
     ok: true,
     service: "remote-modboard",
     module: "remote_media_readonly",
-    moduleVersion: "0.2.27",
+    moduleVersion: "0.2.27B",
     moduleBuild: MODULE_BUILD,
     routeBuild: MODULE_BUILD,
     statusApiVersion: "rdap_media_local_inventory_readonly_025.v1",

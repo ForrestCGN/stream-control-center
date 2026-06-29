@@ -64,6 +64,8 @@ OBS ist bei 0.2.22E geparkt.
 0.2.24: Media-Foundation read-only.
 0.2.25: lokales Media-Inventar read-only aktiv.
 0.2.26: Architekturstandard fuer Runtime-Profile, fachliche Module, Sync-Klassen und Rechte dokumentiert.
+0.2.27: Media Agent Slow Sync read-only gebaut.
+0.2.27B: Media-WSS-Payload kompakt gemacht, damit kein 64-bit WebSocket-Frame-Abbruch entsteht.
 0.2.27: Media-Agent-WSS-Slow-Sync read-only vorbereitet.
 ```
 
@@ -101,3 +103,18 @@ Nach 0.2.27: Media-Sync testen und danach naechsten kleinen read-only Ausbau pla
 ```
 
 Nur bauen, nachdem GitHub/dev gelesen wurde und ein Plan bestaetigt ist.
+
+
+## Standard-Arbeitsweise Zusatz
+
+```text
+Wenn GitHub/dev ueber Connector abgeschnitten/unvollstaendig ist:
+- erst Source-Sammel-Script liefern
+- Source-ZIP vom Nutzer abwarten
+- daraus echten Install-Step-ZIP mit Zielpfaden bauen
+
+Check-Ausgaben kurz halten:
+- Webserver: curl + jq mit ausgewaehlten Feldern
+- Windows lokal: Invoke-RestMethod + pscustomobject
+- volles JSON nur bei Fehlerdiagnose
+```
