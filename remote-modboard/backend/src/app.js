@@ -17,6 +17,7 @@ const { registerAgentStatusRoutes } = require('./routes/agent-status.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 const { installObsReadonlyResponseDecorators, registerObsReadonlyRoutes } = require('./routes/obs-readonly.routes');
 const { registerMediaReadonlyRoutes } = require('./routes/media-readonly.routes');
+const { registerMediaIndexDiffRoutes } = require('./routes/media-index-diff.routes');
 
 function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   const app = express();
@@ -48,6 +49,7 @@ function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   registerRoutesRoutes(app, context);
   registerObsReadonlyRoutes(app, context);
   registerMediaReadonlyRoutes(app, context);
+  registerMediaIndexDiffRoutes(app, context);
 
   app.get(['/', '/remote', '/modboard'], (req, res) => {
     const indexPath = path.join(publicDir, 'index.html');

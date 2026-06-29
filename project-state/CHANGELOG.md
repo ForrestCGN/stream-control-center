@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.2.58 - Media Index Diff Diagnostic Read-only
+
+- Neue read-only Route `/api/remote/media/index/diff/status` hinzugefuegt.
+- Agent-Snapshot wird gegen `remote_media_index` verglichen.
+- Diagnose trennt neue, geaenderte, fehlende und unveraenderte Media-Eintraege.
+- Preview gibt nur sichere Felder aus: `id`, `rootKey`, `relativePath`, `kind`, `sizeBytes`, `modifiedAt`.
+- Bei gekuerztem Agent-Snapshot wird `missingOnAgent` nicht als belastbarer Loeschstatus bewertet.
+- Keine DB-Writes, kein Upsert, kein Tombstone, keine Upload/Edit/Delete-Funktion, keine Datei-Inhalte, keine absoluten Pfade.
+
 ## 0.2.57 - Media Index Delta Sync Plan
 
 - Delta-Sync-/Loeschstatus-Konzept dokumentiert.
@@ -32,7 +41,6 @@
 - `agent-runtime.service.js`, `media-readonly.routes.js` und `routes.routes.js` melden denselben 0.2.55C Build.
 - Keine Logik-Aenderung, keine Gate-Aktivierung, keine DB-Writes, keine UI-Read-Source-Umstellung.
 
-
 ## 0.2.55B - Media Full-Sync Active Write Completion State
 
 - `remote-modboard/backend/src/services/agent-runtime.service.js` zaehlt Full-Sync-Chunks jetzt als eindeutige Chunk-Indizes.
@@ -41,7 +49,6 @@
 - `completedAt` bleibt bei komplettem Full-Sync gesetzt.
 - `media-readonly.routes.js` und `routes.routes.js` melden den 0.2.55B Build.
 - Keine Gate-Aktivierung, keine UI-Read-Source-Umstellung, keine Upload/Edit/Delete-Funktion.
-
 
 ## 0.2.55A - Media Full-Sync Blocked-State Clarity
 
