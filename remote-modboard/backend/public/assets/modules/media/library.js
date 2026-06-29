@@ -62,11 +62,38 @@
     return `<span class="cgn-chip ${kind ? `cgn-chip--${kind}` : ''}" ${attrs || ''}>${escapeHtml(label)}</span>`;
   }
 
+  function yesNo(value) {
+    if (value === true) return 'ja';
+    if (value === false) return 'nein';
+    return 'nicht geprueft';
+  }
+
   function inventoryItems() {
     const items = state.data && state.data.inventory && Array.isArray(state.data.inventory.items) ? state.data.inventory.items : [];
     if (state.filter === 'all') return items;
     if (state.filter === 'sounds' || state.filter === 'videos' || state.filter === 'images') return items.filter(item => item.rootKey === state.filter);
     return items.filter(item => item.kind === state.filter);
+  }
+
+  function renderSourceInfoRows(data) {
+    const info = data && data.sourceInfo && typeof data.sourceInfo === 'object' ? data.sourceInfo : {};
+    const rows = [
+      ['Primaere Quelle', info.primary || 'agent_memory'],
+      ['Quelle aktiv', yesNo(info.primaryActive)],
+      ['DB-Index geprueft', yesNo(info.dbIndexChecked)],
+      ['DB-Index verfuegbar', yesNo(info.dbIndexAvailable)],
+      ['Fallback', info.fallbackEnabled ? 'an' : 'aus'],
+      ['Writes', info.writesEnabled || info.mediaWritesEnabled || info.agentWritesEnabled || info.uploadEditDeleteEnabled ? 'an' : 'aus']
+    ];
+    return rows.map(([label, value]) => `<div class="kv-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('');
+  }
+
+  function buildSourceInfoNotice(data) {
+    const info = data && data.sourceInfo && typeof data.sourceInfo === 'object' ? data.sourceInfo : {};
+    if (info.dbIndexChecked === true) {
+      return `DB-Index diagnostisch geprueft${Number.isFinite(Number(info.dbIndexItemCount)) ? ` · ${Number(info.dbIndexItemCount)} Eintraege` : ''}. Fallback und Writes bleiben aus.`;
+    }
+    return 'Normale UI-Abfrage ohne DB-Check. Der DB-Index wird nur per Diagnoseaufruf mit ?db=1 geprueft.';
   }
 
   function renderRootRows(data) {
@@ -142,14 +169,18 @@
     const mode = data.mode || {};
     const inventory = data.inventory || {};
     const counts = inventory.counts || {};
+    const sourceInfo = data.sourceInfo || {};
     const statusText = state.error ? 'Fehler' : (state.loading ? 'Lade...' : (data.summary || 'Media-System read-only vorbereitet.'));
     const runtimeLabel = data.runtimeMode === 'local' || mode.local ? 'Lokal' : 'Online';
     const syncInfo = data.syncInfo || {};
     const inventoryStatus = inventory.active ? `${counts.returned || counts.total || 0} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt';
     const syncLabel = mode.local ? 'lokale Datei-Wahrheit' : (inventory.active ? 'Agent-Sync aktiv' : 'wartet auf Agent');
+    const sourceLabel = sourceInfo.primaryActive === true ? 'Agent aktiv' : 'Quelle wartet';
+    const dbLabel = sourceInfo.dbIndexChecked === true ? (sourceInfo.dbIndexAvailable === true ? 'DB bereit' : 'DB nicht bereit') : 'DB nicht geprueft';
     const extensionList = Array.isArray(data.allowedExtensions) ? data.allowedExtensions.join(', ') : '';
     const truncatedNotice = inventory.truncated ? `<div class="admin-lock-note"><i>!</i><div><strong>Kompakte Liste gekuerzt.</strong><span>Es werden ${escapeHtml(String(counts.returned || counts.total || inventory.limit || 0))} Medien angezeigt. Weitere lokale Medien sind vorhanden; Paging/Persistenz wird separat geplant.</span></div></div>` : '';
     const syncNotice = `<div class="admin-lock-note"><i>i</i><div><strong>${escapeHtml(syncLabel)}</strong><span>${escapeHtml(syncInfo.note || (mode.local ? 'Lokal bleibt die Datei-Wahrheit.' : 'Online zeigt nur den read-only Agent-Memory-Index, keine Server-Speicherung.'))}</span></div></div>`;
+    const sourceNotice = `<div class="admin-lock-note"><i>i</i><div><strong>${escapeHtml(sourceLabel)}</strong><span>${escapeHtml(buildSourceInfoNotice(data))}</span></div></div>`;
 
     mountPanel(`
       <section class="rdap-view" data-page-panel="${PAGE_ID}">
@@ -160,12 +191,13 @@
         <section class="metric-grid">
           <article class="metric-card cgn-card"><span>Modus</span><strong>${escapeHtml(runtimeLabel)}</strong><small>gleiche UI lokal und online</small><div class="cgn-progress"><i style="width:70%"></i></div></article>
           <article class="metric-card cgn-card"><span>Inventar</span><strong>${escapeHtml(inventoryStatus)}</strong><small>${escapeHtml(syncLabel)}</small><div class="cgn-progress ${inventory.active ? '' : 'cgn-progress--warn'}"><i style="width:${inventory.active ? '80' : '15'}%"></i></div></article>
-          <article class="metric-card cgn-card"><span>Server-Cache</span><strong>${escapeHtml(syncInfo.serverPersistence ? 'An' : 'Aus')}</strong><small>Persistenz spaeter separat</small><div class="cgn-progress cgn-progress--warn"><i style="width:0%"></i></div></article>
-          <article class="metric-card cgn-card"><span>Loeschen</span><strong>Aus</strong><small>keine gefaehrlichen Aktionen</small><div class="cgn-progress cgn-progress--warn"><i style="width:0%"></i></div></article>
+          <article class="metric-card cgn-card"><span>Quelle</span><strong>${escapeHtml(sourceLabel)}</strong><small>${escapeHtml(dbLabel)} · Fallback aus</small><div class="cgn-progress ${sourceInfo.primaryActive ? '' : 'cgn-progress--warn'}"><i style="width:${sourceInfo.primaryActive ? '75' : '20'}%"></i></div></article>
+          <article class="metric-card cgn-card"><span>Writes</span><strong>Aus</strong><small>Upload/Edit/Delete gesperrt</small><div class="cgn-progress cgn-progress--warn"><i style="width:0%"></i></div></article>
         </section>
 
         <section class="page-grid">
           <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Grundlage</p><h2>Media-Bereiche</h2></div>${chip('read-only', 'info')}</div><div class="module-list">${renderRootRows(data)}</div></article>
+          <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Quelle</p><h2>Agent / DB / Fallback</h2></div>${chip('kompakt', 'info')}</div><div class="self-profile-grid self-profile-grid--compact">${renderSourceInfoRows(data)}</div>${sourceNotice}</article>
           <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Rechte</p><h2>Bedienung bleibt gesperrt</h2></div>${chip('sicher', 'warn')}</div><div class="self-profile-grid self-profile-grid--compact">${renderPermissionRows(data)}</div><div class="admin-lock-note"><i>!</i><div><strong>Upload, Bearbeiten und Loeschen sind absichtlich deaktiviert.</strong><span>Erst wenn serverseitige Media-Rechte, Audit und Sicherheitsabfragen fertig sind, werden Buttons aktiviert.</span></div></div></article>
           <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Lokal / Online</p><h2>Wo liegen die Dateien?</h2></div>${chip(runtimeLabel, 'info')}</div><div class="admin-lock-note"><i>i</i><div><strong>${escapeHtml(mode.local ? 'Lokal liegen die echten Stream-PC-Dateien.' : 'Online hat der Webserver keinen direkten Zugriff auf Stream-PC-Dateien.')}</strong><span>${escapeHtml(mode.local ? 'Das lokale Inventar wird read-only aus den lokalen Assets gelesen.' : 'Online kommt das Inventar per Agent-WSS-Slow-Sync als kompakter Memory-Index, ohne Server-Persistenz und ohne Upload/Delete.')}</span></div></div></article>
           <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Dateitypen</p><h2>Erlaubte Endungen</h2></div>${chip('Allowlist', 'ok')}</div><div class="admin-lock-note"><i>✓</i><div><strong>${escapeHtml(extensionList || 'Noch nicht geladen')}</strong><span>Freie Pfade und absolute Pfade werden nicht als Bedienmodell genutzt.</span></div></div></article>
@@ -198,7 +230,16 @@
       state.loaded = true;
     } catch (err) {
       state.error = err && err.message ? err.message : String(err || 'media_status_failed');
-      state.data = { runtimeMode: 'unknown', summary: `Media-Status konnte nicht geladen werden: ${state.error}`, mode: { local: false }, inventory: { active: false, items: [], counts: {} }, permissions: {}, plannedRoots: [], allowedExtensions: [] };
+      state.data = {
+        runtimeMode: 'unknown',
+        summary: `Media-Status konnte nicht geladen werden: ${state.error}`,
+        mode: { local: false },
+        inventory: { active: false, items: [], counts: {} },
+        permissions: {},
+        plannedRoots: [],
+        allowedExtensions: [],
+        sourceInfo: { primary: 'agent_memory', primaryActive: false, dbIndexChecked: false, dbIndexAvailable: null, fallbackEnabled: false, writesEnabled: false }
+      };
     } finally {
       state.loading = false;
       render();

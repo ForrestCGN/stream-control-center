@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.46 - Remote-Modboard Media Status Compact Source Info`.
+Aktueller Stand: `0.2.47 - Remote-Modboard Media UI Source Info Badge`.
 
 ## Verbindlich
 
@@ -34,120 +34,29 @@ Deploy:
 - Live-Pfad nicht fuer git pull benutzen
 ```
 
-## 0.2.40 Ergebnis
+## Bisheriger Stand kurz
 
 ```text
-Server-Migration fuer remote_media_index wurde nach explizitem go migration ausgefuehrt.
-Backup: /opt/stream-control-center/_runtime_tmp/remote_modboard_before_remote_media_index_20260629_113811.sql
-Backup-Groesse: 44K
-Readback: Tabelle existiert, Spalten vorhanden, Indizes vorhanden, row_count = 0
-Keine Runtime-Code-Aenderung.
-Kein Service-Restart.
-Kein Webserver-Deploy.
-Keine Media-Daten-Writes.
-Kein Upload/Edit/Delete.
+0.2.40: remote_media_index wurde nach explizitem go migration auf dem Webserver angelegt. row_count=0.
+0.2.42: /api/remote/media/status?db=1 liest Schema/COUNT read-only.
+0.2.43: 0.2.42 deployed und read-only bestaetigt.
+0.2.44: Plan fuer spaetere read-only Nutzung von remote_media_index.
+0.2.45: Schlanker Plan fuer spaetere Quelle/Fallback-Statusstruktur. Funktion geht vor.
+0.2.46: sourceInfo in bestehender Media-Route vorbereitet. Kein neuer Endpoint, keine DB-Item-Reads, keine Writes.
 ```
 
-## 0.2.41 Ergebnis
+## 0.2.47 Ergebnis
 
 ```text
-Doku-/State-only Plan fuer die read-only Media-Index-Schema-Diagnose.
-Keine Runtime-Code-Aenderung.
-Keine SQL-Ausfuehrung.
-Keine DB-Migration.
-Keine Media-Daten-Writes.
-Keine Agent-Writes.
-Kein Upload/Edit/Delete.
-Kein Webserver-Deploy.
-```
-
-## 0.2.42 Ergebnis
-
-```text
-Runtime-Read-only-Diagnose fuer remote_media_index vorbereitet.
-Route: GET /api/remote/media/status?db=1
-Nutzt: remote-modboard/backend/src/services/db.service.js / withReadOnlyConnection()
-Liest: INFORMATION_SCHEMA.TABLES, INFORMATION_SCHEMA.COLUMNS, INFORMATION_SCHEMA.STATISTICS, SELECT COUNT(*)
-compatibleForRead wird aus Schema/Indizes abgeleitet.
-compatibleForWrite=false.
-writeEnabled=false.
-dataWritesEnabled=false.
-migrationEnabled=false.
-Keine SQL-Ausfuehrung.
-Keine DB-Migration.
-Keine Media-Daten-Writes.
-Keine Agent-Writes.
-Kein Upload/Edit/Delete.
-```
-
-## 0.2.43 Ergebnis
-
-```text
-0.2.42 wurde auf dem Webserver deployed und read-only geprueft.
-Deploy/Readback bestaetigt: /api/remote/media/status?db=1 ok, inspected, detected, itemCount=0, compatibleForRead=true, Writes=false.
-Routes-Readback bestaetigt: persistentIndexSchemaStatusReadonly.prepared=true.
-Keine Runtime-Code-Aenderung in 0.2.43.
-Keine SQL-Ausfuehrung.
-Keine DB-Migration.
-Keine Media-Daten-Writes.
-Keine Agent-Writes.
-Kein Upload/Edit/Delete.
-Kein Webserver-Deploy fuer 0.2.43, weil Doku-only.
-```
-
-## 0.2.44 Ergebnis
-
-```text
-Doku-/State-only Plan fuer spaetere read-only Nutzung von remote_media_index.
-Agent-Memory bleibt vorerst primaere Online-Wahrheit.
-remote_media_index darf spaeter nur als read-only Quelle/Fallback geplant werden.
-erlaubte sichere DB-Lesefelder wurden benannt.
-deleted/last_seen_at/stale/itemCount Bewertung wurde als spaeter zu klaerende Regel dokumentiert.
-Kein Umschalten der produktiven Media-Quelle.
-Keine Runtime-Code-Aenderung.
-Keine SQL-Ausfuehrung.
-Keine DB-Migration.
-Keine Media-Daten-Writes.
-Keine Agent-Writes.
-Kein Upload/Edit/Delete.
-Kein Webserver-Deploy.
-```
-
-## 0.2.45 Ergebnis
-
-```text
-Schlanker Doku-/State-only Plan fuer eine spaetere read-only DB-Quelle/Fallback-Statusstruktur.
-Funktion geht vor: keine neuen Runtime-Module, keine uebergrosse Statusstruktur.
-Agent-Memory bleibt primaere Online-Wahrheit.
-persistentIndexSource darf spaeter nur als kleiner Statusblock geplant werden.
-DB-Quelle bleibt disabled, bis ein eigener Runtime-Step kommt.
-itemCount=0 ist kein Fehler.
-deleted=1 ist nicht normal sichtbar.
-stale ist nur diagnostisch sichtbar.
-fallbackEnabled bleibt false.
-Keine Runtime-Code-Aenderung.
-Keine SQL-Ausfuehrung.
-Keine DB-Migration.
-Keine SELECT-Item-Liste aus remote_media_index.
-Keine Media-Daten-Writes.
-Keine Agent-Writes.
-Kein Upload/Edit/Delete.
-Kein Webserver-Deploy.
-```
-
-## 0.2.46 Ergebnis
-
-```text
-Kompakter Runtime-Step in bestehender Media-Route.
+Sichtbarer UI-Step in bestehender Media-Seite.
 Kein neues Modul.
 Kein neuer Endpoint.
-Route bleibt: /api/remote/media/status und /api/remote/media/status?db=1.
-Neu: sourceInfo Block fuer kompakte Quellen-/DB-Diagnose.
-Ohne db=1: keine DB-Abfrage, dbIndexChecked=false.
-Mit db=1: nutzt bestehende read-only Schema-/COUNT-Diagnose, keine DB-Item-Reads.
+Route bleibt: /api/remote/media/status.
+Neu sichtbar: Quelle/Agent/DB/Fallback/Writes aus sourceInfo.
+UI ruft kein ?db=1 auf.
 Agent-Memory bleibt primaere Online-Wahrheit.
-fallbackEnabled=false.
-writesEnabled=false.
+Fallback bleibt aus.
+Writes bleiben aus.
 Keine SQL-Ausfuehrung.
 Keine DB-Migration.
 Keine INSERT/UPDATE/DELETE.
@@ -159,13 +68,13 @@ Kein Upload/Edit/Delete.
 Step-Doku:
 
 ```text
-docs/current/RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_STATUS_COMPACT_SOURCE_INFO.md
+docs/current/RDAP_0.2.47_REMOTE_MODBOARD_MEDIA_UI_SOURCE_INFO_BADGE.md
 ```
 
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.46_SERVER_DEPLOY_AND_READBACK
+RDAP_0.2.47_SERVER_DEPLOY_AND_UI_READBACK
 ```
 
-Nach lokalem Abschluss und GitHub/dev-Push: Webserver-Deploy und Readback fuer `.sourceInfo` ohne und mit `db=1`.
+Nach lokalem Abschluss und GitHub/dev-Push: Webserver-Deploy, API-Readback von `.sourceInfo` und Browser-Check im Media-System.

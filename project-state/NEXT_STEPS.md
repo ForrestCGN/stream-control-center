@@ -1,10 +1,11 @@
 # Next Steps
 
-Nach `0.2.46`:
+Nach `0.2.47`:
 
 ## 1. Lokal pruefen
 
 ```powershell
+node --check .\remote-modboard\backend\public\assets\modules\media\library.js
 node --check .\remote-modboard\backend\src\routes\media-readonly.routes.js
 node --check .\remote-modboard\backend\src\app.js
 node --check .\remote-modboard\backend\server.js
@@ -15,35 +16,39 @@ git status
 Wenn sauber:
 
 ```powershell
-.\stepdone.cmd "RDAP 0.2.46 Media Status Compact Source Info vorbereitet; sourceInfo read-only, keine DB-Item-Reads, keine Writes"
+.\stepdone.cmd "RDAP 0.2.47 Media UI Source Info Badge vorbereitet; Quelle/DB/Fallback/Writes sichtbar, keine neuen Endpoints, keine Writes"
 ```
 
-## 2. Danach Webserver-Deploy
+## 2. Webserver-Deploy nach GitHub/dev-Push
+
+Runtime/UI-Datei wurde geaendert, daher Deploy notwendig.
 
 ```bash
-bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_STATUS_COMPACT_SOURCE_INFO dev
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP_0.2.47_REMOTE_MODBOARD_MEDIA_UI_SOURCE_INFO_BADGE dev
 ```
 
-## 3. Server-Readback
+## 3. Server-/Browser-Readback
 
 ```bash
 curl -fsS "http://127.0.0.1:3010/api/remote/media/status" | jq '.sourceInfo'
+```
 
-curl -fsS "http://127.0.0.1:3010/api/remote/media/status?db=1" | jq '.sourceInfo'
+Browser:
 
-curl -fsS "http://127.0.0.1:3010/api/remote/routes" | jq '.mediaReadonly.sourceInfo'
+```text
+Remote-Modboard -> Media-System oeffnen.
+Quelle/Agent/DB/Fallback/Writes muessen sichtbar sein.
+Fallback und Writes muessen aus sein.
 ```
 
 ## Nicht tun
 
 ```text
-SQL-Datei tools/rdap_0.2.39_remote_media_index_schema.sql nicht nochmal ausfuehren.
-Keine lokale SQLite-Schicht fuer Online-Remote-Modboard nutzen.
-Kein backend/core/database.js fuer Online verwenden.
-Kein backend/modules/sqlite_core.js fuer Online verwenden.
-Keine DB-Item-Reads aus remote_media_index.
+Kein ?db=1 aus der UI erzwingen.
+Keine DB-Item-Reads.
 Keine Media-Daten-Writes.
 Keine Agent-Writes.
 Kein Upload/Edit/Delete.
-Keine produktiven Writes ohne separaten Confirm-Write-Step mit Auth, Permission, Confirm-Write, Audit, Lock und Readback.
+Kein neuer Endpoint.
+Kein neues Modul.
 ```
