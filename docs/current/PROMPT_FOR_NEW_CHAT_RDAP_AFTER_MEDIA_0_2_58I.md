@@ -2,8 +2,12 @@ Wir arbeiten am Projekt `stream-control-center` / `remote-modboard` / RDAP fuer 
 
 Sprache Deutsch, kurz, direkt, pragmatisch.
 
-WICHTIG:
-GitHub/dev ist Wahrheit. Erst relevante Dateien wirklich lesen, dann Plan nennen, dann auf explizites `go` warten. Keine ZIPs vor `go`.
+WICHTIG ZUERST:
+- Masterprompt lesen und anwenden: `MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt` bzw. der im Chat/Projekt bereitgestellte Masterprompt.
+- GitHub/dev ist Wahrheit.
+- Erst relevante Dateien wirklich lesen, dann Plan nennen, dann auf explizites `go` warten.
+- Keine ZIPs vor `go`.
+- Keine Funktionalitaet entfernen.
 
 Repository:
 - GitHub: `ForrestCGN/stream-control-center`
@@ -28,7 +32,7 @@ Harte Trennung:
   - nicht `backend/modules/sqlite_core.js`
 
 Arbeitsweise:
-1. Erst GitHub/dev und relevante Doku-/Code-Dateien lesen.
+1. Erst Masterprompt, GitHub/dev und relevante Doku-/Code-Dateien lesen.
 2. Dann kurzen Plan nennen.
 3. Auf explizites `go` warten.
 4. Erst dann ZIP bauen.
@@ -49,7 +53,10 @@ cd D:\Git\stream-control-center
 
 9. Webserver-Deploy nur bei Remote-Modboard-Codeaenderungen, nicht bei Doku-only.
 
-Aktueller Stand: `0.2.58I - Media Full-Sync Read-only Compare Snapshot`
+Aktueller RDAP-Stand: `0.2.58I - Media Full-Sync Read-only Compare Snapshot`.
+
+Dieser Prompt ist der Handoff nach dem bestaetigten Webserver-Test von 0.2.58I.
+Forrest arbeitet vor dem naechsten RDAP-Step ggf. erst am Alert-System. Fuer Alert-Arbeiten ebenfalls zuerst Masterprompt und relevante Dateien lesen.
 
 Bestaetigter Verlauf:
 - 0.2.56A: Remote-Modboard nutzt Online-DB-Read-Source korrekt.
@@ -64,7 +71,7 @@ Bestaetigter Verlauf:
 - 0.2.58F: bekannte 1h/2h modifiedAt-Offsets als Soft-Match klassifiziert.
 - 0.2.58G: Strict-/Effective-Change-Counts getrennt.
 - 0.2.58H: Full-Sync-/Compact-Snapshot-Verhaeltnis fuer Missing/Tombstone geplant und dokumentiert.
-- 0.2.58I: Full-Sync-Chunks werden read-only in-memory als Compare-Snapshot gepuffert.
+- 0.2.58I: Full-Sync-Chunks werden read-only in-memory als Compare-Snapshot gepuffert und Webserver-Test bestaetigt.
 
 0.2.58I Statusmarker:
 
@@ -73,11 +80,49 @@ rdap_media_index_diff_full_sync_compare_snapshot_058i.v1
 RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT
 ```
 
-0.2.58I ergaenzt:
-- `agent-runtime.service.js` puffert Full-Sync-Chunks in-memory als read-only Compare-Snapshot.
-- `media-index-diff.routes.js` liefert zusaetzlich `fullSyncCompare`.
-- Compact-Diff-Felder bleiben kompatibel erhalten.
-- Missing wird im Full-Sync-Compare nur reliable, wenn Full-Sync vollstaendig und DB nicht trunciert ist.
+Bestaetigter Webserver-Test 0.2.58I:
+
+```text
+fullSyncCompare.prepared = true
+fullSyncCompare.readOnly = true
+fullSyncCompare.available = true
+fullSyncCompare.complete = true
+fullSyncCompare.receivedItems = 332
+fullSyncCompare.totalItems = 332
+fullSyncCompare.missingOnAgentReliable = true
+```
+
+Bestaetigte Full-Sync-Compare-Counts:
+
+```text
+agentTotal = 332
+remoteDbTotal = 333
+matchedCount = 332
+newOnAgentCount = 0
+changedOnAgentCount = 332
+strictChangedOnAgentCount = 332
+hardChangedOnAgentCount = 0
+effectiveChangedOnAgentCount = 0
+softChangedOnAgentCount = 332
+softModifiedAtOnlyCount = 332
+effectiveNoopChangedOnAgentCount = 332
+missingOnAgentCount = 1
+missingOnAgentReliable = true
+effectiveUnchangedCount = 332
+metadataCompareWarnings = 0
+writesEnabled = false
+```
+
+Bestaetigter Missing-Eintrag:
+
+```text
+sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
+```
+
+Einordnung:
+- TTS-Sprachdateien sind laut Nutzer eigentlich temporaer.
+- Der Missing-Eintrag liegt unter `sounds:tts/generated/...`.
+- Der Befund ist plausibel, aber weiterhin nur Diagnose.
 
 Sicherheit bleibt verbindlich:
 - Keine DB-Writes ohne explizites Gate.
@@ -92,23 +137,37 @@ Sicherheit bleibt verbindlich:
 - Kein Agent-Trigger aus Webserver-Diagnose.
 
 Bitte im neuen Chat zuerst lesen:
-1. `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58I.md`
-2. `docs/current/RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT.md`
-3. `docs/current/RDAP_0.2.58H_MEDIA_INDEX_DIFF_FULL_SYNC_EFFECTIVE_COMPARE_PLAN.md`
-4. `docs/current/RDAP_0.2.58G_FINAL_STATUS_AFTER_EFFECTIVE_CHANGE_COUNTS.md`
-5. `project-state/CURRENT_STATUS.md`
-6. `project-state/NEXT_STEPS.md`
-7. `project-state/TODO.md`
-8. `project-state/CHANGELOG.md`
-9. `project-state/FILES.md`
+1. Masterprompt / `MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`
+2. `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58I.md`
+3. `docs/current/RDAP_0.2.58I_FINAL_STATUS_AFTER_FULL_SYNC_COMPARE_CONFIRMED.md`
+4. `docs/current/RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT.md`
+5. `docs/current/RDAP_0.2.58H_MEDIA_INDEX_DIFF_FULL_SYNC_EFFECTIVE_COMPARE_PLAN.md`
+6. `project-state/CURRENT_STATUS.md`
+7. `project-state/NEXT_STEPS.md`
+8. `project-state/TODO.md`
+9. `project-state/CHANGELOG.md`
+10. `project-state/FILES.md`
 
-Danach relevante Source-Dateien aus GitHub/dev lesen:
+Danach relevante Source-Dateien aus GitHub/dev lesen, wenn RDAP weitergeht:
 - `remote-modboard/backend/src/routes/media-index-diff.routes.js`
 - `remote-modboard/backend/src/services/agent-runtime.service.js`
 - `backend/modules/remote_agent.js`
 
-Naechster sinnvoller Step nach Test/Deploy:
-- Full-Sync-Compare-Werte auswerten.
-- DB-Read-Source UI final sichtpruefen.
-- Gated Delta-Upsert fuer echte Hard-Changes separat planen.
-- Tombstone/Delete nur mit eigenem Gate/Confirm/Audit/Lock planen.
+Naechster sinnvoller RDAP-Step:
+
+```text
+RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION
+```
+
+Ziel:
+- Missing-Eintraege read-only klassifizieren.
+- TTS generated temp files separat erkennen.
+- `sounds:tts/generated/...` als moeglichen temporaeren Missing-Kandidaten markieren.
+- Tombstone-Kandidatur nur diagnostisch ausgeben.
+- Keine Writes.
+- Kein Upsert.
+- Kein Tombstone/Delete.
+- Kein Online->Agent-Trigger.
+
+Alert-System-Hinweis:
+Wenn vor RDAP am Alert-System gearbeitet wird, erst die dazu relevanten Docs/Code-Dateien aus GitHub/dev lesen und danach planen. RDAP 0.2.58J nicht vermischen mit Alert-Arbeiten.

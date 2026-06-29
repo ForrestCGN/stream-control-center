@@ -1,23 +1,45 @@
 # NEXT_STEPS
 
-## Naechster Schritt nach 0.2.58I
+## Naechster RDAP-Schritt
 
-0.2.58I lokal testen, committen und auf dem Webserver deployen.
+`RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION`
 
-Danach pruefen:
+Ziel:
 
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/media/index/diff/status | jq '.statusApiVersion, .routeBuild, .fullSyncCompare.prepared, .fullSyncCompare.readOnly, .fullSyncCompare.available, .fullSyncCompare.complete, .fullSyncCompare.receivedItems, .fullSyncCompare.totalItems, .fullSyncCompare.missingOnAgentReliable'
+- Missing-Eintraege read-only klassifizieren.
+- TTS generated temp files separat erkennen.
+- `sounds:tts/generated/...` als moeglichen temporaeren Missing-Kandidaten markieren.
+- Tombstone-Kandidatur nur diagnostisch ausgeben.
+- Keine Writes.
+- Kein Upsert.
+- Kein Tombstone/Delete.
+- Kein Online->Agent-Trigger.
+
+## Ausgangspunkt
+
+0.2.58I ist bestaetigt:
+
+```text
+fullSyncCompare.available = true
+fullSyncCompare.complete = true
+fullSyncCompare.receivedItems = 332
+fullSyncCompare.totalItems = 332
+fullSyncCompare.missingOnAgentReliable = true
+missingOnAgentCount = 1
+hardChangedOnAgentCount = 0
+effectiveChangedOnAgentCount = 0
 ```
 
-## Danach
+Bestaetigter Missing-Eintrag:
 
-- Full-Sync-Compare-Werte auswerten.
-- DB-Read-Source UI final sichtpruefen.
-- Gated Delta-Upsert fuer echte Hard-Changes separat planen.
-- Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen.
-- Online->Agent Queue separat planen.
+```text
+sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
+```
 
 ## Wichtig
 
-Auch wenn `fullSyncCompare.missingOnAgentReliable=true` wird, bleibt Tombstone/Delete nur Diagnose bis zu einem eigenen freigegebenen Write-Step.
+TTS-Sprachdateien sind laut Nutzer eigentlich temporaer. Trotzdem bleibt Tombstone/Delete nur Diagnose bis zu einem eigenen Gate-/Confirm-/Audit-/Lock-Step.
+
+## Arbeitswechsel
+
+Forrest arbeitet vorher ggf. am Alert-System. Alert-Arbeiten nicht mit RDAP 0.2.58J vermischen; fuer Alert-System zuerst Masterprompt und relevante GitHub/dev-Dateien lesen.
