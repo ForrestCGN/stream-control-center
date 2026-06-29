@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.25 - Media Local Inventory Readonly
+
+- Lokales Media-Inventar read-only vorbereitet.
+- Lokale Roots: `htdocs/assets/sounds`, `htdocs/assets/videos`, `htdocs/assets/images`.
+- Scan-Limit vorbereitet: Default 500, Hard-Limit 2000, Max-Tiefe 5.
+- API meldet `truncated/hasMore/nextCursor`, damit spaeter Paging ohne Breaking Change ergaenzt werden kann.
+- UI zeigt lokale Medienliste mit Filter nach Bereich/Typ.
+- Online bleibt korrekt pending bis Agent-WSS-Sync.
+- Keine Uploads, keine Edits, keine Deletes, keine DB-Migration, keine Agent-Actions.
+
 ## 0.2.24 - Media Readonly Foundation
 
 - Media-System als neuer Modboard-Bereich vorbereitet.

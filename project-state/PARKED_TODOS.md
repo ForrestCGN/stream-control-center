@@ -268,3 +268,10 @@ Stand beim Parken: `0.2.22E - Local/Online OBS Status Parity read-only`.
 - [ ] Upload/Edit/Delete erst nach echter serverseitiger Permission-Middleware fuer `media.upload`, `media.edit`, `media.delete` planen.
 - [ ] Media-Loeschen nur mit Sicherheitsabfrage, Audit und separatem freigegebenem Step.
 
+
+
+## P. Geparkte OBS-Arbeit ab 2026-06-29
+
+- [ ] OBS geparkt bei 0.2.22E; erst nach Media-Fokus wieder aufnehmen.
+- [ ] Echte Situationen spaeter testen: OBS an/aus, Agent an/aus, OBS-Neustart, Webserver-Neustart, Szenenwechsel, Live -> Wartet ohne Reload.
+- [ ] Keine OBS-Actions ohne separaten freigegebenen Control-Step.

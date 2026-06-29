@@ -4,9 +4,9 @@ const { createApp } = require('./src/app');
 const { loadConfig } = require('./src/services/config.service');
 const { registerAgentRuntime } = require('./src/services/agent-runtime.service');
 
-const APP_VERSION = '0.2.24';
-const BUILD_NAME = 'Media Readonly Foundation';
-const STEP_REF = 'RDAP_0.2.24_MEDIA_READONLY_FOUNDATION';
+const APP_VERSION = '0.2.25';
+const BUILD_NAME = 'Media Local Inventory Readonly';
+const STEP_REF = 'RDAP_0.2.25_MEDIA_LOCAL_INVENTORY_READONLY';
 const MODULE_BUILD = STEP_REF;
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
   const app = createApp({ config, moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });
   const server = app.listen(config.port, config.host, () => {
     console.log(`[remote-modboard] v${APP_VERSION} - ${BUILD_NAME} listening on http://${config.host}:${config.port}`);
-    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' mediaReadonlyFoundationPrepared=true mediaUploadEnabled=false mediaDeleteEnabled=false localOnlineAware=true actions=false remoteWritesControlled=true');
+    console.log('[remote-modboard] runtimeMode=' + config.runtimeMode + ' mediaLocalInventoryReadonlyPrepared=true mediaUploadEnabled=false mediaDeleteEnabled=false localOnlineAware=true actions=false remoteWritesControlled=true');
   });
 
   registerAgentRuntime(server, config, { moduleBuild: MODULE_BUILD, appVersion: APP_VERSION, buildName: BUILD_NAME, stepRef: STEP_REF });

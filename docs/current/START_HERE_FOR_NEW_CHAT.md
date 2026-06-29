@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `RDAP_0.2.24_MEDIA_READONLY_FOUNDATION`.
+Aktueller Stand: `0.2.25 - Media Local Inventory Readonly`.
 
 Verbindlich:
 
@@ -13,68 +13,35 @@ Lokales dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 Keine zweite lokale UI.
 ```
 
-## Aktueller Fokus
+## Bestaetigter/aktueller Fokus
 
 ```text
-Media-System ins Remote-Modboard bringen.
+OBS ist bei 0.2.22E geparkt.
+Media-System ist neuer Fokus.
+0.2.24: Media-Foundation read-only.
+0.2.25: lokales Media-Inventar read-only vorbereitet.
 ```
 
-## Bestaetigter Stand
+## Lokal/Online
 
 ```text
-0.2.22E: OBS Local/Online Status Parity read-only vorbereitet; OBS ist danach geparkt.
-0.2.23: Doku-only, OBS geparkt und Media-System als neuer Fokus dokumentiert.
-0.2.24: Media-System read-only Foundation im Remote-Modboard vorbereitet.
-```
-
-## 0.2.24 erreicht
-
-```text
-- Navigationsbereich Media vorbereitet.
-- Seite Medienuebersicht / Media-System vorbereitet.
-- Remote-Modboard und lokales dashboard-v2 nutzen dieselbe Media-UI-Grundlage.
-- Neuer read-only Endpunkt: GET /api/remote/media/status.
-- Lokal/Online-Hinweise vorbereitet.
-- Upload, Bearbeiten und Loeschen bleiben deaktiviert.
-- Permission-Zielmodell sichtbar: media.read, media.upload, media.edit, media.delete.
-- Keine Dateiscans, keine Uploads, keine Deletes, keine DB-Migration, keine Agent-Actions.
-```
-
-## Lokal/Online-Regel fuer Media
-
-```text
-Lokal: echte Media-Dateien liegen auf dem Stream-PC.
-Online: Webserver hat keinen direkten Zugriff auf Stream-PC-Media-Dateien.
-Online-Inventar spaeter nur per Agent-WSS Memory-only Sync.
-Keine Fake-Daten anzeigen.
+Lokal: echte Media-Dateien liegen auf dem Stream-PC unter htdocs/assets/*.
+Online: Webserver hat keinen direkten Zugriff auf lokale Stream-PC-Dateien.
+Online-Media-Inventar braucht spaeter Agent-WSS-Sync, memory-only.
 ```
 
 ## Sicherheitsgrenzen
 
 ```text
-Keine OBS-Steuerung.
+Keine Media-Uploads.
+Keine Media-Deletes.
+Keine Media-Edits.
+Keine DB-Migration.
 Keine Agent-Actions.
-Keine produktiven Writes.
-Keine Uploads ohne separaten Permission-/Audit-Step.
-Keine Deletes ohne separaten Permission-/Audit-/Confirm-Step.
-Keine DB-Migration ohne separaten freigegebenen Step.
 Keine Shell-/Datei-/Prozess-Actions.
-Keine Secrets in Logs, Status, UI oder Doku.
+Keine absoluten Pfade in API/UI.
 ```
 
 ## Naechster sinnvoller Step
 
-```text
-RDAP_0.2.25_MEDIA_LOCAL_INVENTORY_READONLY
-```
-
-Ziel:
-
-```text
-Lokale Media-Ordner read-only inventarisieren, begrenzt und sicher:
-- htdocs/assets/sounds
-- htdocs/assets/videos
-- htdocs/assets/images
-```
-
-Vor 0.2.25 wieder echte Dateien aus GitHub/dev lesen, besonders Media-/Sound-/Asset-nahe Dateien.
+Erst 0.2.25 lokal/online testen. Danach Media-Agent-Inventory-Sync read-only oder echte Permission-Middleware fuer spaetere Writes planen.

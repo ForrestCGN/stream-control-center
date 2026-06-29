@@ -6,10 +6,23 @@ const http = require("http");
 const express = require("express");
 
 const MODULE_NAME = "local_remote_modboard_adapter";
-const MODULE_VERSION = "0.2.16";
-const MODULE_BUILD = "RDAP_0.2.16_LOCAL_OBS_INVENTORY_SOURCE_READONLY_PREPARED";
+const MODULE_VERSION = "0.2.25";
+const MODULE_BUILD = "RDAP_0.2.25_MEDIA_LOCAL_INVENTORY_READONLY";
 const API_PREFIX = "/api/remote";
 const INVENTORY_SOURCE_MODE = "local_adapter_remote_agent_component_status";
+
+const MEDIA_ALLOWED_EXTENSIONS = Object.freeze([".mp3", ".wav", ".ogg", ".webm", ".m4a", ".mp4", ".png", ".jpg", ".jpeg", ".webp", ".gif"]);
+const MEDIA_AUDIO_EXTENSIONS = new Set([".mp3", ".wav", ".ogg", ".m4a"]);
+const MEDIA_VIDEO_EXTENSIONS = new Set([".webm", ".mp4"]);
+const MEDIA_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
+const MEDIA_SCAN_DEFAULT_LIMIT = 500;
+const MEDIA_SCAN_HARD_LIMIT = 2000;
+const MEDIA_SCAN_MAX_DEPTH = 5;
+const MEDIA_ROOTS = Object.freeze([
+  { key: "sounds", label: "Sounds", localPathHint: "htdocs/assets/sounds", publicBasePath: "/assets/sounds", types: ["audio", "video"] },
+  { key: "videos", label: "Videos", localPathHint: "htdocs/assets/videos", publicBasePath: "/assets/videos", types: ["video"] },
+  { key: "images", label: "Bilder", localPathHint: "htdocs/assets/images", publicBasePath: "/assets/images", types: ["image"] }
+]);
 
 const MODULE_META = {
   name: MODULE_NAME,
@@ -17,7 +30,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "local-dashboard-adapter",
   category: "dashboard-v2",
-  description: "Local compatibility adapter so /dashboard-v2 can run the real Remote-Modboard frontend shell on port 8080. Provides local runtime-profile, agent-executor and OBS read-only diagnostics/inventory-source preparation and blocks productive writes/actions.",
+  description: "Local compatibility adapter so /dashboard-v2 can run the real Remote-Modboard frontend shell on port 8080. Provides local runtime-profile, agent-executor and OBS read-only diagnostics/inventory-source preparation and blocks productive writes/actions and exposes local Media inventory read-only.",
   routesPrefix: [
     API_PREFIX,
     "/assets/remote-modboard.css",
@@ -375,6 +388,7 @@ async function agentExecutorDiagnosticPayload(ctx = {}) {
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/status`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/model`, readOnly: true },
+      { method: "GET", path: `${API_PREFIX}/media/status`, readOnly: true, localMediaInventoryReadonlyPrepared: true },
       { method: "GET", path: "/api/remote-agent/status", readOnly: true, source: "remote_agent" }
     ],
     note: "0.2.16 liest nur bestehenden remote_agent-Status und bereitet die lokale OBS-Inventarquelle read-only vor. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt."
@@ -392,7 +406,7 @@ function localUser() {
     avatarUrl: "",
     roles: ["owner"],
     groups: ["owner", "admin"],
-    permissions: ["remote.view", "remote.admin.read", "remote.dashboard.local.read"],
+    permissions: ["remote.view", "remote.admin.read", "remote.dashboard.local.read", "media.read"],
     runtime: "local",
     localOnly: true
   };
@@ -674,6 +688,186 @@ function schemaAdapterPayload() {
   };
 }
 
+
+function readMediaLimit(req) {
+  const raw = req && req.query ? Number.parseInt(String(req.query.limit || ""), 10) : 0;
+  if (!Number.isFinite(raw) || raw <= 0) return MEDIA_SCAN_DEFAULT_LIMIT;
+  return Math.max(1, Math.min(raw, MEDIA_SCAN_HARD_LIMIT));
+}
+
+function emptyMediaGroups() {
+  return {
+    sounds: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
+    videos: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
+    images: { prepared: true, exists: true, count: 0, items: [], emptyReason: null }
+  };
+}
+
+function mediaKindForExtension(ext) {
+  if (MEDIA_AUDIO_EXTENSIONS.has(ext)) return "audio";
+  if (MEDIA_VIDEO_EXTENSIONS.has(ext)) return "video";
+  if (MEDIA_IMAGE_EXTENSIONS.has(ext)) return "image";
+  return "media";
+}
+
+function normalizeMediaRelativePath(value) {
+  return String(value || "").replace(/\\/g, "/").replace(/^\/+/, "");
+}
+
+function walkMediaRoot({ root, absoluteRoot, currentDir, depth, limit, items, groups, counts, errors, truncatedRef, setTruncated }) {
+  if (truncatedRef()) return;
+  if (depth > MEDIA_SCAN_MAX_DEPTH) {
+    counts.skipped += 1;
+    return;
+  }
+
+  let entries = [];
+  try {
+    entries = fs.readdirSync(currentDir, { withFileTypes: true });
+  } catch (_) {
+    errors.push({ rootKey: root.key, error: "read_dir_failed" });
+    return;
+  }
+
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+  for (const entry of entries) {
+    if (truncatedRef()) return;
+    if (!entry || !entry.name || entry.name.startsWith(".")) continue;
+    const absolutePath = path.join(currentDir, entry.name);
+    if (!absolutePath.startsWith(absoluteRoot)) {
+      counts.skipped += 1;
+      continue;
+    }
+    if (entry.isSymbolicLink()) {
+      counts.skipped += 1;
+      continue;
+    }
+    if (entry.isDirectory()) {
+      walkMediaRoot({ root, absoluteRoot, currentDir: absolutePath, depth: depth + 1, limit, items, groups, counts, errors, truncatedRef, setTruncated });
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const ext = path.extname(entry.name).toLowerCase();
+    if (!MEDIA_ALLOWED_EXTENSIONS.includes(ext)) {
+      counts.skipped += 1;
+      continue;
+    }
+    counts.totalSeen += 1;
+    if (items.length >= limit) {
+      setTruncated();
+      return;
+    }
+    const rel = normalizeMediaRelativePath(path.relative(absoluteRoot, absolutePath));
+    if (!rel || rel.includes("..")) {
+      counts.skipped += 1;
+      continue;
+    }
+    let stat = null;
+    try { stat = fs.statSync(absolutePath); } catch (_) { counts.skipped += 1; continue; }
+    const kind = mediaKindForExtension(ext);
+    const item = {
+      id: `${root.key}:${rel}`,
+      rootKey: root.key,
+      rootLabel: root.label,
+      kind,
+      name: path.basename(rel),
+      relativePath: rel,
+      publicPath: `${root.publicBasePath}/${rel}`,
+      extension: ext,
+      sizeBytes: stat.size,
+      modifiedAt: stat.mtime ? stat.mtime.toISOString() : null,
+      readOnly: true
+    };
+    items.push(item);
+    groups[root.key].items.push(item);
+    groups[root.key].count += 1;
+    counts[root.key] = (counts[root.key] || 0) + 1;
+    counts[kind] = (counts[kind] || 0) + 1;
+  }
+}
+
+function buildLocalMediaInventory(req = null) {
+  const generatedAt = nowIso();
+  const limit = readMediaLimit(req);
+  const projectRoot = getProjectRoot();
+  const items = [];
+  const groups = emptyMediaGroups();
+  const counts = { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 };
+  const errors = [];
+  let truncated = false;
+
+  for (const root of MEDIA_ROOTS) {
+    const absoluteRoot = path.resolve(projectRoot, root.localPathHint);
+    if (!absoluteRoot.startsWith(projectRoot)) {
+      errors.push({ rootKey: root.key, error: "root_outside_project" });
+      continue;
+    }
+    if (!fs.existsSync(absoluteRoot)) {
+      groups[root.key].exists = false;
+      groups[root.key].emptyReason = "root_missing";
+      continue;
+    }
+    walkMediaRoot({ root, absoluteRoot, currentDir: absoluteRoot, depth: 0, limit, items, groups, counts, errors, truncatedRef: () => truncated, setTruncated: () => { truncated = true; } });
+    if (truncated) break;
+  }
+
+  items.sort((a, b) => String(a.rootKey).localeCompare(String(b.rootKey)) || String(a.relativePath).localeCompare(String(b.relativePath)));
+  for (const key of Object.keys(groups)) groups[key].items.sort((a, b) => String(a.relativePath).localeCompare(String(b.relativePath)));
+  counts.total = items.length;
+  counts.returned = items.length;
+
+  return {
+    prepared: true,
+    active: items.length > 0,
+    source: "local_stream_pc_filesystem_readonly",
+    routePreparedLater: "/api/remote-agent/media/inventory/status",
+    scannedAt: generatedAt,
+    roots: MEDIA_ROOTS.map(root => ({ key: root.key, label: root.label, exists: groups[root.key].exists, count: groups[root.key].count, localPathHint: root.localPathHint })),
+    items,
+    groups,
+    counts,
+    limit,
+    hardLimit: MEDIA_SCAN_HARD_LIMIT,
+    maxDepth: MEDIA_SCAN_MAX_DEPTH,
+    truncated,
+    hasMore: truncated,
+    nextCursor: truncated ? "prepared_later" : null,
+    errors,
+    emptyReason: items.length ? null : "no_allowed_media_files_found"
+  };
+}
+
+function localMediaStatusPayload(req = null) {
+  const inventory = buildLocalMediaInventory(req);
+  return {
+    ok: true,
+    service: "remote-modboard",
+    module: "remote_media_readonly",
+    moduleVersion: "0.2.25",
+    moduleBuild: MODULE_BUILD,
+    routeBuild: MODULE_BUILD,
+    statusApiVersion: "rdap_media_local_inventory_readonly_025.v1",
+    route: `${API_PREFIX}/media/status`,
+    generatedAt: nowIso(),
+    runtimeMode: "local",
+    localDashboard: true,
+    readOnly: true,
+    prepared: true,
+    active: true,
+    status: inventory.active ? "local_media_inventory_available" : "local_media_inventory_empty",
+    title: "Media-System",
+    summary: "Lokales Media-Inventar wurde read-only erfasst. Upload, Bearbeiten und Loeschen bleiben aus.",
+    mode: { local: true, online: false, localInventoryExpected: true, onlineAgentInventorySyncPreparedLater: true, singleUiTruth: true, remoteModboardUi: true, localDashboardProfileUsesSameUi: true },
+    permissions: { prepared: true, modelOnly: true, backendEnforcementRequiredBeforeWrites: true, readPermission: "media.read", uploadPermission: "media.upload", editPermission: "media.edit", deletePermission: "media.delete", uploadEnabled: false, editEnabled: false, deleteEnabled: false },
+    inventory,
+    plannedRoots: MEDIA_ROOTS.map(item => ({ ...item })),
+    allowedExtensions: MEDIA_ALLOWED_EXTENSIONS.slice(),
+    scanPolicy: { readOnly: true, defaultLimit: MEDIA_SCAN_DEFAULT_LIMIT, hardLimit: MEDIA_SCAN_HARD_LIMIT, maxDepth: MEDIA_SCAN_MAX_DEPTH, acceptsLimitQuery: true, cursorPreparedLater: true, nextCursor: inventory.truncated ? "prepared_later" : null },
+    safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, fileWrite: false, databaseWrite: false, migrationEnabled: false, shellOrProcessActions: false, agentActionsEnabled: false, freePathAccessEnabled: false, absolutePathsReturned: false, secretsExposed: false, noUploadInThisStep: true, noDeleteInThisStep: true },
+    nextSteps: ["Online-Media-Inventar spaeter per Agent-WSS Memory-only synchronisieren.", "Filter/Paging spaeter ohne Breaking Change ueber limit/root/type/cursor ausbauen.", "Upload/Edit/Delete erst nach separatem Permission-/Audit-/Confirm-Step."]
+  };
+}
+
 function localPlaceholderPayload(req) {
   return {
     ok: true,
@@ -787,6 +981,7 @@ module.exports.init = function init(ctx = {}) {
   app.get(`${API_PREFIX}/auth/permissions/check`, (req, res) => res.json(permissionPayload(req)));
   app.get(`${API_PREFIX}/lock-audit/status`, (req, res) => res.json(lockAuditStatusPayload()));
   app.get(`${API_PREFIX}/lock-audit/schema-adapter/status`, (req, res) => res.json(schemaAdapterPayload()));
+  app.get(`${API_PREFIX}/media/status`, (req, res) => res.json(localMediaStatusPayload(req)));
 
   app.get(`${API_PREFIX}/local-dashboard/runtime-profile`, (req, res) => res.json(localArchitecturePayload(ctx)));
   app.get(`${API_PREFIX}/local-dashboard/architecture`, (req, res) => res.json(localArchitecturePayload(ctx)));
@@ -819,7 +1014,8 @@ module.exports.init = function init(ctx = {}) {
       inventorySourcePrepared: true,
       inventorySourceMode: INVENTORY_SOURCE_MODE
     },
-    rightsSync: { prepared: true, active: false, status: "planned" }
+    rightsSync: { prepared: true, active: false, status: "planned" },
+    mediaModule: { prepared: true, active: true, statusEndpoint: `${API_PREFIX}/media/status`, inventoryReadonlyPrepared: true }
   }));
 
   app.get(`${API_PREFIX}/auth/login/start`, (req, res) => {
@@ -829,5 +1025,5 @@ module.exports.init = function init(ctx = {}) {
   app.get(`${API_PREFIX}/*`, (req, res) => res.json(localPlaceholderPayload(req)));
   app.all(`${API_PREFIX}/*`, (req, res) => res.status(405).json(writeBlockedPayload(req)));
 
-  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; obsLocalInventorySource=prepared; obsUi=visible; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
+  console.log(`[${MODULE_NAME}] routes active: ${API_PREFIX}/* read-only adapter; runtimeProfile=prepared; agentExecutorDiagnostic=prepared; obsLocalInventorySource=prepared; mediaLocalInventoryReadonly=prepared; obsUi=visible; remoteAssetsAvailable=${remoteAssetsAvailable}; assetFallback=${remoteAssetsAvailable ? "local-files" : "upstream-redirect"}`);
 };
