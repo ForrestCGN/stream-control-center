@@ -1,16 +1,25 @@
 # Changelog
 
-## 0.2.35 - Remote-Modboard MariaDB Media Index Plan No Code
+## 0.2.36 - Remote-Modboard MariaDB DB Usage Inventory No Code
 
-- Reiner Architektur-/Plan-Step.
-- Legt fest: spaetere Online-Media-Persistenz darf nur ueber Remote-Modboard-MariaDB/mysql2 geplant werden.
-- Dokumentiert den korrekten Datenfluss: lokal 8080 liest echte Assets, Agent sendet sanitisiertes Inventar, Webserver 3010 haelt Agent-Memory und spaeter optional MariaDB-Index.
-- Dokumentiert erlaubte und verbotene Media-Index-Felder.
-- Dokumentiert Reihenfolge fuer spaetere Steps 0.2.36 bis 0.2.39.
-- Keine Runtime-Code-Aenderung.
+- Fuegt reine Doku-/Inventur fuer vorhandene Online-DB-Nutzung hinzu.
+- Dokumentiert `remote-modboard/backend/src/services/db.service.js` als relevante Remote-Modboard-DB-Schicht.
+- Dokumentiert bestehende MariaDB/mysql2 Read-only-Muster:
+  - `auth-db-read.service.js`
+  - `auth-session-read.service.js`
+  - `audit-read.service.js`
+- Bestaetigt: `writeEnabled=false`, `migrationEnabled=false`.
+- Bestaetigt: keine Media-Index-Tabelle aktiv.
+- Keine Runtime-Aenderung.
 - Keine DB-Migration.
 - Keine Media-Daten-Writes.
-- Keine Upload/Edit/Delete-Aktivierung.
+- Kein Webserver-Deploy noetig.
+
+## 0.2.35 - Remote-Modboard MariaDB Media Index Plan No Code
+
+- Plant spaetere Media-Index-Richtung ueber Remote-Modboard-MariaDB/mysql2.
+- Keine Runtime-Aenderung.
+- Keine Migration.
 
 ## 0.2.34B - Media Persistent Index Foundation Blocked Docs Fix
 

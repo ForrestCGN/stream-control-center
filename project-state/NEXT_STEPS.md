@@ -1,37 +1,37 @@
 # Next Steps
 
-Nach `0.2.35`:
+Nach `0.2.36`:
 
-## 1. Direkt testen
+## 1. Direkt lokal pruefen
 
 ```text
-RDAP_0.2.35_REMOTE_MODBOARD_MARIADB_MEDIA_INDEX_PLAN_NO_CODE
+RDAP_0.2.36_REMOTE_MODBOARD_MARIADB_DB_USAGE_INVENTORY_NO_CODE
 ```
 
 Pruefen:
 
 ```text
-- Doku-Datei vorhanden.
-- Plan nennt MariaDB/mysql2 als einzig zulaessige Online-DB-Richtung.
-- Plan lehnt backend/core/database.js / SQLite fuer Online-Remote-Modboard ab.
-- Keine Runtime-Dateien geaendert.
-- Keine DB-Migration.
+- neue Step-Doku vorhanden.
+- Doku nennt db.service.js / withReadOnlyConnection.
+- Doku nennt bestehende Tabellen dashboard_sessions und dashboard_audit_log.
+- Doku bestaetigt: keine DB-Migration, keine Media-Writes.
 ```
 
-## 2. Danach optional naechster Plan-/Diagnose-Step
+## 2. Danach nur Dry-Run/Plan-Step
 
 ```text
-RDAP_0.2.36_REMOTE_MODBOARD_MARIADB_MEDIA_INDEX_SCHEMA_DRY_RUN_PLAN
+RDAP_0.2.37_REMOTE_MODBOARD_MARIADB_MEDIA_SCHEMA_DRY_RUN_NO_MIGRATION
 ```
 
 Ziel:
 
 ```text
-- echte Remote-Modboard-MariaDB-Verbindung diagnostizieren
-- vorhandene Tabellen-/Migration-Konventionen erfassen
-- Backup/Rollback fuer Schema-Step festlegen
-- finale CREATE TABLE / Indexes planen
-- keine Migration ausfuehren
+- Tabellenmodell remote_media_index gegen vorhandene MariaDB-Konventionen abgleichen.
+- Migration-SQL als Plan vorbereiten.
+- Backup/Rollback-Vorgaben dokumentieren.
+- Status-/Diagnose-Idee planen.
+- Keine Migration ausfuehren.
+- Keine Daten schreiben.
 ```
 
 ## Nicht tun
@@ -42,5 +42,6 @@ Kein backend/core/database.js im Webserver-Live-Pfad voraussetzen.
 Keine manuellen Kopien in /opt/stream-control-center/remote-modboard.
 Keine DB-Migration ohne eigenen MariaDB-Confirm-Step.
 Keine Media-Daten-Writes.
-Keine Upload/Edit/Delete-Aktivierung.
+Keine Agent-Writes.
+Kein Upload/Edit/Delete.
 ```
