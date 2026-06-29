@@ -1,6 +1,6 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.55B - Media Full-Sync Active Write Completion State`
+Aktueller Stand: `0.2.55C - Media Full-Sync Build Marker Sync`
 
 ## Kurzstatus
 
@@ -8,8 +8,8 @@ Aktueller Stand: `0.2.55B - Media Full-Sync Active Write Completion State`
 - Remote-Receiver empfaengt vollstaendige Full-Syncs.
 - Kontrollierter MEDIA_INDEX Write-Test hat `remote_media_index` mit 333 Items befuellt.
 - Write-Gates wurden danach wieder deaktiviert.
-- 0.2.55B korrigiert den Status bei aktivem DB-Write: asynchron fertig werdende Chunks koennen `state: complete` nicht mehr auf `chunk` zuruecksetzen.
-- Gate-blockierte Full-Syncs bleiben klar als `received_write_blocked` sichtbar.
+- Gate-blockierte Full-Syncs zeigen `state: received_write_blocked`.
+- 0.2.55C korrigiert ausschliesslich Build-/Statusmarker auf den aktuellen Stand.
 - Online-UI liest weiterhin aus Agent-Memory/Compact, nicht aus DB.
 
 ## Sicherheit

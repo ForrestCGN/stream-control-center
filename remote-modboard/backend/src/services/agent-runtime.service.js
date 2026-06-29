@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { withWriteConnection, publicDbError } = require('./db.service');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.55B_MEDIA_FULL_SYNC_ACTIVE_WRITE_COMPLETION_STATE';
+const MODULE_BUILD = 'RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC';
 const STATUS_API_VERSION = 'rdap_agent_media_full_sync_runtime_055b.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
@@ -14,7 +14,7 @@ const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
 const MEDIA_FULL_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-full-sync.v1';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
-const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55B_MEDIA_FULL_SYNC_ACTIVE_WRITE_COMPLETION_STATE';
+const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;

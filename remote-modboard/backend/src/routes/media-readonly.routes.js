@@ -7,10 +7,10 @@ const { buildDatabaseReadiness, withReadOnlyConnection, withWriteConnection, pub
 
 const STATUS_API_VERSION = 'rdap_media_full_sync_active_write_completion_055b.v1';
 const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
-const BUILD = 'RDAP_0.2.55B_MEDIA_FULL_SYNC_ACTIVE_WRITE_COMPLETION_STATE';
+const BUILD = 'RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const MEDIA_INDEX_SCHEMA_GATE_BUILD = 'RDAP_0.2.54_MEDIA_INDEX_SCHEMA_AND_WRITE_GATE';
-const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55B_MEDIA_FULL_SYNC_ACTIVE_WRITE_COMPLETION_STATE';
+const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 const MEDIA_INDEX_WRITE_GATE_STATUS_PATH = '/api/remote/media/index/write-gate/status';
 const MEDIA_INDEX_SCHEMA_STATUS_PATH = '/api/remote/media/index/schema/status';

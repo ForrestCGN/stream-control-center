@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.2.55C - Media Full-Sync Build Marker Sync
+
+- Build-/Statusmarker nach 0.2.55B auf `RDAP_0.2.55C_MEDIA_FULL_SYNC_BUILD_MARKER_SYNC` synchronisiert.
+- `agent-runtime.service.js`, `media-readonly.routes.js` und `routes.routes.js` melden denselben 0.2.55C Build.
+- Keine Logik-Aenderung, keine Gate-Aktivierung, keine DB-Writes, keine UI-Read-Source-Umstellung.
+
+
 ## 0.2.55B - Media Full-Sync Active Write Completion State
 
 - `remote-modboard/backend/src/services/agent-runtime.service.js` zaehlt Full-Sync-Chunks jetzt als eindeutige Chunk-Indizes.
