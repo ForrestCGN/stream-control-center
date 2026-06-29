@@ -254,3 +254,17 @@ Stand beim Parken: `0.2.22E - Local/Online OBS Status Parity read-only`.
 - [ ] Webserver baut weiterhin keine eigene OBS-WebSocket-Verbindung auf; OBS-Daten kommen read-only vom Stream-PC-Agent.
 - [ ] Heartbeat bleibt klein/stabil, Live-State schnell/klein, Inventory-Sync separat.
 
+## P. OBS-Modul geparkt seit 2026-06-29
+
+- [ ] OBS-Modul bleibt bei `0.2.22E - Local/Online OBS Status Parity read-only` geparkt.
+- [ ] Offene OBS-Sichttests spaeter nachholen: OBS an/aus, Agent an/aus, OBS-Neustart, Webserver-Neustart, Szenenwechsel, lokal vs online, Reload vs ohne Reload, Live -> Wartet/Offline ohne Reload.
+- [ ] OBS-Mod-Ansicht spaeter sprachlich vereinfachen: keine Diagnosebegriffe fuer Mods.
+- [ ] Keine OBS-Actions ohne separaten freigegebenen Control-Step mit Rechtepruefung, Allowlist und Audit.
+
+## Q. Media-System Folgestufen
+
+- [ ] Nach `RDAP_0.2.24_MEDIA_READONLY_FOUNDATION` lokales Media-Inventar read-only vorbereiten.
+- [ ] Online-Media-Inventar spaeter nur per Agent-WSS Memory-only synchronisieren, nicht per direktem Webserver-Zugriff auf Stream-PC-Dateien.
+- [ ] Upload/Edit/Delete erst nach echter serverseitiger Permission-Middleware fuer `media.upload`, `media.edit`, `media.delete` planen.
+- [ ] Media-Loeschen nur mit Sicherheitsabfrage, Audit und separatem freigegebenem Step.
+

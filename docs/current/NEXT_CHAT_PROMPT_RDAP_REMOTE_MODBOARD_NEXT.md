@@ -28,67 +28,62 @@ Startdateien zuerst lesen:
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP_REMOTE_MODBOARD_NEXT.md
-docs/current/LOCAL_DASHBOARD_REPLACEMENT_PLAN_CURRENT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
 project-state/PARKED_TODOS.md
+remote-modboard/backend/server.js
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/routes/media-readonly.routes.js
+remote-modboard/backend/public/assets/modules/module-manifest.js
+remote-modboard/backend/public/assets/modules/media/library.js
+htdocs/dashboard-v2/assets/modules/module-manifest.js
+htdocs/dashboard-v2/assets/modules/media/library.js
+backend/modules/sound_system.js
+backend/modules/helpers/helper_media.js
 ```
 
 Aktueller Stand:
 
 ```text
-RDAP_0.2.23_PARK_OBS_START_MEDIA_DOCS
-OBS ist bei 0.2.22E geparkt.
-Naechster aktiver Fokus: Media-System ins Remote-Modboard bringen.
+RDAP_0.2.24_MEDIA_READONLY_FOUNDATION
 ```
 
-OBS-Stand beim Parken:
+Bestaetigt/gebaut:
 
 ```text
-- Stream-PC-Agent verbindet per WSS.
-- Heartbeat ist schlank.
-- Live-State sendet aktuelle OBS-Szene schnell.
-- Inventory-Sync sendet Szenen/Quellen/Audio separat, nicht im Heartbeat.
-- Online Inventory bestaetigt: 19 Szenen, 48 Quellen, 35 Audioquellen.
-- Lokales Inventory bestaetigt: 19 Szenen, 48 Quellen, 35 Audioquellen.
-- currentScene: Live Gameplay Forrest&Engel.
-- Lokale und Online-OBS-Seite nutzen gleiche Status-/Refresh-Logik.
+- Media-Modul im Remote-Modboard vorbereitet.
+- Media-Seite read-only vorbereitet.
+- GET /api/remote/media/status liefert sichere Grundlage.
+- Lokal/Online wird unterschieden.
+- Upload/Edit/Delete sind deaktiviert.
+- Keine Dateiscans in 0.2.24.
+- Keine DB-Migration, keine Agent-Actions, keine produktiven Writes.
 ```
 
-OBS-Offenpunkte sind geparkt in:
+OBS:
 
 ```text
-project-state/PARKED_TODOS.md
-```
-
-Wichtig fuer den naechsten Chat:
-
-```text
-Forrest moechte OBS jetzt pausieren und das Media-System ins Modboard bringen.
-Nicht mit OBS 0.2.20 weitermachen. GitHub/dev ist weiter: 0.2.22E.
-Vor Media-Planung echte Media-/Sound-/Dashboard-Dateien aus GitHub/dev lesen.
-Keine Media-Uploads, Deletes, produktiven Writes oder DB-Migrationen im ersten Media-Step ohne separate Freigabe.
-Modboard bleibt die einzige UI-Wahrheit; lokales dashboard-v2 ist nur dasselbe Runtime-Profil.
-```
-
-Sicherheitsgrenzen:
-
-```text
-Keine OBS-Steuerung.
-Keine Agent-Actions.
-Keine Writes.
-Keine DB-Migration.
-Keine Shell-/Datei-/Prozess-Actions.
-Keine freien OBS-Payloads.
-Keine Secrets in Logs, Status, UI oder Doku.
+OBS bleibt geparkt bei 0.2.22E. Keine OBS-Actions ohne separaten Control-Step.
 ```
 
 Naechster sinnvoller Schritt:
 
 ```text
-Echte Media-System-Dateien aus GitHub/dev lesen, Ist-Stand zusammenfassen, kleinen read-only Plan fuer die erste Media-System-Integration ins Remote-Modboard nennen, dann auf go warten.
+RDAP_0.2.25_MEDIA_LOCAL_INVENTORY_READONLY
+```
+
+Ziel fuer 0.2.25:
+
+```text
+- Lokale Media-Ordner read-only inventarisieren.
+- Safe-Path, Extension-Allowlist, Ausgabe-Limits.
+- Startbereiche: htdocs/assets/sounds, htdocs/assets/videos, htdocs/assets/images.
+- Keine Uploads.
+- Keine Deletes.
+- Keine DB-Migration.
+- Online keine Fake-Daten; Agent-Sync spaeter separat.
 ```

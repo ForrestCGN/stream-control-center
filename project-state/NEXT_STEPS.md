@@ -1,36 +1,35 @@
 # Next Steps
 
-Nach `RDAP_0.2.23_PARK_OBS_START_MEDIA_DOCS`:
-
-## Aktiver naechster Fokus
+Nach `RDAP_0.2.24_MEDIA_READONLY_FOUNDATION`:
 
 ```text
-Media-System ins Remote-Modboard bringen.
+1. Lokal einspielen und Syntax pruefen.
+2. Sichttest lokal und online:
+   - Navigation zeigt Media.
+   - Media-Seite laedt.
+   - GET /api/remote/media/status liefert readOnly=true.
+   - Upload/Edit/Delete sind sichtbar gesperrt, keine aktiven Buttons.
+   - Lokal/Online-Hinweise sind korrekt.
+
+3. Danach naechster Code-Step:
+   RDAP_0.2.25_MEDIA_LOCAL_INVENTORY_READONLY
 ```
 
-Vorgehen im naechsten Code-/Planungsstep:
+Ziel fuer 0.2.25:
 
 ```text
-1. Echte Dateien aus GitHub/dev lesen, nicht aus Erinnerung arbeiten.
-2. Media-System Ist-Stand erfassen: Backend-Routen, Services/Module, Datenquellen, Dashboard-/Frontend-Dateien, Sound-Bezuege.
-3. Bestehende Struktur bevorzugen; keine neuen parallelen Module erfinden.
-4. Ersten kleinen read-only Media-Modboard-Step planen.
-5. Auf ausdrueckliches go warten, bevor ZIP/Code gebaut wird.
+- Lokale Media-Ordner read-only erfassen.
+- Start mit vorhandenen Bereichen:
+  - htdocs/assets/sounds
+  - htdocs/assets/videos
+  - htdocs/assets/images
+- Safe-Path, Extension-Allowlist und begrenzte Ausgabe.
+- Keine Uploads, keine Deletes, keine DB-Migration.
 ```
 
-## OBS
+Spaeter, nicht jetzt:
 
 ```text
-OBS-Ausbau ist bei 0.2.22E geparkt.
-Offene OBS-Sichttests und spaetere Mod-UX-Korrekturen stehen in project-state/PARKED_TODOS.md.
-```
-
-Nicht tun:
-
-```text
-Keine OBS-Actions aktivieren.
-Keine Media-Uploads oder Deletes ohne separaten freigegebenen Write-Step.
-Keine produktiven Writes.
-Keine DB-Migration.
-Keine Secrets in Status/UI/Doku.
+- Online Media-Inventar per Agent-WSS Memory-only synchronisieren.
+- Erst danach Upload/Edit/Delete mit echter serverseitiger Permission-Middleware, Audit und Confirm planen.
 ```

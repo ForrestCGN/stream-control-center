@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.24 - Media Readonly Foundation
+
+- Media-System als neuer Modboard-Bereich vorbereitet.
+- Neue read-only Statusroute `GET /api/remote/media/status`.
+- Remote-Modboard und lokales `dashboard-v2` bekommen dieselbe Media-Grundseite.
+- Lokal/Online-Hinweise vorbereitet: online keine Fake-Dateien, lokales Inventar folgt separat.
+- Upload, Bearbeiten und Loeschen bleiben deaktiviert.
+- Keine DB-Migration, keine Agent-Actions, keine produktiven Writes.
+
 ## 0.2.23 - Park OBS / Start Media Docs
 
 - Doku-only: OBS-Ausbau bei `0.2.22E` bewusst geparkt.

@@ -2,6 +2,7 @@
 
 const { ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY } = require('../services/admin-user-admin-note-write-confirmed.service');
 const { buildAgentRoutesSummary } = require('../services/agent-status.service');
+const { buildMediaRoutesSummary } = require('./media-readonly.routes');
 
 const RDAP42_STATUS_API_VERSION = 'rdap_admin_note_ui_status42.v1';
 const RDAP42_BUILD = 'RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP';
@@ -54,10 +55,12 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/admin/locks/test/status', description: 'RDAP37 Lock-Test-Status; schreibt nichts' },
         { method: 'POST', path: '/api/remote/admin/locks/test-cycle', description: 'RDAP37 lokaler Lock-Test mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
         { method: 'GET', path: '/api/remote/agent/status', description: 'RDAP82 read-only Stream-PC-Verbindungsstatus mit Runtime-disabled Skeleton; keine Agent-Actions' },
+        { method: 'GET', path: '/api/remote/media/status', description: 'RDAP 0.2.24 Media-System read-only Foundation fuer Lokal/Online; keine Uploads, keine Deletes, keine Dateiscans' },
         { method: 'GET', path: '/', description: 'Remote-Modboard UI' },
         { method: 'GET', path: '/remote', description: 'Remote-Modboard UI Alias' },
         { method: 'GET', path: '/modboard', description: 'Remote-Modboard UI Alias' }
       ],
+      mediaReadonly: buildMediaRoutesSummary(context),
       adminNoteReadRestored: {
         prepared: true,
         route: '/api/remote/admin/users/admin-notes/read',

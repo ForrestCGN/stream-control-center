@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `RDAP_0.2.23_PARK_OBS_START_MEDIA_DOCS` - OBS ist bei `0.2.22E` geparkt, naechster Fokus ist Media-System im Remote-Modboard.
+Aktueller Stand: `RDAP_0.2.24_MEDIA_READONLY_FOUNDATION`.
 
 Verbindlich:
 
@@ -13,40 +13,40 @@ Lokales dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 Keine zweite lokale UI.
 ```
 
-## OBS-Stand beim Parken
-
-```text
-0.2.20C: Stream-PC-Agent verbindet per WSS; Heartbeat slim; OBS-Live-Szene kommt online an.
-0.2.21: OBS Allowlist-/Rechte-Modell read-only vorbereitet.
-0.2.22B: Online Inventory-Sync empfaengt echte OBS-Listen.
-0.2.22C: Lokaler /api/remote-agent/obs/inventory/status liefert echte OBS-Listen.
-0.2.22D: Live -> Wartet/Offline soll ohne Browser-Reload aktualisieren.
-0.2.22E: Lokale und Online-OBS-Seite nutzen gleiche Anzeige-/Refresh-Logik.
-```
-
-Bestaetigte Werte:
-
-```text
-Online Inventory: scenes=19, sources=48, audioSources=35, total=102.
-Lokales Inventory: scenes=19, sources=48, audioSources=35, total=102.
-currentScene: Live Gameplay Forrest&Engel.
-```
-
-OBS bleibt geparkt. Offene OBS-Sichttests und spaetere Mod-UX-Korrekturen stehen in `project-state/PARKED_TODOS.md`.
-
-## Neuer Fokus
+## Aktueller Fokus
 
 ```text
 Media-System ins Remote-Modboard bringen.
 ```
 
-Naechster Schritt:
+## Bestaetigter Stand
 
 ```text
-1. Echte Media-/Sound-/Dashboard-Dateien aus GitHub/dev lesen.
-2. Bestehende Media-/Sound-Struktur aufnehmen.
-3. Kleinen read-only Media-Modboard-Step planen.
-4. Auf go warten.
+0.2.22E: OBS Local/Online Status Parity read-only vorbereitet; OBS ist danach geparkt.
+0.2.23: Doku-only, OBS geparkt und Media-System als neuer Fokus dokumentiert.
+0.2.24: Media-System read-only Foundation im Remote-Modboard vorbereitet.
+```
+
+## 0.2.24 erreicht
+
+```text
+- Navigationsbereich Media vorbereitet.
+- Seite Medienuebersicht / Media-System vorbereitet.
+- Remote-Modboard und lokales dashboard-v2 nutzen dieselbe Media-UI-Grundlage.
+- Neuer read-only Endpunkt: GET /api/remote/media/status.
+- Lokal/Online-Hinweise vorbereitet.
+- Upload, Bearbeiten und Loeschen bleiben deaktiviert.
+- Permission-Zielmodell sichtbar: media.read, media.upload, media.edit, media.delete.
+- Keine Dateiscans, keine Uploads, keine Deletes, keine DB-Migration, keine Agent-Actions.
+```
+
+## Lokal/Online-Regel fuer Media
+
+```text
+Lokal: echte Media-Dateien liegen auf dem Stream-PC.
+Online: Webserver hat keinen direkten Zugriff auf Stream-PC-Media-Dateien.
+Online-Inventar spaeter nur per Agent-WSS Memory-only Sync.
+Keine Fake-Daten anzeigen.
 ```
 
 ## Sicherheitsgrenzen
@@ -55,9 +55,26 @@ Naechster Schritt:
 Keine OBS-Steuerung.
 Keine Agent-Actions.
 Keine produktiven Writes.
-Keine DB-Migration.
+Keine Uploads ohne separaten Permission-/Audit-Step.
+Keine Deletes ohne separaten Permission-/Audit-/Confirm-Step.
+Keine DB-Migration ohne separaten freigegebenen Step.
 Keine Shell-/Datei-/Prozess-Actions.
-Keine freien OBS requestType Payloads.
-Keine Media-Uploads oder Deletes ohne separaten freigegebenen Write-Step.
 Keine Secrets in Logs, Status, UI oder Doku.
 ```
+
+## Naechster sinnvoller Step
+
+```text
+RDAP_0.2.25_MEDIA_LOCAL_INVENTORY_READONLY
+```
+
+Ziel:
+
+```text
+Lokale Media-Ordner read-only inventarisieren, begrenzt und sicher:
+- htdocs/assets/sounds
+- htdocs/assets/videos
+- htdocs/assets/images
+```
+
+Vor 0.2.25 wieder echte Dateien aus GitHub/dev lesen, besonders Media-/Sound-/Asset-nahe Dateien.
