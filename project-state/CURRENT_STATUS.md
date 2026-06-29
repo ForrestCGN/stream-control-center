@@ -2,7 +2,7 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.30 - Stop and Inventory No Code`.
+Aktuell: `0.2.31 - Media 8080/3010 File Module Inventory No Code`.
 
 ## Technischer Stand
 
@@ -14,6 +14,7 @@ Aktuell: `0.2.30 - Stop and Inventory No Code`.
 - Lokal liefert Media-Inventar vollstaendig aus htdocs/assets/* und bleibt Master/Wahrheit.
 - 0.2.29 ist ein reiner Plan-/Doku-Step fuer persistenten Server-Index-Cache read-only.
 - 0.2.30 ist ein Stop-/Inventory-/No-Code-Step nach fehlerhaftem und zurueckgesetztem 0.2.30-Versuch.
+- 0.2.31 ist ein Source-/Modul-Inventar-No-Code-Step.
 - Es gibt weiterhin keinen persistenten Server-Cache fuer Media-Daten im Runtime-Code.
 - Media-System bleibt fachliches Modul; Agent/Sync/Cache bleiben Infrastruktur.
 - Upload/Edit/Delete bleiben false.
@@ -22,17 +23,70 @@ Aktuell: `0.2.30 - Stop and Inventory No Code`.
 - OBS-Modul bleibt bei 0.2.22E geparkt.
 ```
 
-## Grund fuer 0.2.30 Stop
+## 0.2.31 Ergebnis
 
 ```text
-Der vorherige 0.2.30-Versuch wurde zurueckgesetzt, weil lokale 8080-Struktur und Server-3010-Struktur nicht sauber genug gemeinsam betrachtet wurden.
-Ab jetzt darf kein Persistent-Index-Code gebaut werden, bevor echte Dateien erneut gelesen und eine 8080/3010-Datei-/Modulkarte erstellt wurde.
+- Echte 8080-/3010-relevante Dateien wurden gelesen.
+- Datei-/Modulkarte wurde dokumentiert.
+- Doppelte Media-Logik wurde markiert.
+- Lokale 8080-Wahrheit und Server-3010-Wahrheit wurden getrennt.
+- Keine Runtime-Dateien geaendert.
+- Keine DB-Migration eingefuehrt.
+- Keine neue Runtime-Datei erstellt.
+- Kein Webserver-Deploy noetig.
+```
+
+## 8080 lokale Verantwortung
+
+```text
+backend/modules/local_remote_modboard_adapter.js
+- lokale /api/remote/* Adapterroute
+- lokale /api/remote/media/status Wahrheit
+- liest htdocs/assets/* read-only
+- blockiert Writes
+
+backend/modules/remote_agent.js
+- lokaler Agent /api/remote-agent/*
+- scannt Media-Roots read-only
+- sendet Media-Inventar per WSS Slow-Sync
+- akzeptiert keine Actions
+```
+
+## 3010 Server/RDAP Verantwortung
+
+```text
+remote-modboard/backend/server.js
+- Server-Entry und Agent-Runtime-Registrierung
+
+remote-modboard/backend/src/app.js
+- Express-App und Routenregistrierung
+
+remote-modboard/backend/src/services/agent-runtime.service.js
+- Agent-WSS Empfang/Sanitization/Memory-State
+- Media-Inventar bleibt memory-only
+
+remote-modboard/backend/src/routes/media-readonly.routes.js
+- /api/remote/media/status im Serverprofil
+- online liest aus agent-runtime memory-only
+- syncInfo.serverPersistence=false
+```
+
+## Doppelte Media-Logik
+
+```text
+Media Roots/Extensions/Limits/Item-Schema existieren aktuell mehrfach:
+- local_remote_modboard_adapter.js
+- remote_agent.js
+- agent-runtime.service.js
+- media-readonly.routes.js
+
+Risiko: Drift bei Root-Keys, Extensions, Limits, Sanitization und Response-Schema.
 ```
 
 ## Naechste Architekturentscheidung
 
 ```text
-Persistenter Server-Index ist weiterhin sinnvoll, aber nur als spaeterer separater read-only Code-/Migration-Step nach echter Dateipruefung.
+Persistenter Server-Index ist weiterhin sinnvoll, aber nur als spaeterer separater read-only Code-/Migration-Step nach ausdruecklichem Plan.
 Keine neue Runtime-Datei als Standardloesung.
 Vorhandene Dateien/Helper bevorzugen.
 Kein voller bidirektionaler Datei-Sync ohne Permission, Confirm, Audit, Conflict-Handling und lokalen Agent-Apply-Mechanismus.
@@ -48,17 +102,6 @@ Lokal bleibt wichtigste Quelle, weil dort die produktiven Medien benutzt werden.
 - Lokal bleibt Master.
 - Agent reconnect soll spaeter Server-Index wieder auf aktuellen Stand bringen.
 - Upload/Edit/Delete bleiben fuer separate spaetere Steps geparkt.
-```
-
-## 0.2.30 Ergebnis
-
-```text
-- Projektbremse gesetzt.
-- Keine Runtime-Dateien geaendert.
-- Keine DB-Migration eingefuehrt.
-- Keine neue Runtime-Datei erstellt.
-- Kein Webserver-Deploy noetig.
-- Naechster Schritt muss zuerst eine Datei-/Modulkarte fuer 8080 und 3010 liefern.
 ```
 
 ## Standard-Arbeitsweise Zusatz

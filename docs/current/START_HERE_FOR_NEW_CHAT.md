@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.30 - Stop and Inventory No Code`.
+Aktueller Stand: `0.2.31 - Media 8080/3010 File Module Inventory No Code`.
 
 ## Verbindlich
 
@@ -15,12 +15,13 @@ Keine zweite lokale UI.
 Keine Online-Sonder-UI.
 ```
 
-## 0.2.30 Projektbremse
+## 0.2.31 Projektbremse / Inventar
 
 ```text
-0.2.30 ist bewusst ein Stop-/Inventory-/No-Code-Step.
+0.2.31 ist bewusst ein Source-/Modul-Inventar-No-Code-Step.
 Keine Runtime-Aenderung.
-Keine neuen Runtime-Dateien.
+Keine Backend-Routen-Aenderung.
+Keine UI-JS-Aenderung.
 Keine DB-Migration.
 Keine Media-Persistenz gebaut.
 Keine Uploads.
@@ -32,12 +33,10 @@ Keine absoluten Pfade.
 Kein Webserver-Deploy noetig.
 ```
 
-Grund:
+Die verbindliche Inventar-Doku liegt hier:
 
 ```text
-Vor einem persistenten Media-Index muss zuerst die echte 8080-/3010-Verantwortung sauber inventarisiert werden.
-Der fehlerhafte 0.2.30-Versuch wurde zurueckgesetzt.
-Ab jetzt nicht aus Erinnerung bauen.
+docs/current/RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE.md
 ```
 
 ## Harte Architekturregeln
@@ -50,7 +49,8 @@ Ab jetzt nicht aus Erinnerung bauen.
 5. Gleiche Funktionen bleiben im gleichen fachlichen Modul.
 6. Jede Funktion wird von Anfang an mit User-/Rollen-/Permission-Modell gedacht.
 7. Keine Write-Funktion ohne serverseitige Permission-Pruefung, Confirm, Audit und Readback.
-8. Neue Dateien sind fuer den naechsten Code-Step verboten, ausser Forrest genehmigt sie ausdruecklich nach Begruendung.
+8. Neue Runtime-Dateien sind fuer den naechsten Code-Step verboten, ausser Forrest genehmigt sie ausdruecklich nach Begruendung.
+9. Erst vorhandene Media-/Agent-/DB-Dateien nutzen oder gar nichts bauen.
 ```
 
 ## Single UI / Dual Runtime Profile
@@ -103,19 +103,6 @@ Server-Code:
 Keine lokalen Checks gegen 3010.
 3010 nur fuer Webserver-/RDAP-Server-Checks nach GitHub/dev + Deploy.
 
-## Datenklassen
-
-```text
-A = realtimePush
-    Kleine Live-Zustaende, sofort sichtbar, memory-only.
-
-B = pullOnDemand
-    Details/Listen nur bei Seitenaufruf, Filter, Reload oder Detailansicht.
-
-C = slowSync
-    Regelmaessig uebertragene Inventare/Statusdaten, nicht sekundengenau.
-```
-
 ## Bestaetigter aktueller Fokus
 
 ```text
@@ -127,7 +114,35 @@ OBS ist bei 0.2.22E geparkt.
 0.2.27B: Media-WSS-Payload kompakt gemacht, damit kein 64-bit WebSocket-Frame-Abbruch entsteht.
 0.2.28: Media-Slow-Sync Status/UI polish read-only; kein DB-Cache, keine Persistenz.
 0.2.29: Persistent Media Index Cache read-only geplant; weiterhin kein Runtime-Code, keine DB-Migration, keine Writes.
-0.2.30: Stop and Inventory No Code; Projektbremse, kein Runtime-Code, keine neuen Dateien fuer Runtime.
+0.2.30: Stop and Inventory No Code; Projektbremse, kein Runtime-Code, keine neuen Runtime-Dateien.
+0.2.31: Media 8080/3010 File Module Inventory No Code; echte Datei-/Modulkarte dokumentiert, kein Runtime-Code.
+```
+
+## Aktuelle Media-Verantwortung laut 0.2.31
+
+```text
+backend/modules/local_remote_modboard_adapter.js
+- lokal 8080 Adapter fuer /api/remote/*
+- lokale Media-Statusroute /api/remote/media/status
+- liest lokal htdocs/assets/* read-only
+- blockiert Writes
+
+backend/modules/remote_agent.js
+- lokaler Agent /api/remote-agent/*
+- scannt lokale Media-Roots read-only
+- sendet Media-Inventar als WSS Slow-Sync
+- akzeptiert keine produktiven Actions
+
+remote-modboard/backend/src/services/agent-runtime.service.js
+- Server 3010 Agent-WSS Runtime
+- validiert/sanitized Heartbeat/Live-State/OBS/Media-Inventar
+- haelt Media-Inventar memory-only
+- persistsToDatabase=false
+
+remote-modboard/backend/src/routes/media-readonly.routes.js
+- Server 3010 /api/remote/media/status
+- online liest aus agent-runtime memory-only
+- localRuntime-Pfad existiert in Server-Route, ist aber nicht lokale 8080-Wahrheit
 ```
 
 ## Lokal/Online
@@ -160,13 +175,15 @@ Keine neuen Runtime-Dateien ohne ausdrueckliche Genehmigung.
 ```text
 docs/current/RDAP_RUNTIME_PROFILE_MODULE_PERMISSION_STANDARD.md
 docs/current/MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN_0.2.29.md
+docs/current/RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE.md
 project-state/FILES.md
 ```
 
 ## Naechster sinnvoller Step
 
 ```text
-Nach 0.2.30: kein Code-Step starten, bevor eine echte Datei-/Modulkarte fuer 8080 und 3010 erstellt wurde.
+Nach 0.2.31: kein Code-Step starten, bevor Forrest bestaetigt, welche bestehende Datei fuer Persistent-Index-Foundation ueberhaupt geaendert werden darf.
+Empfehlung: 0.2.32 erst als Plan, nicht sofort Code.
 Wenn Code spaeter kommt: maximal bestehende Media-/Agent-/DB-Dateien nutzen; neue Runtime-Datei nur mit ausdruecklicher Forrest-Freigabe.
 Keine Upload/Delete/Edit-Writes ohne eigene spaetere Steps.
 ```

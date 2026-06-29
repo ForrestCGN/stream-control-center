@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.31 - Media 8080/3010 File Module Inventory No Code
+
+- Doku-/Inventory-Step nach 0.2.30 Projektbremse.
+- Echte 8080-/3010-relevante Dateien aus GitHub/dev gelesen und eingeordnet.
+- Dokumentiert: lokale 8080-Wahrheit fuer `/api/remote/media/status` liegt in `backend/modules/local_remote_modboard_adapter.js`.
+- Dokumentiert: lokaler Agent/Media-WSS-Sender liegt in `backend/modules/remote_agent.js`.
+- Dokumentiert: zentrale DB-Schicht liegt in `backend/core/database.js`, Low-Level-SQLite in `backend/modules/sqlite_core.js`.
+- Dokumentiert: Server-3010-WSS-Runtime und Media-Memory liegen in `remote-modboard/backend/src/services/agent-runtime.service.js`.
+- Dokumentiert: Server-3010-Route `/api/remote/media/status` liegt in `remote-modboard/backend/src/routes/media-readonly.routes.js`.
+- Markiert: Media Roots/Extensions/Limits/Sanitization existieren aktuell mehrfach und koennen driften.
+- Festgelegt: Neue Runtime-Dateien bleiben verboten, ausser Forrest genehmigt sie ausdruecklich.
+- Festgelegt: Nach 0.2.31 kommt zuerst ein Plan fuer Persistent Index, kein direkter Code-Step.
+- Keine Runtime-Aenderung, keine DB-Migration, keine neue Runtime-Datei, keine Datei-Inhalte, keine absoluten Pfade, keine Shell-/Prozess-Actions.
+
 ## 0.2.30 - Stop and Inventory No Code
 
 - Doku-/Stop-Step nach fehlerhaftem und zurueckgesetztem 0.2.30-Versuch.

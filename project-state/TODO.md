@@ -2,25 +2,33 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.30_STOP_AND_INVENTORY_NO_CODE` lokal einspielen.
-- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.30 Stop and Inventory No Code.
+- [ ] `RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE` lokal einspielen.
+- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.31.
+- [ ] Pruefen: `docs/current/RDAP_0.2.31_MEDIA_8080_3010_FILE_MODULE_INVENTORY_NO_CODE.md` vorhanden.
 - [ ] Pruefen: `CURRENT_STATUS.md`, `NEXT_STEPS.md`, `FILES.md`, `CHANGELOG.md` aktualisiert.
 - [ ] Pruefen: keine Runtime-Dateien geaendert.
 - [ ] Pruefen: keine neuen Runtime-Dateien enthalten.
 - [ ] Pruefen: keine DB-Migration enthalten.
 - [ ] Wenn sauber: `stepdone.cmd`.
 
+## Ergebnis 0.2.31
+
+- [x] Datei-/Modulkarte lokal 8080 erstellt.
+- [x] Datei-/Modulkarte Server/RDAP 3010 erstellt.
+- [x] Doppelte Media-Logik markiert.
+- [x] Altlasten/Plan-Dateien eingeordnet.
+- [x] Neue Runtime-Dateien standardmaessig blockiert.
+- [x] Persistent-Index-Code weiter blockiert, bis eigener Plan bestaetigt ist.
+
 ## Naechster No-Code-Plan
 
-- [ ] Fuer den naechsten Step echte 8080-/3010-Dateien aus GitHub/dev oder Source-ZIP lesen.
-- [ ] Datei-/Modulkarte erstellen: lokal 8080.
-- [ ] Datei-/Modulkarte erstellen: Server/RDAP 3010.
-- [ ] Doppelte Media-Logik markieren.
-- [ ] Altlasten/Plan-Dateien markieren.
-- [ ] Festlegen, welche bestehende Datei spaeter ueberhaupt geaendert werden darf.
-- [ ] Neue Runtime-Dateien standardmaessig blockieren, ausser Forrest genehmigt sie ausdruecklich.
+- [ ] Vor 0.2.32 klaeren: Welche bestehende Datei darf spaeter geaendert werden?
+- [ ] Vor 0.2.32 klaeren: Darf `backend/core/database.js` im `remote-modboard/backend` Kontext sauber genutzt werden?
+- [ ] Vor 0.2.32 klaeren: Ist eine DB-Migration erlaubt?
+- [ ] Wenn Migration noetig: eigener ausdruecklicher Migration-/Foundation-Step.
+- [ ] Neue Runtime-Datei nur mit ausdruecklicher Forrest-Freigabe.
 
-## Spaeterer Code-Plan, erst nach Inventory
+## Spaeterer Code-Plan, erst nach Inventory + Plan
 
 - [ ] Fuer Persistent Index echte DB-/Storage-/Service-Dateien aus GitHub/dev lesen.
 - [ ] Vor Code entscheiden: vorhandene Projekt-DB/Helper bevorzugen oder Alternative sauber begruenden.
