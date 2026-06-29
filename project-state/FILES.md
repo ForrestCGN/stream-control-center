@@ -1,17 +1,26 @@
 # Files
 
-## 0.2.34B geaendert
+## 0.2.35 geaendert
 
 ```text
-remote-modboard/backend/src/routes/media-readonly.routes.js
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/RDAP_0.2.34B_MEDIA_PERSISTENT_INDEX_FOUNDATION_BLOCKED_DOCS_FIX.md
+docs/current/RDAP_0.2.35_REMOTE_MODBOARD_MARIADB_MEDIA_INDEX_PLAN_NO_CODE.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
 ```
+
+## Keine Runtime-Dateien geaendert
+
+```text
+remote-modboard/backend/src/routes/media-readonly.routes.js
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/db-health.service.js
+```
+
+Diese Dateien sind fuer spaeter relevant, werden in 0.2.35 aber nicht geaendert.
 
 ## Wichtige DB-Dateien fuer spaeter
 

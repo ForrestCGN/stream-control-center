@@ -2,14 +2,14 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.34B_MEDIA_PERSISTENT_INDEX_FOUNDATION_BLOCKED_DOCS_FIX` lokal einspielen.
-- [ ] `node --check remote-modboard/backend/src/routes/media-readonly.routes.js`.
+- [ ] `RDAP_0.2.35_REMOTE_MODBOARD_MARIADB_MEDIA_INDEX_PLAN_NO_CODE` lokal einspielen.
+- [ ] Doku-Check per `Select-String`.
 - [ ] `git status` pruefen.
 - [ ] Wenn sauber: `stepdone.cmd`.
-- [ ] Danach Webserver-Deploy, weil Server-Route geaendert wurde.
-- [ ] Online pruefen: persistentIndex.blocked=true und migrationEnabled=false.
+- [ ] Kein Webserver-Deploy noetig, weil Doku-only.
 
 ## Danach
 
-- [ ] No-Code-Plan fuer echte Remote-Modboard-MariaDB-Media-Index-Architektur.
+- [ ] Optional: `RDAP_0.2.36_REMOTE_MODBOARD_MARIADB_MEDIA_INDEX_SCHEMA_DRY_RUN_PLAN`.
+- [ ] Vor echter Migration: Backup/Rollback, DB-Health und Confirm-Gate festlegen.
 - [ ] Keine DB-Migration bis dieser Plan bestaetigt ist.

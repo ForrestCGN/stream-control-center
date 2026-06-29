@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.35 - Remote-Modboard MariaDB Media Index Plan No Code
+
+- Reiner Architektur-/Plan-Step.
+- Legt fest: spaetere Online-Media-Persistenz darf nur ueber Remote-Modboard-MariaDB/mysql2 geplant werden.
+- Dokumentiert den korrekten Datenfluss: lokal 8080 liest echte Assets, Agent sendet sanitisiertes Inventar, Webserver 3010 haelt Agent-Memory und spaeter optional MariaDB-Index.
+- Dokumentiert erlaubte und verbotene Media-Index-Felder.
+- Dokumentiert Reihenfolge fuer spaetere Steps 0.2.36 bis 0.2.39.
+- Keine Runtime-Code-Aenderung.
+- Keine DB-Migration.
+- Keine Media-Daten-Writes.
+- Keine Upload/Edit/Delete-Aktivierung.
+
 ## 0.2.34B - Media Persistent Index Foundation Blocked Docs Fix
 
 - Korrigiert den falschen 0.2.34-Ansatz.
