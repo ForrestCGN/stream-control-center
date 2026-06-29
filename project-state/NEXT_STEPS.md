@@ -2,13 +2,12 @@
 
 ## Naechster Schritt
 
-Webserver-Diff nach 0.2.58E testen und `modifiedAtDeltaStats` bewerten.
+Webserver-Diff nach 0.2.58F testen und Hard-/Soft-Counts bewerten.
 
 Ziel:
-- Klaeren, ob `modifiedAt`-Abweichung konstant, zeitzonenartig, rundungsartig oder importbedingt ist.
-- Pruefen, ob fuer den ersten gated Delta-Upsert `modifiedAt` als hartes Change-Kriterium taugt.
-- Keine DB-Writes.
-- Kein Upsert.
+- Erwartung pruefen: `hardChangedOnAgentCount = 0`, `softModifiedAtOnlyCount = 120`.
+- Wenn nur Soft-Matches vorliegen, keine Upserts aus `modifiedAt` ableiten.
+- Erst danach echten gated Delta-Upsert fuer harte Unterschiede planen.
 - Kein Tombstone/Delete.
 
 ## Danach

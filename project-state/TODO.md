@@ -14,8 +14,9 @@
 - [x] Agent-Snapshot-Diagnose in Diff-Route ergaenzen
 - [x] Lokalen Agent-Initial-Media-Inventory-Retry und Diagnose ergaenzen
 - [x] ModifiedAt-Delta-Diagnose in Diff-Route ergaenzen
+- [x] ModifiedAt-Soft-Match-Policy in Diff-Route ergaenzen
 - [ ] DB-Read-Source UI final sichtpruefen
-- [ ] ModifiedAt-Delta-Stats bewerten
-- [ ] Gated Delta-Upsert separat planen
+- [ ] Hard-/Soft-Diff-Counts nach 0.2.58F bewerten
+- [ ] Gated Delta-Upsert fuer harte Unterschiede separat planen
 - [ ] Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen
 - [ ] Online->Agent Queue separat planen

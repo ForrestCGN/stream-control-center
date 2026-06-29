@@ -1,21 +1,23 @@
 # CHANGELOG
 
+## 0.2.58F - Media Index Diff ModifiedAt Soft-Match Policy
+
+- Bekannte 1h/2h `modifiedAt`-Offsets werden als `soft_modified_at_offset_only` klassifiziert, wenn Size/Kind gleich sind und keine weiteren harten Unterschiede vorliegen.
+- `counts.hardChangedOnAgentCount`, `counts.softChangedOnAgentCount` und `counts.softModifiedAtOnlyCount` ergaenzt.
+- Preview zeigt `changeClass` und `modifiedAtOffsetBucket`.
+- Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone/`deleted=1`, kein Agent-Trigger.
+
 ## 0.2.58E - Media Index Diff ModifiedAt DB Diagnostic
 
 - Read-only Diff-Route um `modifiedAt`-Delta-Diagnose erweitert.
-- `changedOnAgent` Preview zeigt `agentModifiedAt`, `dbModifiedAt`, `modifiedAtDeltaMs`, `modifiedAtDeltaAbsMs` und Toleranz.
-- `counts.modifiedAtDeltaStats` zeigt Count, Min/Max/Avg und Vorzeichen-Verteilung.
-- Keine DB-Writes, kein Upsert, kein Tombstone/`deleted=1`, kein Agent-Trigger.
 
 ## 0.2.58D - Media Agent Inventory Sync Reconnect Diagnostic
 
 - Lokaler Agent sendet Media-Inventory initial robuster nach WSS-Open.
-- Keine DB-Writes, kein Online->Agent-Trigger.
 
 ## 0.2.58C - Media Index Diff Agent Snapshot Status Diagnostic
 
 - `agentSnapshotDiagnostic` in der read-only Diff-Route ergaenzt.
-- Keine DB-Writes.
 
 ## 0.2.58B - Media Index Diff Agent Empty Unreliable
 

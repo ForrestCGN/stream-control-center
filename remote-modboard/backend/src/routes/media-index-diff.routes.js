@@ -8,16 +8,21 @@ const {
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_modified_at_db_diagnostic_058e.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_agent_snapshot_diagnostic_058c.v1';
-const BUILD = 'RDAP_0.2.58E_MEDIA_INDEX_DIFF_MODIFIED_AT_DB_DIAGNOSTIC';
-const PREVIOUS_BUILD = 'RDAP_0.2.58C_MEDIA_INDEX_DIFF_AGENT_SNAPSHOT_STATUS_DIAGNOSTIC';
+const STATUS_API_VERSION = 'rdap_media_index_diff_modified_at_soft_match_058f.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_modified_at_db_diagnostic_058e.v1';
+const BUILD = 'RDAP_0.2.58F_MEDIA_INDEX_DIFF_MODIFIED_AT_SOFT_MATCH_POLICY';
+const PREVIOUS_BUILD = 'RDAP_0.2.58E_MEDIA_INDEX_DIFF_MODIFIED_AT_DB_DIAGNOSTIC';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
 const MAX_PREVIEW_LIMIT = 50;
 const MAX_DB_ROWS = 2000;
 const MODIFIED_AT_TOLERANCE_MS = 1500;
+const MODIFIED_AT_SOFT_OFFSET_TOLERANCE_MS = 5000;
+const MODIFIED_AT_SOFT_OFFSET_BUCKETS = Object.freeze([
+  { key: 'one_hour', ms: 60 * 60 * 1000 },
+  { key: 'two_hours', ms: 2 * 60 * 60 * 1000 }
+]);
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
 const MEDIA_ROOT_KEYS = new Set(['sounds', 'videos', 'images']);
@@ -49,7 +54,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58E',
+      moduleVersion: context.appVersion || '0.2.58F',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -95,7 +100,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58E',
+    moduleVersion: context.appVersion || '0.2.58F',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -126,7 +131,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ],
     note: agentSnapshotUnavailable
       ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
-      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58E ergaenzt modifiedAt-DB-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58F klassifiziert bekannte modifiedAt-Offsets als Soft-Match. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -260,7 +265,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
   const newOnAgent = [];
   const changedOnAgent = [];
   const unchanged = [];
-  const compareStats = { metadataCompareWarnings: 0, changeReasonCounts: {}, modifiedAtDeltasMs: [] };
+  const compareStats = { metadataCompareWarnings: 0, changeReasonCounts: {}, modifiedAtDeltasMs: [], hardChangedOnAgentCount: 0, softModifiedAtOnlyCount: 0 };
 
   for (const agentItem of agentById.values()) {
     const dbItem = dbById.get(agentItem.id);
@@ -271,7 +276,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
     const change = compareMediaItems(agentItem, dbItem);
     addCompareStats(compareStats, change);
     if (change.changed) {
-      changedOnAgent.push({ ...agentItem, changeReasons: change.reasons, metadataWarnings: change.warnings, compareDetails: change.details });
+      changedOnAgent.push({ ...agentItem, changeReasons: change.reasons, metadataWarnings: change.warnings, compareDetails: change.details, changeClass: change.changeClass, modifiedAtOffsetBucket: change.modifiedAtOffsetBucket });
     } else {
       unchanged.push(change.warnings.length ? { ...agentItem, metadataWarnings: change.warnings } : agentItem);
     }
@@ -293,6 +298,9 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
       matchedCount,
       newOnAgentCount: newOnAgent.length,
       changedOnAgentCount: changedOnAgent.length,
+      hardChangedOnAgentCount: compareStats.hardChangedOnAgentCount,
+      softChangedOnAgentCount: compareStats.softModifiedAtOnlyCount,
+      softModifiedAtOnlyCount: compareStats.softModifiedAtOnlyCount,
       missingOnAgentCount: missingOnAgentReliable ? missingOnAgent.length : null,
       missingOnAgentReliable,
       agentSnapshotUnavailable: agentSnapshotUnavailable === true,
@@ -347,6 +355,7 @@ function compareMediaItems(agentItem, dbItem) {
 
   const agentSize = safeComparableNumber(agentItem.sizeBytes);
   const dbSize = safeComparableNumber(dbItem.sizeBytes);
+  const sizeComparableAndEqual = agentSize !== null && dbSize !== null && agentSize === dbSize;
   if (agentSize !== null && dbSize !== null && agentSize !== dbSize) reasons.push('size_changed');
   else if ((agentSize === null) !== (dbSize === null)) warnings.push('size_uncomparable');
 
@@ -354,8 +363,10 @@ function compareMediaItems(agentItem, dbItem) {
   const dbModifiedIso = safeIsoOrNull(dbItem.modifiedAt);
   const agentModified = dateMs(agentModifiedIso);
   const dbModified = dateMs(dbModifiedIso);
+  let modifiedAtOffsetBucket = null;
   if (agentModified !== null && dbModified !== null) {
     const modifiedAtDeltaMs = agentModified - dbModified;
+    modifiedAtOffsetBucket = modifiedAtSoftOffsetBucket(modifiedAtDeltaMs);
     if (Math.abs(modifiedAtDeltaMs) > MODIFIED_AT_TOLERANCE_MS) {
       reasons.push('modified_at_changed');
       details.modifiedAt = {
@@ -363,7 +374,9 @@ function compareMediaItems(agentItem, dbItem) {
         dbModifiedAt: dbModifiedIso,
         modifiedAtDeltaMs,
         modifiedAtDeltaAbsMs: Math.abs(modifiedAtDeltaMs),
-        toleranceMs: MODIFIED_AT_TOLERANCE_MS
+        toleranceMs: MODIFIED_AT_TOLERANCE_MS,
+        softOffsetBucket: modifiedAtOffsetBucket,
+        softOffsetToleranceMs: MODIFIED_AT_SOFT_OFFSET_TOLERANCE_MS
       };
     }
   } else if ((agentModified === null) !== (dbModified === null)) {
@@ -373,19 +386,45 @@ function compareMediaItems(agentItem, dbItem) {
       dbModifiedAt: dbModifiedIso,
       modifiedAtDeltaMs: null,
       modifiedAtDeltaAbsMs: null,
-      toleranceMs: MODIFIED_AT_TOLERANCE_MS
+      toleranceMs: MODIFIED_AT_TOLERANCE_MS,
+      softOffsetBucket: null,
+      softOffsetToleranceMs: MODIFIED_AT_SOFT_OFFSET_TOLERANCE_MS
     };
   }
 
   const agentKind = safeKind(agentItem.kind);
   const dbKind = safeKind(dbItem.kind);
+  const kindComparableAndEqual = Boolean(agentKind && dbKind && agentKind === dbKind);
   if (agentKind && dbKind && agentKind !== dbKind) reasons.push('kind_changed');
 
-  return { changed: reasons.length > 0, reasons, warnings, details };
+  const changed = reasons.length > 0;
+  const softModifiedAtOnly = changed
+    && reasons.length === 1
+    && reasons[0] === 'modified_at_changed'
+    && sizeComparableAndEqual
+    && kindComparableAndEqual
+    && Boolean(modifiedAtOffsetBucket);
+
+  return {
+    changed,
+    reasons,
+    warnings,
+    details,
+    changeClass: softModifiedAtOnly ? 'soft_modified_at_offset_only' : (changed ? 'hard_changed' : 'unchanged'),
+    modifiedAtOffsetBucket: modifiedAtOffsetBucket || 'other'
+  };
 }
 
 function addCompareStats(stats, change) {
   if (!stats || !change) return;
+  if (change.changed === true) {
+    if (change.changeClass === 'soft_modified_at_offset_only') {
+      stats.softModifiedAtOnlyCount += 1;
+      stats.changeReasonCounts.soft_modified_at_offset_only = safeNonNegativeNumber(stats.changeReasonCounts.soft_modified_at_offset_only) + 1;
+    } else {
+      stats.hardChangedOnAgentCount += 1;
+    }
+  }
   for (const reason of Array.isArray(change.reasons) ? change.reasons : []) {
     stats.changeReasonCounts[reason] = safeNonNegativeNumber(stats.changeReasonCounts[reason]) + 1;
   }
@@ -476,6 +515,8 @@ function safePreviewItem(item) {
     modifiedAt: safe.modifiedAt || null
   };
   if (Array.isArray(item.changeReasons)) preview.changeReasons = item.changeReasons.filter(Boolean).slice(0, 5);
+  if (item.changeClass) preview.changeClass = safeStatus(item.changeClass);
+  if (item.modifiedAtOffsetBucket) preview.modifiedAtOffsetBucket = safeStatus(item.modifiedAtOffsetBucket);
   if (Array.isArray(item.metadataWarnings)) preview.metadataWarnings = item.metadataWarnings.filter(Boolean).slice(0, 5);
   if (item.compareDetails && item.compareDetails.modifiedAt) {
     preview.agentModifiedAt = item.compareDetails.modifiedAt.agentModifiedAt || null;
@@ -506,6 +547,16 @@ function buildAgentSummary(agentInventory, agentSnapshotUnavailable = false) {
     snapshotUnavailable: agentSnapshotUnavailable === true
   };
 }
+
+function modifiedAtSoftOffsetBucket(deltaMs) {
+  if (!Number.isFinite(deltaMs)) return null;
+  const absDelta = Math.abs(deltaMs);
+  for (const bucket of MODIFIED_AT_SOFT_OFFSET_BUCKETS) {
+    if (Math.abs(absDelta - bucket.ms) <= MODIFIED_AT_SOFT_OFFSET_TOLERANCE_MS) return bucket.key;
+  }
+  return null;
+}
+
 
 function buildModifiedAtDeltaStats(deltas) {
   const values = (Array.isArray(deltas) ? deltas : []).filter(Number.isFinite);
@@ -552,6 +603,9 @@ function buildEmptyCounts() {
     matchedCount: 0,
     newOnAgentCount: 0,
     changedOnAgentCount: 0,
+    hardChangedOnAgentCount: 0,
+    softChangedOnAgentCount: 0,
+    softModifiedAtOnlyCount: 0,
     missingOnAgentCount: null,
     missingOnAgentReliable: false,
     agentSnapshotUnavailable: true,
@@ -580,6 +634,9 @@ function buildComparePolicy() {
     emptyAgentSnapshotDoesNotMarkMissingReliable: true,
     agentSnapshotDiagnosticEnabled: true,
     modifiedAtDeltaDiagnosticEnabled: true,
+    modifiedAtSoftMatchPolicyEnabled: true,
+    modifiedAtSoftOffsetBuckets: MODIFIED_AT_SOFT_OFFSET_BUCKETS.map(bucket => ({ key: bucket.key, ms: bucket.ms })),
+    modifiedAtSoftOffsetToleranceMs: MODIFIED_AT_SOFT_OFFSET_TOLERANCE_MS,
     diagnosticDoesNotTriggerAgentAction: true,
     warningFields: ['metadataCompareWarnings', 'metadataWarnings'],
     noFileContentHashing: true
