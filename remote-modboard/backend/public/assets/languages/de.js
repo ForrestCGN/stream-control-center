@@ -18,6 +18,8 @@
     'module.admin.description': 'Benutzer, Notizen, Verbindungen und Diagnose-Details.',
     'module.account.label': 'Mein Konto',
     'module.account.description': 'Eigener Login- und Rechte-Status.',
+    'module.media.label': 'Media',
+    'module.media.description': 'Medien, Sounds, Videos und Bilder fuer Stream-Module.',
 
     'page.system.overview.label': 'Übersicht',
     'page.system.overview.title': 'Übersicht',
@@ -45,6 +47,11 @@
     'page.localDashboard.startEnv.title': 'Start / Env',
     'page.localDashboard.startEnv.description': 'Lokale Start- und Env-Hinweise ohne Secrets.',
     'page.localDashboard.startEnv.tab': 'read-only',
+
+    'page.media.library.label': 'Medienuebersicht',
+    'page.media.library.title': 'Media-System',
+    'page.media.library.description': 'Read-only Medienliste fuer Sounds, Videos und Bilder.',
+    'page.media.library.tab': 'read-only',
 
     'page.admin.users.label': 'Benutzerverwaltung',
     'page.admin.users.title': 'Benutzerverwaltung',

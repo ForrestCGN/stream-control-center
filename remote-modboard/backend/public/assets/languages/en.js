@@ -18,6 +18,8 @@
     'module.admin.description': 'Users, notes, connections and diagnostic details.',
     'module.account.label': 'My Account',
     'module.account.description': 'Own login and permission status.',
+    'module.media.label': 'Media',
+    'module.media.description': 'Media, sounds, videos and images for stream modules.',
 
     'page.system.overview.label': 'Overview',
     'page.system.overview.title': 'Overview',
@@ -45,6 +47,11 @@
     'page.localDashboard.startEnv.title': 'Start / Env',
     'page.localDashboard.startEnv.description': 'Local start and env hints without secrets.',
     'page.localDashboard.startEnv.tab': 'read-only',
+
+    'page.media.library.label': 'Media Overview',
+    'page.media.library.title': 'Media System',
+    'page.media.library.description': 'Read-only media list for sounds, videos and images.',
+    'page.media.library.tab': 'read-only',
 
     'page.admin.users.label': 'User Management',
     'page.admin.users.title': 'User Management',

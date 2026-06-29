@@ -1,25 +1,29 @@
 # Files
 
-## 0.2.32 relevante Dateien
+## 0.2.33 relevante Dateien
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md
+docs/current/RDAP_0.2.33_UI_I18N_MEDIA_LABELS_FIX_PLAN.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
+remote-modboard/backend/public/assets/languages/de.js
+remote-modboard/backend/public/assets/languages/en.js
+remote-modboard/backend/public/assets/modules/media/library.js
+htdocs/dashboard-v2/assets/modules/media/library.js
 ```
 
-## 0.2.32 bewusst nicht geaendert
+## 0.2.33 bewusst nicht geaendert
 
 ```text
-Keine Runtime-Dateien.
 Keine Backend-Routen.
-Keine UI-JS-Dateien.
 Keine DB-Migrationen.
 Keine Agent-Dateien.
+Keine Media-Persistenz.
+Keine Upload-/Edit-/Delete-Actions.
 Keine neuen Runtime-Dateien.
 ```
 
@@ -30,6 +34,7 @@ backend/modules/local_remote_modboard_adapter.js
 backend/modules/remote_agent.js
 backend/core/database.js
 backend/modules/sqlite_core.js
+htdocs/dashboard-v2/assets/modules/media/library.js
 ```
 
 ## 3010 Server/RDAP relevante Dateien
@@ -39,6 +44,9 @@ remote-modboard/backend/src/routes/media-readonly.routes.js
 remote-modboard/backend/src/services/agent-runtime.service.js
 remote-modboard/backend/src/app.js
 remote-modboard/backend/server.js
+remote-modboard/backend/public/assets/languages/de.js
+remote-modboard/backend/public/assets/languages/en.js
+remote-modboard/backend/public/assets/modules/media/library.js
 ```
 
 ## Fuer spaeteren Persistent-Index-Code-Step relevant
@@ -53,24 +61,6 @@ backend/modules/local_remote_modboard_adapter.js
 remote-modboard/backend/src/**/*.js mit DB-/Storage-/Audit-Helpern
 docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md
 docs/current/MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN_0.2.29.md
-```
-
-## Fuer separaten UI/i18n-Fix relevant
-
-```text
-remote-modboard/backend/public/assets/runtime-profile.js
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/modules/*
-remote-modboard/backend/public/assets/languages/*
-htdocs/dashboard-v2/assets/*
-```
-
-Sichtbarer Befund:
-
-```text
-module.media.label
-page.media.library.title
-page.media.library.label
 ```
 
 ## Neue-Dateien-Regel

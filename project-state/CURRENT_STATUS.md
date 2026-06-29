@@ -2,7 +2,7 @@
 
 Stand: 2026-06-29
 
-Aktuell: `0.2.32 - Media Persistent Index Foundation Plan No Code`.
+Aktuell: `0.2.33 - UI i18n Media Labels Fix Plan`.
 
 ## Technischer Stand
 
@@ -16,6 +16,7 @@ Aktuell: `0.2.32 - Media Persistent Index Foundation Plan No Code`.
 - 0.2.30 ist ein Stop-/Inventory-/No-Code-Step nach fehlerhaftem und zurueckgesetztem 0.2.30-Versuch.
 - 0.2.31 ist ein Source-/Modul-Inventar-No-Code-Step.
 - 0.2.32 ist ein Persistent-Index-Foundation-Plan-No-Code-Step.
+- 0.2.33 ist ein kleiner UI-/i18n-Fix fuer sichtbare Media-Translation-Keys.
 - Es gibt weiterhin keinen persistenten Server-Cache fuer Media-Daten im Runtime-Code.
 - Media-System bleibt fachliches Modul; Agent/Sync/Cache bleiben Infrastruktur.
 - Upload/Edit/Delete bleiben false.
@@ -24,46 +25,34 @@ Aktuell: `0.2.32 - Media Persistent Index Foundation Plan No Code`.
 - OBS-Modul bleibt bei 0.2.22E geparkt.
 ```
 
-## 0.2.32 Ergebnis
+## 0.2.33 Ergebnis
 
 ```text
-- Persistent-Index-Zielbild dokumentiert.
-- Wahrscheinliche DB-Migration als eigener spaeterer Step markiert.
-- Vorgeschlagene Verantwortung dokumentiert:
-  - agent-runtime.service.js = Empfang/Sanitization/Memory/ggf. spaeter Index-Write nach Sanitization
-  - media-readonly.routes.js = API-Ausgabe, Memory zuerst, Index spaeter nur Fallback/Stale
-  - backend/core/database.js = bevorzugte DB-Schicht, falls im Server-Kontext sauber nutzbar
-- Neue Runtime-Dateien bleiben verboten, ausser Forrest genehmigt sie ausdruecklich.
-- UI-/i18n-Befund aus Screenshot aufgenommen.
-- Keine Runtime-Dateien geaendert.
+- Fehlende Media-Sprachkeys in de/en ergaenzt.
+- Media-Modulregistrierung nutzt zentrale label/title/description/tab Keys mit Fallbacks.
+- Beide UI-Pfade angepasst: remote-modboard public assets und htdocs dashboard-v2.
+- Keine Backend-Routen geaendert.
 - Keine DB-Migration eingefuehrt.
+- Keine Agent-/Media-Persistenz-Aenderung.
 - Keine neue Runtime-Datei erstellt.
-- Kein Webserver-Deploy noetig.
 ```
 
-## UI-/i18n-Befund
+## Naechste Pruefung
 
 ```text
-Im Online-Modboard werden rohe Keys angezeigt:
-- module.media.label
-- page.media.library.title
-- page.media.library.label
-
-Das ist ein separater UI-/i18n-Polish-Fix.
-Nicht mit Persistent-Index-DB-Code vermischen.
+- Lokal 8080/dashboard-v2 oeffnen und Media-Navigation/Seitentitel pruefen.
+- Nach Commit/Push Webserver-Deploy, weil Public-Assets betroffen sind.
+- Online pruefen, dass diese rohen Keys nicht mehr sichtbar sind:
+  - module.media.label
+  - page.media.library.title
+  - page.media.library.label
 ```
 
 ## Naechste Architekturentscheidung
 
 ```text
-Entweder:
-A) zuerst kleiner UI/i18n-Fix-Plan fuer sichtbare Translation-Keys
-oder:
-B) Persistent-Index-Migration/Foundation weiter planen
-
-Empfehlung:
-Erst UI/i18n-Fix separat klein planen, weil sichtbar und wahrscheinlich ohne DB.
-Danach Persistent Index nur nach eigenem Migration-/Foundation-Go.
+Persistent-Index-Migration/Foundation nur nach eigenem Go.
+Keine DB-Migration in UI/i18n-Step nachziehen.
 ```
 
 ## Sicherheitsgrenzen

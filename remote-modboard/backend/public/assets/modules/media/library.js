@@ -51,10 +51,10 @@
   function registerModuleAndPage() {
     if (!window.RemoteModboardModules) return;
     if (typeof window.RemoteModboardModules.registerModule === 'function') {
-      window.RemoteModboardModules.registerModule({ id: MODULE_ID, label: 'Media', description: 'Medien, Sounds, Videos und Bilder fuer Stream-Module.', icon: '▣', order: 25, runtime: 'both', permission: 'media.read', navSubId: 'nav-media' });
+      window.RemoteModboardModules.registerModule({ id: MODULE_ID, labelKey: 'module.media.label', descriptionKey: 'module.media.description', label: 'Media', description: 'Medien, Sounds, Videos und Bilder fuer Stream-Module.', icon: '▣', order: 25, runtime: 'both', permission: 'media.read', navSubId: 'nav-media' });
     }
     if (typeof window.RemoteModboardModules.registerPage === 'function') {
-      window.RemoteModboardModules.registerPage({ moduleId: MODULE_ID, pageId: PAGE_ID, label: 'Medienuebersicht', title: 'Media-System', tab: 'read-only', section: 'Media', order: 10, permission: 'media.read', runtime: 'both', script: '/assets/modules/media/library.js' });
+      window.RemoteModboardModules.registerPage({ moduleId: MODULE_ID, pageId: PAGE_ID, labelKey: 'page.media.library.label', titleKey: 'page.media.library.title', descriptionKey: 'page.media.library.description', tabKey: 'page.media.library.tab', label: 'Medienuebersicht', title: 'Media-System', tab: 'read-only', section: 'Media', order: 10, permission: 'media.read', runtime: 'both', script: '/assets/modules/media/library.js' });
     }
   }
 

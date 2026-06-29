@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.32 - Media Persistent Index Foundation Plan No Code`.
+Aktueller Stand: `0.2.33 - UI i18n Media Labels Fix Plan`.
 
 ## Verbindlich
 
@@ -15,28 +15,25 @@ Keine zweite lokale UI.
 Keine Online-Sonder-UI.
 ```
 
-## 0.2.32 Planstatus
+## 0.2.33 Status
 
 ```text
-0.2.32 ist bewusst ein Plan-/Doku-No-Code-Step.
-Keine Runtime-Aenderung.
+0.2.33 ist ein kleiner UI-/i18n-Fix.
+Media-Translation-Keys wurden in zentrale Sprachdateien eingetragen.
+Media-Modulregistrierung nutzt zentrale label/title/description/tab Keys mit Fallbacks.
 Keine Backend-Routen-Aenderung.
-Keine UI-JS-Aenderung.
 Keine DB-Migration.
-Keine Media-Persistenz gebaut.
-Keine Uploads.
-Keine Deletes.
-Keine Edits.
-Keine Agent-Actions.
-Keine Datei-Inhalte.
-Keine absoluten Pfade.
-Kein Webserver-Deploy noetig.
+Keine Media-Persistenz.
+Keine Agent-Aenderung.
+Keine Uploads, Deletes oder Edits.
+Keine neue Runtime-Datei.
+Webserver-Deploy ist nach Einspielen/Commit sinnvoll, weil Public-Assets betroffen sind.
 ```
 
-Die verbindliche Plan-Doku liegt hier:
+Die verbindliche Step-Doku liegt hier:
 
 ```text
-docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md
+docs/current/RDAP_0.2.33_UI_I18N_MEDIA_LABELS_FIX_PLAN.md
 ```
 
 ## Harte Architekturregeln
@@ -70,7 +67,7 @@ Lokale Adapter-/SCC-Schicht:
 - backend/modules/local_remote_modboard_adapter.js
 - backend/modules/remote_agent.js
 Produktive lokale SQLite-DB:
-- D:\Streaming\stramAssets\data\sqlite\app.sqlite
+- D:\Streaming\stramAssets\data\sqlitepp.sqlite
 ```
 
 Server/RDAP:
@@ -101,6 +98,7 @@ OBS ist bei 0.2.22E geparkt.
 0.2.30: Stop and Inventory No Code; Projektbremse, kein Runtime-Code, keine neuen Runtime-Dateien.
 0.2.31: Media 8080/3010 File Module Inventory No Code; echte Datei-/Modulkarte dokumentiert, kein Runtime-Code.
 0.2.32: Persistent Index Foundation Plan No Code; Plan plus UI/i18n-Befund dokumentiert, kein Runtime-Code.
+0.2.33: UI/i18n Media Labels Fix; sichtbare rohe Media-Keys beseitigt.
 ```
 
 ## Aktuelle Media-Verantwortung
@@ -130,19 +128,15 @@ remote-modboard/backend/src/routes/media-readonly.routes.js
 - localRuntime-Pfad existiert in Server-Route, ist aber nicht lokale 8080-Wahrheit
 ```
 
-## UI-/i18n-Befund aus Screenshot
+## 0.2.33 UI-/i18n-Ergebnis
 
 ```text
-Im Online-Modboard werden Media-Labels als rohe Translation-Keys angezeigt:
+Rohe Keys sollten nicht mehr sichtbar sein:
 - module.media.label
 - page.media.library.title
 - page.media.library.label
 
-Befund:
-- UI/i18n-Dictionary oder Runtime-Language-Asset kennt diese Keys nicht oder wird nicht passend geladen.
-- Das ist ein UI-/i18n-Polish-Thema.
-- Nicht mit Persistent-Index-DB-Code vermischen.
-- Spaeter eigener kleiner UI/i18n-Step, nachdem betroffene Language-/Module-Dateien gelesen wurden.
+Betroffen war UI/i18n, nicht Media-Persistenz.
 ```
 
 ## Sicherheitsgrenzen
@@ -163,11 +157,8 @@ Keine neuen Runtime-Dateien ohne ausdrueckliche Genehmigung.
 ## Naechster sinnvoller Step
 
 ```text
-Nach 0.2.32: entscheiden, ob zuerst ein kleiner UI/i18n-Fix-Plan oder ein Persistent-Index-Migration-Plan kommt.
-
-Empfehlung:
-1. UI/i18n-Befund separat planen und klein fixen.
-2. Danach Persistent Index Migration/Foundation nur nach gesondertem Go.
+Nach 0.2.33 zuerst testen, ob Online-Modboard und lokales Dashboard keine rohen Media-i18n-Keys mehr zeigen.
+Danach Persistent Index Migration/Foundation nur nach gesondertem Go.
 ```
 
 Nur bauen, nachdem GitHub/dev gelesen wurde und ein Plan bestaetigt ist.

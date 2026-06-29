@@ -1,69 +1,56 @@
 # Next Steps
 
-Nach `0.2.32`:
+Nach `0.2.33`:
 
 ## 1. Direkt testen
 
 ```text
-RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE
+RDAP_0.2.33_UI_I18N_MEDIA_LABELS_FIX_PLAN
 ```
 
 Pruefen:
 
 ```text
-- START_HERE verweist auf 0.2.32.
-- Neue Plan-Doku ist vorhanden:
-  docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md
+- START_HERE verweist auf 0.2.33.
+- Neue Step-Doku ist vorhanden:
+  docs/current/RDAP_0.2.33_UI_I18N_MEDIA_LABELS_FIX_PLAN.md
 - CURRENT_STATUS/NEXT_STEPS/TODO/FILES/CHANGELOG sind aktualisiert.
-- Keine Runtime-Dateien wurden geaendert.
-- Keine neuen Runtime-Dateien wurden erstellt.
+- JS-Syntax fuer geaenderte UI-Dateien ist sauber.
+- Keine Backend-Routen wurden geaendert.
 - Keine DB-Migration wurde eingefuehrt.
-- Kein Webserver-Deploy noetig, weil Doku-only.
+- Keine neue Runtime-Datei wurde erstellt.
 ```
 
-## 2. Naechste sinnvolle Entscheidung
+## 2. Sichttest
 
 ```text
-A) kleiner UI/i18n-Fix-Plan fuer sichtbare Translation-Keys
-B) Persistent-Index-Migration/Foundation weiter planen
-C) stoppen
+Lokal:
+http://127.0.0.1:8080/dashboard-v2
+
+Online nach Deploy:
+https://mods.forrestcgn.de/
 ```
 
-Empfehlung:
+Erwartung:
 
 ```text
-Zuerst UI/i18n-Fix separat klein planen, weil im Online-Modboard sichtbar:
+Diese Keys werden nicht mehr roh angezeigt:
 - module.media.label
 - page.media.library.title
 - page.media.library.label
 ```
 
-## 3. UI/i18n-Fix-Plan nur nach Dateipruefung
-
-Vor einem UI/i18n-Fix mindestens lesen:
+## 3. Deploy-Hinweis
 
 ```text
-remote-modboard/backend/public/assets/runtime-profile.js
-remote-modboard/backend/public/assets/remote-modboard.js
-remote-modboard/backend/public/assets/modules/*
-remote-modboard/backend/public/assets/languages/*
-htdocs/dashboard-v2/assets/*
-```
-
-Regeln:
-
-```text
-- Kein DB-Code.
-- Keine Agent-Aenderung.
-- Keine Media-Persistenz.
-- Nur Labels/Dictionary/Key-Mapping.
-- Eine UI, zwei Runtime-Profile bleibt bestehen.
+0.2.33 betrifft Public-Assets.
+Nach lokalem Check, stepdone/Push und frischem Webserver-Deploy online pruefen.
 ```
 
 ## 4. Persistent Index spaeter nur nach eigenem Go
 
 ```text
-RDAP_0.2.33_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY
+RDAP_0.2.34_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY
 ```
 
 Nur wenn vorher bestaetigt:

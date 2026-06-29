@@ -2,30 +2,26 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE` lokal einspielen.
-- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.32.
-- [ ] Pruefen: `docs/current/RDAP_0.2.32_MEDIA_PERSISTENT_INDEX_FOUNDATION_PLAN_NO_CODE.md` vorhanden.
+- [ ] `RDAP_0.2.33_UI_I18N_MEDIA_LABELS_FIX_PLAN` lokal einspielen.
+- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.33.
+- [ ] Pruefen: `docs/current/RDAP_0.2.33_UI_I18N_MEDIA_LABELS_FIX_PLAN.md` vorhanden.
 - [ ] Pruefen: `CURRENT_STATUS.md`, `NEXT_STEPS.md`, `FILES.md`, `CHANGELOG.md` aktualisiert.
-- [ ] Pruefen: keine Runtime-Dateien geaendert.
-- [ ] Pruefen: keine neuen Runtime-Dateien enthalten.
+- [ ] Pruefen: JS-Syntax der geaenderten UI-Dateien.
+- [ ] Pruefen: lokale UI zeigt keine rohen Media-i18n-Keys.
+- [ ] Pruefen: keine Backend-Routen geaendert.
 - [ ] Pruefen: keine DB-Migration enthalten.
 - [ ] Wenn sauber: `stepdone.cmd`.
+- [ ] Danach Webserver-Deploy, weil Public-Assets betroffen sind.
 
-## Ergebnis 0.2.32
+## Ergebnis 0.2.33
 
-- [x] Persistent-Index-Zielbild geplant.
-- [x] Wahrscheinliche DB-Migration als eigener spaeterer Step markiert.
-- [x] Bestehende Datei-Verantwortung fuer spaeteren Code beschrieben.
-- [x] Neue Runtime-Dateien weiter blockiert.
-- [x] UI-/i18n-Befund aus Screenshot aufgenommen.
-- [x] Persistent-Index-Code weiter blockiert, bis eigener Migration-/Foundation-Step bestaetigt ist.
-
-## Naechster No-Code-Plan
-
-- [ ] Entscheiden: zuerst UI/i18n-Fix-Plan oder Persistent-Index-Migration-Plan.
-- [ ] Fuer UI/i18n-Fix betroffene UI-/Language-Dateien aus GitHub/dev lesen.
-- [ ] Falls Connector abgeschnitten ist: Source-Sammel-Script liefern.
-- [ ] UI/i18n-Fix nicht mit DB-/Persistent-Index-Code vermischen.
+- [x] Media-Sprachkeys in `de.js` ergaenzt.
+- [x] Media-Sprachkeys in `en.js` ergaenzt.
+- [x] Media-Modulregistrierung nutzt zentrale Keys plus Fallbacks.
+- [x] Server-UI-Pfad und lokaler dashboard-v2-Pfad synchron gehalten.
+- [x] Keine DB-/Persistent-Index-Aenderung.
+- [x] Keine Agent-Aenderung.
+- [x] Keine neue Runtime-Datei.
 
 ## Spaeterer Code-Plan, erst nach Plan + Go
 
