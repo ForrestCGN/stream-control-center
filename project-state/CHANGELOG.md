@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.2.57 - Media Index Delta Sync Plan
+
+- Delta-Sync-/Loeschstatus-Konzept dokumentiert.
+- Neue, geaenderte, fehlende und unveraenderte Media-Dateien fachlich getrennt.
+- Naechster technischer Schritt als read-only Diff-Diagnose geplant.
+- Fehlende Dateien werden nicht blind geloescht; spaeter hoechstens Tombstone/`deleted=1` mit eigenem Gate, Confirm, Audit/Lock und Readback.
+- Keine Runtime-Code-Aenderung, keine DB-Writes, keine Gate-Aktivierung, keine Upload/Edit/Delete-Funktion, keine Datei-Inhalte, keine absoluten Pfade.
+
 ## 0.2.56A - Media Sync Status DB Source UI
 
 - UI-Sync-Karte nutzt bei aktiver DB-Read-Source die DB-Inventarzaehler statt die alte Compact-Agent-Progress-Anzeige.
@@ -29,7 +37,7 @@
 
 - `remote-modboard/backend/src/services/agent-runtime.service.js` zaehlt Full-Sync-Chunks jetzt als eindeutige Chunk-Indizes.
 - Aktiv geschriebene Full-Syncs koennen durch asynchron fertig werdende Chunks nicht mehr von `complete` auf `chunk` zurueckfallen.
-- `receivedChunks` zeigt die Anzahl eindeutig empfangener/geschriebener Chunks.
+- `receivedChunks` zeigt die Anzahl eindeutig empfangener Chunks.
 - `completedAt` bleibt bei komplettem Full-Sync gesetzt.
 - `media-readonly.routes.js` und `routes.routes.js` melden den 0.2.55B Build.
 - Keine Gate-Aktivierung, keine UI-Read-Source-Umstellung, keine Upload/Edit/Delete-Funktion.
