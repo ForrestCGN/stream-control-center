@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.30 - Stop and Inventory No Code
+
+- Doku-/Stop-Step nach fehlerhaftem und zurueckgesetztem 0.2.30-Versuch.
+- Festgelegt: Vor weiterem Persistent-Index-Code muss zuerst eine echte 8080-/3010-Datei-/Modulkarte erstellt werden.
+- Festgelegt: Neue Runtime-Dateien sind fuer den naechsten Code-Step verboten, ausser Forrest genehmigt sie ausdruecklich nach konkreter Begruendung.
+- Festgelegt: Lokale Checks bleiben strikt gegen 8080; 3010 nur fuer Webserver-/RDAP-Checks nach GitHub/dev + Deploy.
+- Dokumentiert: 8080 lokale Verantwortung liegt insbesondere bei `backend/modules/local_remote_modboard_adapter.js`, `backend/modules/remote_agent.js`, `backend/core/database.js` und `backend/modules/sqlite_core.js`.
+- Dokumentiert: 3010 Server-/RDAP-Verantwortung liegt insbesondere bei `remote-modboard/backend/src/routes/media-readonly.routes.js`, `remote-modboard/backend/src/services/agent-runtime.service.js`, `remote-modboard/backend/src/app.js` und `remote-modboard/backend/server.js`.
+- Keine Runtime-Aenderung, keine DB-Migration, keine neue Runtime-Datei, keine Datei-Inhalte, keine absoluten Pfade, keine Shell-/Prozess-Actions.
+
 ## 0.2.29 - Media Persistent Index Cache Readonly Plan
 
 - Doku-/Plan-Step fuer spaeteren persistenten Media-Server-Index.

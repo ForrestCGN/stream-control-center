@@ -2,21 +2,32 @@
 
 ## Aktiv
 
-- [ ] `RDAP_0.2.29_MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN` lokal einspielen.
-- [ ] Pruefen: Doku-Datei `docs/current/MEDIA_PERSISTENT_INDEX_CACHE_READONLY_PLAN_0.2.29.md` vorhanden.
-- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.29.
+- [ ] `RDAP_0.2.30_STOP_AND_INVENTORY_NO_CODE` lokal einspielen.
+- [ ] Pruefen: `START_HERE_FOR_NEW_CHAT.md` zeigt aktuellen Stand 0.2.30 Stop and Inventory No Code.
 - [ ] Pruefen: `CURRENT_STATUS.md`, `NEXT_STEPS.md`, `FILES.md`, `CHANGELOG.md` aktualisiert.
 - [ ] Pruefen: keine Runtime-Dateien geaendert.
+- [ ] Pruefen: keine neuen Runtime-Dateien enthalten.
 - [ ] Pruefen: keine DB-Migration enthalten.
 - [ ] Wenn sauber: `stepdone.cmd`.
 
-## Naechster Code-Plan
+## Naechster No-Code-Plan
 
-- [ ] Fuer `0.2.30` echte DB-/Storage-/Service-Dateien aus GitHub/dev lesen.
+- [ ] Fuer den naechsten Step echte 8080-/3010-Dateien aus GitHub/dev oder Source-ZIP lesen.
+- [ ] Datei-/Modulkarte erstellen: lokal 8080.
+- [ ] Datei-/Modulkarte erstellen: Server/RDAP 3010.
+- [ ] Doppelte Media-Logik markieren.
+- [ ] Altlasten/Plan-Dateien markieren.
+- [ ] Festlegen, welche bestehende Datei spaeter ueberhaupt geaendert werden darf.
+- [ ] Neue Runtime-Dateien standardmaessig blockieren, ausser Forrest genehmigt sie ausdruecklich.
+
+## Spaeterer Code-Plan, erst nach Inventory
+
+- [ ] Fuer Persistent Index echte DB-/Storage-/Service-Dateien aus GitHub/dev lesen.
 - [ ] Vor Code entscheiden: vorhandene Projekt-DB/Helper bevorzugen oder Alternative sauber begruenden.
 - [ ] Persistent Index nur metadata-only und read-only planen.
 - [ ] Keine Datei-Inhalte und keine absoluten Pfade speichern.
 - [ ] Lokal bleibt Master.
+- [ ] Migration nur als eigener ausdruecklich bestaetigter Foundation-Step.
 
 ## Immer beachten
 
@@ -28,6 +39,7 @@
 - [ ] Sync/Agent/Cache nicht als Navigationsmodule bauen.
 - [ ] Jede neue Funktion mit User-/Rollen-/Permission-Modell planen.
 - [ ] UI-Aktionen nur aktivieren, wenn Backend-Enforcement existiert.
+- [ ] Keine neuen Runtime-Dateien ohne ausdrueckliche Freigabe.
 
 ## Standard-Arbeitsweise
 
