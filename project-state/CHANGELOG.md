@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.26 - Runtime Profile / Module / Permission Standard Docs
+
+- Doku-only Step.
+- Harte Architekturregel festgeschrieben: Eine UI, zwei Runtime-Profile.
+- Remote-Modboard UI bleibt einzige UI-Wahrheit.
+- Lokales `dashboard-v2` bleibt dieselbe UI mit `runtimeMode=local`.
+- Online-Modboard bleibt dieselbe UI mit `runtimeMode=online`.
+- Fachliche Modulgrenzen festgeschrieben: Sync/Agent/Cache sind Infrastruktur, keine Navigationsmodule.
+- Regel festgeschrieben: gleiche Funktionen bleiben im gleichen fachlichen Modul.
+- Datenklassen dokumentiert: `realtimePush`, `pullOnDemand`, `slowSync`.
+- Rechte-/User-/Rollen-Regel festgeschrieben: jede Funktion muss Permission-/Rollenbezug haben.
+- UI ist nie Sicherheitsgrenze; Backend-Enforcement bleibt Pflicht.
+- Installationsziel fuer andere Streamer dokumentiert: lokal zuerst, Cloud optional, Agent verbindet sich ausgehend, keine Router-Portfreigabe.
+- Naechster technischer Step vorbereitet: `RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY`.
+- Keine Codeaenderung, kein Deploy noetig.
+
 ## 0.2.25 - Media Local Inventory Readonly
 
 - Lokales Media-Inventar read-only vorbereitet.

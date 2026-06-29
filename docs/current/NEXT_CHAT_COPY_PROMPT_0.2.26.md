@@ -1,3 +1,5 @@
+# Prompt fuer neuen Chat - RDAP Remote-Modboard weiterarbeiten
+
 Du bist im Projekt `stream-control-center` / Remote-Modboard / RDAP fuer ForrestCGN.
 
 Sprache: Deutsch. Kurz, direkt, pragmatisch. Forrest arbeitet mit `go`, `ok`, `weiter`.
