@@ -1,34 +1,25 @@
-# Current Status
+# CURRENT STATUS
 
-Stand: 2026-06-29
+Aktueller Stand: `0.2.47B - Remote-Modboard Media UI Source Info Runtime Fix`.
 
-Aktuell vorbereitet: `0.2.47 - Remote-Modboard Media UI Source Info Badge`.
-
-## Technischer Stand
+## Kurzstatus
 
 ```text
-- 0.2.46 hat sourceInfo in /api/remote/media/status vorbereitet.
-- 0.2.47 zeigt sourceInfo in der bestehenden Media-UI sichtbar an.
-- Geaendert wurde nur remote-modboard/backend/public/assets/modules/media/library.js plus Doku/State.
-- Die UI ruft weiter nur /api/remote/media/status auf.
-- Die UI ruft kein ?db=1 auf.
-- Kein neuer Endpoint.
-- Kein neues Modul.
-- Keine DB-Item-Reads.
-- Keine Writes.
+Media-API funktioniert.
+Agent-Memory ist aktiv moeglich.
+sourceInfo ist in /api/remote/media/status vorhanden.
+Media-UI zeigt sourceInfo und ist gegen Runtime-Renderfehler abgesichert.
 ```
 
-## Sicherheitsstatus
+## Sicherheitsgrenzen
 
 ```text
-lokal 8080 != webserver 3010
-Agent-Memory bleibt primaere Online-Wahrheit
-sourceInfo ist nur Anzeige/Diagnose
-fallbackEnabled=false
-writesEnabled=false
-keine Media-Daten-Writes
-keine Agent-Writes
-kein Upload/Edit/Delete
-keine SQL-Ausfuehrung
-keine DB-Migration
+Keine DB-Item-Reads.
+Keine SQL-Ausfuehrung.
+Keine DB-Migration.
+Keine Media-Daten-Writes.
+Keine Agent-Writes.
+Kein Upload/Edit/Delete.
+Fallback bleibt aus.
+Writes bleiben aus.
 ```

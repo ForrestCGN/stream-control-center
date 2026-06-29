@@ -1,16 +1,11 @@
-# Changelog
+# CHANGELOG
 
-## 0.2.47 - Remote-Modboard Media UI Source Info Badge
+## 0.2.47B - Remote-Modboard Media UI Source Info Runtime Fix
 
 ```text
-- Media-UI zeigt sourceInfo aus /api/remote/media/status sichtbar an.
-- Neue Statuskarte Quelle statt Server-Cache-Anzeige.
-- Neue Karte Agent / DB / Fallback mit kompakten Zeilen.
-- UI nutzt weiter normalen Status-Aufruf ohne ?db=1.
-- Kein neuer Endpoint.
-- Kein neues Modul.
-- Keine Backend-Route geaendert.
-- Keine DB-Item-Reads.
-- Keine Writes.
-- Kein Upload/Edit/Delete.
+- Media-UI Runtime-Fix fuer leere Seite.
+- install() wird nur einmal ausgefuehrt und wartet bei Bedarf auf DOMContentLoaded.
+- safeRender() macht Renderfehler sichtbar.
+- sourceInfo/Inventory/Permissions defensiv gelesen.
+- Kein Backend, keine API-Aenderung, keine DB-Item-Reads, keine Writes.
 ```

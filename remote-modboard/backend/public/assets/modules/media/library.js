@@ -13,6 +13,8 @@
     filter: 'all'
   };
 
+  let installed = false;
+
   function getContentRoot() {
     return document.getElementById('remoteModboardContent') || document.querySelector('.cgn-content');
   }
@@ -48,6 +50,29 @@
     return nextPanel;
   }
 
+  function mountRenderError(err) {
+    const message = err && err.message ? err.message : String(err || 'media_ui_render_failed');
+    mountPanel(`
+      <section class="rdap-view" data-page-panel="${PAGE_ID}">
+        <section class="page-header module-page-header cgn-card">
+          <div><p class="cgn-eyebrow">Media-System</p><h1>Media-System</h1><p>UI konnte nicht gerendert werden.</p></div>
+        </section>
+        <section class="page-grid">
+          <article class="cgn-card span2"><div class="card-head"><div><p class="cgn-eyebrow">Runtime-Fix</p><h2>Media-UI Fehler</h2></div>${chip('sichtbar', 'warn')}</div><div class="admin-lock-note"><i>!</i><div><strong>${escapeHtml(message)}</strong><span>Die API bleibt read-only. Bitte diesen Fehler fuer den naechsten Fix kopieren.</span></div></div></article>
+        </section>
+      </section>`);
+  }
+
+  function safeRender() {
+    try {
+      render();
+    } catch (err) {
+      state.error = err && err.message ? err.message : String(err || 'media_ui_render_failed');
+      mountRenderError(err);
+      if (window.console && typeof window.console.error === 'function') window.console.error('media_ui_render_failed', err);
+    }
+  }
+
   function registerModuleAndPage() {
     if (!window.RemoteModboardModules) return;
     if (typeof window.RemoteModboardModules.registerModule === 'function') {
@@ -68,15 +93,21 @@
     return 'nicht geprueft';
   }
 
+  function safeObject(value) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
   function inventoryItems() {
-    const items = state.data && state.data.inventory && Array.isArray(state.data.inventory.items) ? state.data.inventory.items : [];
+    const data = safeObject(state.data);
+    const inventory = safeObject(data.inventory);
+    const items = Array.isArray(inventory.items) ? inventory.items : [];
     if (state.filter === 'all') return items;
-    if (state.filter === 'sounds' || state.filter === 'videos' || state.filter === 'images') return items.filter(item => item.rootKey === state.filter);
-    return items.filter(item => item.kind === state.filter);
+    if (state.filter === 'sounds' || state.filter === 'videos' || state.filter === 'images') return items.filter(item => item && item.rootKey === state.filter);
+    return items.filter(item => item && item.kind === state.filter);
   }
 
   function renderSourceInfoRows(data) {
-    const info = data && data.sourceInfo && typeof data.sourceInfo === 'object' ? data.sourceInfo : {};
+    const info = safeObject(data && data.sourceInfo);
     const rows = [
       ['Primaere Quelle', info.primary || 'agent_memory'],
       ['Quelle aktiv', yesNo(info.primaryActive)],
@@ -89,7 +120,7 @@
   }
 
   function buildSourceInfoNotice(data) {
-    const info = data && data.sourceInfo && typeof data.sourceInfo === 'object' ? data.sourceInfo : {};
+    const info = safeObject(data && data.sourceInfo);
     if (info.dbIndexChecked === true) {
       return `DB-Index diagnostisch geprueft${Number.isFinite(Number(info.dbIndexItemCount)) ? ` · ${Number(info.dbIndexItemCount)} Eintraege` : ''}. Fallback und Writes bleiben aus.`;
     }
@@ -97,20 +128,21 @@
   }
 
   function renderRootRows(data) {
-    const inventory = data && data.inventory ? data.inventory : {};
-    const groups = inventory.groups || {};
+    const inventory = safeObject(data && data.inventory);
+    const groups = safeObject(inventory.groups);
     const roots = Array.isArray(data && data.plannedRoots) ? data.plannedRoots : [];
     if (!roots.length) return '<div class="module-row"><span class="module-icon purple">MED</span><div><b>Noch keine Bereiche gemeldet</b><small>Die read-only Grundlage ist vorbereitet.</small></div></div>';
     return roots.map((root) => {
-      const group = groups[root.key] || {};
-      const typeLabel = Array.isArray(root.types) ? root.types.join(', ') : '';
+      const safeRoot = safeObject(root);
+      const group = safeObject(groups[safeRoot.key]);
+      const typeLabel = Array.isArray(safeRoot.types) ? safeRoot.types.join(', ') : '';
       const count = Number(group.count || 0);
       const exists = group.exists !== false;
       return `<div class="module-row">
-        <span class="module-icon cyan">${escapeHtml(String(root.key || 'med').slice(0, 3).toUpperCase())}</span>
+        <span class="module-icon cyan">${escapeHtml(String(safeRoot.key || 'med').slice(0, 3).toUpperCase())}</span>
         <div>
-          <b>${escapeHtml(root.label || root.key || 'Media')} · ${count}</b>
-          <small>${escapeHtml(root.localPathHint || '')}${exists ? '' : ' · Ordner fehlt lokal'}</small>
+          <b>${escapeHtml(safeRoot.label || safeRoot.key || 'Media')} · ${count}</b>
+          <small>${escapeHtml(safeRoot.localPathHint || '')}${exists ? '' : ' · Ordner fehlt lokal'}</small>
           <small>Typen: ${escapeHtml(typeLabel || '—')}</small>
         </div>
       </div>`;
@@ -118,7 +150,7 @@
   }
 
   function renderPermissionRows(data) {
-    const permissions = data && data.permissions ? data.permissions : {};
+    const permissions = safeObject(data && data.permissions);
     const rows = [
       ['Lesen', permissions.readPermission || 'media.read', true],
       ['Hochladen', permissions.uploadPermission || 'media.upload', false],
@@ -129,8 +161,8 @@
   }
 
   function renderInventoryTable() {
-    const data = state.data || {};
-    const inventory = data.inventory || {};
+    const data = safeObject(state.data);
+    const inventory = safeObject(data.inventory);
     const items = inventoryItems();
     if (!inventory.active) {
       return '<div class="admin-lock-note"><i>i</i><div><strong>Noch keine lokale Medienliste aktiv.</strong><span>Online wartet auf Agent-WSS-Slow-Sync. Lokal wird das Inventar nur angezeigt, wenn die lokalen Medienordner erreichbar sind.</span></div></div>';
@@ -138,20 +170,23 @@
     if (!items.length) {
       return '<div class="admin-lock-note"><i>i</i><div><strong>Keine Medien fuer diesen Filter.</strong><span>Waehle einen anderen Filter oder pruefe die lokalen Ordner.</span></div></div>';
     }
-    const rows = items.slice(0, 500).map((item) => `<tr>
-      <td><strong>${escapeHtml(item.name || '')}</strong><small>${escapeHtml(item.relativePath || '')}</small></td>
-      <td>${escapeHtml(item.rootLabel || item.rootKey || '')}</td>
-      <td>${escapeHtml(item.kind || '')}</td>
-      <td>${escapeHtml(item.extension || '')}</td>
-      <td>${escapeHtml(formatBytes(item.sizeBytes))}</td>
-      <td>${escapeHtml(item.modifiedAt ? String(item.modifiedAt).slice(0, 19).replace('T', ' ') : '—')}</td>
-    </tr>`).join('');
+    const rows = items.slice(0, 500).map((item) => {
+      const safeItem = safeObject(item);
+      return `<tr>
+        <td><strong>${escapeHtml(safeItem.name || '')}</strong><small>${escapeHtml(safeItem.relativePath || '')}</small></td>
+        <td>${escapeHtml(safeItem.rootLabel || safeItem.rootKey || '')}</td>
+        <td>${escapeHtml(safeItem.kind || '')}</td>
+        <td>${escapeHtml(safeItem.extension || '')}</td>
+        <td>${escapeHtml(formatBytes(safeItem.sizeBytes))}</td>
+        <td>${escapeHtml(safeItem.modifiedAt ? String(safeItem.modifiedAt).slice(0, 19).replace('T', ' ') : '—')}</td>
+      </tr>`;
+    }).join('');
     return `<div class="table-wrap"><table class="admin-table"><thead><tr><th>Datei</th><th>Bereich</th><th>Typ</th><th>Endung</th><th>Groesse</th><th>Geaendert</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   function renderFilters(data) {
-    const inventory = data && data.inventory ? data.inventory : {};
-    const counts = inventory.counts || {};
+    const inventory = safeObject(data && data.inventory);
+    const counts = safeObject(inventory.counts);
     const filters = [
       ['all', `Alle (${counts.returned || counts.total || 0})`],
       ['sounds', `Sounds (${counts.sounds || 0})`],
@@ -165,14 +200,14 @@
   }
 
   function render() {
-    const data = state.data || {};
-    const mode = data.mode || {};
-    const inventory = data.inventory || {};
-    const counts = inventory.counts || {};
-    const sourceInfo = data.sourceInfo || {};
+    const data = safeObject(state.data);
+    const mode = safeObject(data.mode);
+    const inventory = safeObject(data.inventory);
+    const counts = safeObject(inventory.counts);
+    const sourceInfo = safeObject(data.sourceInfo);
     const statusText = state.error ? 'Fehler' : (state.loading ? 'Lade...' : (data.summary || 'Media-System read-only vorbereitet.'));
     const runtimeLabel = data.runtimeMode === 'local' || mode.local ? 'Lokal' : 'Online';
-    const syncInfo = data.syncInfo || {};
+    const syncInfo = safeObject(data.syncInfo);
     const inventoryStatus = inventory.active ? `${counts.returned || counts.total || 0} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt';
     const syncLabel = mode.local ? 'lokale Datei-Wahrheit' : (inventory.active ? 'Agent-Sync aktiv' : 'wartet auf Agent');
     const sourceLabel = sourceInfo.primaryActive === true ? 'Agent aktiv' : 'Quelle wartet';
@@ -210,7 +245,7 @@
     panel.querySelectorAll('[data-media-filter]').forEach((button) => {
       button.addEventListener('click', () => {
         state.filter = button.getAttribute('data-media-filter') || 'all';
-        render();
+        safeRender();
       });
     });
     const refresh = panel.querySelector('[data-media-refresh]');
@@ -221,7 +256,7 @@
     if (state.loading) return;
     state.loading = true;
     state.error = '';
-    render();
+    safeRender();
     try {
       const res = await fetch(STATUS_URL, { cache: 'no-store' });
       const body = await res.json();
@@ -242,16 +277,21 @@
       };
     } finally {
       state.loading = false;
-      render();
+      safeRender();
     }
   }
 
   function install() {
+    if (installed) return;
+    installed = true;
     registerModuleAndPage();
-    render();
+    safeRender();
     loadStatus();
   }
 
-  install();
-  document.addEventListener('DOMContentLoaded', install);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', install, { once: true });
+  } else {
+    install();
+  }
 })();
