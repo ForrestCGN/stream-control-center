@@ -1,36 +1,40 @@
 # Next Steps
 
-Nach `0.2.26`:
+Nach `0.2.27`:
 
-## 1. Naechster technischer Step
+## 1. Direkt testen
 
 ```text
 RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY
 ```
 
+Pruefen:
+
+```text
+- Lokal Media-Inventar weiterhin aktiv.
+- Agent-Verbindung online aktiv.
+- Online /api/remote/agent/media/inventory/status zeigt Agent-Media-Memory-Cache.
+- Online /api/remote/media/status uebernimmt Media-Inventar aus Agent-Memory.
+- Counts lokal/online plausibel.
+- upload/edit/delete bleiben false.
+- Keine absoluten Pfade in Online-Response.
+- Payload-Limit/Truncated bleibt stabil.
+```
+
+## 2. Danach sinnvoll
+
+```text
+RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY
+```
+
 Ziel:
 
 ```text
-- Media bleibt fachliches Modul.
-- Online-Media-Inventar kommt per Agent-WSS Slow-Sync.
-- Webserver haelt Inventar memory-only.
-- Keine Datei-Inhalte.
-- Keine absoluten Pfade.
-- Keine Uploads, Deletes, Edits.
+- Sichttest Media-Seite lokal/online.
+- Kleine UI-Statusverfeinerung nur falls noetig.
+- Keine Writes.
+- Keine Uploads/Deletes/Edits.
 - Keine DB-Migration.
-- Keine Agent-Actions ausser read-only Sync-Payload senden/empfangen.
-```
-
-## 2. Vorher lesen
-
-```text
-remote-modboard/backend/src/services/agent-runtime.service.js
-backend/modules/remote_agent.js
-remote-modboard/backend/src/routes/media-readonly.routes.js
-remote-modboard/backend/public/assets/modules/media/library.js
-htdocs/dashboard-v2/assets/modules/media/library.js
-backend/modules/local_remote_modboard_adapter.js
-docs/current/RDAP_RUNTIME_PROFILE_MODULE_PERMISSION_STANDARD.md
 ```
 
 ## 3. Nicht tun
@@ -45,11 +49,12 @@ Keine grossen Listen ohne Limit/Paging laden.
 Keine Rechte-/Rollenfragen nach hinten schieben.
 ```
 
-## 4. Spaetere Schritte
+## 4. Standard-Arbeitsweise Zusatz
 
 ```text
-- Permission-Middleware fuer Media-Writes separat planen.
-- Media Upload/Edit/Delete erst mit Permission, Confirm, Audit, Lock/Readback falls noetig.
-- Sound-System nach gleicher Modul-/Sync-/Permission-Logik planen.
-- OBS-Actions nur ueber feste Allowlist-Endpunkte, niemals freie OBS-Payloads.
+Wenn GitHub/dev per Connector unvollstaendig/abgeschnitten ist:
+- Sammel-Script fuer Source-Dateien liefern.
+- Source-ZIP vom Nutzer abwarten.
+- Erst aus Source-ZIP echten Step-ZIP bauen.
+- ZIP fuer Installation muss echte Zielpfade enthalten, keinen Wrapper-Ordner.
 ```

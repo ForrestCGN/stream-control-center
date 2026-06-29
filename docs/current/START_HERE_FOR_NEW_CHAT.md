@@ -1,6 +1,6 @@
 # START HERE FOR NEW CHAT
 
-Aktueller Stand: `0.2.26 - Runtime Profile / Module / Permission Standard Docs`.
+Aktueller Stand: `0.2.27 - Media Agent Slow Sync Readonly`.
 
 ## Verbindlich
 
@@ -8,6 +8,7 @@ Aktueller Stand: `0.2.26 - Runtime Profile / Module / Permission Standard Docs`.
 GitHub/dev ist Wahrheit.
 Vor Planung/Code echte Dateien aus GitHub/dev lesen.
 Erst Plan nennen, dann auf explizites go warten.
+Wenn GitHub/dev ueber Connector nur unvollstaendig/abgeschnitten lesbar ist: zuerst Sammel-Script fuer Quell-Dateien liefern, Forrest laedt Source-ZIP hoch, danach erst echten Install-Step bauen.
 Remote-Modboard ist die einzige UI-Wahrheit.
 Lokales dashboard-v2 ist dieselbe Remote-Modboard-App im lokalen Runtime-Profil.
 Keine zweite lokale UI.
@@ -63,6 +64,7 @@ OBS ist bei 0.2.22E geparkt.
 0.2.24: Media-Foundation read-only.
 0.2.25: lokales Media-Inventar read-only aktiv.
 0.2.26: Architekturstandard fuer Runtime-Profile, fachliche Module, Sync-Klassen und Rechte dokumentiert.
+0.2.27: Media-Agent-WSS-Slow-Sync read-only vorbereitet.
 ```
 
 ## Lokal/Online
@@ -70,7 +72,7 @@ OBS ist bei 0.2.22E geparkt.
 ```text
 Lokal: echte Media-Dateien liegen auf dem Stream-PC unter htdocs/assets/*.
 Online: Webserver hat keinen direkten Zugriff auf lokale Stream-PC-Dateien.
-Online-Media-Inventar braucht spaeter Agent-WSS-Slow-Sync, memory-only.
+Online-Media-Inventar kommt per Agent-WSS-Slow-Sync, memory-only.
 ```
 
 ## Sicherheitsgrenzen
@@ -95,7 +97,7 @@ docs/current/RDAP_RUNTIME_PROFILE_MODULE_PERMISSION_STANDARD.md
 ## Naechster sinnvoller Step
 
 ```text
-RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY
+Nach 0.2.27: Media-Sync testen und danach naechsten kleinen read-only Ausbau planen
 ```
 
 Nur bauen, nachdem GitHub/dev gelesen wurde und ein Plan bestaetigt ist.

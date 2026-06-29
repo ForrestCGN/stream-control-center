@@ -2,9 +2,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
 
-const STATUS_API_VERSION = 'rdap_media_local_inventory_readonly_025.v1';
-const BUILD = 'RDAP_0.2.25_MEDIA_LOCAL_INVENTORY_READONLY';
+const STATUS_API_VERSION = 'rdap_media_agent_slow_sync_readonly_027.v1';
+const BUILD = 'RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
@@ -31,7 +32,10 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
   const generatedAt = new Date().toISOString();
   const localRuntime = runtimeMode === 'local';
   const limit = readLimit(req);
-  const inventory = localRuntime ? scanLocalInventory({ limit, generatedAt }) : buildPendingInventory({ localRuntime, limit });
+  const agentMediaStatus = localRuntime ? null : safeBuildAgentMediaInventoryStatus();
+  const inventory = localRuntime
+    ? scanLocalInventory({ limit, generatedAt })
+    : buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus });
 
   return {
     ok: true,
@@ -47,16 +51,19 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     readOnly: true,
     prepared: true,
     active: true,
-    status: localRuntime ? (inventory.active ? 'local_media_inventory_available' : 'local_media_inventory_empty') : 'online_media_inventory_sync_pending',
+    status: localRuntime
+      ? (inventory.active ? 'local_media_inventory_available' : 'local_media_inventory_empty')
+      : (inventory.active ? 'online_media_inventory_available' : 'online_media_inventory_sync_pending'),
     title: 'Media-System',
     summary: localRuntime
       ? 'Lokales Media-Inventar wurde read-only erfasst. Upload, Bearbeiten und Loeschen bleiben aus.'
-      : 'Online-Media-Grundlage ist vorbereitet. Echte lokale Medien kommen spaeter nur ueber einen separaten read-only Agent-Sync.',
+      : (inventory.active ? 'Online-Media-Inventar wurde read-only per Agent-WSS Slow-Sync uebernommen. Upload, Bearbeiten und Loeschen bleiben aus.' : 'Online-Media-Grundlage ist vorbereitet. Echte lokale Medien kommen nur ueber read-only Agent-WSS Slow-Sync.'),
     mode: {
       local: localRuntime,
       online: !localRuntime,
       localInventoryExpected: localRuntime,
       onlineAgentInventorySyncPreparedLater: true,
+      onlineAgentInventorySyncActive: !localRuntime && inventory.active === true,
       singleUiTruth: true,
       remoteModboardUi: true,
       localDashboardProfileUsesSameUi: true
@@ -76,7 +83,7 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     },
     safety: buildSafetyBlock(),
     nextSteps: [
-      'Online-Media-Inventar spaeter per Agent-WSS Memory-only synchronisieren.',
+      inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.',
       'Filter/Paging spaeter ohne Breaking Change ueber limit/root/type/cursor ausbauen.',
       'Upload/Edit/Delete erst nach separatem Permission-/Audit-/Confirm-Step.'
     ]
@@ -110,6 +117,122 @@ function buildPendingInventory({ localRuntime, limit }) {
     nextCursor: null,
     emptyReason: 'inventory_not_available_in_this_runtime_yet'
   };
+}
+
+
+function safeBuildAgentMediaInventoryStatus() {
+  try {
+    if (typeof buildAgentMediaInventoryStatusResponse !== 'function') return null;
+    return buildAgentMediaInventoryStatusResponse();
+  } catch (err) {
+    return null;
+  }
+}
+
+function buildOnlineAgentMediaInventory({ limit, generatedAt, agentMediaStatus }) {
+  const status = agentMediaStatus && typeof agentMediaStatus === 'object' ? agentMediaStatus : null;
+  const source = status && status.inventory && typeof status.inventory === 'object' ? status.inventory : null;
+  if (!status || !source || status.active !== true) {
+    return buildPendingInventory({ localRuntime: false, limit });
+  }
+
+  const rawItems = Array.isArray(source.items) ? source.items : [];
+  const items = rawItems.slice(0, limit).map(sanitizeOnlineMediaItem).filter(Boolean);
+  const truncated = source.truncated === true || rawItems.length > items.length;
+  const groups = buildGroupsFromItems(items, source.groups);
+  const counts = buildCountsFromItems(items, source.counts);
+  return {
+    prepared: true,
+    active: items.length > 0,
+    source: 'agent_wss_media_inventory_sync_memory_only',
+    routePreparedLater: '/api/remote/agent/media/inventory/status',
+    scannedAt: source.scannedAt || source.checkedAt || generatedAt,
+    receivedAt: source.receivedAt || status.generatedAt || generatedAt,
+    agent: status.agent || null,
+    roots: MEDIA_PLANNED_ROOTS.map(root => ({ key: root.key, label: root.label, exists: groups[root.key].exists, count: groups[root.key].count })),
+    items,
+    groups,
+    counts,
+    limit,
+    hardLimit: Number(source.hardLimit || MEDIA_SCAN_HARD_LIMIT),
+    maxDepth: Number(source.maxDepth || MEDIA_SCAN_MAX_DEPTH),
+    truncated,
+    hasMore: source.hasMore === true || truncated,
+    nextCursor: (source.hasMore === true || truncated) ? 'prepared_later' : null,
+    errors: [],
+    emptyReason: items.length ? null : 'agent_media_inventory_empty',
+    memoryOnly: true,
+    persistsToDatabase: false
+  };
+}
+
+function sanitizeOnlineMediaItem(item) {
+  const source = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+  const rootKey = String(source.rootKey || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 30);
+  const allowedRoot = MEDIA_PLANNED_ROOTS.some(root => root.key === rootKey);
+  if (!allowedRoot) return null;
+  const relativePath = normalizeRelativePath(source.relativePath || '');
+  if (!relativePath || relativePath.includes('..') || /^[a-zA-Z]:/.test(relativePath)) return null;
+  const ext = path.extname(relativePath).toLowerCase() || String(source.extension || '').toLowerCase();
+  if (!MEDIA_ALLOWED_EXTENSIONS.includes(ext)) return null;
+  const kind = mediaKindForExtension(ext);
+  return {
+    id: String(source.id || `${rootKey}:${relativePath}`).replace(/[^\w:./-]/g, '_').slice(0, 260),
+    rootKey,
+    rootLabel: String(source.rootLabel || rootKey).slice(0, 80),
+    kind,
+    name: path.basename(relativePath).slice(0, 140),
+    relativePath,
+    publicPath: safePublicMediaPath(source.publicPath || `/${rootKey}/${relativePath}`),
+    extension: ext,
+    sizeBytes: safeNonNegativeNumber(source.sizeBytes),
+    modifiedAt: safeIsoOrNull(source.modifiedAt),
+    readOnly: true
+  };
+}
+
+function buildGroupsFromItems(items, sourceGroups) {
+  const groups = buildEmptyGroups();
+  for (const key of Object.keys(groups)) {
+    const source = sourceGroups && sourceGroups[key] && typeof sourceGroups[key] === 'object' ? sourceGroups[key] : {};
+    groups[key].exists = source.exists === false ? false : true;
+  }
+  for (const item of items) {
+    if (!groups[item.rootKey]) continue;
+    groups[item.rootKey].items.push(item);
+    groups[item.rootKey].count += 1;
+  }
+  return groups;
+}
+
+function buildCountsFromItems(items, sourceCounts) {
+  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length };
+  if (sourceCounts && Number.isFinite(Number(sourceCounts.skipped))) counts.skipped = Math.max(0, Math.floor(Number(sourceCounts.skipped)));
+  if (sourceCounts && Number.isFinite(Number(sourceCounts.totalSeen))) counts.totalSeen = Math.max(items.length, Math.floor(Number(sourceCounts.totalSeen)));
+  for (const item of items) {
+    if (Object.prototype.hasOwnProperty.call(counts, item.rootKey)) counts[item.rootKey] += 1;
+    if (Object.prototype.hasOwnProperty.call(counts, item.kind)) counts[item.kind] += 1;
+  }
+  return counts;
+}
+
+function safePublicMediaPath(value) {
+  const raw = String(value || '').replace(/\\/g, '/').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 260);
+  if (!raw || raw.includes('..') || /^[a-zA-Z]:/.test(raw) || raw.startsWith('http://') || raw.startsWith('https://')) return '';
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function safeNonNegativeNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return 0;
+  return Math.floor(num);
+}
+
+function safeIsoOrNull(value) {
+  if (typeof value !== 'string') return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return new Date(parsed).toISOString();
 }
 
 function scanLocalInventory({ limit, generatedAt }) {
@@ -301,9 +424,10 @@ function buildMediaRoutesSummary(context = {}) {
     deleteEnabled: false,
     permissionModelPrepared: true,
     localInventoryReadonlyPrepared: true,
+    onlineAgentInventoryReadonlyPrepared: true,
     scanPolicy: { defaultLimit: MEDIA_SCAN_DEFAULT_LIMIT, hardLimit: MEDIA_SCAN_HARD_LIMIT, maxDepth: MEDIA_SCAN_MAX_DEPTH, cursorPreparedLater: true },
     routes: [
-      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status und lokales Inventar im Lokalmodus; keine Uploads, keine Deletes, keine Writes', readOnly: true }
+      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status, lokales Inventar im Lokalmodus und Online-Inventar aus Agent-WSS-Memory-Cache; keine Uploads, keine Deletes, keine Writes', readOnly: true }
     ],
     safety: {
       noFileWrite: true,

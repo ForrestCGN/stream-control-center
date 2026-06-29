@@ -9,20 +9,41 @@ try { WebSocket = require('ws'); } catch (err) { WebSocket = null; }
 let net = null;
 try { net = require('net'); } catch (err) { net = null; }
 
+let fs = null;
+try { fs = require('fs'); } catch (err) { fs = null; }
+
+let path = null;
+try { path = require('path'); } catch (err) { path = null; }
+
 
 let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.7C';
-const MODULE_BUILD = 'RDAP_0.2.22_OBS_INVENTORY_SYNC_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_obs_inventory_sync_0222.v1';
+const MODULE_VERSION = '0.1.8';
+const MODULE_BUILD = 'RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_media_slow_sync_027.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
 const LIVE_STATE_PROTOCOL_VERSION = 'rdap-agent-live-state.v1';
 const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
+const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
 const DEFAULT_REMOTE_WS_URL = 'wss://mods.forrestcgn.de/agent-ws';
+
+const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
+const MEDIA_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
+const MEDIA_VIDEO_EXTENSIONS = new Set(['.webm', '.mp4']);
+const MEDIA_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
+const MEDIA_SCAN_DEFAULT_LIMIT = 500;
+const MEDIA_SCAN_HARD_LIMIT = 2000;
+const MEDIA_SCAN_MAX_DEPTH = 5;
+const MEDIA_ROOTS = Object.freeze([
+  { key: 'sounds', label: 'Sounds', localPathHint: 'htdocs/assets/sounds', publicBasePath: '/assets/sounds', types: ['audio', 'video'] },
+  { key: 'videos', label: 'Videos', localPathHint: 'htdocs/assets/videos', publicBasePath: '/assets/videos', types: ['video'] },
+  { key: 'images', label: 'Bilder', localPathHint: 'htdocs/assets/images', publicBasePath: '/assets/images', types: ['image'] }
+]);
+
 const LOADED_AT = new Date().toISOString();
 
 const MODULE_META = {
@@ -31,7 +52,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'remote-dashboard',
-  description: 'Streaming-PC connection client with read-only component status, optional OBS inventory read and fast OBS live-state push over the existing agent WSS. No productive actions.',
+  description: 'Streaming-PC connection client with read-only component status, OBS live-state/inventory and Media slow-sync over the existing agent WSS. No productive actions.',
   routesPrefix: ['/api/remote-agent', '/api/streaming-pc-connection'],
   bus: { registered: false, heartbeat: true, emits: [], listens: [] },
   legacy: false
@@ -213,13 +234,22 @@ const CONNECTION_STATE = {
   inventorySyncUpdatedAt: null,
   inventorySync: null,
   inventorySyncSendErrorAt: null,
-  inventorySyncSendError: null
+  inventorySyncSendError: null,
+  mediaInventorySyncProtocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+  mediaInventorySyncSeq: 0,
+  mediaInventorySyncIntervalMs: 60000,
+  lastMediaInventorySyncAt: null,
+  mediaInventorySyncUpdatedAt: null,
+  mediaInventorySync: null,
+  mediaInventorySyncSendErrorAt: null,
+  mediaInventorySyncSendError: null
 };
 
 let ws = null;
 let heartbeatTimer = null;
 let liveStateTimer = null;
 let inventorySyncTimer = null;
+let mediaInventorySyncTimer = null;
 let reconnectTimer = null;
 let started = false;
 
@@ -230,13 +260,14 @@ function init(ctx) {
   registerGet(app, '/api/remote-agent/status', (req, res) => { void req; res.json(buildStatusResponse()); });
   registerGet(app, '/api/streaming-pc-connection/status', (req, res) => { void req; res.json(buildStatusResponse()); });
   registerGet(app, '/api/remote-agent/obs/inventory/status', (req, res) => { void req; res.json(buildObsInventoryStatusResponse()); });
+  registerGet(app, '/api/remote-agent/media/inventory/status', (req, res) => { res.json(buildMediaInventoryStatusResponse(req)); });
   registerGet(app, '/api/remote-agent/permissions/model', (req, res) => { void req; res.json(buildPermissionsModelResponse()); });
   registerGet(app, '/api/remote-agent/locks/status', (req, res) => { void req; res.json(buildLocksStatusResponse()); });
   registerGet(app, '/api/remote-agent/audit/model', (req, res) => { void req; res.json(buildAuditModelResponse()); });
   registerGet(app, '/api/remote-agent/routes', (req, res) => { void req; res.json(buildRoutesResponse()); });
 
   startStreamingPcConnectionClient();
-  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client with read-only OBS inventory env diagnostic and live-state push registered. actions=false.`);
+  console.log(`[remote_agent] ${MODULE_BUILD} Streaming-PC connection client with read-only OBS plus Media slow-sync registered. actions=false.`);
 }
 
 function registerGet(app, routePath, handler) {
@@ -280,6 +311,7 @@ function readConnectionConfig() {
     heartbeatIntervalMs: readInt('STREAMING_PC_HEARTBEAT_INTERVAL_MS', readInt('AGENT_HEARTBEAT_INTERVAL_MS', 30000), 5000, 300000),
     liveStateIntervalMs: readInt('STREAMING_PC_OBS_LIVE_STATE_INTERVAL_MS', readInt('AGENT_OBS_LIVE_STATE_INTERVAL_MS', 500), 250, 5000),
     inventorySyncIntervalMs: readInt('STREAMING_PC_OBS_INVENTORY_SYNC_INTERVAL_MS', readInt('AGENT_OBS_INVENTORY_SYNC_INTERVAL_MS', 30000), 10000, 300000),
+    mediaInventorySyncIntervalMs: readInt('STREAMING_PC_MEDIA_INVENTORY_SYNC_INTERVAL_MS', readInt('AGENT_MEDIA_INVENTORY_SYNC_INTERVAL_MS', 60000), 30000, 300000),
     reconnectDelayMs: readInt('STREAMING_PC_RECONNECT_DELAY_MS', readInt('AGENT_RECONNECT_DELAY_MS', 5000), 1000, 300000)
   };
 }
@@ -294,6 +326,7 @@ function applyConnectionConfig(config) {
   CONNECTION_STATE.heartbeatIntervalMs = config.heartbeatIntervalMs;
   CONNECTION_STATE.liveStateIntervalMs = config.liveStateIntervalMs;
   CONNECTION_STATE.inventorySyncIntervalMs = config.inventorySyncIntervalMs;
+  CONNECTION_STATE.mediaInventorySyncIntervalMs = config.mediaInventorySyncIntervalMs;
   CONNECTION_STATE.reconnectDelayMs = config.reconnectDelayMs;
   CONNECTION_STATE.keyConfigured = Boolean(config.accessKey);
   CONNECTION_STATE.keyExposed = false;
@@ -339,15 +372,18 @@ function handleOpen(config) {
   startHeartbeatTimer(config);
   startLiveStateTimer(config);
   startInventorySyncTimer(config);
+  startMediaInventorySyncTimer(config);
   sendHeartbeat(config);
   sendLiveState(config);
   setTimeout(() => sendInventorySync(config, 'initial'), 1000).unref?.();
+  setTimeout(() => sendMediaInventorySync(config, 'initial'), 1500).unref?.();
 }
 
 function handleClose(config, reason) {
   stopHeartbeatTimer();
   stopLiveStateTimer();
   stopInventorySyncTimer();
+  stopMediaInventorySyncTimer();
   CONNECTION_STATE.connected = false;
   CONNECTION_STATE.connectionState = CONNECTION_STATE.enabled ? 'reconnecting' : 'disabled';
   CONNECTION_STATE.reason = safeReason(reason || 'socket_close');
@@ -383,6 +419,12 @@ function startInventorySyncTimer(config) {
   if (inventorySyncTimer && typeof inventorySyncTimer.unref === 'function') inventorySyncTimer.unref();
 }
 function stopInventorySyncTimer() { if (inventorySyncTimer) clearInterval(inventorySyncTimer); inventorySyncTimer = null; }
+function startMediaInventorySyncTimer(config) {
+  stopMediaInventorySyncTimer();
+  mediaInventorySyncTimer = setInterval(() => sendMediaInventorySync(config, 'timer'), config.mediaInventorySyncIntervalMs);
+  if (mediaInventorySyncTimer && typeof mediaInventorySyncTimer.unref === 'function') mediaInventorySyncTimer.unref();
+}
+function stopMediaInventorySyncTimer() { if (mediaInventorySyncTimer) clearInterval(mediaInventorySyncTimer); mediaInventorySyncTimer = null; }
 function scheduleReconnect(config) { clearReconnectTimer(); CONNECTION_STATE.reconnectCount += 1; reconnectTimer = setTimeout(() => connectStreamingPc(config), config.reconnectDelayMs); if (reconnectTimer && typeof reconnectTimer.unref === 'function') reconnectTimer.unref(); }
 function clearReconnectTimer() { if (reconnectTimer) clearTimeout(reconnectTimer); reconnectTimer = null; }
 
@@ -509,6 +551,348 @@ async function sendInventorySync(config, reason) {
     CONNECTION_STATE.inventorySyncSendErrorAt = new Date().toISOString();
     CONNECTION_STATE.inventorySyncSendError = err && err.message ? safeError(err.message) : 'inventory_sync_failed';
   }
+}
+
+
+async function sendMediaInventorySync(config, reason) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  CONNECTION_STATE.mediaInventorySyncSeq += 1;
+  try {
+    const inventory = buildMediaInventorySyncSnapshot(reason || 'timer');
+    const payload = {
+      type: 'media_inventory_sync',
+      protocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+      agentId: config.agentId,
+      seq: CONNECTION_STATE.mediaInventorySyncSeq,
+      collectedAt: inventory.scannedAt,
+      inventory: buildMediaInventoryTransportPayload(inventory)
+    };
+    const json = JSON.stringify(payload);
+    if (Buffer.byteLength(json, 'utf8') > 60000) {
+      payload.inventory = buildMediaInventoryTransportPayload(inventory, { compact: true });
+    }
+    ws.send(JSON.stringify(payload));
+    const now = new Date().toISOString();
+    CONNECTION_STATE.lastMediaInventorySyncAt = now;
+    CONNECTION_STATE.mediaInventorySyncUpdatedAt = now;
+    CONNECTION_STATE.mediaInventorySync = payload.inventory;
+    CONNECTION_STATE.lastSeenAt = now;
+    CONNECTION_STATE.connectionState = 'connected';
+    CONNECTION_STATE.reason = 'media_inventory_sync_sent';
+    CONNECTION_STATE.mediaInventorySyncSendErrorAt = null;
+    CONNECTION_STATE.mediaInventorySyncSendError = null;
+    CONNECTION_STATE.actionsEnabled = false;
+    CONNECTION_STATE.productiveActionsEnabled = false;
+  } catch (err) {
+    CONNECTION_STATE.mediaInventorySyncSendErrorAt = new Date().toISOString();
+    CONNECTION_STATE.mediaInventorySyncSendError = err && err.message ? safeError(err.message) : 'media_inventory_sync_failed';
+  }
+}
+
+function buildMediaInventorySyncSnapshot(reason) {
+  const inventory = scanLocalMediaInventory(MEDIA_SCAN_DEFAULT_LIMIT);
+  inventory.syncReason = safeReason(reason || 'timer');
+  return inventory;
+}
+
+function buildMediaInventoryTransportPayload(inventory, options = {}) {
+  const source = inventory && typeof inventory === 'object' && !Array.isArray(inventory) ? inventory : {};
+  const compact = options.compact === true;
+  const limit = compact ? 250 : MEDIA_SCAN_DEFAULT_LIMIT;
+  const items = Array.isArray(source.items) ? source.items.slice(0, limit).map(sanitizeMediaTransportItem).filter(Boolean) : [];
+  const groups = buildMediaGroupsFromItems(items, source.groups);
+  const counts = buildMediaCountsFromItems(items, source.counts);
+  return {
+    prepared: true,
+    active: source.active === true && items.length > 0,
+    status: source.active === true && items.length > 0 ? 'readonly_media_inventory_available' : safeReason(source.status || 'not_ready'),
+    scannedAt: safeText(source.scannedAt || new Date().toISOString(), 40),
+    checkedAt: safeText(source.scannedAt || new Date().toISOString(), 40),
+    source: 'local_stream_pc_filesystem_readonly',
+    items,
+    groups,
+    counts,
+    limit,
+    hardLimit: MEDIA_SCAN_HARD_LIMIT,
+    maxDepth: MEDIA_SCAN_MAX_DEPTH,
+    truncated: source.truncated === true || (Array.isArray(source.items) && source.items.length > items.length),
+    hasMore: source.hasMore === true || source.truncated === true || (Array.isArray(source.items) && source.items.length > items.length),
+    nextCursor: source.truncated === true || (Array.isArray(source.items) && source.items.length > items.length) ? 'prepared_later' : null,
+    emptyReason: items.length ? null : safeReason(source.emptyReason || 'no_allowed_media_files_found'),
+    compact,
+    readOnly: true,
+    uploadEnabled: false,
+    editEnabled: false,
+    deleteEnabled: false
+  };
+}
+
+function sanitizeMediaTransportItem(item) {
+  const source = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+  const rootKey = safeMediaRootKey(source.rootKey);
+  const relativePath = normalizeMediaRelativePath(source.relativePath || '');
+  const extension = safeMediaExtension(source.extension || (path ? path.extname(relativePath) : ''));
+  const kind = safeMediaKind(source.kind || mediaKindForExtension(extension));
+  if (!rootKey || !relativePath || !extension || !kind) return null;
+  const name = safeText(source.name || (path ? path.basename(relativePath) : relativePath.split('/').pop()) || '', 140);
+  if (!name) return null;
+  return {
+    id: safeMediaId(source.id || `${rootKey}:${relativePath}`),
+    rootKey,
+    rootLabel: safeText(source.rootLabel || rootKey, 80),
+    kind,
+    name,
+    relativePath,
+    publicPath: safePublicMediaPath(source.publicPath || `/${rootKey}/${relativePath}`),
+    extension,
+    sizeBytes: safeNonNegativeNumber(source.sizeBytes),
+    modifiedAt: safeIsoOrNull(source.modifiedAt),
+    readOnly: true
+  };
+}
+
+function scanLocalMediaInventory(limit) {
+  const generatedAt = new Date().toISOString();
+  const safeLimit = Math.max(1, Math.min(Number(limit || MEDIA_SCAN_DEFAULT_LIMIT), MEDIA_SCAN_HARD_LIMIT));
+  const items = [];
+  const groups = emptyMediaGroups();
+  const counts = { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 };
+  const errors = [];
+  let truncated = false;
+
+  if (!fs || !path) {
+    return preparedMediaInventory(generatedAt, 'node_fs_or_path_unavailable', false, safeLimit, items, groups, counts, errors, truncated);
+  }
+
+  const projectRoot = path.resolve(__dirname, '..', '..');
+  for (const root of MEDIA_ROOTS) {
+    const absoluteRoot = path.resolve(projectRoot, root.localPathHint);
+    if (!absoluteRoot.startsWith(projectRoot)) {
+      errors.push({ rootKey: root.key, error: 'root_outside_project' });
+      continue;
+    }
+    if (!fs.existsSync(absoluteRoot)) {
+      groups[root.key].exists = false;
+      groups[root.key].emptyReason = 'root_missing';
+      continue;
+    }
+    walkMediaRoot({ root, absoluteRoot, currentDir: absoluteRoot, depth: 0, limit: safeLimit, items, groups, counts, errors, truncatedRef: () => truncated, setTruncated: () => { truncated = true; } });
+    if (truncated) break;
+  }
+
+  items.sort((a, b) => String(a.rootKey).localeCompare(String(b.rootKey)) || String(a.relativePath).localeCompare(String(b.relativePath)));
+  for (const key of Object.keys(groups)) groups[key].items.sort((a, b) => String(a.relativePath).localeCompare(String(b.relativePath)));
+  counts.total = items.length;
+  counts.returned = items.length;
+  return preparedMediaInventory(generatedAt, items.length ? 'readonly_media_inventory_available' : 'no_allowed_media_files_found', items.length > 0, safeLimit, items, groups, counts, errors, truncated);
+}
+
+function preparedMediaInventory(scannedAt, status, active, limit, items, groups, counts, errors, truncated) {
+  return {
+    prepared: true,
+    active: Boolean(active),
+    status: safeReason(status || 'not_ready'),
+    source: 'local_stream_pc_filesystem_readonly',
+    scannedAt,
+    roots: MEDIA_ROOTS.map(root => ({ key: root.key, label: root.label, exists: groups[root.key].exists, count: groups[root.key].count })),
+    items,
+    groups,
+    counts,
+    limit,
+    hardLimit: MEDIA_SCAN_HARD_LIMIT,
+    maxDepth: MEDIA_SCAN_MAX_DEPTH,
+    truncated: truncated === true,
+    hasMore: truncated === true,
+    nextCursor: truncated === true ? 'prepared_later' : null,
+    errors,
+    emptyReason: items.length ? null : safeReason(status || 'no_allowed_media_files_found'),
+    readOnly: true,
+    uploadEnabled: false,
+    editEnabled: false,
+    deleteEnabled: false
+  };
+}
+
+function emptyMediaGroups() {
+  return {
+    sounds: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
+    videos: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
+    images: { prepared: true, exists: true, count: 0, items: [], emptyReason: null }
+  };
+}
+
+function walkMediaRoot({ root, absoluteRoot, currentDir, depth, limit, items, groups, counts, errors, truncatedRef, setTruncated }) {
+  if (truncatedRef()) return;
+  if (depth > MEDIA_SCAN_MAX_DEPTH) {
+    counts.skipped += 1;
+    return;
+  }
+  let entries = [];
+  try {
+    entries = fs.readdirSync(currentDir, { withFileTypes: true });
+  } catch (err) {
+    errors.push({ rootKey: root.key, error: 'read_dir_failed' });
+    return;
+  }
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+  for (const entry of entries) {
+    if (truncatedRef()) return;
+    if (!entry || !entry.name || entry.name.startsWith('.')) continue;
+    const absolutePath = path.join(currentDir, entry.name);
+    if (!absolutePath.startsWith(absoluteRoot)) {
+      counts.skipped += 1;
+      continue;
+    }
+    if (entry.isSymbolicLink()) {
+      counts.skipped += 1;
+      continue;
+    }
+    if (entry.isDirectory()) {
+      walkMediaRoot({ root, absoluteRoot, currentDir: absolutePath, depth: depth + 1, limit, items, groups, counts, errors, truncatedRef, setTruncated });
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const ext = path.extname(entry.name).toLowerCase();
+    if (!MEDIA_ALLOWED_EXTENSIONS.includes(ext)) {
+      counts.skipped += 1;
+      continue;
+    }
+    counts.totalSeen += 1;
+    if (items.length >= limit) {
+      setTruncated();
+      return;
+    }
+    const rel = normalizeMediaRelativePath(path.relative(absoluteRoot, absolutePath));
+    if (!rel || rel.includes('..')) {
+      counts.skipped += 1;
+      continue;
+    }
+    let stat = null;
+    try { stat = fs.statSync(absolutePath); } catch (err) { counts.skipped += 1; continue; }
+    const kind = mediaKindForExtension(ext);
+    const item = {
+      id: `${root.key}:${rel}`,
+      rootKey: root.key,
+      rootLabel: root.label,
+      kind,
+      name: path.basename(rel),
+      relativePath: rel,
+      publicPath: `${root.publicBasePath}/${rel}`,
+      extension: ext,
+      sizeBytes: stat.size,
+      modifiedAt: stat.mtime ? stat.mtime.toISOString() : null,
+      readOnly: true
+    };
+    items.push(item);
+    groups[root.key].items.push(item);
+    groups[root.key].count += 1;
+    counts[root.key] = (counts[root.key] || 0) + 1;
+    counts[kind] = (counts[kind] || 0) + 1;
+  }
+}
+
+function buildMediaGroupsFromItems(items, sourceGroups) {
+  const groups = emptyMediaGroups();
+  for (const key of Object.keys(groups)) {
+    const source = sourceGroups && sourceGroups[key] && typeof sourceGroups[key] === 'object' ? sourceGroups[key] : {};
+    groups[key].exists = source.exists === false ? false : true;
+  }
+  for (const item of items) {
+    if (!groups[item.rootKey]) continue;
+    groups[item.rootKey].items.push(item);
+    groups[item.rootKey].count += 1;
+  }
+  return groups;
+}
+
+function buildMediaCountsFromItems(items, sourceCounts) {
+  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length };
+  if (sourceCounts && Number.isFinite(Number(sourceCounts.skipped))) counts.skipped = Math.max(0, Math.floor(Number(sourceCounts.skipped)));
+  if (sourceCounts && Number.isFinite(Number(sourceCounts.totalSeen))) counts.totalSeen = Math.max(items.length, Math.floor(Number(sourceCounts.totalSeen)));
+  for (const item of items) {
+    if (Object.prototype.hasOwnProperty.call(counts, item.rootKey)) counts[item.rootKey] += 1;
+    if (Object.prototype.hasOwnProperty.call(counts, item.kind)) counts[item.kind] += 1;
+  }
+  return counts;
+}
+
+function buildMediaInventoryStatusResponse(req = null) {
+  void req;
+  const inventory = CONNECTION_STATE.mediaInventorySync || buildMediaInventoryTransportPayload(scanLocalMediaInventory(MEDIA_SCAN_DEFAULT_LIMIT));
+  const counts = inventory.counts || { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 };
+  return buildBaseResponse({
+    displayName: 'Media Inventar read-only',
+    readOnly: true,
+    route: '/api/remote-agent/media/inventory/status',
+    prepared: true,
+    active: inventory.active === true || Number(counts.total || 0) > 0,
+    status: inventory.active === true || Number(counts.total || 0) > 0 ? 'media_inventory_available' : 'media_inventory_empty_or_pending',
+    agent: {
+      connected: CONNECTION_STATE.connected === true,
+      connectionState: CONNECTION_STATE.connectionState,
+      agentId: CONNECTION_STATE.agentId,
+      agentName: CONNECTION_STATE.agentName,
+      lastSeenAt: CONNECTION_STATE.lastSeenAt,
+      lastMediaInventorySyncAt: CONNECTION_STATE.mediaInventorySyncUpdatedAt,
+      mediaInventorySyncSeq: CONNECTION_STATE.mediaInventorySyncSeq
+    },
+    inventory,
+    items: inventory.items || [],
+    groups: inventory.groups || emptyMediaGroups(),
+    counts,
+    safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
+  });
+}
+
+function normalizeMediaRelativePath(value) {
+  return String(value || '').replace(/\\/g, '/').replace(/^\/+/g, '').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 220);
+}
+
+function mediaKindForExtension(ext) {
+  if (MEDIA_AUDIO_EXTENSIONS.has(ext)) return 'audio';
+  if (MEDIA_VIDEO_EXTENSIONS.has(ext)) return 'video';
+  if (MEDIA_IMAGE_EXTENSIONS.has(ext)) return 'image';
+  return 'media';
+}
+
+function safeMediaRootKey(value) {
+  const key = safeReason(value);
+  return ['sounds', 'videos', 'images'].includes(key) ? key : '';
+}
+
+function safeMediaKind(value) {
+  const kind = safeReason(value);
+  return ['audio', 'video', 'image', 'media'].includes(kind) ? kind : '';
+}
+
+function safeMediaExtension(value) {
+  const ext = String(value || '').toLowerCase().trim();
+  return MEDIA_ALLOWED_EXTENSIONS.includes(ext) ? ext : '';
+}
+
+function safePublicMediaPath(value) {
+  const raw = String(value || '').replace(/\\/g, '/').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 260);
+  if (!raw || raw.includes('..') || /^[a-zA-Z]:/.test(raw) || raw.startsWith('http://') || raw.startsWith('https://')) return '';
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function safeNonNegativeNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return 0;
+  return Math.floor(num);
+}
+
+function safeIsoOrNull(value) {
+  if (typeof value !== 'string') return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return new Date(parsed).toISOString();
+}
+
+function safeMediaId(value) {
+  const id = String(value || '').replace(/[^\w:./-]/g, '_').slice(0, 260);
+  if (!id || id.includes('..') || /^[a-zA-Z]:/.test(id)) return '';
+  return id;
 }
 
 async function buildObsInventorySyncSnapshot(config, reason) {
@@ -983,14 +1367,14 @@ function buildStatusResponse() {
   const state = buildConnectionStatus();
   return buildBaseResponse({
     displayName: 'Streaming-PC Verbindung',
-    status: { connected: state.connected, connectionState: state.connectionState, reason: state.reason, lastSeenAt: state.lastSeenAt, connectedSince: state.connectedSince, lastHeartbeatAt: state.lastHeartbeatAt, heartbeatSeq: state.heartbeatSeq, heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt), lastLiveStateAt: state.lastLiveStateAt, liveStateSeq: state.liveStateSeq, lastInventorySyncAt: state.lastInventorySyncAt, inventorySyncSeq: state.inventorySyncSeq, inventorySyncAgeMs: calculateHeartbeatAgeMs(state.lastInventorySyncAt), liveStateAgeMs: calculateHeartbeatAgeMs(state.lastLiveStateAt), reconnectCount: state.reconnectCount, stale: isHeartbeatStale(state.lastHeartbeatAt) },
+    status: { connected: state.connected, connectionState: state.connectionState, reason: state.reason, lastSeenAt: state.lastSeenAt, connectedSince: state.connectedSince, lastHeartbeatAt: state.lastHeartbeatAt, heartbeatSeq: state.heartbeatSeq, heartbeatAgeMs: calculateHeartbeatAgeMs(state.lastHeartbeatAt), lastLiveStateAt: state.lastLiveStateAt, liveStateSeq: state.liveStateSeq, lastInventorySyncAt: state.lastInventorySyncAt, inventorySyncSeq: state.inventorySyncSeq, inventorySyncAgeMs: calculateHeartbeatAgeMs(state.lastInventorySyncAt), lastMediaInventorySyncAt: state.lastMediaInventorySyncAt, mediaInventorySyncSeq: state.mediaInventorySyncSeq, mediaInventorySyncAgeMs: calculateHeartbeatAgeMs(state.lastMediaInventorySyncAt), liveStateAgeMs: calculateHeartbeatAgeMs(state.lastLiveStateAt), reconnectCount: state.reconnectCount, stale: isHeartbeatStale(state.lastHeartbeatAt) },
     streamingPcConnection: state,
-    agent: { agentId: state.agentId, agentName: state.agentName, agentVersion: state.agentVersion, protocolVersion: state.protocolVersion, heartbeatProtocolVersion: state.heartbeatProtocolVersion, liveStateProtocolVersion: state.liveStateProtocolVersion, expectedAgentId: 'stream-pc-main', expectedAgentName: 'Forrest Stream-PC' },
+    agent: { agentId: state.agentId, agentName: state.agentName, agentVersion: state.agentVersion, protocolVersion: state.protocolVersion, heartbeatProtocolVersion: state.heartbeatProtocolVersion, liveStateProtocolVersion: state.liveStateProtocolVersion, mediaInventorySyncProtocolVersion: state.mediaInventorySyncProtocolVersion, expectedAgentId: 'stream-pc-main', expectedAgentName: 'Forrest Stream-PC' },
     host: { dashboardServer: 'local-stream-control-center', hostname: safeHostname(), platform: process.platform, nodeVersion: process.version, processUptimeSec: Math.floor(process.uptime()), localTime: now },
     remoteTarget: { publicDashboardUrl: 'https://mods.forrestcgn.de', remoteWsUrl: state.remoteWsUrl, plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws', plannedWsPath: state.wsPath, streamPcPublicPortRequired: false, outgoingConnectionOnly: true },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
-    warnings: ['Version 0.1.7C sendet schlanke Heartbeats plus separaten read-only OBS-Live-State und lokalen/online OBS-Inventory-Sync ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS-Listen werden separat langsam als Inventory-Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
+    warnings: ['Version 0.1.8 sendet schlanke Heartbeats plus separaten read-only OBS-Live-State, OBS-Inventory-Sync und Media-Slow-Sync ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS- und Media-Listen werden separat langsam als Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
 }
@@ -1025,6 +1409,14 @@ function buildConnectionStatus() {
     inventorySync: CONNECTION_STATE.inventorySync,
     inventorySyncSendErrorAt: CONNECTION_STATE.inventorySyncSendErrorAt,
     inventorySyncSendError: CONNECTION_STATE.inventorySyncSendError,
+    mediaInventorySyncProtocolVersion: CONNECTION_STATE.mediaInventorySyncProtocolVersion,
+    mediaInventorySyncSeq: CONNECTION_STATE.mediaInventorySyncSeq,
+    mediaInventorySyncIntervalMs: CONNECTION_STATE.mediaInventorySyncIntervalMs,
+    lastMediaInventorySyncAt: CONNECTION_STATE.lastMediaInventorySyncAt,
+    mediaInventorySyncUpdatedAt: CONNECTION_STATE.mediaInventorySyncUpdatedAt,
+    mediaInventorySync: CONNECTION_STATE.mediaInventorySync,
+    mediaInventorySyncSendErrorAt: CONNECTION_STATE.mediaInventorySyncSendErrorAt,
+    mediaInventorySyncSendError: CONNECTION_STATE.mediaInventorySyncSendError,
     lastLiveStateAt: CONNECTION_STATE.lastLiveStateAt,
     liveStateUpdatedAt: CONNECTION_STATE.liveStateUpdatedAt,
     liveState: CONNECTION_STATE.liveState || buildObsLiveState({}),
@@ -1083,6 +1475,7 @@ function buildRoutesResponse() {
       { method: 'GET', path: '/api/remote-agent/obs/inventory/status', description: 'Kompakte read-only OBS-Inventar-/ENV-Diagnose. Keine OBS-Steuerung.' },
       { method: 'GET', path: '/api/remote-agent/obs/live/status', description: 'Lokaler read-only OBS-Live-Status ueber bestehende obs_shared-Instanz. Keine OBS-Steuerung.' },
       { method: 'GET', path: '/api/remote-agent/obs/inventory/status', description: 'Lokale OBS-Listen read-only. Werden online separat per Inventory-Sync gesendet, nicht im Heartbeat.' },
+      { method: 'GET', path: '/api/remote-agent/media/inventory/status', description: 'Lokales Media-Inventar read-only. Wird online separat per Media-Slow-Sync gesendet, nicht im Heartbeat.' },
       { method: 'GET', path: '/api/remote-agent/permissions/model', description: 'Read-only Rollen-/Permission-Modell. Keine User-/Grant-Schreiboperation.' },
       { method: 'GET', path: '/api/remote-agent/locks/status', description: 'Read-only Lock-Modell und aktueller Null-Status. Keine Lock-Schreiboperation.' },
       { method: 'GET', path: '/api/remote-agent/audit/model', description: 'Read-only Audit-Modell fuer spaetere produktive Aktionen. Keine Audit-Schreiboperation.' },
@@ -1092,7 +1485,7 @@ function buildRoutesResponse() {
 }
 
 function buildSafetyBlock() {
-  return { noSoundControl: true, noObsControl: true, noOverlayControl: true, noMediaWrite: true, noTextConfigWrite: true, noCommandsOrChannelpoints: true, noDatabaseWrite: true, noFileWrite: true, noShellOrProcessActions: true, noAgentActionExecution: true, noStreamingPcActionExecution: true, heartbeatOnly: false, liveStateReadOnlyPush: true, inventorySyncReadOnlyPush: true, obsInventorySyncReadOnlyPush: true, outgoingConnectionOnly: true, obsInventoryReadOnly: true, obsLiveStateReadOnly: true, obsInventorySyncReadOnly: true, obsInventoryEnvDiagnostic: true, obsInventorySharedConnection: true };
+  return { noSoundControl: true, noObsControl: true, noOverlayControl: true, noMediaWrite: true, noTextConfigWrite: true, noCommandsOrChannelpoints: true, noDatabaseWrite: true, noFileWrite: true, noShellOrProcessActions: true, noAgentActionExecution: true, noStreamingPcActionExecution: true, heartbeatOnly: false, liveStateReadOnlyPush: true, inventorySyncReadOnlyPush: true, obsInventorySyncReadOnlyPush: true, outgoingConnectionOnly: true, obsInventoryReadOnly: true, obsLiveStateReadOnly: true, obsInventorySyncReadOnly: true, mediaInventorySyncReadOnly: true, mediaInventoryReadOnly: true, obsInventoryEnvDiagnostic: true, obsInventorySharedConnection: true };
 }
 
 function readString(name, fallback) { const value = process.env[name]; if (typeof value !== 'string') return fallback; const trimmed = value.trim(); return trimmed || fallback; }
@@ -1123,4 +1516,4 @@ function isHeartbeatStale(value) { const age = calculateHeartbeatAgeMs(value); i
 function clonePlain(value) { return JSON.parse(JSON.stringify(value)); }
 function safeHostname() { try { return require('os').hostname(); } catch (err) { return 'unknown'; } }
 
-module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, buildStatusResponse, buildPermissionsModelResponse, GROUP_MARKERS, buildLocksStatusResponse, buildAuditModelResponse };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, buildStatusResponse, buildMediaInventoryStatusResponse, buildPermissionsModelResponse, GROUP_MARKERS, buildLocksStatusResponse, buildAuditModelResponse };

@@ -3,29 +3,34 @@
 const crypto = require('crypto');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.22B_OBS_INVENTORY_SYNC_RECEIVER_FIX_READONLY';
-const STATUS_API_VERSION = 'rdap_agent_obs_inventory_sync_runtime_0222b.v1';
+const MODULE_BUILD = 'RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_media_slow_sync_runtime_027.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
 const LIVE_STATE_PROTOCOL_VERSION = 'rdap-agent-live-state.v1';
 const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
+const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
 const MAX_HEARTBEAT_PAYLOAD_BYTES = 4096;
 const MAX_LIVE_STATE_PAYLOAD_BYTES = 2048;
 const MAX_INVENTORY_SYNC_PAYLOAD_BYTES = 65536;
+const MAX_MEDIA_INVENTORY_SYNC_PAYLOAD_BYTES = 65536;
 const MAX_AGENT_WS_BUFFER_BYTES = MAX_INVENTORY_SYNC_PAYLOAD_BYTES + 4096;
 const PLANNED_HEARTBEAT_INTERVAL_MS = 30000;
 const PLANNED_LIVE_STATE_INTERVAL_MS = 500;
 const PLANNED_INVENTORY_SYNC_INTERVAL_MS = 30000;
+const PLANNED_MEDIA_INVENTORY_SYNC_INTERVAL_MS = 60000;
 const LIVE_STATE_STALE_AFTER_MS = 5000;
 const LIVE_STATE_OFFLINE_AFTER_MS = 15000;
 const STALE_AFTER_MS = 90000;
 const OFFLINE_AFTER_MS = 120000;
 
 const FORBIDDEN_INVENTORY_SYNC_FIELDS = new Set(['capabilities', 'commands', 'requestedActions', 'actionQueue', 'env', 'paths', 'tokens', 'secrets', 'shell', 'stdout', 'stderr', 'configDump', 'processList', 'fileList']);
+
+const FORBIDDEN_MEDIA_INVENTORY_SYNC_FIELDS = new Set(['capabilities', 'commands', 'requestedActions', 'actionQueue', 'env', 'paths', 'absolutePath', 'absolutePaths', 'tokens', 'secrets', 'shell', 'stdout', 'stderr', 'configDump', 'processList', 'fileList', 'fileContent', 'content', 'buffer', 'base64']);
 
 const FORBIDDEN_LIVE_STATE_FIELDS = new Set(['capabilities', 'commands', 'requestedActions', 'actionQueue', 'env', 'paths', 'tokens', 'secrets', 'shell', 'stdout', 'stderr', 'configDump', 'processList', 'fileList']);
 
@@ -92,6 +97,33 @@ const EMPTY_OBS_INVENTORY_SYNC = Object.freeze({
   },
   counts: { scenes: 0, sources: 0, audioSources: 0, total: 0 },
   safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
+});
+
+const EMPTY_MEDIA_INVENTORY_SYNC = Object.freeze({
+  prepared: true,
+  readOnly: true,
+  protocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+  source: 'agent-wss-media-inventory-sync',
+  available: false,
+  active: false,
+  status: 'not_reported',
+  scannedAt: null,
+  checkedAt: null,
+  receivedAt: null,
+  items: [],
+  groups: {
+    sounds: { prepared: true, exists: true, active: false, count: 0, items: [] },
+    videos: { prepared: true, exists: true, active: false, count: 0, items: [] },
+    images: { prepared: true, exists: true, active: false, count: 0, items: [] }
+  },
+  counts: { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 },
+  limit: 500,
+  hardLimit: 2000,
+  maxDepth: 5,
+  truncated: false,
+  hasMore: false,
+  nextCursor: null,
+  safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
 });
 
 const CONNECTION_STATE = {
@@ -162,7 +194,21 @@ const CONNECTION_STATE = {
   inventorySyncRejectCount: 0,
   lastInventorySyncRejectAt: null,
   lastInventorySyncRejectReason: null,
-  lastInventorySyncPayloadStored: false
+  lastInventorySyncPayloadStored: false,
+  mediaInventorySyncReceiverPrepared: true,
+  mediaInventorySyncInMemoryOnly: true,
+  mediaInventorySyncPersistsToDatabase: false,
+  mediaInventorySyncExecutesActions: false,
+  mediaInventorySyncAcceptsCommands: false,
+  mediaInventorySyncProtocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+  mediaInventorySync: clonePlain(EMPTY_MEDIA_INVENTORY_SYNC),
+  mediaInventorySyncUpdatedAt: null,
+  lastMediaInventorySyncAt: null,
+  mediaInventorySyncSeq: null,
+  mediaInventorySyncRejectCount: 0,
+  lastMediaInventorySyncRejectAt: null,
+  lastMediaInventorySyncRejectReason: null,
+  lastMediaInventorySyncPayloadStored: false
 };
 
 const REJECT_DIAGNOSTIC = {
@@ -283,6 +329,9 @@ function getAgentRuntimeConfig(config = {}) {
     inventorySyncReceiverPrepared: true,
     inventorySyncProtocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
     plannedInventorySyncIntervalMs: PLANNED_INVENTORY_SYNC_INTERVAL_MS,
+    mediaInventorySyncReceiverPrepared: true,
+    mediaInventorySyncProtocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+    plannedMediaInventorySyncIntervalMs: PLANNED_MEDIA_INVENTORY_SYNC_INTERVAL_MS,
     acceptsAgentConnections: effectiveEnabled,
     actionsEnabled: false,
     productiveAgentRuntime: false,
@@ -321,6 +370,8 @@ function buildRegistrationSummary(input = {}) {
     obsLiveStateRoute: '/api/remote/agent/obs/live/status',
     obsInventorySyncReceiverPrepared: true,
     obsInventorySyncRoute: '/api/remote/agent/obs/inventory/status',
+    mediaInventorySyncReceiverPrepared: true,
+    mediaInventorySyncRoute: '/api/remote/agent/media/inventory/status',
     actionEnabled: false,
     productiveAgentRuntime: false,
     noAgentActions: true,
@@ -525,6 +576,10 @@ function processHeartbeatText(text, details = {}) {
   }
   if (payload && payload.type === 'inventory_sync') {
     processInventorySyncPayload(payload, details, payloadBytes);
+    return;
+  }
+  if (payload && payload.type === 'media_inventory_sync') {
+    processMediaInventorySyncPayload(payload, details, payloadBytes);
     return;
   }
   if (payloadBytes > MAX_HEARTBEAT_PAYLOAD_BYTES) {
@@ -748,6 +803,199 @@ function sanitizeInventoryItems(items, limit, fallbackType) {
   }).filter(Boolean);
 }
 
+
+function processMediaInventorySyncPayload(payload, details = {}, payloadBytes = 0) {
+  if (payloadBytes > MAX_MEDIA_INVENTORY_SYNC_PAYLOAD_BYTES) {
+    recordMediaInventorySyncReject('media_inventory_sync_payload_too_large');
+    return;
+  }
+  const validation = validateMediaInventorySyncPayload(payload, details);
+  if (!validation.ok) {
+    recordMediaInventorySyncReject(validation.reason);
+    return;
+  }
+  const now = new Date().toISOString();
+  CONNECTION_STATE.lastSeenAt = now;
+  CONNECTION_STATE.lastMediaInventorySyncAt = now;
+  CONNECTION_STATE.mediaInventorySyncSeq = validation.seq;
+  CONNECTION_STATE.mediaInventorySync = validation.inventory;
+  CONNECTION_STATE.mediaInventorySyncUpdatedAt = now;
+  CONNECTION_STATE.connectionState = 'connected';
+  CONNECTION_STATE.lastMediaInventorySyncRejectReason = null;
+  CONNECTION_STATE.lastMediaInventorySyncPayloadStored = false;
+  CONNECTION_STATE.actionsEnabled = false;
+  CONNECTION_STATE.productiveAgentRuntime = false;
+  CONNECTION_STATE.mediaInventorySyncExecutesActions = false;
+  CONNECTION_STATE.mediaInventorySyncAcceptsCommands = false;
+}
+
+function validateMediaInventorySyncPayload(payload, details = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { ok: false, reason: 'invalid_media_inventory_sync_json' };
+  for (const key of Object.keys(payload)) {
+    if (FORBIDDEN_MEDIA_INVENTORY_SYNC_FIELDS.has(key)) return { ok: false, reason: 'media_inventory_sync_forbidden_fields' };
+  }
+  const allowedTop = new Set(['type', 'protocolVersion', 'agentId', 'seq', 'collectedAt', 'inventory']);
+  for (const key of Object.keys(payload)) {
+    if (!allowedTop.has(key)) return { ok: false, reason: 'media_inventory_sync_unexpected_field' };
+  }
+  if (payload.type !== 'media_inventory_sync') return { ok: false, reason: 'unsupported_media_inventory_sync_type' };
+  if (payload.protocolVersion !== MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION) return { ok: false, reason: 'unsupported_media_inventory_sync_protocol' };
+  const expectedAgentId = details.agentId || CONNECTION_STATE.agentId || 'stream-pc-main';
+  if (payload.agentId !== expectedAgentId) return { ok: false, reason: 'media_inventory_sync_agent_mismatch' };
+  const seq = Number(payload.seq);
+  if (!Number.isFinite(seq) || seq < 1 || Math.floor(seq) !== seq) return { ok: false, reason: 'media_inventory_sync_seq_invalid' };
+  const collectedAt = safeIsoOrNull(payload.collectedAt) || new Date().toISOString();
+  const inventory = sanitizeMediaInventorySync(payload.inventory, collectedAt, expectedAgentId, seq);
+  return { ok: true, seq, inventory };
+}
+
+function sanitizeMediaInventorySync(input, collectedAt, agentId, seq) {
+  const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const limit = safePositiveInt(source.limit, 500, 1, 2000);
+  const hardLimit = safePositiveInt(source.hardLimit, 2000, 1, 2000);
+  const maxDepth = safePositiveInt(source.maxDepth, 5, 1, 10);
+  const items = sanitizeMediaInventoryItems(source.items, limit);
+  const groups = buildMediaGroupsFromItems(items, source.groups);
+  const counts = buildMediaCounts(items, source.counts);
+  const active = source.active === true || items.length > 0;
+  return {
+    prepared: true,
+    readOnly: true,
+    protocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+    source: 'agent-wss-media-inventory-sync',
+    agentId,
+    seq,
+    available: active,
+    active,
+    status: active ? 'readonly_media_inventory_available' : safeStatus(source.status || 'not_ready'),
+    scannedAt: safeIsoOrNull(source.scannedAt || source.checkedAt) || collectedAt,
+    checkedAt: safeIsoOrNull(source.checkedAt || source.scannedAt) || collectedAt,
+    receivedAt: new Date().toISOString(),
+    items,
+    groups,
+    counts,
+    limit,
+    hardLimit,
+    maxDepth,
+    truncated: source.truncated === true,
+    hasMore: source.hasMore === true || source.truncated === true,
+    nextCursor: source.truncated === true || source.hasMore === true ? 'prepared_later' : null,
+    emptyReason: active ? null : safeStatus(source.emptyReason || 'media_inventory_empty_or_not_ready'),
+    safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
+  };
+}
+
+function sanitizeMediaInventoryItems(items, limit) {
+  const list = Array.isArray(items) ? items : [];
+  return list.slice(0, limit).map((item) => {
+    const source = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+    const rootKey = safeMediaRootKey(source.rootKey);
+    const relativePath = safeRelativeMediaPath(source.relativePath);
+    const name = safeLabel(source.name || relativePath.split('/').pop() || source.id || '');
+    const extension = safeMediaExtension(source.extension || '');
+    const kind = safeMediaKind(source.kind || source.type || '');
+    if (!rootKey || !relativePath || !name || !extension || !kind) return null;
+    const publicPath = safePublicMediaPath(source.publicPath || `/${rootKey}/${relativePath}`);
+    return {
+      id: safeMediaId(source.id || `${rootKey}:${relativePath}`),
+      rootKey,
+      rootLabel: safeLabel(source.rootLabel || rootKey),
+      kind,
+      name,
+      relativePath,
+      publicPath,
+      extension,
+      sizeBytes: safeNonNegativeNumber(source.sizeBytes),
+      modifiedAt: safeIsoOrNull(source.modifiedAt) || null,
+      readOnly: true
+    };
+  }).filter(Boolean);
+}
+
+function buildMediaGroupsFromItems(items, sourceGroups) {
+  const groups = {
+    sounds: { prepared: true, exists: true, active: false, count: 0, items: [] },
+    videos: { prepared: true, exists: true, active: false, count: 0, items: [] },
+    images: { prepared: true, exists: true, active: false, count: 0, items: [] }
+  };
+  for (const key of Object.keys(groups)) {
+    const source = sourceGroups && sourceGroups[key] && typeof sourceGroups[key] === 'object' ? sourceGroups[key] : {};
+    groups[key].exists = source.exists === false ? false : true;
+  }
+  for (const item of items) {
+    if (!groups[item.rootKey]) continue;
+    groups[item.rootKey].items.push(item);
+    groups[item.rootKey].count += 1;
+    groups[item.rootKey].active = true;
+  }
+  return groups;
+}
+
+function buildMediaCounts(items, sourceCounts) {
+  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length };
+  const rawSkipped = sourceCounts && Number(sourceCounts.skipped);
+  const rawTotalSeen = sourceCounts && Number(sourceCounts.totalSeen);
+  if (Number.isFinite(rawSkipped) && rawSkipped >= 0) counts.skipped = Math.floor(rawSkipped);
+  if (Number.isFinite(rawTotalSeen) && rawTotalSeen >= items.length) counts.totalSeen = Math.floor(rawTotalSeen);
+  for (const item of items) {
+    if (Object.prototype.hasOwnProperty.call(counts, item.rootKey)) counts[item.rootKey] += 1;
+    if (Object.prototype.hasOwnProperty.call(counts, item.kind)) counts[item.kind] += 1;
+  }
+  return counts;
+}
+
+function safePositiveInt(value, fallback, min, max) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(num)));
+}
+
+function safeNonNegativeNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return 0;
+  return Math.floor(num);
+}
+
+function safeMediaRootKey(value) {
+  const key = safeStatus(value);
+  return ['sounds', 'videos', 'images'].includes(key) ? key : '';
+}
+
+function safeMediaKind(value) {
+  const kind = safeStatus(value);
+  return ['audio', 'video', 'image', 'media'].includes(kind) ? kind : '';
+}
+
+function safeMediaExtension(value) {
+  const ext = String(value || '').toLowerCase().trim();
+  return /^\.[a-z0-9]{1,8}$/.test(ext) ? ext.slice(0, 12) : '';
+}
+
+function safeRelativeMediaPath(value) {
+  const rel = String(value || '').replace(/\\/g, '/').replace(/^\/+/g, '').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 220);
+  if (!rel || rel.includes('..') || /^[a-zA-Z]:/.test(rel) || rel.startsWith('~')) return '';
+  return rel;
+}
+
+function safePublicMediaPath(value) {
+  const raw = String(value || '').replace(/\\/g, '/').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 260);
+  if (!raw || raw.includes('..') || /^[a-zA-Z]:/.test(raw) || raw.startsWith('http://') || raw.startsWith('https://')) return '';
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function safeMediaId(value) {
+  const id = String(value || '').replace(/[^\w:./-]/g, '_').slice(0, 260);
+  if (!id || id.includes('..') || /^[a-zA-Z]:/.test(id)) return '';
+  return id;
+}
+
+function recordMediaInventorySyncReject(reason) {
+  CONNECTION_STATE.mediaInventorySyncRejectCount += 1;
+  CONNECTION_STATE.lastMediaInventorySyncRejectAt = new Date().toISOString();
+  CONNECTION_STATE.lastMediaInventorySyncRejectReason = safeReason(reason || 'media_inventory_sync_rejected');
+  CONNECTION_STATE.lastMediaInventorySyncPayloadStored = false;
+}
+
 function sanitizeComponentStatus(input, fallbackCollectedAt) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return clonePlain(EMPTY_COMPONENT_STATUS);
 
@@ -866,6 +1114,11 @@ function clearConnectionState(reason) {
   CONNECTION_STATE.lastInventorySyncAt = null;
   CONNECTION_STATE.inventorySyncSeq = null;
   CONNECTION_STATE.lastInventorySyncPayloadStored = false;
+  CONNECTION_STATE.mediaInventorySync = clonePlain(EMPTY_MEDIA_INVENTORY_SYNC);
+  CONNECTION_STATE.mediaInventorySyncUpdatedAt = null;
+  CONNECTION_STATE.lastMediaInventorySyncAt = null;
+  CONNECTION_STATE.mediaInventorySyncSeq = null;
+  CONNECTION_STATE.lastMediaInventorySyncPayloadStored = false;
   activeSocket = null;
 }
 
@@ -1055,6 +1308,9 @@ function buildAgentConnectionSummary() {
     inventorySyncPersistsToDatabase: false,
     inventorySyncProtocolVersion: INVENTORY_SYNC_PROTOCOL_VERSION,
     plannedInventorySyncIntervalMs: PLANNED_INVENTORY_SYNC_INTERVAL_MS,
+    mediaInventorySyncReceiverPrepared: true,
+    mediaInventorySyncProtocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+    plannedMediaInventorySyncIntervalMs: PLANNED_MEDIA_INVENTORY_SYNC_INTERVAL_MS,
     lastInventorySyncAt: CONNECTION_STATE.lastInventorySyncAt,
     inventorySyncSeq: CONNECTION_STATE.inventorySyncSeq,
     inventorySyncRejectCount: CONNECTION_STATE.inventorySyncRejectCount,
@@ -1062,6 +1318,18 @@ function buildAgentConnectionSummary() {
     lastInventorySyncRejectReason: CONNECTION_STATE.lastInventorySyncRejectReason,
     lastInventorySyncPayloadStored: false,
     inventorySync: clonePlain(CONNECTION_STATE.inventorySync || EMPTY_OBS_INVENTORY_SYNC),
+    mediaInventorySyncReceiverPrepared: true,
+    mediaInventorySyncInMemoryOnly: true,
+    mediaInventorySyncPersistsToDatabase: false,
+    mediaInventorySyncProtocolVersion: MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION,
+    plannedMediaInventorySyncIntervalMs: PLANNED_MEDIA_INVENTORY_SYNC_INTERVAL_MS,
+    lastMediaInventorySyncAt: CONNECTION_STATE.lastMediaInventorySyncAt,
+    mediaInventorySyncSeq: CONNECTION_STATE.mediaInventorySyncSeq,
+    mediaInventorySyncRejectCount: CONNECTION_STATE.mediaInventorySyncRejectCount,
+    lastMediaInventorySyncRejectAt: CONNECTION_STATE.lastMediaInventorySyncRejectAt,
+    lastMediaInventorySyncRejectReason: CONNECTION_STATE.lastMediaInventorySyncRejectReason,
+    lastMediaInventorySyncPayloadStored: false,
+    mediaInventorySync: clonePlain(CONNECTION_STATE.mediaInventorySync || EMPTY_MEDIA_INVENTORY_SYNC),
     componentStatus: clonePlain(CONNECTION_STATE.componentStatus || EMPTY_COMPONENT_STATUS),
     componentStatusUpdatedAt: CONNECTION_STATE.componentStatusUpdatedAt,
     componentStatusInMemoryOnly: true,
@@ -1191,6 +1459,34 @@ function buildAgentObsInventoryStatusResponse() {
     counts: inventory.counts || { scenes: 0, sources: 0, audioSources: 0, total: 0 },
     currentScene: inventory.currentScene || (CONNECTION_STATE.liveState && CONNECTION_STATE.liveState.currentScene) || null,
     safety: { readOnly: true, actionsEnabled: false, controlEnabled: false, noObsControl: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false, inMemoryOnly: true, persistsToDatabase: false }
+  };
+}
+
+
+function buildAgentMediaInventoryStatusResponse() {
+  updateDerivedHeartbeatState();
+  const connected = CONNECTION_STATE.connected === true;
+  const inventory = clonePlain(CONNECTION_STATE.mediaInventorySync || EMPTY_MEDIA_INVENTORY_SYNC);
+  const counts = inventory.counts || EMPTY_MEDIA_INVENTORY_SYNC.counts;
+  const active = connected && inventory && (inventory.active === true || Number(counts.total || 0) > 0);
+  return {
+    ok: true,
+    service: 'remote-modboard',
+    module: MODULE,
+    moduleBuild: MODULE_BUILD,
+    statusApiVersion: 'rdap_agent_media_inventory_sync_status_027.v1',
+    route: '/api/remote/agent/media/inventory/status',
+    generatedAt: new Date().toISOString(),
+    readOnly: true,
+    prepared: true,
+    active,
+    status: active ? 'media_inventory_available' : (connected ? 'connected_media_inventory_pending' : 'agent_offline'),
+    agent: { connected, connectionState: CONNECTION_STATE.connectionState, agentId: CONNECTION_STATE.agentId, agentName: CONNECTION_STATE.agentName, lastSeenAt: CONNECTION_STATE.lastSeenAt, lastMediaInventorySyncAt: CONNECTION_STATE.lastMediaInventorySyncAt, mediaInventorySyncSeq: CONNECTION_STATE.mediaInventorySyncSeq },
+    inventory,
+    items: inventory.items || [],
+    groups: inventory.groups || EMPTY_MEDIA_INVENTORY_SYNC.groups,
+    counts,
+    safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false, inMemoryOnly: true, persistsToDatabase: false }
   };
 }
 
@@ -1349,5 +1645,6 @@ module.exports = {
   buildAgentConnectionSummary,
   buildAgentObsLiveStatusResponse,
   buildAgentObsInventoryStatusResponse,
+  buildAgentMediaInventoryStatusResponse,
   buildRejectDiagnosticSummary
 };

@@ -2,11 +2,16 @@
 
 ## Aktiv
 
-- [ ] Naechsten Step `RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY` planen.
-- [ ] Vor 0.2.27 echte GitHub/dev-Dateien lesen.
-- [ ] Media-Agent-Sync als Slow-Sync innerhalb des fachlichen Moduls `Media` bauen, nicht als neues Technikmodul.
-- [ ] Fuer Media-Sync eigenes Protokoll verwenden, nicht OBS-Inventory-Protokoll missbrauchen.
-- [ ] Online-Media-Status aus Webserver-Memory-Cache anzeigen, sobald Agent-Daten vorliegen.
+- [ ] `RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY` lokal einspielen.
+- [ ] Lokale Syntaxchecks ausfuehren.
+- [ ] Lokal Media-Inventar weiterhin aktiv pruefen.
+- [ ] Agent-Verbindung online pruefen.
+- [ ] Online Media-Inventar nach Slow-Sync pruefen.
+- [ ] Counts lokal/online plausibel vergleichen.
+- [ ] Pruefen: upload/edit/delete bleiben false.
+- [ ] Pruefen: keine absoluten Pfade in Online-Response.
+- [ ] Pruefen: Payload-Limit/Truncated bleibt stabil.
+- [ ] Wenn sauber: `stepdone.cmd`.
 
 ## Immer beachten
 
@@ -19,12 +24,9 @@
 - [ ] Jede neue Funktion mit User-/Rollen-/Permission-Modell planen.
 - [ ] UI-Aktionen nur aktivieren, wenn Backend-Enforcement existiert.
 
-## Tests fuer 0.2.27 vorbereiten
+## Standard-Arbeitsweise
 
-- [ ] Lokal Media-Inventar weiterhin aktiv pruefen.
-- [ ] Agent-Verbindung online pruefen.
-- [ ] Online Media-Inventar nach Slow-Sync pruefen.
-- [ ] Counts lokal/online plausibel vergleichen.
-- [ ] Pruefen: upload/edit/delete bleiben false.
-- [ ] Pruefen: keine absoluten Pfade in Online-Response.
-- [ ] Pruefen: Payload-Limit/Truncated bleibt stabil.
+- [ ] Wenn GitHub/dev ueber Connector unvollstaendig/abgeschnitten ist: Source-Sammel-Script liefern.
+- [ ] Source-ZIP vom Nutzer als Quellmaterial nutzen.
+- [ ] Source-ZIP nie als Install-ZIP behandeln.
+- [ ] Echten Install-ZIP erst nach bestaetigtem Plan/Go und mit echten Zielpfaden bauen.

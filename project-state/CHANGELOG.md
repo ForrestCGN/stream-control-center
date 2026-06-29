@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.27 - Media Agent Slow Sync Readonly
+
+- Media-Agent-WSS-Slow-Sync read-only vorbereitet.
+- Eigenes Media-Protokoll `rdap-agent-media-inventory.v1` ergaenzt.
+- Webserver-Agent-Runtime haelt Media-Inventar memory-only.
+- Online `GET /api/remote/media/status` liest Agent-Media-Memory-Cache, sobald Daten vorliegen.
+- Lokaler Agent scannt Media-Roots read-only und sendet sanitisiertes Inventar.
+- Lokaler Agent bietet `GET /api/remote-agent/media/inventory/status`.
+- Webserver bietet `GET /api/remote/agent/media/inventory/status`.
+- OBS-Inventar-Protokoll bleibt getrennt; Media nutzt nicht das OBS-Protokoll.
+- Upload, Edit und Delete bleiben deaktiviert.
+- Keine Datei-Inhalte, keine absoluten Pfade, keine DB-Migration, keine Shell-/Prozess-Actions.
+- Standard-Arbeitsweise ergaenzt: bei abgeschnittenem GitHub/dev-Kontext zuerst Source-Sammel-Script und Source-ZIP, danach Install-ZIP.
+
 ## 0.2.26 - Runtime Profile / Module / Permission Standard Docs
 
 - Doku-only Step.

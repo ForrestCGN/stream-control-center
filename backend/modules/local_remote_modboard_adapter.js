@@ -6,8 +6,8 @@ const http = require("http");
 const express = require("express");
 
 const MODULE_NAME = "local_remote_modboard_adapter";
-const MODULE_VERSION = "0.2.25";
-const MODULE_BUILD = "RDAP_0.2.25_MEDIA_LOCAL_INVENTORY_READONLY";
+const MODULE_VERSION = "0.2.27";
+const MODULE_BUILD = "RDAP_0.2.27_MEDIA_AGENT_SLOW_SYNC_READONLY";
 const API_PREFIX = "/api/remote";
 const INVENTORY_SOURCE_MODE = "local_adapter_remote_agent_component_status";
 
@@ -30,7 +30,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "local-dashboard-adapter",
   category: "dashboard-v2",
-  description: "Local compatibility adapter so /dashboard-v2 can run the real Remote-Modboard frontend shell on port 8080. Provides local runtime-profile, agent-executor and OBS read-only diagnostics/inventory-source preparation and blocks productive writes/actions and exposes local Media inventory read-only.",
+  description: "Local compatibility adapter so /dashboard-v2 can run the real Remote-Modboard frontend shell on port 8080. Provides local runtime-profile, agent-executor and OBS read-only diagnostics/inventory-source preparation and blocks productive writes/actions and exposes local Media inventory read-only; online Media is handled by Agent-WSS slow-sync.",
   routesPrefix: [
     API_PREFIX,
     "/assets/remote-modboard.css",
@@ -843,7 +843,7 @@ function localMediaStatusPayload(req = null) {
     ok: true,
     service: "remote-modboard",
     module: "remote_media_readonly",
-    moduleVersion: "0.2.25",
+    moduleVersion: "0.2.27",
     moduleBuild: MODULE_BUILD,
     routeBuild: MODULE_BUILD,
     statusApiVersion: "rdap_media_local_inventory_readonly_025.v1",
