@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { withWriteConnection, publicDbError } = require('./db.service');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER';
+const MODULE_BUILD = 'RDAP_0.2.55A_MEDIA_FULL_SYNC_BLOCKED_STATE_CLARITY';
 const STATUS_API_VERSION = 'rdap_agent_media_full_sync_runtime_055.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
@@ -14,7 +14,7 @@ const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
 const MEDIA_FULL_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-full-sync.v1';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
-const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER';
+const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55A_MEDIA_FULL_SYNC_BLOCKED_STATE_CLARITY';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
@@ -1127,19 +1127,24 @@ async function processMediaFullSyncChunkPayload(payload, details = {}, payloadBy
     resetMediaFullSyncState({ state: 'running', syncId: validation.syncId, totalChunks: validation.totalChunks, totalItems: validation.totalItems, startedAt: now, writeEnabled: writeGate.enabled });
   }
   if (!writeGate.enabled) {
+    const previousItems = CONNECTION_STATE.mediaFullSync && Number(CONNECTION_STATE.mediaFullSync.receivedItems || 0) || 0;
+    const receivedItems = Math.min(validation.totalItems, previousItems + validation.items.length);
+    const complete = validation.chunkIndex >= validation.totalChunks && receivedItems >= validation.totalItems;
     CONNECTION_STATE.mediaFullSync = {
       ...(CONNECTION_STATE.mediaFullSync || clonePlain(EMPTY_MEDIA_FULL_SYNC_STATE)),
-      state: 'pending',
+      state: complete ? 'received_write_blocked' : 'blocked_by_gate',
       syncId: validation.syncId,
       receivedChunks: validation.chunkIndex,
       totalChunks: validation.totalChunks,
-      receivedItems: Math.min(validation.totalItems, ((CONNECTION_STATE.mediaFullSync && CONNECTION_STATE.mediaFullSync.receivedItems) || 0) + validation.items.length),
+      receivedItems,
       totalItems: validation.totalItems,
       lastChunkAt: now,
+      completedAt: complete ? now : null,
       lastError: writeGate.reason,
       writeEnabled: false,
       writesBlocked: true
     };
+    CONNECTION_STATE.lastSeenAt = now;
     return;
   }
   try {

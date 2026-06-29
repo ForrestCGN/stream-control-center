@@ -7,10 +7,10 @@ const { buildDatabaseReadiness, withReadOnlyConnection, withWriteConnection, pub
 
 const STATUS_API_VERSION = 'rdap_media_full_sync_chunk_receiver_055.v1';
 const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
-const BUILD = 'RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER';
+const BUILD = 'RDAP_0.2.55A_MEDIA_FULL_SYNC_BLOCKED_STATE_CLARITY';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const MEDIA_INDEX_SCHEMA_GATE_BUILD = 'RDAP_0.2.54_MEDIA_INDEX_SCHEMA_AND_WRITE_GATE';
-const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55_MEDIA_FULL_SYNC_CHUNK_RECEIVER';
+const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.55A_MEDIA_FULL_SYNC_BLOCKED_STATE_CLARITY';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 const MEDIA_INDEX_WRITE_GATE_STATUS_PATH = '/api/remote/media/index/write-gate/status';
 const MEDIA_INDEX_SCHEMA_STATUS_PATH = '/api/remote/media/index/schema/status';
@@ -290,7 +290,7 @@ function buildMediaFullSyncStatus({ agentMediaStatus, config } = {}) {
     uploadEditDeleteEnabled: false,
     noFileContent: true,
     noAbsolutePaths: true,
-    note: '0.2.55 nimmt Full-Sync-Chunks an und schreibt nur bei aktiven MEDIA_INDEX Write/Data/Full-Sync-Gates. Die UI-Lesequelle bleibt in diesem Step Agent-Memory.'
+    note: '0.2.55A zeigt vollstaendig empfangene, aber durch deaktivierte MEDIA_INDEX-Gates blockierte Full-Syncs eindeutig als received_write_blocked statt pending. Die UI-Lesequelle bleibt Agent-Memory.'
   };
 }
 
@@ -339,7 +339,7 @@ function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStat
     fullSync: buildMediaFullSyncStatus({ agentMediaStatus, config }),
     note: localRuntime
       ? 'Lokal kann die Datei-Wahrheit direkt gelesen werden. Online soll spaeter aus der persistenten DB lesen.'
-      : 'Online nutzt aktuell noch Agent-Memory als UI-Lesequelle. 0.2.55 kann Full-Sync-Chunks empfangen und bei aktiven MEDIA_INDEX-Gates in remote_media_index schreiben.'
+      : 'Online nutzt aktuell noch Agent-Memory als UI-Lesequelle. 0.2.55A kann Full-Sync-Chunks empfangen, zeigt Gate-blockierte Komplett-Empfaenge klar an und schreibt nur bei aktiven MEDIA_INDEX-Gates in remote_media_index.'
   };
 }
 

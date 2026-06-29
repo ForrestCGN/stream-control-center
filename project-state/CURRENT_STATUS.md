@@ -1,21 +1,18 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.55 - Media Full-Sync Chunk Receiver`
+Aktueller Stand: `0.2.55A - Media Full-Sync Blocked-State Clarity`
 
 ## Kurzstatus
 
-0.2.55 erweitert den Media-Sync vom lokalen Stream-PC zum Remote-Modboard.
+0.2.55A ist ein gezielter Status-Fix auf 0.2.55.
 
-- Der lokale Agent sendet weiterhin den kompakten Agent-Memory-Frame.
-- Zusaetzlich kann der Agent das Media-Inventar als Full-Sync-Chunks senden.
-- Der Remote-Agent-Runtime-Receiver nimmt diese Chunks an.
-- DB-Writes nach `remote_media_index` sind nur bei aktiven Gates moeglich:
-  - `MEDIA_INDEX_WRITE_ENABLED=true`
-  - `MEDIA_INDEX_DATA_WRITE_ENABLED=true`
-  - `MEDIA_INDEX_FULL_SYNC_ENABLED=true`
-- Full-Sync-Fortschritt ist im Status sichtbar.
-- Online-UI liest in diesem Step weiterhin aus Agent-Memory, nicht aus DB.
+- 0.2.55 hat Agent-Full-Sync-Chunks und den Remote-Chunk-Receiver eingefuehrt.
+- Der Webserver empfaengt vollstaendige Full-Sync-Chunks auch bei deaktivierten MEDIA_INDEX-Gates.
+- Wenn alle Chunks empfangen wurden, DB-Writes aber durch Gates blockiert sind, zeigt der Status jetzt `state: received_write_blocked` statt irrefuehrend `pending`.
+- `completedAt` wird fuer vollstaendig empfangene, aber gate-blockierte Syncs gesetzt.
+- `lastError` bleibt als Gate-Grund sichtbar, z. B. `media_index_write_gate_disabled`.
+- Online-UI liest weiterhin aus Agent-Memory, nicht aus DB.
 
 ## Sicherheit
 
-Keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade, keine freien Pfade.
+Keine neuen DB-Writes, keine Gate-Aktivierung, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, keine Datei-Inhalte, keine absoluten Pfade.
