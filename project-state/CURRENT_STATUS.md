@@ -1,66 +1,17 @@
-# CURRENT STATUS
+# CURRENT_STATUS
 
-Aktueller Arbeitsstand: `0.2.52 - Media Mod Usable List`.
+Aktueller Stand: `0.2.53B - Media Sync Card replaces Hinweis`
 
 ## Kurzstatus
 
-```text
-0.2.52 ist ein reiner UI-/Read-only-Step fuer die Media-Liste.
-Online- und lokale Media-Library bleiben synchron.
-Die Media-Liste ist fuer Mods besser bedienbar:
-- kompaktere Karten
-- Typ/Bereich sichtbarer
-- Suche
-- Sortierung
-- Paging mit 50 Eintraegen pro Seite
-- Info-Fenster pro Medium fuer technische Details
-```
+0.2.53B ist ein reiner UI-Hotfix auf 0.2.53A:
 
-## Bestaetigter Vorstand
+- Das unnoetige Hinweis-Feld wurde durch den Media-Sync-Status ersetzt.
+- Oben stehen jetzt Media-Bereiche und Media-Synchronisierung nebeneinander.
+- Die Medienliste bleibt darunter auf voller Breite.
+- Read-only bleibt als Status/Chip sichtbar, aber belegt keine eigene Karte mehr.
+- Filter, Suche, Sortierung, Paging und Info-Fenster bleiben erhalten.
 
-```text
-0.2.50 ist funktional abgeschlossen.
-Online- und lokale Media-Library sind synchron.
-Media-Mod-Ansicht ist enttechnisiert.
-Medienliste ist als Karten-/Listenansicht umgesetzt.
-Filter und Neu laden bleiben erhalten.
-Upload/Edit/Delete bleiben deaktiviert.
-Server-API /api/remote/media/status funktioniert weiterhin.
-```
+## Sicherheit
 
-## Wichtige Pfadregel
-
-```text
-Online / Remote:
-remote-modboard/backend/public/...
-
-Offline / Lokal:
-htdocs/dashboard-v2/...
-```
-
-Bei UI-Features, die lokal und online gelten sollen, beide Pfade pruefen und ggf. beide Dateien aendern.
-
-## Sicherheitsgrenzen
-
-```text
-Keine Backend-Write-Routen.
-Keine neue API.
-Kein neuer Endpoint.
-Keine DB-Item-Reads.
-Keine SQL-Ausfuehrung.
-Keine DB-Migration.
-Keine INSERT/UPDATE/DELETE.
-Keine Media-Daten-Writes.
-Keine Agent-Writes.
-Kein Upload/Edit/Delete.
-Fallback bleibt aus.
-Writes bleiben aus.
-```
-
-## Bekannte Einschraenkung
-
-```text
-Es gibt aktuell keine echten sprechenden Media-Anzeigenamen.
-Die UI muss deshalb weiterhin Dateiname/relativePath als Basis verwenden.
-Sprechende Namen, Kategorien, Tags oder Beschreibungen brauchen spaeter einen eigenen Metadata-/Write-Scope mit Auth, Permission, Confirm-Write, Audit und Readback.
-```
+Keine Backend-Logik, keine API-Aenderung, keine DB-Migration, keine DB-Writes, keine Upload/Edit/Delete-Funktion.

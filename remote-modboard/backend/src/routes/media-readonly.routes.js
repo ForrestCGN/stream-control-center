@@ -8,6 +8,7 @@ const { buildDatabaseReadiness, withReadOnlyConnection, publicDbError } = requir
 const STATUS_API_VERSION = 'rdap_media_status_compact_source_info_046.v1';
 const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_status_readonly_042.v1';
 const BUILD = 'RDAP_0.2.46_REMOTE_MODBOARD_MEDIA_STATUS_COMPACT_SOURCE_INFO';
+const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 const PERSISTENT_INDEX_SCHEMA_MODULE = 'remote_media_index';
 const PERSISTENT_INDEX_SCHEMA_VERSION = 1;
@@ -87,6 +88,8 @@ async function buildMediaReadonlyStatus(context = {}, req = null) {
     permissions: buildPermissionBlock(),
     sourceInfo,
     syncInfo: buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo }),
+    syncFoundation: buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStatus, persistentIndex }),
+    onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex }),
     persistentIndex,
     inventory,
     plannedRoots: MEDIA_PLANNED_ROOTS.map(item => ({ ...item })),
@@ -148,6 +151,67 @@ function buildOnlineSummary(inventory) {
   return `Online-Media-Inventar ist per Agent-WSS aktiv. Es werden ${returned} Eintraege angezeigt. Upload, Bearbeiten und Loeschen bleiben aus.`;
 }
 
+function buildOnlineIndexTarget({ persistentIndex } = {}) {
+  return {
+    prepared: true,
+    build: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
+    planned: true,
+    activeAsReadSource: false,
+    database: 'remote_modboard_mariadb',
+    table: PERSISTENT_INDEX_TABLE,
+    schemaModule: PERSISTENT_INDEX_SCHEMA_MODULE,
+    schemaVersion: PERSISTENT_INDEX_SCHEMA_VERSION,
+    schemaDiagnosticAvailable: true,
+    schemaDetected: persistentIndex && persistentIndex.detected === true,
+    writesEnabled: false,
+    dataWritesEnabled: false,
+    migrationEnabled: false,
+    itemReadsEnabledInThisStep: false,
+    note: 'Online soll der Media-Index persistent in MariaDB liegen. 0.2.53 bereitet Status/Zielbild vor, schreibt aber noch keine Media-Daten.'
+  };
+}
+
+function buildMediaIndexSyncFoundation({ localRuntime, inventory, agentMediaStatus, persistentIndex } = {}) {
+  const counts = inventory && inventory.counts ? inventory.counts : {};
+  const returned = Number(counts.returned || counts.total || 0);
+  const totalSeen = Number(counts.totalSeen || counts.total || 0);
+  const truncated = inventory && inventory.truncated === true;
+  const agentSync = agentMediaStatus && agentMediaStatus.syncFoundation ? agentMediaStatus.syncFoundation : null;
+  const progress = agentSync && agentSync.progress ? agentSync.progress : {
+    state: localRuntime ? 'local_direct_read' : (truncated ? 'compact_limited' : (returned > 0 ? 'available' : 'pending')),
+    returned,
+    totalSeen,
+    percent: totalSeen > 0 ? Math.min(100, Math.round((returned / totalSeen) * 100)) : 0,
+    truncated
+  };
+  return {
+    prepared: true,
+    build: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
+    readOnly: true,
+    localRuntime,
+    localIsFileTruth: true,
+    onlineDatabaseIndexPlanned: true,
+    onlineDatabaseTarget: 'remote_modboard_mariadb.' + PERSISTENT_INDEX_TABLE,
+    currentOnlineSource: localRuntime ? 'local_filesystem_direct' : 'agent_memory_compact_until_db_index_enabled',
+    fullSyncPrepared: true,
+    fullSyncChunkProtocolPlanned: true,
+    deltaSyncPrepared: true,
+    bidirectionalSyncPlanned: true,
+    onlineToAgentQueuePlanned: true,
+    syncStatusWindowPrepared: true,
+    statusStates: ['idle', 'running', 'complete', 'failed', 'compact_limited', 'conflict'],
+    plannedActionStates: ['requested', 'queued', 'syncing', 'applied', 'failed', 'conflict'],
+    progress,
+    currentLimitProblemVisible: !localRuntime && (truncated || (totalSeen > returned)),
+    persistentIndexDetected: persistentIndex && persistentIndex.detected === true,
+    activeWrites: false,
+    uploadEditDeleteEnabled: false,
+    note: localRuntime
+      ? 'Lokal kann die Datei-Wahrheit direkt gelesen werden. Online soll spaeter aus der persistenten DB lesen.'
+      : 'Online nutzt aktuell noch Agent-Memory. 0.2.53 macht die Sync-/DB-Zielarchitektur und den Fortschrittsstatus sichtbar; produktive Index-Writes folgen separat.'
+  };
+}
+
 function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persistentIndex, sourceInfo }) {
   const counts = inventory && inventory.counts ? inventory.counts : {};
   return {
@@ -166,6 +230,15 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     persistentIndexTable: PERSISTENT_INDEX_TABLE,
     persistentIndexWritesEnabled: false,
     persistentIndexFallbackEnabled: false,
+    mediaIndexSyncFoundationBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
+    onlineDatabaseIndexPlanned: true,
+    fullSyncPrepared: true,
+    fullSyncChunkProtocolPlanned: true,
+    deltaSyncPrepared: true,
+    bidirectionalSyncPlanned: true,
+    onlineToAgentQueuePlanned: true,
+    syncStatusWindowPrepared: true,
+    activeMediaIndexWrites: false,
     memoryOnly: !localRuntime,
     compactTransport: !localRuntime,
     active: inventory && inventory.active === true,
@@ -617,6 +690,13 @@ function buildMediaRoutesSummary(context = {}) {
     permissionModelPrepared: true,
     localInventoryReadonlyPrepared: true,
     onlineAgentInventoryReadonlyPrepared: true,
+    mediaIndexSyncFoundationBuild: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
+    onlineDatabaseIndexPlanned: true,
+    fullSyncPrepared: true,
+    fullSyncChunkProtocolPlanned: true,
+    deltaSyncPrepared: true,
+    bidirectionalSyncPlanned: true,
+    syncStatusWindowPrepared: true,
     sourceInfoPrepared: true,
     sourceInfo: {
       prepared: true,
@@ -628,6 +708,8 @@ function buildMediaRoutesSummary(context = {}) {
       fallbackEnabled: false,
       writesEnabled: false
     },
+    onlineIndexTarget: buildOnlineIndexTarget({ persistentIndex }),
+    syncFoundation: buildMediaIndexSyncFoundation({ localRuntime: false, inventory: null, agentMediaStatus: null, persistentIndex }),
     persistentIndex,
     persistentIndexSchemaStatusReadonly: {
       prepared: true,

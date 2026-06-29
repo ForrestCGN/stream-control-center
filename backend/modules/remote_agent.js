@@ -40,6 +40,7 @@ const MEDIA_SCAN_HARD_LIMIT = 2000;
 const MEDIA_SCAN_MAX_DEPTH = 5;
 const MEDIA_WSS_TRANSPORT_MAX_BYTES = 60000;
 const MEDIA_WSS_TRANSPORT_LIMITS = Object.freeze([120, 80, 40, 20]);
+const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const MEDIA_ROOTS = Object.freeze([
   { key: 'sounds', label: 'Sounds', localPathHint: 'htdocs/assets/sounds', publicBasePath: '/assets/sounds', types: ['audio', 'video'] },
   { key: 'videos', label: 'Videos', localPathHint: 'htdocs/assets/videos', publicBasePath: '/assets/videos', types: ['video'] },
@@ -556,6 +557,40 @@ async function sendInventorySync(config, reason) {
 }
 
 
+function buildMediaSyncFoundationStatus(inventory = {}) {
+  const counts = inventory && inventory.counts ? inventory.counts : {};
+  const totalSeen = Number(counts.totalSeen || counts.total || 0);
+  const returned = Number(counts.returned || counts.total || 0);
+  const truncated = inventory && inventory.truncated === true;
+  return {
+    prepared: true,
+    build: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
+    readOnly: true,
+    localIsFileTruth: true,
+    onlineIndexPlanned: true,
+    onlineDatabaseTarget: 'remote_modboard_mariadb.remote_media_index',
+    fullSyncPrepared: true,
+    chunkSyncPrepared: true,
+    deltaSyncPrepared: true,
+    bidirectionalSyncPlanned: true,
+    onlineToAgentQueuePlanned: true,
+    currentTransport: 'agent_wss_compact_memory_only',
+    currentTransportLimited: true,
+    currentTransportLimitItems: MEDIA_WSS_TRANSPORT_LIMITS[0],
+    currentTransportMaxBytes: MEDIA_WSS_TRANSPORT_MAX_BYTES,
+    completeInventoryInCurrentTransport: !truncated && returned >= totalSeen,
+    progress: {
+      state: truncated ? 'compact_limited' : (returned > 0 ? 'available' : 'pending'),
+      returned,
+      totalSeen,
+      percent: totalSeen > 0 ? Math.min(100, Math.round((returned / totalSeen) * 100)) : 0,
+      truncated
+    },
+    note: '0.2.53 beschreibt den Zielzustand: Online-DB als Media-Index, Full-Sync in Chunks, Delta-Sync und spaetere Online->Agent-Auftragsqueue. Dieser Agent sendet in diesem Build weiterhin read-only compact memory-only.'
+  };
+}
+
+
 async function sendMediaInventorySync(config, reason) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   CONNECTION_STATE.mediaInventorySyncSeq += 1;
@@ -625,6 +660,8 @@ function buildMediaInventoryTransportPayload(inventory, options = {}) {
     items,
     groups,
     counts,
+    syncFoundation: buildMediaSyncFoundationStatus({ ...source, items, counts, truncated: source.truncated === true }),
+    onlineIndexTarget: { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     limit,
     hardLimit: MEDIA_SCAN_HARD_LIMIT,
     maxDepth: MEDIA_SCAN_MAX_DEPTH,
@@ -711,6 +748,8 @@ function preparedMediaInventory(scannedAt, status, active, limit, items, groups,
     items,
     groups,
     counts,
+    syncFoundation: buildMediaSyncFoundationStatus({ ...source, items, counts, truncated: source.truncated === true }),
+    onlineIndexTarget: { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     limit,
     hardLimit: MEDIA_SCAN_HARD_LIMIT,
     maxDepth: MEDIA_SCAN_MAX_DEPTH,
@@ -867,6 +906,8 @@ function buildMediaInventoryStatusResponse(req = null) {
     items: inventory.items || [],
     groups: inventory.groups || emptyMediaGroups(),
     counts,
+    syncFoundation: inventory.syncFoundation || buildMediaSyncFoundationStatus(inventory),
+    onlineIndexTarget: inventory.onlineIndexTarget || { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
   });
 }

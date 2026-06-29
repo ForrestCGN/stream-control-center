@@ -16,7 +16,8 @@
     sortKey: 'name',
     sortDir: 'asc',
     page: 1,
-    detailItem: null
+    detailItem: null,
+    syncDialogOpen: false
   };
 
   let installed = false;
@@ -134,6 +135,11 @@
       [data-page-panel="media-library"] .rdap-media-select{
         flex:0 0 auto;
       }
+      [data-page-panel="media-library"] .rdap-media-layout-wide,
+      [data-page-panel="media-library"] .rdap-media-inventory-card{
+        grid-column:1 / -1;
+        align-self:start;
+      }
       [data-page-panel="media-library"] .rdap-media-list{
         display:grid;
         gap:10px;
@@ -224,6 +230,38 @@
         align-items:center;
         justify-content:space-between;
         margin-top:12px;
+      }
+
+      [data-page-panel="media-library"] .rdap-media-sync-card{
+        display:grid;
+        gap:10px;
+        align-self:start;
+        min-height:0;
+      }
+      [data-page-panel="media-library"] .rdap-media-sync-progress{
+        display:grid;
+        gap:6px;
+      }
+      [data-page-panel="media-library"] .rdap-media-sync-bar{
+        height:10px;
+        border-radius:999px;
+        overflow:hidden;
+        background:rgba(255,255,255,.09);
+        border:1px solid rgba(255,255,255,.08);
+      }
+      [data-page-panel="media-library"] .rdap-media-sync-bar i{
+        display:block;
+        height:100%;
+        width:0%;
+        background:linear-gradient(90deg,rgba(27,216,255,.55),rgba(178,108,255,.75));
+      }
+      [data-page-panel="media-library"] .rdap-media-sync-meta{
+        display:flex;
+        flex-wrap:wrap;
+        gap:7px;
+        align-items:center;
+        color:var(--muted);
+        font-size:12px;
       }
       [data-page-panel="media-library"] .rdap-media-detail-backdrop{
         position:fixed;
@@ -468,6 +506,93 @@
     }).join('');
   }
 
+  function syncFoundation() {
+    const data = safeObject(state.data);
+    return safeObject(data.syncFoundation || (safeObject(data.syncInfo).syncFoundation) || safeObject(safeObject(data.inventory).syncFoundation));
+  }
+
+  function syncProgress(sync) {
+    const progress = safeObject(sync && sync.progress);
+    const returned = Number(progress.returned || safeObject(safeObject(state.data).inventory).counts?.returned || 0);
+    const totalSeen = Number(progress.totalSeen || safeObject(safeObject(safeObject(state.data).inventory).counts).totalSeen || returned || 0);
+    const percent = Number.isFinite(Number(progress.percent)) ? Number(progress.percent) : (totalSeen > 0 ? Math.round((returned / totalSeen) * 100) : 0);
+    return {
+      state: progress.state || (sync && sync.currentLimitProblemVisible ? 'compact_limited' : 'idle'),
+      returned,
+      totalSeen,
+      percent: Math.max(0, Math.min(100, Math.round(percent))),
+      truncated: progress.truncated === true || (sync && sync.currentLimitProblemVisible === true)
+    };
+  }
+
+  function syncStateLabel(value) {
+    const stateText = String(value || '').toLowerCase();
+    if (stateText === 'running') return 'Synchronisiert';
+    if (stateText === 'complete') return 'Vollstaendig';
+    if (stateText === 'failed') return 'Fehler';
+    if (stateText === 'compact_limited') return 'Unvollstaendig';
+    if (stateText === 'local_direct_read') return 'Lokal direkt';
+    if (stateText === 'available') return 'Verfuegbar';
+    return 'Bereit';
+  }
+
+  function renderSyncStatusCard() {
+    const data = safeObject(state.data);
+    const sync = syncFoundation();
+    const progress = syncProgress(sync);
+    const onlineIndex = safeObject(data.onlineIndexTarget);
+    const isOnline = data.runtimeMode !== 'local' && !safeObject(data.mode).local;
+    const status = syncStateLabel(progress.state);
+    const dbText = isOnline
+      ? (onlineIndex.activeAsReadSource ? 'Online-DB aktiv' : 'Online-DB vorbereitet')
+      : 'Lokal liest direkt';
+    const detail = sync.currentLimitProblemVisible
+      ? `Aktuell kommen ${progress.returned} von ${progress.totalSeen} Dateien online an. Full-Sync in Chunks ist als naechster DB-Schritt vorbereitet.`
+      : (isOnline ? 'Online-Index und Sync-Fortschritt sind vorbereitet. Produktive DB-Writes folgen separat.' : 'Lokal ist der Stream-PC die Datei-Wahrheit.');
+    return `<article class="cgn-card span2 rdap-media-sync-card">
+      <div class="card-head"><div><p class="cgn-eyebrow">Sync-Status</p><h2>Media-Synchronisierung</h2></div>${chip(status, sync.currentLimitProblemVisible ? 'warn' : 'info')}</div>
+      <div class="rdap-media-sync-progress">
+        <div class="rdap-media-sync-meta"><strong>${escapeHtml(dbText)}</strong><span>${escapeHtml(detail)}</span></div>
+        <div class="rdap-media-sync-bar" aria-label="Sync-Fortschritt"><i style="width:${escapeHtml(String(progress.percent))}%"></i></div>
+        <div class="rdap-media-sync-meta"><span>${escapeHtml(String(progress.returned))} / ${escapeHtml(String(progress.totalSeen || progress.returned))} Dateien</span><span>${escapeHtml(String(progress.percent))}%</span><span>Read-only Foundation</span></div>
+      </div>
+      <div class="login-actions" style="justify-content:flex-start;flex-wrap:wrap"><button class="secondaryButton small" type="button" data-media-sync-detail="1">Sync-Info</button></div>
+    </article>`;
+  }
+
+  function renderSyncDetailModal() {
+    if (!state.syncDialogOpen) return '';
+    const data = safeObject(state.data);
+    const sync = syncFoundation();
+    const progress = syncProgress(sync);
+    const onlineIndex = safeObject(data.onlineIndexTarget);
+    const rows = [
+      ['Status', syncStateLabel(progress.state)],
+      ['Fortschritt', `${progress.returned} / ${progress.totalSeen || progress.returned} Dateien (${progress.percent}%)`],
+      ['Online-Ziel', onlineIndex.table ? `${onlineIndex.database || 'remote_modboard_mariadb'}.${onlineIndex.table}` : (sync.onlineDatabaseTarget || 'remote_modboard_mariadb.remote_media_index')],
+      ['Full-Sync', sync.fullSyncPrepared || sync.fullSyncChunkProtocolPlanned ? 'vorbereitet, spaeter in Chunks' : 'nicht aktiv'],
+      ['Delta-Sync', sync.deltaSyncPrepared ? 'vorbereitet' : 'nicht aktiv'],
+      ['Online → Agent', sync.onlineToAgentQueuePlanned || sync.bidirectionalSyncPlanned ? 'Auftragsqueue geplant' : 'nicht aktiv'],
+      ['Aktive Writes', sync.activeWrites || onlineIndex.activeWrites || onlineIndex.dataWritesEnabled ? 'ja' : 'nein'],
+      ['Hinweis', sync.note || '0.2.53 bereitet Status und Zielarchitektur vor.']
+    ];
+    return `<div class="rdap-media-detail-backdrop" data-media-close-sync="1" role="presentation">
+      <section class="rdap-media-detail-dialog" role="dialog" aria-modal="true" aria-label="Media-Sync-Status">
+        <div class="rdap-media-detail-head">
+          <div><p class="cgn-eyebrow">Media-Sync</p><h3 class="rdap-media-detail-title">Daten werden synchronisiert / vorbereitet</h3></div>
+          <button class="secondaryButton small" type="button" data-media-close-sync="1">Schliessen</button>
+        </div>
+        <div class="rdap-media-sync-progress" style="margin-bottom:12px">
+          <div class="rdap-media-sync-bar"><i style="width:${escapeHtml(String(progress.percent))}%"></i></div>
+          <div class="rdap-media-sync-meta"><span>${escapeHtml(String(progress.returned))} / ${escapeHtml(String(progress.totalSeen || progress.returned))} Dateien</span><span>${escapeHtml(String(progress.percent))}%</span></div>
+        </div>
+        <div class="rdap-media-detail-grid">
+          ${rows.map(([label, value]) => `<div class="rdap-media-detail-row"><span>${escapeHtml(label)}</span><span>${escapeHtml(value)}</span></div>`).join('')}
+        </div>
+      </section>
+    </div>`;
+  }
+
   function renderInventoryList() {
     const data = safeObject(state.data);
     const inventory = safeObject(data.inventory);
@@ -486,14 +611,13 @@
       const safeItem = safeObject(item);
       const itemIndex = pageData.start + index;
       const title = mediaTitle(safeItem);
-      const fileName = mediaFileName(safeItem);
       const area = mediaArea(safeItem);
       const kind = mediaKindLabel(safeItem);
       return `<article class="rdap-media-item">
         <span class="rdap-media-kind">${escapeHtml(kind)}</span>
         <div class="rdap-media-main">
           <strong class="rdap-media-title">${escapeHtml(title)}</strong>
-          <span class="rdap-media-subline"><span>${escapeHtml(area)}</span><span>·</span><span>Datei: ${escapeHtml(fileName)}</span></span>
+          <span class="rdap-media-subline"><span>${escapeHtml(area)}</span></span>
         </div>
         <div class="rdap-media-meta">
           <span class="rdap-media-meta-chip">${escapeHtml(formatBytes(safeItem.sizeBytes))}</span>
@@ -597,12 +721,9 @@
             <div class="module-list">${renderRootRows(data)}</div>
           </article>
 
-          <article class="cgn-card span2">
-            <div class="card-head"><div><p class="cgn-eyebrow">Hinweis</p><h2>Nur ansehen</h2></div>${chip('gesperrt', 'warn')}</div>
-            ${readOnlyNotice}
-          </article>
+          ${renderSyncStatusCard()}
 
-          <article class="cgn-card span2">
+          <article class="cgn-card span2 rdap-media-inventory-card">
             <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div>${chip(inventory.active ? 'Inventar aktiv' : 'wartet', inventory.active ? 'ok' : 'warn')}</div>
             <div class="rdap-media-toolbar">
               <div class="rdap-media-toolbar-row">${renderFilters(data)} <button class="secondaryButton small" type="button" data-media-refresh="1">Neu laden</button></div>
@@ -613,6 +734,7 @@
           </article>
         </section>
         ${renderDetailModal()}
+        ${renderSyncDetailModal()}
       </section>`);
   }
 
@@ -678,6 +800,24 @@
       });
     });
 
+
+    const syncDetail = panel.querySelector('[data-media-sync-detail]');
+    if (syncDetail) {
+      syncDetail.addEventListener('click', () => {
+        state.syncDialogOpen = true;
+        state.detailItem = null;
+        safeRender();
+      });
+    }
+
+    panel.querySelectorAll('[data-media-close-sync]').forEach((node) => {
+      node.addEventListener('click', (event) => {
+        if (event.currentTarget !== event.target && event.currentTarget.classList.contains('rdap-media-detail-backdrop')) return;
+        state.syncDialogOpen = false;
+        safeRender();
+      });
+    });
+
     const refresh = panel.querySelector('[data-media-refresh]');
     if (refresh) refresh.addEventListener('click', () => loadStatus());
   }
@@ -705,7 +845,8 @@
         permissions: {},
         plannedRoots: [],
         allowedExtensions: [],
-        sourceInfo: { primary: 'agent_memory', primaryActive: false, dbIndexChecked: false, dbIndexAvailable: null, fallbackEnabled: false, writesEnabled: false }
+        sourceInfo: { primary: 'agent_memory', primaryActive: false, dbIndexChecked: false, dbIndexAvailable: null, fallbackEnabled: false, writesEnabled: false },
+        syncFoundation: { prepared: true, readOnly: true, progress: { state: 'failed', returned: 0, totalSeen: 0, percent: 0 }, onlineDatabaseIndexPlanned: true, fullSyncPrepared: true, deltaSyncPrepared: true, bidirectionalSyncPlanned: true }
       };
     } finally {
       state.loading = false;

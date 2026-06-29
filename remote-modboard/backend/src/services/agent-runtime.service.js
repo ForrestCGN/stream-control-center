@@ -11,6 +11,7 @@ const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
 const LIVE_STATE_PROTOCOL_VERSION = 'rdap-agent-live-state.v1';
 const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
+const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
@@ -117,6 +118,7 @@ const EMPTY_MEDIA_INVENTORY_SYNC = Object.freeze({
     images: { prepared: true, exists: true, active: false, count: 0, items: [] }
   },
   counts: { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 },
+  syncFoundation: { prepared: true, build: 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION', readOnly: true, onlineIndexPlanned: true, fullSyncPrepared: true, chunkSyncPrepared: true, deltaSyncPrepared: true, bidirectionalSyncPlanned: true, activeWrites: false },
   limit: 500,
   hardLimit: 2000,
   maxDepth: 5,
@@ -804,6 +806,38 @@ function sanitizeInventoryItems(items, limit, fallbackType) {
 }
 
 
+function buildMediaSyncFoundationStatus(inventory = {}) {
+  const counts = inventory && inventory.counts ? inventory.counts : {};
+  const totalSeen = Number(counts.totalSeen || counts.total || 0);
+  const returned = Number(counts.returned || counts.total || 0);
+  const truncated = inventory && inventory.truncated === true;
+  return {
+    prepared: true,
+    build: MEDIA_INDEX_SYNC_FOUNDATION_BUILD,
+    readOnly: true,
+    localIsFileTruth: true,
+    onlineIndexPlanned: true,
+    onlineDatabaseTarget: 'remote_modboard_mariadb.remote_media_index',
+    fullSyncPrepared: true,
+    chunkSyncPrepared: true,
+    deltaSyncPrepared: true,
+    bidirectionalSyncPlanned: true,
+    onlineToAgentQueuePlanned: true,
+    currentTransport: 'agent_wss_compact_memory_only',
+    currentTransportLimited: truncated || (totalSeen > returned),
+    completeInventoryInCurrentTransport: !truncated && returned >= totalSeen,
+    progress: {
+      state: truncated ? 'compact_limited' : (returned > 0 ? 'available' : 'pending'),
+      returned,
+      totalSeen,
+      percent: totalSeen > 0 ? Math.min(100, Math.round((returned / totalSeen) * 100)) : 0,
+      truncated
+    },
+    note: '0.2.53 Foundation: Online-DB als persistenter Media-Index, Full-Sync in Chunks, Delta-Sync und spaetere Online->Agent-Auftragsqueue sind vorbereitet/beschrieben. Dieser Build schreibt noch keine Media-Daten.'
+  };
+}
+
+
 function processMediaInventorySyncPayload(payload, details = {}, payloadBytes = 0) {
   if (payloadBytes > MAX_MEDIA_INVENTORY_SYNC_PAYLOAD_BYTES) {
     recordMediaInventorySyncReject('media_inventory_sync_payload_too_large');
@@ -874,6 +908,8 @@ function sanitizeMediaInventorySync(input, collectedAt, agentId, seq) {
     items,
     groups,
     counts,
+    syncFoundation: buildMediaSyncFoundationStatus({ ...source, items, counts, truncated: source.truncated === true }),
+    onlineIndexTarget: { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     limit,
     hardLimit,
     maxDepth,
@@ -1486,6 +1522,8 @@ function buildAgentMediaInventoryStatusResponse() {
     items: inventory.items || [],
     groups: inventory.groups || EMPTY_MEDIA_INVENTORY_SYNC.groups,
     counts,
+    syncFoundation: inventory.syncFoundation || buildMediaSyncFoundationStatus(inventory),
+    onlineIndexTarget: inventory.onlineIndexTarget || { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false, inMemoryOnly: true, persistsToDatabase: false }
   };
 }
