@@ -1,64 +1,45 @@
 # Next Steps
 
-Nach `0.2.34`:
+Nach `0.2.34B`:
 
 ## 1. Direkt testen
 
 ```text
-RDAP_0.2.34_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY
+RDAP_0.2.34B_MEDIA_PERSISTENT_INDEX_FOUNDATION_BLOCKED_DOCS_FIX
 ```
 
 Pruefen:
 
 ```text
-- START_HERE verweist auf 0.2.34.
-- Neue Step-Doku ist vorhanden:
-  docs/current/RDAP_0.2.34_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY.md
-- CURRENT_STATUS/NEXT_STEPS/TODO/FILES/CHANGELOG sind aktualisiert.
-- JS-Syntax fuer media-readonly.routes.js ist sauber.
-- Keine neue Runtime-Datei wurde erstellt.
-- Keine Upload/Edit/Delete/Agent-Actions aktiviert.
+- media-readonly.routes.js Syntax OK.
+- Route meldet statusApiVersion rdap_media_persistent_index_foundation_blocked_034b.v1.
+- persistentIndex.blocked=true.
+- migrationEnabled=false.
+- dataWritesEnabled=false.
+- fallbackReadsEnabled=false.
 ```
 
-## 2. API-Check
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/media/status | jq '{ok,statusApiVersion,routeBuild,persistentIndex:{ok,tableName,schemaVersion,targetSchemaVersion,dataWritesEnabled,fallbackReadsEnabled,itemCount},syncInfo:{serverPersistence,serverPersistenceFoundation,persistentIndexWritesEnabled,persistentIndexFallbackEnabled}}'
-```
-
-Erwartung:
+## 2. Danach nur Plan-Step
 
 ```text
-persistentIndex.ok=true
-schemaVersion=1
-serverPersistence=false
-dataWritesEnabled=false
-fallbackReadsEnabled=false
+RDAP_0.2.35_REMOTE_MODBOARD_MARIADB_MEDIA_INDEX_PLAN_NO_CODE
 ```
 
-## 3. Danach nur nach eigenem Go
+Ziel:
 
 ```text
-RDAP_0.2.35_MEDIA_PERSISTENT_INDEX_WRITE_READONLY_SNAPSHOT
+- echte Online-DB-Schicht lesen
+- MariaDB/mysql2 Muster in Remote-Modboard verstehen
+- Migration/Backup/Rollback klaeren
+- erst danach Media-Index-Code planen
 ```
 
-Nur wenn vorher bestaetigt:
+## Nicht tun
 
 ```text
-- Agent-Media-Snapshot darf sanitized Metadaten in remote_media_index schreiben.
-- Kein Dateiinhalt.
-- Keine absoluten Pfade.
-- Memory bleibt zuerst.
-- DB-Fallback/Stale-Read nur separat aktivieren oder klar begrenzen.
-```
-
-## 4. Nicht tun
-
-```text
-Keine Technikmodule in Navigation anlegen.
-Kein media-agent-sync Modul.
-Keine Upload-/Delete-Buttons aktivieren.
-Keine bidirektionale Datei-Synchronisation ohne Sicherheitsmodell.
-Keine Agent-Apply-Queue ohne Permission, Confirm, Audit, Backup und Conflict-Handling.
-Keine neue Runtime-Datei als Standardloesung.
+Keine lokale SQLite-Schicht fuer Online-Remote-Modboard nutzen.
+Kein backend/core/database.js im Webserver-Live-Pfad voraussetzen.
+Keine manuellen Kopien in /opt/stream-control-center/remote-modboard.
+Keine DB-Migration ohne eigenen MariaDB-Plan.
+Keine Media-Daten-Writes.
 ```

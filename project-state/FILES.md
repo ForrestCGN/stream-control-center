@@ -1,51 +1,30 @@
 # Files
 
-## 0.2.34 geaendert
+## 0.2.34B geaendert
 
 ```text
+remote-modboard/backend/src/routes/media-readonly.routes.js
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/RDAP_0.2.34_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY.md
+docs/current/RDAP_0.2.34B_MEDIA_PERSISTENT_INDEX_FOUNDATION_BLOCKED_DOCS_FIX.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/FILES.md
 project-state/CHANGELOG.md
-remote-modboard/backend/src/routes/media-readonly.routes.js
 ```
 
-## 0.2.34 Runtime-Grenze
+## Wichtige DB-Dateien fuer spaeter
 
 ```text
-Geaendert: bestehende Server-Route media-readonly.routes.js
-Neu: nur Doku-Datei
-Nicht neu: keine Runtime-Datei
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/db-health.service.js
 ```
 
-## DB-Foundation
+## Nicht fuer Online-Remote-Modboard-DB verwenden
 
 ```text
-Tabelle: remote_media_index
-Schema-Modul: remote_media_index
-Schema-Version: 1
-DB-Schicht: backend/core/database.js
-Migration: ensureSchema aus bestehender DB-Schicht
+backend/core/database.js
+backend/modules/sqlite_core.js
 ```
 
-## Bewusst nicht geaendert
-
-```text
-backend/modules/remote_agent.js
-backend/modules/local_remote_modboard_adapter.js
-remote-modboard/backend/src/services/agent-runtime.service.js
-remote-modboard/backend/public/assets/*
-htdocs/dashboard-v2/assets/*
-```
-
-## Sicherheitsgrenzen
-
-```text
-Keine Datei-Inhalte.
-Keine absoluten Pfade.
-Keine Media-Daten-Writes in diesem Step.
-Keine Upload/Edit/Delete/Agent-Actions.
-```
+Diese gehoeren nicht automatisch in den Webserver-Live-Pfad `/opt/stream-control-center/remote-modboard`.

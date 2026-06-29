@@ -4,9 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const { buildAgentMediaInventoryStatusResponse } = require('../services/agent-runtime.service');
 
-const STATUS_API_VERSION = 'rdap_media_persistent_index_foundation_034.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_agent_slow_sync_status_polish_028.v1';
-const BUILD = 'RDAP_0.2.34_MEDIA_PERSISTENT_INDEX_MIGRATION_FOUNDATION_READONLY';
+const STATUS_API_VERSION = 'rdap_media_persistent_index_foundation_blocked_034b.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_persistent_index_foundation_034.v1';
+const BUILD = 'RDAP_0.2.34B_MEDIA_PERSISTENT_INDEX_FOUNDATION_BLOCKED_DOCS_FIX';
 const MEDIA_STATUS_PATH = '/api/remote/media/status';
 const PERSISTENT_INDEX_SCHEMA_MODULE = 'remote_media_index';
 const PERSISTENT_INDEX_SCHEMA_VERSION = 1;
@@ -48,7 +48,7 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_media_readonly',
-    moduleVersion: context.appVersion || '0.2.34',
+    moduleVersion: context.appVersion || '0.2.34B',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -94,7 +94,7 @@ function buildMediaReadonlyStatus(context = {}, req = null) {
     safety: buildSafetyBlock(),
     nextSteps: [
       inventory.active ? 'Online-Media-Inventar wird per Agent-WSS Memory-only synchronisiert; kompakte Listen koennen truncated=true melden.' : 'Online-Media-Inventar per Agent-WSS Memory-only synchronisieren.',
-      persistentIndex.ok ? 'Persistent-Index-Schema ist vorbereitet; Daten-Schreiben bleibt in diesem Step deaktiviert.' : 'Persistent-Index-Schema pruefen, bevor DB-Fallback aktiviert wird.',
+      'Persistent-Index-Schema bleibt blockiert: Online-Remote-Modboard nutzt MariaDB-Konfiguration, nicht die lokale Repo-root-SQLite-Schicht.',
       'Filter/Paging spaeter ohne Breaking Change ueber limit/root/type/cursor ausbauen.',
       'Upload/Edit/Delete erst nach separatem Permission-/Audit-/Confirm-Step.'
     ]
@@ -121,8 +121,10 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     source: inventory && inventory.source ? inventory.source : (localRuntime ? 'local_stream_pc_filesystem_readonly' : 'agent_wss_media_inventory_sync_memory_only'),
     localIsMaster: true,
     serverPersistence: false,
-    serverPersistenceFoundation: persistentIndex && persistentIndex.ok === true,
+    serverPersistenceFoundation: false,
     persistentIndexPrepared: true,
+    persistentIndexBlocked: persistentIndex && persistentIndex.blocked === true,
+    persistentIndexTargetDatabase: 'remote_modboard_mariadb',
     persistentIndexTable: PERSISTENT_INDEX_TABLE,
     persistentIndexWritesEnabled: false,
     persistentIndexFallbackEnabled: false,
@@ -136,7 +138,7 @@ function buildMediaSyncInfo({ localRuntime, inventory, agentMediaStatus, persist
     status: inventory && inventory.active === true ? (inventory.truncated === true ? 'compact_inventory_available' : 'inventory_available') : 'inventory_pending',
     note: localRuntime
       ? 'Lokal bleibt die Datei-Wahrheit; das Inventar wird direkt read-only aus den Assets gelesen.'
-      : 'Online zeigt zuerst den read-only Agent-Memory-Index. Das DB-Schema ist vorbereitet, aber dieser Step schreibt noch keine Media-Daten in den Index.'
+      : 'Online zeigt weiter den read-only Agent-Memory-Index. Persistent Index ist blockiert, bis eine MariaDB-kompatible Remote-Modboard-DB-Schicht geplant ist.'
   };
 }
 
@@ -150,102 +152,46 @@ function getProjectRoot() {
   return path.resolve(__dirname, '..', '..', '..', '..');
 }
 
-function getDatabaseLayer() {
-  try {
-    return require(path.resolve(getProjectRoot(), 'backend', 'core', 'database.js'));
-  } catch (err) {
-    return null;
-  }
-}
-
 function ensurePersistentIndexFoundation(context = {}) {
-  if (persistentIndexSchemaState && persistentIndexSchemaState.ok === true) {
-    return { ...persistentIndexSchemaState, cached: true };
-  }
+  if (persistentIndexSchemaState) return { ...persistentIndexSchemaState, cached: true };
 
-  const db = getDatabaseLayer();
-  if (!db || typeof db.ensureReady !== 'function' || typeof db.ensureSchema !== 'function') {
-    persistentIndexSchemaState = buildPersistentIndexState({ ok: false, reason: 'database_layer_unavailable' });
-    return persistentIndexSchemaState;
-  }
-
-  try {
-    db.ensureReady(context);
-    db.ensureSchema(PERSISTENT_INDEX_SCHEMA_MODULE, PERSISTENT_INDEX_SCHEMA_VERSION, (currentVersion, nextVersion, database) => {
-      if (nextVersion === 1) migratePersistentIndexV1(database);
-    });
-
-    const tableExists = typeof db.tableExists === 'function' ? db.tableExists(PERSISTENT_INDEX_TABLE) : true;
-    const columns = typeof db.tableColumns === 'function' ? db.tableColumns(PERSISTENT_INDEX_TABLE) : [];
-    const itemCount = tableExists && typeof db.count === 'function' ? db.count(PERSISTENT_INDEX_TABLE) : 0;
-    const schemaVersion = typeof db.getSchemaVersion === 'function' ? db.getSchemaVersion(PERSISTENT_INDEX_SCHEMA_MODULE) : PERSISTENT_INDEX_SCHEMA_VERSION;
-    persistentIndexSchemaState = buildPersistentIndexState({ ok: tableExists, reason: tableExists ? 'schema_ready' : 'table_missing_after_migration', schemaVersion, columns, itemCount, databaseStatus: typeof db.status === 'function' ? db.status() : null });
-    return persistentIndexSchemaState;
-  } catch (err) {
-    persistentIndexSchemaState = buildPersistentIndexState({ ok: false, reason: err && err.message ? err.message : String(err || 'persistent_index_schema_failed') });
-    return persistentIndexSchemaState;
-  }
-}
-
-function migratePersistentIndexV1(database) {
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS remote_media_index (
-      id TEXT PRIMARY KEY,
-      root_key TEXT NOT NULL,
-      kind TEXT NOT NULL,
-      relative_path TEXT NOT NULL,
-      name TEXT NOT NULL,
-      extension TEXT NOT NULL,
-      size_bytes INTEGER NOT NULL DEFAULT 0,
-      modified_at TEXT,
-      first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      deleted INTEGER NOT NULL DEFAULT 0,
-      source TEXT NOT NULL DEFAULT 'agent_wss_media_inventory_sync',
-      sync_version INTEGER NOT NULL DEFAULT 1,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_remote_media_index_root_path
-      ON remote_media_index (root_key, relative_path);
-
-    CREATE INDEX IF NOT EXISTS idx_remote_media_index_kind
-      ON remote_media_index (kind);
-
-    CREATE INDEX IF NOT EXISTS idx_remote_media_index_deleted_last_seen
-      ON remote_media_index (deleted, last_seen_at);
-  `);
+  const configDatabase = context && context.config && context.config.database ? context.config.database : {};
+  persistentIndexSchemaState = buildPersistentIndexState({
+    reason: 'blocked_wrong_database_layer_removed_remote_mariadb_required',
+    database: {
+      engine: configDatabase.engine || 'MariaDB',
+      driver: configDatabase.driver || 'mysql2/promise',
+      configured: Boolean(configDatabase.host && configDatabase.name && configDatabase.user),
+      writeEnabled: false,
+      migrationEnabled: false
+    }
+  });
+  return persistentIndexSchemaState;
 }
 
 function buildPersistentIndexState(input = {}) {
-  const databaseStatus = input.databaseStatus || null;
   return {
     prepared: true,
-    ok: input.ok === true,
+    ok: false,
+    blocked: true,
     readOnly: true,
     tableName: PERSISTENT_INDEX_TABLE,
     schemaModule: PERSISTENT_INDEX_SCHEMA_MODULE,
-    schemaVersion: Number(input.schemaVersion || 0),
+    schemaVersion: 0,
     targetSchemaVersion: PERSISTENT_INDEX_SCHEMA_VERSION,
-    reason: input.reason || 'unknown',
-    migrationEnabled: true,
+    reason: input.reason || 'persistent_index_blocked_until_remote_mariadb_schema_step',
+    targetDatabase: 'remote_modboard_mariadb',
+    rejectedDatabaseLayer: 'backend/core/database.js sqlite repo-root layer',
+    migrationEnabled: false,
     dataWritesEnabled: false,
     fallbackReadsEnabled: false,
     localIsMaster: true,
     storesFileContents: false,
     storesAbsolutePaths: false,
-    columns: Array.isArray(input.columns) ? input.columns : [],
-    itemCount: Number(input.itemCount || 0),
-    database: databaseStatus ? {
-      adapter: databaseStatus.adapter,
-      dialect: databaseStatus.dialect,
-      initialized: databaseStatus.initialized,
-      ok: databaseStatus.ok === true,
-      sqliteReady: databaseStatus.sqlite ? databaseStatus.sqlite.initialized === true : false
-    } : null,
-    note: input.ok === true
-      ? 'DB-Schema ist vorbereitet. Agent-Sync schreibt in diesem Step noch keine Media-Daten in den Index.'
-      : 'DB-Schema ist nicht bereit; Media-Route bleibt trotzdem read-only ueber Memory/Local-Scan nutzbar.'
+    columns: [],
+    itemCount: 0,
+    database: input.database || null,
+    note: '0.2.34B blockiert den falschen SQLite/Repo-root-DB-Ansatz. Online-Persistenz darf spaeter nur ueber die bestehende Remote-Modboard-MariaDB-Konfiguration geplant werden.'
   };
 }
 
@@ -553,7 +499,7 @@ function buildSafetyBlock() {
     deleteEnabled: false,
     fileWrite: false,
     databaseWrite: false,
-    migrationEnabled: true,
+    migrationEnabled: false,
     mediaIndexDataWrite: false,
     shellOrProcessActions: false,
     agentActionsEnabled: false,
@@ -582,7 +528,7 @@ function buildMediaRoutesSummary(context = {}) {
     persistentIndex,
     scanPolicy: { defaultLimit: MEDIA_SCAN_DEFAULT_LIMIT, hardLimit: MEDIA_SCAN_HARD_LIMIT, maxDepth: MEDIA_SCAN_MAX_DEPTH, cursorPreparedLater: true },
     routes: [
-      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status, lokales Inventar im Lokalmodus und Online-Inventar aus Agent-WSS-Memory-Cache; Persistent-Index-Schema vorbereitet; keine Uploads, keine Deletes, keine Media-Daten-Writes', readOnly: true }
+      { method: 'GET', path: MEDIA_STATUS_PATH, description: 'Media-System read-only Status, lokales Inventar im Lokalmodus und Online-Inventar aus Agent-WSS-Memory-Cache; Persistent Index blockiert bis Remote-Modboard-MariaDB-Schicht geplant ist; keine Uploads, keine Deletes, keine Media-Daten-Writes', readOnly: true }
     ],
     safety: {
       noFileWrite: true,
