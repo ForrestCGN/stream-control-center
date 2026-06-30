@@ -11,12 +11,14 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_upsert_preview_readonly_085.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_fullsync_summary_083.v1';
-const BUILD = 'RDAP_0.2.85_MEDIA_INDEX_UPSERT_PREVIEW_READONLY';
-const PREVIOUS_BUILD = 'RDAP_0.2.83_MEDIA_INDEX_DIFF_FULLSYNC_SUMMARY_READONLY';
+const STATUS_API_VERSION = 'rdap_media_index_upsert_execute_foundation_blocked_086.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_upsert_preview_readonly_085.v1';
+const BUILD = 'RDAP_0.2.86_MEDIA_INDEX_UPSERT_EXECUTE_FOUNDATION_BLOCKED';
+const PREVIOUS_BUILD = 'RDAP_0.2.85_MEDIA_INDEX_UPSERT_PREVIEW_READONLY';
 const ROUTE = '/api/remote/media/index/diff/status';
 const UPSERT_PREVIEW_ROUTE = '/api/remote/media/index/upsert/preview';
+const UPSERT_EXECUTE_ROUTE = '/api/remote/media/index/upsert/execute';
+const CONFIRM_UPSERT_TEXT = 'RDAP_0.2.86_CONFIRM_MEDIA_INDEX_UPSERT_EXECUTE';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
 const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
 const AUDIT_TABLE = 'dashboard_audit_log';
@@ -48,6 +50,11 @@ function registerMediaIndexDiffRoutes(app, context) {
   app.get(UPSERT_PREVIEW_ROUTE, async (req, res) => {
     const result = await buildMediaIndexUpsertPreviewStatus(context, req);
     res.status(result.httpStatus || 200).json(result.body || result);
+  });
+
+  app.post(UPSERT_EXECUTE_ROUTE, async (req, res) => {
+    const result = await executeMediaIndexUpsertFoundation(context, req);
+    res.status(result.httpStatus || result.status || 200).json(result.body || result);
   });
 
   app.get(PERSISTENT_TOMBSTONE_PREVIEW_ROUTE, async (req, res) => {
@@ -342,6 +349,118 @@ async function buildMediaIndexUpsertPreviewStatus(context = {}, req = null) {
     safety: buildUpsertPreviewSafety(),
     note: 'Upsert-Preview zeigt nur neue Full-Sync-Agent-Items, die in remote_media_index fehlen. Es wird nichts geschrieben.'
   };
+}
+
+
+async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
+  const generatedAt = new Date().toISOString();
+  const body = req && req.body && typeof req.body === 'object' ? req.body : {};
+  const base = {
+    service: 'remote-modboard',
+    module: 'remote_media_index_upsert_execute_foundation',
+    moduleVersion: context.appVersion || '0.2.59',
+    moduleBuild: BUILD,
+    appModuleBuild: context.moduleBuild || null,
+    routeBuild: BUILD,
+    previousRouteBuild: PREVIOUS_BUILD,
+    statusApiVersion: STATUS_API_VERSION,
+    previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
+    route: UPSERT_EXECUTE_ROUTE,
+    previewRoute: UPSERT_PREVIEW_ROUTE,
+    diffRoute: ROUTE,
+    generatedAt,
+    readOnly: false,
+    localOnly: true,
+    writeEnabled: false,
+    databaseWritesEnabled: false,
+    writeExecuted: false,
+    databaseWriteExecuted: false,
+    upsertExecuted: false,
+    insertExecuted: false,
+    updateExecuted: false,
+    auditWritten: false,
+    readBackPerformed: false,
+    noPhysicalDelete: true,
+    noHardDelete: true,
+    noOnlineToAgentAction: true,
+    table: PERSISTENT_INDEX_TABLE,
+    requiredConfirmUpsert: CONFIRM_UPSERT_TEXT,
+    requiredEnvGates: buildMediaIndexUpsertGateStatus()
+  };
+
+  if (!isLocalRequest(req)) {
+    return blockedExecute(403, base, 'local_request_required');
+  }
+
+  const confirm = requireAdminConfirmWrite({ body });
+  if (!confirm.confirmWriteAccepted) {
+    return blockedExecute(400, base, 'confirm_write_required', { confirmWriteAccepted: false, confirm });
+  }
+
+  const confirmText = String(body.confirmUpsert || body.confirm_upsert || body.confirmText || body.confirm_text || '');
+  if (confirmText !== CONFIRM_UPSERT_TEXT) {
+    return blockedExecute(400, base, 'confirm_upsert_text_required', {
+      confirmWriteAccepted: true,
+      requiredConfirmUpsert: CONFIRM_UPSERT_TEXT
+    });
+  }
+
+  const expectedCandidateCount = Number(body.expectedCandidateCount ?? body.expected_candidate_count);
+  if (!Number.isInteger(expectedCandidateCount) || expectedCandidateCount < 0 || expectedCandidateCount > MAX_DB_ROWS) {
+    return blockedExecute(400, base, 'expected_candidate_count_required', {
+      confirmWriteAccepted: true,
+      expectedCandidateCountAccepted: false
+    });
+  }
+
+  const previewLimit = readPreviewLimit(req);
+  const snapshot = await buildMediaIndexUpsertCandidateSnapshot({ context, previewLimit });
+  if (!snapshot.reliable) {
+    return blockedExecute(409, base, 'media_index_upsert_candidates_unreliable', {
+      confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
+      expectedCandidateCount,
+      currentCandidateCount: null,
+      snapshot
+    });
+  }
+
+  if (snapshot.candidateCount !== expectedCandidateCount) {
+    return blockedExecute(409, base, 'candidate_count_changed', {
+      confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
+      expectedCandidateCount,
+      currentCandidateCount: snapshot.candidateCount,
+      snapshot
+    });
+  }
+
+  if (!base.requiredEnvGates.allRequiredGatesEnabled) {
+    return blockedExecute(403, base, 'media_index_upsert_write_gate_disabled', {
+      confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
+      expectedCandidateCount,
+      currentCandidateCount: snapshot.candidateCount,
+      candidateCount: snapshot.candidateCount,
+      byRoot: snapshot.byRoot,
+      byKind: snapshot.byKind,
+      requiredEnvGates: base.requiredEnvGates,
+      snapshot
+    });
+  }
+
+  return blockedExecute(403, base, 'media_index_upsert_execute_not_enabled_in_086_foundation', {
+    confirmWriteAccepted: true,
+    confirmUpsertAccepted: true,
+    expectedCandidateCount,
+    currentCandidateCount: snapshot.candidateCount,
+    candidateCount: snapshot.candidateCount,
+    byRoot: snapshot.byRoot,
+    byKind: snapshot.byKind,
+    requiredEnvGates: base.requiredEnvGates,
+    snapshot,
+    note: '0.2.86 bereitet Execute nur vor. Produktive Inserts/Updates sind in diesem Step absichtlich nicht implementiert.'
+  });
 }
 
 
@@ -739,6 +858,103 @@ async function executePersistentTombstoneFoundation(context = {}, req = null) {
     });
   }
 }
+
+async function buildMediaIndexUpsertCandidateSnapshot({ context, previewLimit }) {
+  const fullSyncCompareSnapshot = safeBuildFullSyncCompareSnapshotStatus();
+  const full = sanitizeFullSyncCompareSnapshot(fullSyncCompareSnapshot);
+  const complete = full.complete === true && full.available === true && full.items.length > 0;
+
+  let dbInventory;
+  try {
+    dbInventory = await readPersistentIndexItems(context && context.config ? context.config : {});
+  } catch (err) {
+    return {
+      reliable: false,
+      reason: publicDbError(err).code || 'media_index_upsert_snapshot_db_read_failed',
+      candidateCount: null,
+      candidates: [],
+      byRoot: {},
+      byKind: {},
+      preview: []
+    };
+  }
+
+  if (!complete) {
+    return {
+      reliable: false,
+      reason: 'full_sync_compare_snapshot_unavailable_or_incomplete',
+      candidateCount: null,
+      candidates: [],
+      byRoot: {},
+      byKind: {},
+      preview: [],
+      fullSyncCompare: {
+        prepared: full.prepared === true,
+        available: full.available === true,
+        complete: full.complete === true,
+        receivedItems: full.receivedItems,
+        totalItems: full.totalItems,
+        itemCount: full.items.length,
+        completedAt: full.completedAt
+      }
+    };
+  }
+
+  const candidates = buildUpsertPreviewCandidates({ agentItems: full.items, dbItems: dbInventory.items });
+  return {
+    reliable: true,
+    reason: 'media_index_upsert_candidates_available',
+    readOnly: true,
+    writeEnabled: false,
+    databaseWriteExecuted: false,
+    table: PERSISTENT_INDEX_TABLE,
+    candidateCount: candidates.length,
+    byRoot: buildCountByField(candidates, 'rootKey'),
+    byKind: buildCountByField(candidates, 'kind'),
+    candidateIds: candidates.map(item => item.id).filter(Boolean),
+    preview: candidates.slice(0, previewLimit || DEFAULT_PREVIEW_LIMIT).map(buildUpsertPreviewItem),
+    fullSyncCompare: {
+      prepared: full.prepared === true,
+      available: full.available === true,
+      complete: full.complete === true,
+      syncId: full.syncId || null,
+      receivedItems: full.receivedItems,
+      totalItems: full.totalItems,
+      itemCount: full.items.length,
+      completedAt: full.completedAt
+    },
+    database: {
+      table: PERSISTENT_INDEX_TABLE,
+      readOnly: true,
+      total: dbInventory.total,
+      returned: dbInventory.items.length,
+      truncated: dbInventory.truncated === true,
+      active: dbInventory.items.length > 0
+    }
+  };
+}
+
+function buildMediaIndexUpsertGateStatus() {
+  const requiredEnvGates = [
+    'MEDIA_INDEX_WRITE_ENABLED',
+    'MEDIA_INDEX_DATA_WRITE_ENABLED',
+    'MEDIA_INDEX_UPSERT_WRITE_ENABLED'
+  ];
+  const gates = {};
+  for (const key of requiredEnvGates) {
+    gates[key] = process.env[key] === 'true';
+  }
+  return {
+    requiredEnvGates,
+    gates,
+    allRequiredGatesEnabled: requiredEnvGates.every(key => gates[key] === true),
+    defaultBlocked: true,
+    writeEnabled: false,
+    databaseWritesEnabled: false,
+    note: 'Alle Gates muessen explizit true sein. 0.2.86 bleibt trotzdem Execute-Foundation ohne produktiven Upsert.'
+  };
+}
+
 
 async function buildPersistentTombstoneCandidateSnapshot({ context = {}, previewLimit = DEFAULT_PREVIEW_LIMIT } = {}) {
   const full = sanitizeFullSyncCompareSnapshot(safeBuildFullSyncCompareSnapshotStatus());
