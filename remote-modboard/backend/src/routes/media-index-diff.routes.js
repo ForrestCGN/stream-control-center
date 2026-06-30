@@ -11,16 +11,16 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_schema_extension_execute_gated_088.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_extension_foundation_blocked_087.v1';
-const BUILD = 'RDAP_0.2.88_MEDIA_INDEX_SCHEMA_EXTENSION_EXECUTE_GATED';
-const PREVIOUS_BUILD = 'RDAP_0.2.87_MEDIA_INDEX_SCHEMA_EXTENSION_FOUNDATION_BLOCKED';
+const STATUS_API_VERSION = 'rdap_media_index_upsert_with_context_gated_089.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_extension_execute_gated_088.v1';
+const BUILD = 'RDAP_0.2.89_MEDIA_INDEX_UPSERT_WITH_CONTEXT_GATED';
+const PREVIOUS_BUILD = 'RDAP_0.2.88_MEDIA_INDEX_SCHEMA_EXTENSION_EXECUTE_GATED';
 const ROUTE = '/api/remote/media/index/diff/status';
 const UPSERT_PREVIEW_ROUTE = '/api/remote/media/index/upsert/preview';
 const UPSERT_EXECUTE_ROUTE = '/api/remote/media/index/upsert/execute';
 const SCHEMA_EXTENSION_PREVIEW_ROUTE = '/api/remote/media/index/schema/extension/preview';
 const SCHEMA_EXTENSION_EXECUTE_ROUTE = '/api/remote/media/index/schema/extension/execute';
-const CONFIRM_UPSERT_TEXT = 'RDAP_0.2.86_CONFIRM_MEDIA_INDEX_UPSERT_EXECUTE';
+const CONFIRM_UPSERT_TEXT = 'RDAP_0.2.89_CONFIRM_MEDIA_INDEX_UPSERT_WITH_CONTEXT';
 const CONFIRM_SCHEMA_EXTENSION_TEXT = 'RDAP_0.2.87_CONFIRM_MEDIA_INDEX_SCHEMA_EXTENSION';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
 const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
@@ -659,7 +659,7 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
   const body = req && req.body && typeof req.body === 'object' ? req.body : {};
   const base = {
     service: 'remote-modboard',
-    module: 'remote_media_index_upsert_execute_foundation',
+    module: 'remote_media_index_upsert_with_context_execute',
     moduleVersion: context.appVersion || '0.2.59',
     moduleBuild: BUILD,
     appModuleBuild: context.moduleBuild || null,
@@ -687,7 +687,8 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
     noOnlineToAgentAction: true,
     table: PERSISTENT_INDEX_TABLE,
     requiredConfirmUpsert: CONFIRM_UPSERT_TEXT,
-    requiredEnvGates: buildMediaIndexUpsertGateStatus()
+    requiredEnvGates: buildMediaIndexUpsertGateStatus(),
+    payloadColumns: buildMediaIndexUpsertPayloadColumns()
   };
 
   if (!isLocalRequest(req)) {
@@ -711,7 +712,28 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
   if (!Number.isInteger(expectedCandidateCount) || expectedCandidateCount < 0 || expectedCandidateCount > MAX_DB_ROWS) {
     return blockedExecute(400, base, 'expected_candidate_count_required', {
       confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
       expectedCandidateCountAccepted: false
+    });
+  }
+
+  const expectedRootKey = String(body.expectedRootKey || body.expected_root_key || 'media');
+  if (expectedRootKey !== 'media') {
+    return blockedExecute(400, base, 'expected_root_key_media_required', {
+      confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
+      expectedRootKey
+    });
+  }
+
+  const schemaSnapshot = await buildMediaIndexSchemaExtensionSnapshot(context.config || {});
+  if (schemaSnapshot.missingColumnCount !== 0) {
+    return blockedExecute(409, base, 'media_index_context_schema_missing', {
+      confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
+      expectedCandidateCount,
+      expectedRootKey,
+      schemaSnapshot
     });
   }
 
@@ -722,6 +744,7 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
       confirmWriteAccepted: true,
       confirmUpsertAccepted: true,
       expectedCandidateCount,
+      expectedRootKey,
       currentCandidateCount: null,
       snapshot
     });
@@ -732,8 +755,21 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
       confirmWriteAccepted: true,
       confirmUpsertAccepted: true,
       expectedCandidateCount,
+      expectedRootKey,
       currentCandidateCount: snapshot.candidateCount,
       snapshot
+    });
+  }
+
+  const nonMediaCandidates = snapshot.candidates.filter(item => item.rootKey !== 'media');
+  if (nonMediaCandidates.length > 0) {
+    return blockedExecute(409, base, 'unexpected_non_media_upsert_candidates', {
+      confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
+      expectedCandidateCount,
+      expectedRootKey,
+      nonMediaCount: nonMediaCandidates.length,
+      preview: nonMediaCandidates.slice(0, DEFAULT_PREVIEW_LIMIT).map(buildUpsertPreviewItem)
     });
   }
 
@@ -742,6 +778,7 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
       confirmWriteAccepted: true,
       confirmUpsertAccepted: true,
       expectedCandidateCount,
+      expectedRootKey,
       currentCandidateCount: snapshot.candidateCount,
       candidateCount: snapshot.candidateCount,
       byRoot: snapshot.byRoot,
@@ -751,20 +788,150 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
     });
   }
 
-  return blockedExecute(403, base, 'media_index_upsert_execute_not_enabled_in_086_foundation', {
-    confirmWriteAccepted: true,
-    confirmUpsertAccepted: true,
-    expectedCandidateCount,
-    currentCandidateCount: snapshot.candidateCount,
-    candidateCount: snapshot.candidateCount,
-    byRoot: snapshot.byRoot,
-    byKind: snapshot.byKind,
-    requiredEnvGates: base.requiredEnvGates,
-    snapshot,
-    note: '0.2.86 bereitet Execute nur vor. Produktive Inserts/Updates sind in diesem Step absichtlich nicht implementiert.'
-  });
-}
+  if (snapshot.candidateCount <= 0) {
+    return {
+      status: 200,
+      body: {
+        ...base,
+        ok: true,
+        status: 'media_index_upsert_execute_noop_no_candidates',
+        confirmWriteAccepted: true,
+        confirmUpsertAccepted: true,
+        expectedCandidateCount,
+        expectedRootKey,
+        currentCandidateCount: 0,
+        candidateCount: 0,
+        writeEnabled: true,
+        databaseWritesEnabled: true,
+        databaseWriteExecuted: false,
+        upsertExecuted: false,
+        insertExecuted: false,
+        updateExecuted: false,
+        auditWritten: false,
+        readBackPerformed: true,
+        snapshot,
+        note: 'Keine Upsert-Kandidaten vorhanden. Es wurde nichts geschrieben.'
+      }
+    };
+  }
 
+  const config = context && context.config ? context.config : {};
+  const now = new Date();
+  const auditUid = buildAuditUid(now);
+  const payloads = snapshot.candidates.map(buildMediaIndexUpsertDbPayload).filter(Boolean);
+
+  try {
+    return await withWriteConnection(config, async (connection) => {
+      const chunks = chunkArray(payloads, 100);
+      let affectedRows = 0;
+      let changedRows = 0;
+      let warningStatus = 0;
+
+      for (const chunk of chunks) {
+        const result = await executeMediaIndexUpsertChunk(connection, chunk);
+        affectedRows += safeNonNegativeNumber(result && result.affectedRows);
+        changedRows += safeNonNegativeNumber(result && result.changedRows);
+        warningStatus += safeNonNegativeNumber(result && result.warningStatus);
+      }
+
+      const readBack = await readBackMediaIndexUpsert(connection, payloads.map(item => item.id));
+      const safeMetadata = {
+        step: BUILD,
+        purpose: 'upsert_media_root_items_with_context_columns',
+        table: PERSISTENT_INDEX_TABLE,
+        expectedCandidateCount,
+        candidateCount: snapshot.candidateCount,
+        byRoot: snapshot.byRoot,
+        byKind: snapshot.byKind,
+        payloadColumns: buildMediaIndexUpsertPayloadColumns(),
+        affectedRows,
+        changedRows,
+        warningStatus,
+        readBack,
+        noDelete: true,
+        noPhysicalDelete: true,
+        noOnlineToAgentAction: true,
+        generatedAt: now.toISOString()
+      };
+
+      await connection.execute(
+        `INSERT INTO ${AUDIT_TABLE}
+          (audit_uid, actor_user_uid, actor_display_name, actor_login, source, action, resource_type,
+           permission_key, resource_key, status, error_code, old_value_summary, new_value_summary,
+           safe_metadata_json, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          auditUid,
+          safeString(body.actorUserUid || body.actor_user_uid || 'system:rdap089-media-index-upsert', 64),
+          safeString(body.actorDisplayName || body.actor_display_name || 'RDAP 0.2.89 Media Index Upsert', 120),
+          safeString(body.actorLogin || body.actor_login || 'rdap089-media-index-upsert', 128),
+          'remote-modboard/rdap089',
+          'media_index.upsert.with_context',
+          'remote_media_index',
+          'media.index.data.upsert',
+          'media-index:upsert-context',
+          readBack.missingAfterCount === 0 ? 'success' : 'warning',
+          null,
+          `${snapshot.candidateCount} media root item(s) missing before upsert.`,
+          `${readBack.presentAfterCount} item(s) present after upsert with context columns. No delete, no Online-to-Agent action.`,
+          JSON.stringify(safeMetadata),
+          now
+        ]
+      );
+
+      return {
+        status: 200,
+        body: {
+          ...base,
+          ok: true,
+          status: readBack.missingAfterCount === 0
+            ? 'media_index_upsert_with_context_execute_success'
+            : 'media_index_upsert_with_context_execute_readback_warning',
+          confirmWriteAccepted: true,
+          confirmUpsertAccepted: true,
+          expectedCandidateCount,
+          expectedRootKey,
+          currentCandidateCount: snapshot.candidateCount,
+          candidateCount: snapshot.candidateCount,
+          byRoot: snapshot.byRoot,
+          byKind: snapshot.byKind,
+          writeEnabled: true,
+          databaseWritesEnabled: true,
+          databaseWriteExecuted: true,
+          writeExecuted: true,
+          upsertExecuted: true,
+          insertExecuted: true,
+          updateExecuted: affectedRows > payloads.length,
+          auditWritten: true,
+          readBackPerformed: true,
+          affectedRows,
+          changedRows,
+          warningStatus,
+          readBack,
+          preview: snapshot.preview,
+          note: 'Media-Index-Upsert wurde gegatet ausgefuehrt. Kontextspalten wurden geschrieben. Keine Deletes, keine Dateiaktion, kein Online-to-Agent.'
+        }
+      };
+    }, { scope: 'media_index_data' });
+  } catch (err) {
+    const code = publicDbError(err).code || 'media_index_upsert_with_context_execute_failed';
+    return blockedExecute(500, base, code, {
+      confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
+      expectedCandidateCount,
+      expectedRootKey,
+      currentCandidateCount: snapshot.candidateCount,
+      candidateCount: snapshot.candidateCount,
+      byRoot: snapshot.byRoot,
+      byKind: snapshot.byKind,
+      databaseWriteExecuted: false,
+      upsertExecuted: false,
+      auditWritten: false,
+      snapshot,
+      error: code
+    });
+  }
+}
 
 async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
   const diffStatus = await buildMediaIndexDiffStatus(context, req);
@@ -1332,6 +1499,141 @@ async function buildMediaIndexUpsertCandidateSnapshot({ context, previewLimit })
   };
 }
 
+function buildMediaIndexUpsertPayloadColumns() {
+  return [
+    'id',
+    'root_key',
+    'kind',
+    'relative_path',
+    'name',
+    'extension',
+    'size_bytes',
+    'modified_at',
+    'last_seen_at',
+    'source',
+    'module_key',
+    'category_key',
+    'full_category_key',
+    'asset_relative_path',
+    'web_path',
+    'public_path'
+  ];
+}
+
+function buildMediaIndexUpsertDbPayload(item) {
+  const safe = sanitizeMediaItem(item);
+  if (!safe) return null;
+  return {
+    id: safeString(safe.id, 260),
+    root_key: safeString(safe.rootKey, 40),
+    kind: safeString(safe.kind, 20),
+    relative_path: safeString(safe.relativePath, 500),
+    name: safeString(safe.name, 180),
+    extension: safeString(safe.extension, 20),
+    size_bytes: safeNonNegativeNumber(safe.sizeBytes),
+    modified_at: safe.modifiedAt ? new Date(safe.modifiedAt) : null,
+    last_seen_at: new Date(),
+    source: safeString(safe.source || 'media_system', 80),
+    module_key: safe.moduleKey ? safeString(safe.moduleKey, 80) : null,
+    category_key: safe.categoryKey ? safeString(safe.categoryKey, 120) : null,
+    full_category_key: safe.fullCategoryKey ? safeString(safe.fullCategoryKey, 220) : null,
+    asset_relative_path: safe.assetRelativePath ? safeString(safe.assetRelativePath, 500) : null,
+    web_path: safe.webPath ? safeString(safe.webPath, 700) : null,
+    public_path: safe.publicPath ? safeString(safe.publicPath, 700) : null
+  };
+}
+
+async function executeMediaIndexUpsertChunk(connection, payloads) {
+  const columns = buildMediaIndexUpsertPayloadColumns();
+  const rowPlaceholder = `(${columns.map(() => '?').join(', ')}, 0, 1, NOW())`;
+  const placeholders = payloads.map(() => rowPlaceholder).join(', ');
+  const values = [];
+  for (const item of payloads) {
+    for (const col of columns) values.push(item[col]);
+  }
+
+  const updateColumns = columns.filter(col => col !== 'id');
+  const sql = `INSERT INTO ${PERSISTENT_INDEX_TABLE}
+      (${columns.join(', ')}, deleted, sync_version, updated_at)
+    VALUES ${placeholders}
+    ON DUPLICATE KEY UPDATE
+      ${updateColumns.map(col => `${col} = VALUES(${col})`).join(', ')},
+      deleted = 0,
+      sync_version = sync_version + 1,
+      updated_at = NOW()`;
+
+  const [result] = await connection.execute(sql, values);
+  return result || {};
+}
+
+async function readBackMediaIndexUpsert(connection, ids) {
+  const safeIds = Array.from(new Set((Array.isArray(ids) ? ids : []).map(id => safeString(id, 260)).filter(Boolean)));
+  if (safeIds.length <= 0) {
+    return {
+      expectedCount: 0,
+      presentAfterCount: 0,
+      missingAfterCount: 0,
+      byRoot: {},
+      byKind: {},
+      byModule: {},
+      byFullCategory: {}
+    };
+  }
+
+  const chunks = chunkArray(safeIds, 200);
+  let presentAfterCount = 0;
+  const byRoot = {};
+  const byKind = {};
+  const byModule = {};
+  const byFullCategory = {};
+
+  for (const chunk of chunks) {
+    const placeholders = chunk.map(() => '?').join(', ');
+    const [rows] = await connection.query(
+      `SELECT root_key, kind, module_key, full_category_key, COUNT(*) AS count_value
+         FROM ${PERSISTENT_INDEX_TABLE}
+        WHERE deleted = 0
+          AND id IN (${placeholders})
+        GROUP BY root_key, kind, module_key, full_category_key`,
+      chunk
+    );
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const countValue = safeNonNegativeNumber(row.count_value);
+      presentAfterCount += countValue;
+      addCount(byRoot, row.root_key || 'unknown', countValue);
+      addCount(byKind, row.kind || 'unknown', countValue);
+      addCount(byModule, row.module_key || 'uncategorized', countValue);
+      addCount(byFullCategory, row.full_category_key || 'uncategorized', countValue);
+    }
+  }
+
+  return {
+    expectedCount: safeIds.length,
+    presentAfterCount,
+    missingAfterCount: Math.max(0, safeIds.length - presentAfterCount),
+    byRoot,
+    byKind,
+    byModule,
+    byFullCategory
+  };
+}
+
+function chunkArray(items, size) {
+  const safeSize = Math.max(1, Number(size) || 100);
+  const chunks = [];
+  for (let i = 0; i < (Array.isArray(items) ? items.length : 0); i += safeSize) {
+    chunks.push(items.slice(i, i + safeSize));
+  }
+  return chunks;
+}
+
+function addCount(target, key, count) {
+  const safeKey = String(key || 'unknown');
+  target[safeKey] = safeNonNegativeNumber(target[safeKey]) + safeNonNegativeNumber(count);
+}
+
+
 function buildMediaIndexUpsertGateStatus() {
   const requiredEnvGates = [
     'MEDIA_INDEX_WRITE_ENABLED',
@@ -1349,7 +1651,7 @@ function buildMediaIndexUpsertGateStatus() {
     defaultBlocked: true,
     writeEnabled: false,
     databaseWritesEnabled: false,
-    note: 'Alle Gates muessen explizit true sein. 0.2.86 bleibt trotzdem Execute-Foundation ohne produktiven Upsert.'
+    note: 'Alle Data-Upsert-Gates muessen explizit true sein. 0.2.89 schreibt nur remote_media_index-Zeilen, keine Dateien und keine Deletes.'
   };
 }
 
@@ -1654,7 +1956,8 @@ function buildFullSyncCompareStatus({ snapshot, dbInventory, previewLimit }) {
 async function readPersistentIndexItems(config) {
   return await withReadOnlyConnection(config, async (connection) => {
     const [rows] = await connection.query(
-      `SELECT id, root_key, kind, relative_path, name, extension, size_bytes, modified_at, last_seen_at, source, sync_version
+      `SELECT id, root_key, kind, relative_path, name, extension, size_bytes, modified_at, last_seen_at, source, sync_version,
+              module_key, category_key, full_category_key, asset_relative_path, web_path, public_path
        FROM ${PERSISTENT_INDEX_TABLE}
        WHERE deleted = 0
        ORDER BY root_key ASC, relative_path ASC
