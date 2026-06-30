@@ -11,10 +11,10 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_schema_extension_foundation_blocked_087.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_upsert_execute_foundation_blocked_086.v1';
-const BUILD = 'RDAP_0.2.87_MEDIA_INDEX_SCHEMA_EXTENSION_FOUNDATION_BLOCKED';
-const PREVIOUS_BUILD = 'RDAP_0.2.86_MEDIA_INDEX_UPSERT_EXECUTE_FOUNDATION_BLOCKED';
+const STATUS_API_VERSION = 'rdap_media_index_schema_extension_execute_gated_088.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_extension_foundation_blocked_087.v1';
+const BUILD = 'RDAP_0.2.88_MEDIA_INDEX_SCHEMA_EXTENSION_EXECUTE_GATED';
+const PREVIOUS_BUILD = 'RDAP_0.2.87_MEDIA_INDEX_SCHEMA_EXTENSION_FOUNDATION_BLOCKED';
 const ROUTE = '/api/remote/media/index/diff/status';
 const UPSERT_PREVIEW_ROUTE = '/api/remote/media/index/upsert/preview';
 const UPSERT_EXECUTE_ROUTE = '/api/remote/media/index/upsert/execute';
@@ -358,17 +358,128 @@ async function executeMediaIndexSchemaExtensionFoundation(context = {}, req = nu
     });
   }
 
-  return blockedExecute(403, base, 'media_index_schema_extension_execute_not_enabled_in_087_foundation', {
-    confirmWriteAccepted: true,
-    confirmSchemaAccepted: true,
-    expectedMissingColumnCount,
-    currentMissingColumnCount: snapshot.missingColumnCount,
-    missingColumnCount: snapshot.missingColumnCount,
-    missingColumns: snapshot.missingColumns,
-    requiredEnvGates: base.requiredEnvGates,
-    snapshot,
-    note: '0.2.87 bereitet Schema-Execute nur vor. ALTER TABLE ist in diesem Step absichtlich nicht implementiert.'
-  });
+  if (snapshot.missingColumnCount <= 0) {
+    return {
+      status: 200,
+      body: {
+        ...base,
+        ok: true,
+        status: 'media_index_schema_extension_execute_noop_all_columns_present',
+        confirmWriteAccepted: true,
+        confirmSchemaAccepted: true,
+        expectedMissingColumnCount,
+        currentMissingColumnCount: 0,
+        missingColumnCount: 0,
+        writeEnabled: true,
+        databaseWritesEnabled: true,
+        databaseWriteExecuted: false,
+        schemaWriteExecuted: false,
+        alterTableExecuted: false,
+        auditWritten: false,
+        readBackPerformed: true,
+        snapshot,
+        note: 'Alle geplanten Schema-Spalten sind bereits vorhanden. Kein ALTER TABLE wurde ausgefuehrt.'
+      }
+    };
+  }
+
+  const config = context && context.config ? context.config : {};
+  const now = new Date();
+  const auditUid = buildAuditUid(now);
+
+  try {
+    return await withWriteConnection(config, async (connection) => {
+      try {
+        const alterSql = buildSchemaExtensionAlterTableSql(snapshot.missingColumns);
+        await connection.query(alterSql);
+
+        const readBackSnapshot = await buildMediaIndexSchemaExtensionSnapshot(config);
+        const safeMetadata = {
+          step: BUILD,
+          purpose: 'add_media_index_context_columns',
+          table: PERSISTENT_INDEX_TABLE,
+          expectedMissingColumnCount,
+          beforeMissingColumnCount: snapshot.missingColumnCount,
+          afterMissingColumnCount: readBackSnapshot.missingColumnCount,
+          addedColumns: snapshot.missingColumns.map(col => col.name),
+          noDataMutation: true,
+          noDelete: true,
+          noOnlineToAgentAction: true,
+          generatedAt: now.toISOString()
+        };
+
+        await connection.execute(
+          `INSERT INTO ${AUDIT_TABLE}
+            (audit_uid, actor_user_uid, actor_display_name, actor_login, source, action, resource_type,
+             permission_key, resource_key, status, error_code, old_value_summary, new_value_summary,
+             safe_metadata_json, completed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            auditUid,
+            safeString(body.actorUserUid || body.actor_user_uid || 'system:rdap088-schema-extension', 64),
+            safeString(body.actorDisplayName || body.actor_display_name || 'RDAP 0.2.88 Schema Extension', 120),
+            safeString(body.actorLogin || body.actor_login || 'rdap088-schema-extension', 128),
+            'remote-modboard/rdap088',
+            'media_index.schema_extension.add_context_columns',
+            'remote_media_index',
+            'media.index.schema.extension',
+            'media-index:schema-extension',
+            readBackSnapshot.missingColumnCount === 0 ? 'success' : 'warning',
+            null,
+            `${snapshot.missingColumnCount} media-index context column(s) missing before schema execute.`,
+            `${snapshot.missingColumnCount - readBackSnapshot.missingColumnCount} column(s) added via ALTER TABLE. No data row mutation, no delete, no Online-to-Agent action.`,
+            JSON.stringify(safeMetadata),
+            now
+          ]
+        );
+
+        return {
+          status: 200,
+          body: {
+            ...base,
+            ok: true,
+            status: readBackSnapshot.missingColumnCount === 0
+              ? 'media_index_schema_extension_execute_success'
+              : 'media_index_schema_extension_execute_partial_readback_warning',
+            confirmWriteAccepted: true,
+            confirmSchemaAccepted: true,
+            expectedMissingColumnCount,
+            beforeMissingColumnCount: snapshot.missingColumnCount,
+            afterMissingColumnCount: readBackSnapshot.missingColumnCount,
+            missingColumnCount: readBackSnapshot.missingColumnCount,
+            addedColumns: snapshot.missingColumns.map(col => col.name),
+            writeEnabled: true,
+            databaseWritesEnabled: true,
+            databaseWriteExecuted: true,
+            schemaWriteExecuted: true,
+            alterTableExecuted: true,
+            auditWritten: true,
+            readBackPerformed: true,
+            snapshotBefore: snapshot,
+            snapshotAfter: readBackSnapshot,
+            note: 'Schema-Extension wurde gegatet ausgefuehrt. Es wurden nur Spalten ergaenzt, keine Datenzeilen veraendert und keine Datei-/Agent-Aktion ausgefuehrt.'
+          }
+        };
+      } catch (err) {
+        throw err;
+      }
+    }, { scope: 'media_index_schema' });
+  } catch (err) {
+    const code = publicDbError(err).code || 'media_index_schema_extension_execute_failed';
+    return blockedExecute(500, base, code, {
+      confirmWriteAccepted: true,
+      confirmSchemaAccepted: true,
+      expectedMissingColumnCount,
+      currentMissingColumnCount: snapshot.missingColumnCount,
+      missingColumnCount: snapshot.missingColumnCount,
+      databaseWriteExecuted: false,
+      schemaWriteExecuted: false,
+      alterTableExecuted: false,
+      auditWritten: false,
+      snapshot,
+      error: code
+    });
+  }
 }
 
 
@@ -1092,6 +1203,22 @@ function buildSchemaExtensionAlterTablePreview(missingColumns) {
   return `ALTER TABLE ${PERSISTENT_INDEX_TABLE} ${parts.join(', ')};`;
 }
 
+function buildSchemaExtensionAlterTableSql(missingColumns) {
+  const allowed = new Map(MEDIA_INDEX_SCHEMA_EXTENSION_COLUMNS.map(col => [col.name, col]));
+  const parts = [];
+  for (const col of Array.isArray(missingColumns) ? missingColumns : []) {
+    const planned = allowed.get(col && col.name);
+    if (!planned) continue;
+    parts.push(`ADD COLUMN ${planned.name} ${planned.definition} AFTER ${planned.after}`);
+  }
+  if (parts.length <= 0) {
+    const err = new Error('media_index_schema_extension_no_valid_missing_columns');
+    err.code = 'media_index_schema_extension_no_valid_missing_columns';
+    throw err;
+  }
+  return `ALTER TABLE ${PERSISTENT_INDEX_TABLE} ${parts.join(', ')}`;
+}
+
 function buildMediaIndexSchemaExtensionGateStatus() {
   const requiredEnvGates = [
     'MEDIA_INDEX_WRITE_ENABLED',
@@ -1108,7 +1235,7 @@ function buildMediaIndexSchemaExtensionGateStatus() {
     defaultBlocked: true,
     writeEnabled: false,
     databaseWritesEnabled: false,
-    note: 'Schema-Extension ist default blockiert. 0.2.87 fuehrt auch mit Gates kein ALTER TABLE aus.'
+    note: 'Schema-Extension ist default blockiert. ALTER TABLE laeuft nur, wenn alle Gates explizit true sind.'
   };
 }
 
