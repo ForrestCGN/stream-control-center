@@ -1,48 +1,37 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Schritt
+## Naechster RDAP-Schritt nach 0.2.58L-Test
 
-`RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_PLAN_READONLY`
+`RDAP_0.2.58M_MEDIA_INDEX_PERSISTENT_MISSING_TOMBSTONE_PLAN_READONLY`
 
 Ziel:
 
-- Alte TTS-generated DB-Eintraege read-only als Cleanup-Kandidaten planen.
-- Keine direkte Bereinigung.
-- Kein DB-Write.
-- Kein Upsert.
-- Kein Timestamp-Schreiben.
-- Kein Tombstone/Delete.
+- Normale lokal geloeschte persistente Media-Dateien sicher behandeln.
+- Read-only planen, wie Missing-on-Agent aus vollstaendigem Full-Sync zu Tombstone-Kandidaten wird.
+- Kein Auto-Delete.
+- Kein DB-Write in diesem Plan-Step.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
 
 ## Ausgangspunkt
 
-0.2.58K ist bestaetigt:
+0.2.58L bereitet den kontrollierten Cleanup fuer alte TTS-generated Legacy-DB-Eintraege vor.
+
+TTS-generated Dateien sind Sonderfall:
 
 ```text
-statusApiVersion = rdap_media_index_diff_exclude_tts_generated_sync_058k.v1
-routeBuild = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
-readOnly = true
-writeEnabled = false
+sounds/tts/generated/** wird nicht synchronisiert und kann als Legacy bereinigt werden.
 ```
 
-TTS-generated Dateien unter:
+Normale persistente Media-Dateien sind anderer Fall:
 
 ```text
-sounds/tts/generated/**
-```
-
-werden ab 0.2.58K aus dem Agent-Media-Sync ausgeschlossen.
-
-Alter DB-Eintrag bleibt als Legacy-/Temp-Diagnose sichtbar:
-
-```text
-tts_generated_excluded_from_sync_legacy_candidate
+Wenn lokal geloescht und Full-Sync vollstaendig ist, sollen sie spaeter als Missing/Tombstone-Kandidaten behandelt werden.
 ```
 
 ## Wichtig
 
-Tombstone/Delete bleibt nur Diagnose bis zu einem eigenen Gate-/Confirm-/Audit-/Lock-Step mit Readback.
+Tombstone/Delete fuer normale persistente Media-Dateien erst mit eigenem Gate-/Confirm-/Audit-/Lock-/Backup-/Readback-Step.
 
 ## Arbeitswechsel
 

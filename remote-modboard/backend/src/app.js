@@ -18,6 +18,7 @@ const { registerRoutesRoutes } = require('./routes/routes.routes');
 const { installObsReadonlyResponseDecorators, registerObsReadonlyRoutes } = require('./routes/obs-readonly.routes');
 const { registerMediaReadonlyRoutes } = require('./routes/media-readonly.routes');
 const { registerMediaIndexDiffRoutes } = require('./routes/media-index-diff.routes');
+const { registerMediaIndexCleanupRoutes } = require('./routes/media-index-cleanup.routes');
 
 function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   const app = express();
@@ -50,6 +51,7 @@ function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   registerObsReadonlyRoutes(app, context);
   registerMediaReadonlyRoutes(app, context);
   registerMediaIndexDiffRoutes(app, context);
+  registerMediaIndexCleanupRoutes(app, context);
 
   app.get(['/', '/remote', '/modboard'], (req, res) => {
     const indexPath = path.join(publicDir, 'index.html');
