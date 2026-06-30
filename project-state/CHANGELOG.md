@@ -1,21 +1,33 @@
 # CHANGELOG
 
-## 0.2.62 - Media Index Persistent Tombstone Test Method Decision
+## 0.2.63 - Media Index Persistent Tombstone Readonly Simulation Check bestaetigt
 
-- Kuerzeste sichere Testmethode entschieden: Variante C zuerst.
-- Variante C bedeutet reine Simulation / Read-only-Diagnose.
-- Kein echter Kandidat wird erzeugt.
-- Kein candidateCount=1-Test in diesem Step.
-- Keine Test-Media-Datei angelegt.
-- Keine Test-DB-Zeile geschrieben.
+- Variante C read-only auf dem Webserver geprueft und dokumentiert.
+- Diff-Status gelesen.
+- Persistent Tombstone Preview gelesen.
+- Full-Sync-Compare als vollstaendig bestaetigt.
+- Missing-Diagnose als belastbar bestaetigt.
+- `persistentMediaMissingCandidateCount = 0` bestaetigt.
+- `previewPersistentCandidateCount = 0` bestaetigt.
+- `persistentTombstoneCandidates = []` bestaetigt.
+- Gate-Check ergab keine gesetzten/aktiven Media-Index-Tombstone-Gates.
 - Keine Source-Dateien geaendert.
 - Keine DB-Zeile veraendert.
-- Keine Datei geloescht oder verschoben.
+- Keine Datei geloescht.
+- Keine Gates aktiviert.
+- Kein Execute ausgefuehrt.
+- Kein echter Tombstone-Write ausgefuehrt.
+- Weiterhin kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+
+## 0.2.62 - Media Index Persistent Tombstone Test Method Decision
+
+- Kuerzeste sichere Testmethode entschieden.
+- Variante C zuerst: reine Simulation / Read-only-Diagnose.
+- Keine Source-Dateien geaendert.
+- Keine DB-Zeile veraendert.
+- Keine Datei geloescht.
 - Keine Gates aktiviert.
 - Kein echter Tombstone-Write ausgefuehrt.
-- Kein Webserver-Deploy noetig.
-- Remote-Modboard/Webserver und lokales Dashboard/Agent bleiben sauber getrennt.
-- Weiterhin kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
 
 ## 0.2.61 - Media Index Persistent Tombstone Real Candidate Test Plan
 

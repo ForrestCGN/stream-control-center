@@ -1,16 +1,16 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.62 - Media Index Persistent Tombstone Test Method Decision`
+Aktueller Stand: `0.2.63 - Media Index Persistent Tombstone Readonly Simulation Check bestaetigt`
 
 ## Ergebnis
 
-0.2.62 dokumentiert die Entscheidung fuer die kuerzeste sichere Testmethode.
-
-Gewaehlte Variante:
+0.2.63 bestaetigt die in 0.2.62 gewaehlte kuerzeste sichere Methode:
 
 ```text
 Variante C: reine Simulation / Read-only-Diagnose zuerst
 ```
+
+Der Webserver wurde read-only geprueft.
 
 Es wurden keine Source-Dateien geaendert.
 
@@ -24,6 +24,7 @@ RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION
 RDAP_0.2.60_MEDIA_INDEX_PERSISTENT_TOMBSTONE_NOOP_EXECUTE_WITH_GATES_CONFIRMED
 RDAP_0.2.61_MEDIA_INDEX_PERSISTENT_TOMBSTONE_REAL_CANDIDATE_TEST_PLAN
 RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION
+RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK_CONFIRMED
 ```
 
 ## Bestaetigte Routen
@@ -34,76 +35,69 @@ GET  /api/remote/media/index/tombstone/persistent/preview
 POST /api/remote/media/index/tombstone/persistent/execute
 ```
 
-## Kandidatenstand
+## Bestaetigter Read-only-Check
+
+Diff-Status:
+
+```text
+agentTotal = 120
+remoteDbTotal = 332
+matchedCount = 120
+newOnAgentCount = 0
+changedOnAgentCount = 120
+hardChangedOnAgentCount = 0
+effectiveChangedOnAgentCount = 0
+softChangedOnAgentCount = 120
+missingOnAgentReliable = true
+persistentMediaMissingCandidateCount = 0
+tombstoneCandidateDiagnosticCount = 0
+readOnly = true
+writesEnabled = false
+```
+
+Preview:
 
 ```text
 persistentMediaMissingCandidateCount = 0
+ttsGeneratedTempCandidateCount = 0
+tombstoneCandidateDiagnosticCount = 0
 previewPersistentCandidateCount = 0
+persistentTombstoneCandidates = []
+```
+
+Reliability:
+
+```text
+fullSyncComparePrepared = true
+fullSyncCompareAvailable = true
+fullSyncCompareComplete = true
+fullSyncCompareMissingOnAgentReliable = true
+agentSnapshotTruncated = true
+databaseSnapshotTruncated = false
+missingOnAgentReliable = true
 ```
 
 ## Gate-Zustand
 
+Gate-Check ergab keine Ausgabe fuer:
+
 ```text
-MEDIA_INDEX_WRITE_ENABLED=false
-MEDIA_INDEX_DATA_WRITE_ENABLED=false
-MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=false
+MEDIA_INDEX_WRITE_ENABLED
+MEDIA_INDEX_DATA_WRITE_ENABLED
+MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED
 ```
 
-## 0.2.62 Entscheidung
-
-Variante C wird zuerst weiterverfolgt.
-
-Damit wird nur read-only geprueft:
+Bewertung:
 
 ```text
-- Diff-Status
-- Persistent Tombstone Preview
-- Counts
-- Reliability
-- Preview-Kandidaten
-- Gate-Zustand
-```
-
-Kein echter Kandidat wird erzeugt.
-
-Kein `candidateCount=1`-Test in diesem Step.
-
-## Systemtrennung
-
-Remote-Modboard/Webserver:
-
-```text
-- Online-DB
-- Diff
-- Preview
-- Execute-Foundation
-- Gates
-- Confirm
-- Audit
-- Readback
-```
-
-Lokales Dashboard/Agent/Stream-PC:
-
-```text
-- lokale Media-Scans
-- Full-Sync-Payloads
-- lokale Statusdaten
-```
-
-Weiterhin gilt:
-
-```text
-- Kein Online->Agent-Trigger.
-- Kein Remote-Ausloesen lokaler Dateiaktionen.
-- Kein Loeschen lokaler Dateien vom Modboard aus.
-- Kein Upload/Edit/Delete-Scope in diesem Block.
+Die Gates sind nicht gesetzt bzw. nicht aktiv.
+Nicht gesetzt ist sicher, weil nur true/1/yes/on als aktiv zaehlt.
 ```
 
 ## Sicherheit
 
-- Kein DB-Write in 0.2.62.
-- Kein Soft-Delete in 0.2.62.
+- Kein DB-Write in 0.2.63.
+- Kein Soft-Delete in 0.2.63.
 - Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
@@ -113,7 +107,7 @@ Weiterhin gilt:
 ## Naechster sinnvoller RDAP-Block
 
 ```text
-RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK
+RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN
 ```
 
-Ziel: Variante C read-only auf Webserver pruefen/dokumentieren. Kein Write, keine Gates, keine Datei-/DB-Aenderung.
+Ziel: entscheiden, ob ein echter `candidateCount=1`-Test ueber dedizierte Test-Media-Datei oder kontrollierte Test-DB-Zeile vorbereitet wird.
