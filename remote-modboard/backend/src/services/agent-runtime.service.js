@@ -4,8 +4,8 @@ const crypto = require('crypto');
 const { withWriteConnection, publicDbError } = require('./db.service');
 
 const MODULE = 'remote_agent_runtime';
-const MODULE_BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
-const STATUS_API_VERSION = 'rdap_agent_media_full_sync_compare_snapshot_058i.v1';
+const MODULE_BUILD = 'RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_MEDIA_ROOT_REMOTE_ACCEPT_READONLY';
+const STATUS_API_VERSION = 'rdap_agent_media_root_remote_accept_075.v1';
 const EXPECTED_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -14,8 +14,8 @@ const INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-obs-inventory.v1';
 const MEDIA_INVENTORY_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-inventory.v1';
 const MEDIA_FULL_SYNC_PROTOCOL_VERSION = 'rdap-agent-media-full-sync.v1';
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
-const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
-const MEDIA_FULL_SYNC_COMPARE_SNAPSHOT_BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
+const MEDIA_FULL_SYNC_RECEIVER_BUILD = 'RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_MEDIA_ROOT_REMOTE_ACCEPT_READONLY';
+const MEDIA_FULL_SYNC_COMPARE_SNAPSHOT_BUILD = 'RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_MEDIA_ROOT_REMOTE_ACCEPT_READONLY';
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const HEARTBEAT_RECEIVER_BUILD_ENABLED = true;
@@ -42,7 +42,7 @@ const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm',
 const MEDIA_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
 const MEDIA_VIDEO_EXTENSIONS = new Set(['.webm', '.mp4']);
 const MEDIA_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
-const MEDIA_PLANNED_ROOT_KEYS = new Set(['sounds', 'videos', 'images']);
+const MEDIA_PLANNED_ROOT_KEYS = new Set(['sounds', 'videos', 'images', 'media']);
 
 const FORBIDDEN_LIVE_STATE_FIELDS = new Set(['capabilities', 'commands', 'requestedActions', 'actionQueue', 'env', 'paths', 'tokens', 'secrets', 'shell', 'stdout', 'stderr', 'configDump', 'processList', 'fileList']);
 
@@ -126,9 +126,10 @@ const EMPTY_MEDIA_INVENTORY_SYNC = Object.freeze({
   groups: {
     sounds: { prepared: true, exists: true, active: false, count: 0, items: [] },
     videos: { prepared: true, exists: true, active: false, count: 0, items: [] },
-    images: { prepared: true, exists: true, active: false, count: 0, items: [] }
+    images: { prepared: true, exists: true, active: false, count: 0, items: [] },
+    media: { prepared: true, exists: true, active: false, count: 0, items: [] }
   },
-  counts: { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 },
+  counts: { total: 0, sounds: 0, videos: 0, images: 0, media: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 },
   syncFoundation: { prepared: true, build: 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION', readOnly: true, onlineIndexPlanned: true, fullSyncPrepared: true, chunkSyncPrepared: true, deltaSyncPrepared: true, bidirectionalSyncPlanned: true, activeWrites: false },
   limit: 500,
   hardLimit: 2000,
@@ -1019,11 +1020,19 @@ function sanitizeMediaInventoryItems(items, limit) {
     const extension = safeMediaExtension(source.extension || '');
     const kind = safeMediaKind(source.kind || source.type || '');
     if (!rootKey || !relativePath || !name || !extension || !kind) return null;
-    const publicPath = safePublicMediaPath(source.publicPath || `/${rootKey}/${relativePath}`);
+    const mediaContext = buildSafeMediaContext(source, rootKey, relativePath);
+    const publicPath = safePublicMediaPath(source.publicPath || mediaContext.publicPath || `/${rootKey}/${relativePath}`);
+    const webPath = safePublicMediaPath(source.webPath || publicPath);
     return {
       id: safeMediaId(source.id || `${rootKey}:${relativePath}`),
       rootKey,
       rootLabel: safeLabel(source.rootLabel || rootKey),
+      source: mediaContext.source,
+      moduleKey: mediaContext.moduleKey,
+      categoryKey: mediaContext.categoryKey,
+      fullCategoryKey: mediaContext.fullCategoryKey,
+      assetRelativePath: mediaContext.assetRelativePath,
+      webPath,
       kind,
       name,
       relativePath,
@@ -1040,7 +1049,8 @@ function buildMediaGroupsFromItems(items, sourceGroups) {
   const groups = {
     sounds: { prepared: true, exists: true, active: false, count: 0, items: [] },
     videos: { prepared: true, exists: true, active: false, count: 0, items: [] },
-    images: { prepared: true, exists: true, active: false, count: 0, items: [] }
+    images: { prepared: true, exists: true, active: false, count: 0, items: [] },
+    media: { prepared: true, exists: true, active: false, count: 0, items: [] }
   };
   for (const key of Object.keys(groups)) {
     const source = sourceGroups && sourceGroups[key] && typeof sourceGroups[key] === 'object' ? sourceGroups[key] : {};
@@ -1056,7 +1066,7 @@ function buildMediaGroupsFromItems(items, sourceGroups) {
 }
 
 function buildMediaCounts(items, sourceCounts) {
-  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length };
+  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, media: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length };
   const rawSkipped = sourceCounts && Number(sourceCounts.skipped);
   const rawTotalSeen = sourceCounts && Number(sourceCounts.totalSeen);
   if (Number.isFinite(rawSkipped) && rawSkipped >= 0) counts.skipped = Math.floor(rawSkipped);
@@ -1078,6 +1088,42 @@ function safeNonNegativeNumber(value) {
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0) return 0;
   return Math.floor(num);
+}
+
+function buildSafeMediaContext(source, rootKey, relativePath) {
+  const rel = safeRelativeMediaPath(relativePath);
+  const parts = rel.split('/').filter(Boolean);
+  const defaultModuleKey = rootKey === 'media' ? 'uncategorized' : rootKey;
+  const defaultCategoryKey = rootKey === 'media' ? 'general' : 'legacy';
+  const moduleKey = safeMediaSegment(source.moduleKey || (rootKey === 'media' ? parts[0] : defaultModuleKey), defaultModuleKey);
+  const categoryKey = safeMediaSegment(source.categoryKey || (rootKey === 'media' ? parts[1] : defaultCategoryKey), defaultCategoryKey);
+  const fullCategoryKey = safeMediaFullCategoryKey(source.fullCategoryKey || `${moduleKey}/${categoryKey}`, moduleKey, categoryKey);
+  const assetRelativePath = safeRelativeMediaPath(source.assetRelativePath || (rootKey === 'media' ? parts.slice(2).join('/') : rel) || rel);
+  const publicPath = safePublicMediaPath(source.publicPath || source.webPath || `/${rootKey}/${rel}`);
+  return {
+    source: safeMediaSource(source.source || (rootKey === 'media' ? 'media_system' : 'legacy_asset_root')),
+    moduleKey,
+    categoryKey,
+    fullCategoryKey,
+    assetRelativePath,
+    publicPath
+  };
+}
+
+function safeMediaSource(value) {
+  const source = safeStatus(value);
+  return ['legacy_asset_root', 'legacy_assets', 'media_system', 'agent_full_sync', 'local_stream_pc_filesystem_readonly'].includes(source) ? source : 'local_stream_pc_filesystem_readonly';
+}
+
+function safeMediaSegment(value, fallback) {
+  const raw = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '_').slice(0, 80);
+  return raw || fallback || 'uncategorized';
+}
+
+function safeMediaFullCategoryKey(value, moduleKey, categoryKey) {
+  const raw = String(value || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9_.\/-]/g, '_').slice(0, 180);
+  if (!raw || raw.includes('..') || /^[a-zA-Z]:/.test(raw) || raw.startsWith('~')) return `${moduleKey || 'uncategorized'}/${categoryKey || 'general'}`;
+  return raw;
 }
 
 function safeMediaRootKey(value) {
@@ -1334,9 +1380,29 @@ function sanitizeMediaFullSyncItem(item) {
   const kind = mediaKindForExtension(extension);
   if (!kind) return null;
   const name = safeLabel(source.name || relativePath.split('/').pop() || '');
-  const id = safeMediaId(`${rootKey}:${relativePath}`);
+  const id = safeMediaId(source.id || `${rootKey}:${relativePath}`);
   if (!id || !name) return null;
-  return { id, rootKey, kind, relativePath, name, extension, sizeBytes: safeNonNegativeNumber(source.sizeBytes), modifiedAt: safeIsoOrNull(source.modifiedAt) };
+  const mediaContext = buildSafeMediaContext(source, rootKey, relativePath);
+  const publicPath = safePublicMediaPath(source.publicPath || mediaContext.publicPath || `/${rootKey}/${relativePath}`);
+  const webPath = safePublicMediaPath(source.webPath || publicPath);
+  return {
+    id,
+    rootKey,
+    source: mediaContext.source,
+    moduleKey: mediaContext.moduleKey,
+    categoryKey: mediaContext.categoryKey,
+    fullCategoryKey: mediaContext.fullCategoryKey,
+    assetRelativePath: mediaContext.assetRelativePath,
+    webPath,
+    kind,
+    relativePath,
+    publicPath,
+    name,
+    extension,
+    sizeBytes: safeNonNegativeNumber(source.sizeBytes),
+    modifiedAt: safeIsoOrNull(source.modifiedAt),
+    readOnly: true
+  };
 }
 
 async function writeMediaFullSyncChunkToDatabase(config, items, syncVersion) {
