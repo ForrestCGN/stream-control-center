@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.69 - Media Index Remote-Agent Media-System Scan Plan`
+Aktueller Stand: `0.2.70 - Media Index Remote-Agent Media-System Scan Code Plan`
 
 ## Ergebnis
 
-0.2.69 dokumentiert den Plan, den Remote-Agent-Media-Scan fachlich an das neue lokale Media-System anzupassen.
+0.2.70 dokumentiert den konkreten Source-Aenderungsplan fuer `backend/modules/remote_agent.js`.
 
 ## Systemverstaendnis
 
@@ -53,7 +53,7 @@ videos -> htdocs/assets/videos
 images -> htdocs/assets/images
 ```
 
-## Entscheidung
+## Entscheidung / Plan
 
 Der spaetere RDAP-/Remote-Index-Scan soll beide Welten read-only erfassen:
 
@@ -76,7 +76,8 @@ categoryKey
 fullCategoryKey
 type/kind
 relativePath
-webPath
+assetRelativePath
+webPath/publicPath
 ```
 
 Fuer Legacy-Dateien:
@@ -89,7 +90,7 @@ categoryKey: passend oder legacy
 fullCategoryKey: legacy/<...>
 type/kind
 relativePath
-webPath
+webPath/publicPath
 ```
 
 ## Spaeterer Testpfad
@@ -98,15 +99,28 @@ webPath
 D:\Streaming\stramAssets\htdocs\assets\media\rdap-test\persistent-tombstone\rdap-persistent-tombstone-test-001.mp3
 ```
 
-Relativ:
+Relativ im neuen Media-System:
 
 ```text
 media/rdap-test/persistent-tombstone/rdap-persistent-tombstone-test-001.mp3
 ```
 
+Geplante Agent-Identitaet:
+
+```text
+id: media:rdap-test/persistent-tombstone/rdap-persistent-tombstone-test-001.mp3
+rootKey: media
+source: media_dir
+moduleKey: rdap-test
+categoryKey: persistent-tombstone
+fullCategoryKey: rdap-test/persistent-tombstone
+kind: audio
+mediaType: audio
+```
+
 ## Sicherheit
 
-0.2.69 war Doku-only.
+0.2.70 war Doku-only.
 
 ```text
 keine Source-Aenderung
@@ -122,11 +136,11 @@ kein Webserver-Deploy
 ## Naechster Block
 
 ```text
-RDAP_0.2.70_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_CODE_PLAN
+RDAP_0.2.71_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_CODE_PREP
 ```
 
 Ziel:
 
 ```text
-Konkreten Source-Aenderungsplan fuer backend/modules/remote_agent.js erstellen.
+Kleine Source-Aenderung in backend/modules/remote_agent.js vorbereiten/umsetzen.
 ```

@@ -1,21 +1,21 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.69
+## Naechster RDAP-Block nach 0.2.70
 
-`RDAP_0.2.70_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_CODE_PLAN`
+`RDAP_0.2.71_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_CODE_PREP`
 
 ## Ziel
 
-- Konkreten Source-Aenderungsplan fuer `backend/modules/remote_agent.js` erstellen.
+- `backend/modules/remote_agent.js` minimal anpassen.
 - Neues Media-System `assets/media/<module>/<category>` in den Remote-Agent-Media-Scan aufnehmen.
 - Legacy-Roots `assets/sounds`, `assets/videos`, `assets/images` weiter read-only erhalten.
-- Inventory-Items um sortierbare Dashboard-Felder planen:
+- Inventory-Items um sortierbare Dashboard-Felder ergaenzen:
   - `source`
   - `moduleKey`
   - `categoryKey`
   - `fullCategoryKey`
-  - `rootKey`
-  - `type/kind`
+  - `assetRelativePath`
+  - `webPath` / `publicPath`
 - Remote-Modboard/Remote-Index kompatibel halten.
 - Keine bestehenden Dateien verschieben oder loeschen.
 - Keine Testdatei anlegen.

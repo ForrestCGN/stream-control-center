@@ -2,12 +2,28 @@
 
 ## RDAP Media Index
 
-- [x] 0.2.68 Media-System-Alignment dokumentieren.
-- [x] 0.2.69 Remote-Agent Media-System Scan Plan dokumentieren.
-- [ ] 0.2.70 Source-Aenderungsplan fuer `backend/modules/remote_agent.js` erstellen.
-- [ ] Danach separater Code-Step: `assets/media/<module>/<category>` read-only mitscannen.
-- [ ] Legacy-Roots weiterhin read-only mitscannen.
-- [ ] Dashboard-/Remote-Index-Sortierung nach `source`, `moduleKey`, `categoryKey`, `fullCategoryKey`, `type/kind` pruefen.
-- [ ] Erst nach bestaetigtem Scan: dedizierte RDAP-Testdatei lokal anlegen.
-- [ ] Danach read-only Full-Sync/Preview pruefen.
-- [ ] Kein Execute ohne separate Freigabe.
+Aktuell erledigt:
+
+```text
+0.2.70 - Media Index Remote-Agent Media-System Scan Code Plan
+```
+
+Naechster Schritt:
+
+```text
+RDAP_0.2.71_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_CODE_PREP
+```
+
+Aufgaben fuer 0.2.71:
+
+```text
+- backend/modules/remote_agent.js lesen
+- media-Root read-only hinzufuegen
+- Legacy-Roots erhalten
+- Item-Kontextfelder hinzufuegen:
+  source, moduleKey, categoryKey, fullCategoryKey, assetRelativePath, webPath/publicPath
+- Syntax lokal pruefen
+- keine Testdatei
+- keine DB-Gates
+- kein Tombstone-Execute
+```
