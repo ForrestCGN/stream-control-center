@@ -8,10 +8,7 @@
   - Route: `POST /api/remote/media/index/tombstone/persistent/execute`
   - Stand: `RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION`
   - Status: 0.2.60 Noop-Execute mit Gates bestaetigt.
-  - 0.2.61: kein Code-Change, nur Testplan.
-  - 0.2.62: kein Code-Change, Testmethode Variante C entschieden.
-  - 0.2.63: kein Code-Change, Read-only Simulation Check bestaetigt.
-  - 0.2.64: kein Code-Change, Quelle fuer spaeteren candidateCount=1-Test entschieden.
+  - 0.2.61 bis 0.2.65: kein Code-Change, nur Planung/Doku/Read-only-Bestaetigung.
   - Schutz: local-only, confirmWrite, confirmTombstone, expectedCandidateCount, drei Env-Gates.
   - Soft-Delete-only vorbereitet.
   - Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
@@ -20,7 +17,7 @@
   - Agent-WSS-Runtime, Media-Inventory, Full-Sync Receiver.
   - Liefert Full-Sync-Compare-Snapshot als read-only In-Memory-Basis.
   - Lokaler Agent/Stream-PC bleibt Quelle fuer Media-Sync-Daten.
-  - Kein Online->Agent-Trigger in 0.2.64.
+  - Kein Online->Agent-Trigger in 0.2.65.
 
 - `remote-modboard/backend/src/services/db.service.js`
   - DB-Verbindungen und Gate-Scope fuer Media-Index Writes.
@@ -33,8 +30,8 @@
 - `backend/modules/remote_agent.js`
   - Lokaler Agent/Adapter.
   - Schließt `sounds/tts/generated/**` Audio-Dateien beim lokalen Media-Scan aus.
-  - Spaeter relevant fuer kontrollierte Testdaten-Quelle.
-  - 0.2.64 aendert diese Datei nicht.
+  - Spaeter relevant fuer dedizierte Test-Media-Datei.
+  - 0.2.65 aendert diese Datei nicht.
 
 - Lokaler Server / Dashboard:
   - `http://127.0.0.1:8080`
@@ -42,13 +39,9 @@
   - Kein lokaler Datei-Delete vom Modboard aus.
   - Kein Online->Agent-Trigger.
 
-## Spaeterer Testdaten-Pfad
-
-- Vorgeschlagen fuer spaeteren separaten Step:
+- Geplanter spaeterer relativer Testpfad:
   - `sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3`
-- In 0.2.64 nicht angelegt.
-- In 0.2.64 nicht verschoben.
-- In 0.2.64 nicht geloescht.
+  - In 0.2.65 nicht angelegt.
 
 ## RDAP / Remote-Modboard Media Index Cleanup
 
@@ -61,6 +54,8 @@
 
 ## Doku / Handoff
 
+- `docs/current/RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN.md`
+- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_65.md`
 - `docs/current/RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN.md`
 - `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_64.md`
 - `docs/current/RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK_CONFIRMED.md`

@@ -1,21 +1,21 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.64 - Media Index Persistent Tombstone Candidate One Test Source Plan`
+Aktueller Stand: `0.2.65 - Media Index Persistent Tombstone Test File Readonly Prep Plan`
 
 ## Ergebnis
 
-0.2.64 dokumentiert die Entscheidung fuer die spaetere Quelle eines echten `candidateCount=1`-Tests.
+0.2.65 dokumentiert die konkrete Read-only-Vorbereitung fuer die spaetere dedizierte Test-Media-Datei.
 
-Gewaehlte Variante:
+Gewaehlte spaetere Testquelle bleibt:
 
 ```text
 A: dedizierte Test-Media-Datei
 ```
 
-Reserve:
+Festgelegter relativer Testpfad fuer spaeter:
 
 ```text
-B: kontrollierte Test-DB-Zeile nur falls Variante A nicht sauber steuerbar ist.
+sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
 ```
 
 Es wurden keine Source-Dateien geaendert.
@@ -32,6 +32,7 @@ RDAP_0.2.61_MEDIA_INDEX_PERSISTENT_TOMBSTONE_REAL_CANDIDATE_TEST_PLAN
 RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION
 RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK_CONFIRMED
 RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN
+RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN
 ```
 
 ## Bestaetigte Routen
@@ -42,7 +43,7 @@ GET  /api/remote/media/index/tombstone/persistent/preview
 POST /api/remote/media/index/tombstone/persistent/execute
 ```
 
-## Bestaetigter 0.2.63-Read-only-Stand
+## Bestaetigter Read-only-Stand
 
 ```text
 fullSyncComparePrepared = true
@@ -70,21 +71,18 @@ Bewertung:
 Nicht gesetzt ist sicher, weil nur true/1/yes/on als aktiv zaehlt.
 ```
 
-## 0.2.64 Entscheidung
+## 0.2.65 Vorbereitung
 
-Fuer den spaeteren echten Kandidaten-Test wird Variante A bevorzugt:
-
-```text
-Dedizierte Test-Media-Datei
-```
-
-Vorgeschlagener relativer Testpfad fuer spaeter:
+Dokumentiert wurde:
 
 ```text
-sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
+- relativer Testpfad
+- spaeterer Ablauf fuer Testdatei-Anlage
+- spaeterer Ablauf fuer Missing-Situation
+- Rueckweg/Hold-Prinzip
+- read-only Pruefbefehle
+- Verbot aller Datei-/DB-/Gate-/Execute-Aktionen in 0.2.65
 ```
-
-Diese Datei wurde in 0.2.64 nicht angelegt.
 
 ## Systemtrennung
 
@@ -104,9 +102,10 @@ Remote-Modboard/Webserver:
 Lokales Dashboard/Agent/Stream-PC:
 
 ```text
-- lokale Media-Scans
+- lokaler Media-Scan
+- lokale Testdatei erst in spaeterem separatem Step
 - Full-Sync-Payloads
-- spaetere kontrollierte Test-Media-Datei
+- lokale Statusdaten
 ```
 
 Weiterhin gilt:
@@ -115,24 +114,24 @@ Weiterhin gilt:
 - Kein Online->Agent-Trigger.
 - Kein Remote-Ausloesen lokaler Dateiaktionen.
 - Kein Loeschen lokaler Dateien vom Modboard aus.
-- Kein Upload/Edit/Delete-Scope in diesem Block.
+- Kein Upload/Edit/Delete-Scope.
 ```
 
 ## Sicherheit
 
-- Kein DB-Write in 0.2.64.
-- Kein Soft-Delete in 0.2.64.
-- Keine Testdatei in 0.2.64.
+- Kein DB-Write in 0.2.65.
+- Kein Soft-Delete in 0.2.65.
 - Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
 - Kein Auto-Delete.
 - Gates bleiben aus.
+- Keine Testdatei wurde angelegt.
 
 ## Naechster sinnvoller RDAP-Block
 
 ```text
-RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN
+RDAP_0.2.66_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_CREATE_READONLY_SYNC_PLAN
 ```
 
-Ziel: konkrete Read-only-Vorbereitung fuer die dedizierte Test-Media-Datei planen, inklusive lokalem Pfad, Dateiname, Backup/Rueckweg und Webserver-Preview-Ablauf. Noch kein Execute.
+Ziel: konkreten lokalen Ausfuehrungsplan fuer das Anlegen der dedizierten Testdatei und read-only Sync/Preview vorbereiten, weiterhin ohne Tombstone-Write und ohne Gates.

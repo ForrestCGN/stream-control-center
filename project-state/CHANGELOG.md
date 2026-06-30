@@ -1,46 +1,50 @@
 # CHANGELOG
 
-## 0.2.64 - Media Index Persistent Tombstone Candidate One Test Source Plan
+## 0.2.65 - Media Index Persistent Tombstone Test File Readonly Prep Plan
 
-- Quelle fuer spaeteren echten `candidateCount=1`-Test entschieden.
-- Bevorzugte Variante: dedizierte Test-Media-Datei.
-- Kontrollierte Test-DB-Zeile bleibt Reserve.
-- Vorgeschlagener spaeterer relativer Testpfad dokumentiert: `sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3`.
-- Remote-Modboard/Webserver und lokales Dashboard/Agent weiter sauber getrennt dokumentiert.
+- Read-only-Vorbereitungsplan fuer die dedizierte Test-Media-Datei dokumentiert.
+- Relativer spaeterer Testpfad festgelegt: `sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3`.
+- Geplanten spaeteren Ablauf fuer Testdatei-Anlage, Missing-Situation, Preview und Rueckweg dokumentiert.
+- Backup-/Hold-/Rueckweg-Prinzip dokumentiert.
+- Remote-Modboard/Webserver und lokales Dashboard/Agent weiter getrennt gehalten.
 - Keine Source-Dateien geaendert.
-- Keine Test-Media-Datei angelegt.
-- Keine lokale Datei verschoben oder geloescht.
+- Keine Testdatei angelegt, verschoben oder geloescht.
 - Keine DB-Zeile veraendert.
 - Keine Gates aktiviert.
 - Kein echter Tombstone-Write ausgefuehrt.
 - Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
 
+## 0.2.64 - Media Index Persistent Tombstone Candidate One Test Source Plan
+
+- Quelle fuer spaeteren echten `candidateCount=1`-Test entschieden.
+- Variante A bevorzugt: dedizierte Test-Media-Datei.
+- Variante B als Reserve dokumentiert: kontrollierte Test-DB-Zeile nur falls A nicht sauber steuerbar ist.
+- Vorgeschlagener relativer Testpfad dokumentiert: `sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3`.
+- Keine Source-Dateien geaendert.
+- Keine Testdatei angelegt.
+- Keine DB-Zeile veraendert.
+- Keine Gates aktiviert.
+- Kein echter Tombstone-Write ausgefuehrt.
+
 ## 0.2.63 - Media Index Persistent Tombstone Readonly Simulation Check bestaetigt
 
-- Variante C read-only auf dem Webserver bestaetigt.
+- Variante C aus 0.2.62 auf dem Webserver read-only bestaetigt.
 - Diff-Status und Persistent Tombstone Preview gelesen.
-- Full-Sync-Compare vollstaendig und Missing-Diagnose zuverlaessig.
+- Full-Sync-Compare vollstaendig und Missing-Diagnose belastbar.
 - `persistentMediaMissingCandidateCount = 0` bestaetigt.
 - `previewPersistentCandidateCount = 0` bestaetigt.
 - `persistentTombstoneCandidates = []` bestaetigt.
-- Gate-Check ergab keine Ausgabe; Gates nicht gesetzt bzw. nicht aktiv.
+- Gate-Check ohne Ausgabe: Gates nicht gesetzt bzw. nicht aktiv.
 - Keine Source-Dateien geaendert.
-- Keine DB-Zeile veraendert.
-- Keine Datei geloescht.
-- Keine Gates aktiviert.
-- Kein echter Tombstone-Write ausgefuehrt.
+- Keine DB-/Dateiaenderung, keine Gates, kein Execute.
 
 ## 0.2.62 - Media Index Persistent Tombstone Test Method Decision
 
-- Kuerzeste sichere Testmethode entschieden: Variante C zuerst.
-- Variante C bedeutet reine Simulation / Read-only-Diagnose.
-- Kein echter Kandidat wird erzeugt.
+- Testmethode entschieden: Variante C zuerst, reine Simulation / Read-only-Diagnose.
+- Kein echter Kandidat erzeugt.
 - Kein `candidateCount=1`-Test in diesem Step.
 - Keine Source-Dateien geaendert.
-- Keine DB-Zeile veraendert.
-- Keine Datei geloescht.
-- Keine Gates aktiviert.
-- Kein echter Tombstone-Write ausgefuehrt.
+- Keine DB-/Dateiaenderung, keine Gates, kein Execute.
 
 ## 0.2.61 - Media Index Persistent Tombstone Real Candidate Test Plan
 
@@ -66,16 +70,4 @@
 - Readback bestaetigt: `readBackCandidateCount=0`.
 - `auditWritten=false`, da Noop ohne DB-Write.
 - Gates danach wieder deaktiviert und per Env-Check bestaetigt.
-- Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
-
-## 0.2.59 - Media Index Persistent Tombstone gated Execute Foundation
-
-- `POST /api/remote/media/index/tombstone/persistent/execute` ergaenzt.
-- Execute local-only, Confirm-Write, Confirm-Tombstone und `expectedCandidateCount` geschuetzt.
-- Execute braucht drei Gates:
-  - `MEDIA_INDEX_WRITE_ENABLED=true`
-  - `MEDIA_INDEX_DATA_WRITE_ENABLED=true`
-  - `MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=true`
-- Execute bleibt Soft-Delete-only vorbereitet.
-- Confirm-Block und Gate-Block auf Webserver bestaetigt.
 - Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.

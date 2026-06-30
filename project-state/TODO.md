@@ -32,10 +32,11 @@
 - [x] Persistent Tombstone Noop-Execute mit Gates bestaetigen
 - [x] Echten persistenten Tombstone-Kandidaten sicher planen/erzeugen/simulieren
 - [x] Testmethode fuer echten persistenten Tombstone-Kandidaten entscheiden
-- [x] Read-only Simulation/Diagnose fuer Variante C bestaetigen
-- [x] Quelle fuer spaeteren candidateCount=1-Test entscheiden
-- [ ] Dedizierte Test-Media-Datei read-only vorbereiten
-- [ ] Kontrollierten candidateCount=1 Preview-Test nur nach separater Freigabe planen/testen
+- [x] Read-only Simulation fuer Persistent Tombstone bestaetigen
+- [x] candidateCount=1 Testquelle planen
+- [x] Testdatei-Read-only-Vorbereitung planen
+- [ ] Lokalen Ausfuehrungsplan fuer Testdatei-Anlage und read-only Sync vorbereiten
+- [ ] Testdatei lokal anlegen und read-only Full-Sync/Preview pruefen nur nach separater Freigabe
 - [ ] Produktiven Persistent Tombstone Write nur nach separater Freigabe testen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen

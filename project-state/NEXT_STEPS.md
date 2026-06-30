@@ -1,16 +1,16 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.64
+## Naechster RDAP-Block nach 0.2.65
 
-`RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN`
+`RDAP_0.2.66_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_CREATE_READONLY_SYNC_PLAN`
 
 ## Ziel
 
-- Konkrete Read-only-Vorbereitung fuer die dedizierte Test-Media-Datei planen.
-- Lokalen Testpfad festlegen.
-- Testdateiname festlegen.
-- Backup-/Rueckweg fuer die Testdatei festlegen.
-- Ablauf fuer Full-Sync/Preview dokumentieren.
+- Konkreten lokalen Ausfuehrungsplan fuer die dedizierte Test-Media-Datei erstellen.
+- Lokalen absoluten Pfad pruefen lassen, nicht raten.
+- Testdateiname bleibt eindeutig.
+- Hold-/Backup-/Rueckweg festlegen.
+- Ablauf fuer lokale Anlage, Full-Sync und Preview dokumentieren.
 - Kein produktiver Write.
 - Kein physisches Loeschen.
 - Kein Auto-Delete.
@@ -19,12 +19,12 @@
 
 ## Ausgangspunkt
 
-0.2.64 ist ein Doku-/Plan-Step.
+0.2.65 ist ein Doku-/Vorbereitungs-Step.
 
-Entscheidung:
+Festgelegt:
 
 ```text
-A: dedizierte Test-Media-Datei fuer spaeteren candidateCount=1-Test bevorzugt.
+sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
 ```
 
 Bestaetigt bleibt:
@@ -37,20 +37,14 @@ previewPersistentCandidateCount = 0.
 Gates nicht gesetzt / nicht aktiv.
 ```
 
-## Vorgeschlagener spaeterer Testpfad
+## Wichtig fuer 0.2.66
+
+0.2.66 soll den lokalen Ausfuehrungsplan konkretisieren.
+
+Weiterhin verboten ohne separaten Ausfuehrungs-Go:
 
 ```text
-sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
-```
-
-## Wichtig
-
-0.2.65 soll weiterhin nur vorbereiten, nicht ausfuehren.
-
-Weiterhin verboten:
-
-```text
-- keine Testdatei anlegen ohne separates go
+- keine Testdatei anlegen
 - keine lokale Datei verschieben
 - keine lokale Datei loeschen
 - keine DB-Zeile veraendern
@@ -64,4 +58,14 @@ Weiterhin verboten:
 
 ## Danach moeglich
 
-Wenn 0.2.65 sauber vorbereitet ist, spaeter separater Step fuer kontrollierte lokale Testdatei-Anlage und read-only Full-Sync/Preview-Test.
+Wenn 0.2.66 sauber vorbereitet ist, spaeter separater Step:
+
+```text
+- Testdatei lokal anlegen
+- Full-Sync/Preview read-only pruefen
+- Testdatei kontrolliert in Hold-Pfad verschieben
+- Full-Sync/Preview read-only pruefen
+- candidateCount=1 nur fuer diese Testdatei bestaetigen
+- Rueckweg pruefen
+- weiterhin kein Execute
+```
