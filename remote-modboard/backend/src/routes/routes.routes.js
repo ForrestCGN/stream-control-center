@@ -58,6 +58,7 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/media/status', description: 'Media-System Status inkl. 0.2.56 remote_media_index Read-Source, Agent-Memory-Fallback und Media-Index Write-Gates; keine Uploads, keine Deletes' },
         { method: 'GET', path: '/api/remote/media/index/write-gate/status', description: 'Media-Index Write-Gate Status; zeigt separate MEDIA_INDEX_* Gates ohne Writes' },
         { method: 'GET', path: '/api/remote/media/index/schema/status', description: 'Media-Index Schema-Status; read-only INFORMATION_SCHEMA Diagnose' },
+        { method: 'GET', path: '/api/remote/media/index/context/list', description: 'RDAP 0.2.94 read-only Media-Index Kontext-/Kategorie-Liste aus remote_media_index; filterbar, keine Writes' },
         { method: 'POST', path: '/api/remote/media/index/schema/prepare', description: 'Media-Index Schema-Prepare; local-only, confirmWrite+schemaOnly und MEDIA_INDEX_SCHEMA_WRITE_ENABLED erforderlich; disabled by default' },
         { method: 'GET', path: '/', description: 'Remote-Modboard UI' },
         { method: 'GET', path: '/remote', description: 'Remote-Modboard UI Alias' },

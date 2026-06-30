@@ -24,11 +24,17 @@ const CONFIRM_UPSERT_TEXT = 'RDAP_0.2.89_CONFIRM_MEDIA_INDEX_UPSERT_WITH_CONTEXT
 const CONFIRM_SCHEMA_EXTENSION_TEXT = 'RDAP_0.2.87_CONFIRM_MEDIA_INDEX_SCHEMA_EXTENSION';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
 const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
+const CONTEXT_LIST_ROUTE = '/api/remote/media/index/context/list';
+const CONTEXT_STATUS_API_VERSION = 'rdap_media_index_db_context_read_api_094.v1';
+const CONTEXT_BUILD = 'RDAP_0.2.94_MEDIA_INDEX_DB_CONTEXT_READ_API_READONLY';
 const AUDIT_TABLE = 'dashboard_audit_log';
 const CONFIRM_PERSISTENT_TOMBSTONE_TEXT = 'RDAP_0.2.59_CONFIRM_PERSISTENT_TOMBSTONE_EXECUTE';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
 const MAX_PREVIEW_LIMIT = 50;
+const DEFAULT_CONTEXT_LIST_LIMIT = 50;
+const MAX_CONTEXT_LIST_LIMIT = 200;
+const MAX_CONTEXT_LIST_OFFSET = 5000;
 const MAX_DB_ROWS = 2000;
 const MODIFIED_AT_TOLERANCE_MS = 1500;
 const MODIFIED_AT_SOFT_OFFSET_TOLERANCE_MS = 5000;
@@ -55,6 +61,11 @@ const MEDIA_INDEX_SCHEMA_EXTENSION_COLUMNS = Object.freeze([
 function registerMediaIndexDiffRoutes(app, context) {
   app.get(ROUTE, async (req, res) => {
     const result = await buildMediaIndexDiffStatus(context, req);
+    res.status(result.httpStatus || 200).json(result.body || result);
+  });
+
+  app.get(CONTEXT_LIST_ROUTE, async (req, res) => {
+    const result = await buildMediaIndexContextListStatus(context, req);
     res.status(result.httpStatus || 200).json(result.body || result);
   });
 
@@ -199,6 +210,90 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
       : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.77 akzeptiert zusaetzlich den Media-System-Root media und erhaelt Kontextfelder fuer Diff-/Preview-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
+}
+
+
+async function buildMediaIndexContextListStatus(context = {}, req = null) {
+  const generatedAt = new Date().toISOString();
+  const parsed = parseContextListQuery(req);
+  const base = {
+    service: 'remote-modboard',
+    module: 'remote_media_index_context_list_readonly',
+    moduleVersion: context.appVersion || '0.2.59',
+    moduleBuild: CONTEXT_BUILD,
+    appModuleBuild: context.moduleBuild || null,
+    routeBuild: CONTEXT_BUILD,
+    previousRouteBuild: BUILD,
+    statusApiVersion: CONTEXT_STATUS_API_VERSION,
+    previousStatusApiVersion: STATUS_API_VERSION,
+    route: CONTEXT_LIST_ROUTE,
+    generatedAt,
+    readOnly: true,
+    writeEnabled: false,
+    databaseWritesEnabled: false,
+    databaseWriteExecuted: false,
+    table: PERSISTENT_INDEX_TABLE
+  };
+
+  if (!parsed.ok) {
+    return {
+      httpStatus: 400,
+      body: {
+        ...base,
+        ok: false,
+        status: parsed.status,
+        error: parsed.status,
+        filters: parsed.filters,
+        limit: parsed.limit,
+        offset: parsed.offset,
+        count: 0,
+        total: 0,
+        items: [],
+        counts: buildEmptyContextListCounts(),
+        safety: buildContextListSafetyBlock(),
+        note: 'Media-Index-Context-List ist read-only. Ungueltige Filter werden abgewiesen; es wurden keine Writes ausgefuehrt.'
+      }
+    };
+  }
+
+  try {
+    const data = await readMediaIndexContextList(context.config || {}, parsed.filters, parsed.limit, parsed.offset);
+    return {
+      ok: true,
+      ...base,
+      status: 'media_index_context_list_available_readonly',
+      filters: parsed.filters,
+      limit: parsed.limit,
+      offset: parsed.offset,
+      count: data.items.length,
+      total: data.total,
+      hasMore: parsed.offset + data.items.length < data.total,
+      items: data.items,
+      counts: data.counts,
+      safety: buildContextListSafetyBlock(),
+      note: 'Diese Route liest remote_media_index read-only mit sicheren Filtern. Sie schreibt nichts, aktiviert keine Gates und triggert keine Agent- oder Dateiaktion.'
+    };
+  } catch (err) {
+    const code = publicDbError(err).code || 'media_index_context_list_db_read_failed';
+    return {
+      httpStatus: 200,
+      body: {
+        ...base,
+        ok: false,
+        status: code,
+        error: code,
+        filters: parsed.filters,
+        limit: parsed.limit,
+        offset: parsed.offset,
+        count: 0,
+        total: 0,
+        items: [],
+        counts: buildEmptyContextListCounts(),
+        safety: buildContextListSafetyBlock(),
+        note: 'Media-Index-Context-List konnte die DB nicht read-only lesen. Es wurden keine Writes ausgefuehrt.'
+      }
+    };
+  }
 }
 
 
@@ -1970,6 +2065,206 @@ function buildFullSyncCompareStatus({ snapshot, dbInventory, previewLimit }) {
   };
 }
 
+
+function parseContextListQuery(req) {
+  const query = req && req.query && typeof req.query === 'object' ? req.query : {};
+  const filters = {};
+  const errors = [];
+
+  if (hasQueryValue(query.root_key)) {
+    const rootKey = safeRootKey(query.root_key);
+    if (!rootKey) errors.push('invalid_root_key');
+    else filters.rootKey = rootKey;
+  }
+
+  if (hasQueryValue(query.kind)) {
+    const kind = safeContextListKind(query.kind);
+    if (!kind) errors.push('invalid_kind');
+    else filters.kind = kind;
+  }
+
+  if (hasQueryValue(query.module_key)) {
+    const moduleKey = safeMediaContextKey(query.module_key, '');
+    if (!moduleKey) errors.push('invalid_module_key');
+    else filters.moduleKey = moduleKey;
+  }
+
+  if (hasQueryValue(query.category_key)) {
+    const categoryKey = safeMediaContextKey(query.category_key, '');
+    if (!categoryKey) errors.push('invalid_category_key');
+    else filters.categoryKey = categoryKey;
+  }
+
+  if (hasQueryValue(query.full_category_key)) {
+    const fullCategoryKey = safeContextListPathFilter(query.full_category_key);
+    if (!fullCategoryKey) errors.push('invalid_full_category_key');
+    else filters.fullCategoryKey = fullCategoryKey;
+  }
+
+  const limit = readContextListLimit(req);
+  const offset = readContextListOffset(req);
+  return {
+    ok: errors.length === 0,
+    status: errors.length ? errors.join(',') : 'ok',
+    filters,
+    limit,
+    offset
+  };
+}
+
+async function readMediaIndexContextList(config, filters, limit, offset) {
+  return await withReadOnlyConnection(config, async (connection) => {
+    const where = ['deleted = 0'];
+    const params = [];
+    appendContextFilter(where, params, 'root_key', filters.rootKey);
+    appendContextFilter(where, params, 'kind', filters.kind);
+    appendContextFilter(where, params, 'module_key', filters.moduleKey);
+    appendContextFilter(where, params, 'category_key', filters.categoryKey);
+    appendContextFilter(where, params, 'full_category_key', filters.fullCategoryKey);
+    const whereSql = where.join(' AND ');
+
+    const selectSql = `SELECT id, root_key, kind, relative_path, name, extension, size_bytes, modified_at, last_seen_at, source, sync_version,
+              module_key, category_key, full_category_key, asset_relative_path, web_path, public_path
+         FROM ${PERSISTENT_INDEX_TABLE}
+        WHERE ${whereSql}
+        ORDER BY root_key ASC, module_key ASC, category_key ASC, full_category_key ASC, relative_path ASC
+        LIMIT ? OFFSET ?`;
+    const [rows] = await connection.query(selectSql, [...params, limit, offset]);
+    const [countRows] = await connection.query(`SELECT COUNT(*) AS total_count FROM ${PERSISTENT_INDEX_TABLE} WHERE ${whereSql}`, params);
+    const counts = await readMediaIndexContextCounts(connection, whereSql, params);
+    const items = (Array.isArray(rows) ? rows : []).map(sanitizeContextListRow).filter(Boolean);
+    const total = safeNonNegativeNumber(countRows && countRows[0] && countRows[0].total_count ? countRows[0].total_count : items.length);
+    return { items, total, counts };
+  });
+}
+
+async function readMediaIndexContextCounts(connection, whereSql, params) {
+  return {
+    byRoot: await readGroupedContextCount(connection, whereSql, params, 'root_key'),
+    byKind: await readGroupedContextCount(connection, whereSql, params, 'kind'),
+    byModule: await readGroupedContextCount(connection, whereSql, params, 'module_key'),
+    byCategory: await readGroupedContextCount(connection, whereSql, params, 'category_key'),
+    byFullCategory: await readGroupedContextCount(connection, whereSql, params, 'full_category_key')
+  };
+}
+
+async function readGroupedContextCount(connection, whereSql, params, columnName) {
+  const allowedColumns = new Set(['root_key', 'kind', 'module_key', 'category_key', 'full_category_key']);
+  if (!allowedColumns.has(columnName)) return {};
+  const [rows] = await connection.query(
+    `SELECT COALESCE(${columnName}, '') AS group_key, COUNT(*) AS count_value
+       FROM ${PERSISTENT_INDEX_TABLE}
+      WHERE ${whereSql}
+      GROUP BY ${columnName}
+      ORDER BY count_value DESC, group_key ASC
+      LIMIT 200`,
+    params
+  );
+  const result = {};
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const key = safeContextCountKey(row.group_key) || 'uncategorized';
+    result[key] = safeNonNegativeNumber(row.count_value);
+  }
+  return result;
+}
+
+function appendContextFilter(where, params, columnName, value) {
+  if (!value) return;
+  where.push(`${columnName} = ?`);
+  params.push(value);
+}
+
+function sanitizeContextListRow(row) {
+  const source = row && typeof row === 'object' && !Array.isArray(row) ? row : {};
+  const rootKey = safeRootKey(source.root_key);
+  const relativePath = safeRelativePath(source.relative_path);
+  if (!rootKey || !relativePath) return null;
+  const item = {
+    id: safeMediaId(source.id || `${rootKey}:${relativePath}`),
+    rootKey,
+    kind: safeContextListKind(source.kind) || safeKind(source.kind),
+    relativePath,
+    name: safeString(source.name, 180),
+    extension: safeExtension(source.extension || path.extname(relativePath)),
+    sizeBytes: safeNonNegativeNumber(source.size_bytes),
+    modifiedAt: safeIsoOrNull(source.modified_at),
+    lastSeenAt: safeIsoOrNull(source.last_seen_at),
+    source: safeMediaContextKey(source.source, rootKey === 'media' ? 'media_system' : 'legacy_asset_root'),
+    moduleKey: safeMediaContextKey(source.module_key, rootKey === 'media' ? 'general' : rootKey),
+    categoryKey: safeMediaContextKey(source.category_key, rootKey === 'media' ? 'general' : 'legacy'),
+    fullCategoryKey: safeContextListPathFilter(source.full_category_key) || 'uncategorized/general',
+    assetRelativePath: safeRelativePath(source.asset_relative_path || relativePath),
+    webPath: safePublicMediaPath(source.web_path),
+    publicPath: safePublicMediaPath(source.public_path || source.web_path),
+    syncVersion: safeNonNegativeNumber(source.sync_version),
+    readOnly: true,
+    writeEnabled: false
+  };
+  if (!item.id) return null;
+  return item;
+}
+
+function buildEmptyContextListCounts() {
+  return { byRoot: {}, byKind: {}, byModule: {}, byCategory: {}, byFullCategory: {} };
+}
+
+function buildContextListSafetyBlock() {
+  return {
+    readOnly: true,
+    writesEnabled: false,
+    databaseWritesEnabled: false,
+    databaseWriteExecuted: false,
+    uploadEditDeleteEnabled: false,
+    noFileContent: true,
+    noAbsolutePaths: true,
+    noOnlineToAgentActions: true,
+    noAgentTrigger: true,
+    noUpsert: true,
+    noInsert: true,
+    noUpdate: true,
+    noDelete: true,
+    noHardDelete: true,
+    noPhysicalDelete: true,
+    secretsExposed: false
+  };
+}
+
+function hasQueryValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function readContextListLimit(req) {
+  const raw = req && req.query ? Number.parseInt(String(req.query.limit || ''), 10) : 0;
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_CONTEXT_LIST_LIMIT;
+  return Math.max(1, Math.min(raw, MAX_CONTEXT_LIST_LIMIT));
+}
+
+function readContextListOffset(req) {
+  const raw = req && req.query ? Number.parseInt(String(req.query.offset || ''), 10) : 0;
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+  return Math.max(0, Math.min(raw, MAX_CONTEXT_LIST_OFFSET));
+}
+
+function safeContextListKind(value) {
+  const kind = safeStatus(value);
+  if (['audio', 'video', 'image', 'media'].includes(kind)) return kind;
+  return '';
+}
+
+function safeContextListPathFilter(value) {
+  const raw = String(value || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 180);
+  if (!raw || raw.includes('..') || /^[a-zA-Z]:/.test(raw) || raw.startsWith('~') || raw.startsWith('http://') || raw.startsWith('https://')) return '';
+  const parts = raw.split('/').filter(Boolean).map(part => safeMediaContextKey(part, '')).filter(Boolean);
+  return parts.length ? parts.join('/').slice(0, 180) : '';
+}
+
+function safeContextCountKey(value) {
+  const raw = String(value || '').replace(/\\/g, '/').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 180);
+  if (!raw) return '';
+  if (raw.includes('/')) return safeContextListPathFilter(raw);
+  return safeMediaContextKey(raw, '');
+}
+
 async function readPersistentIndexItems(config) {
   return await withReadOnlyConnection(config, async (connection) => {
     const [rows] = await connection.query(
@@ -2755,4 +3050,4 @@ function dateMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-module.exports = { registerMediaIndexDiffRoutes, buildMediaIndexDiffStatus, buildMediaIndexUpsertPreviewStatus, buildPersistentTombstonePreviewStatus, executePersistentTombstoneFoundation };
+module.exports = { registerMediaIndexDiffRoutes, buildMediaIndexDiffStatus, buildMediaIndexContextListStatus, buildMediaIndexUpsertPreviewStatus, buildPersistentTombstonePreviewStatus, executePersistentTombstoneFoundation };
