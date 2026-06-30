@@ -1,6 +1,6 @@
 # TODO
 
-- [x] 0.2.116: Audit Log Admin Area Readonly UI.
 - [x] 0.2.116B: Audit Log Admin UI Compact.
-- [ ] 0.2.117: Audit Log Admin UI Compact Deploy Verify.
+- [x] 0.2.116C: Audit Log Human Labels.
+- [ ] 0.2.117: Audit Log Human Labels Deploy Verify.
 - [ ] Spaeter: Audit-Retention-Policy festlegen.

@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.116B - Audit Log Admin UI Compact`
+Aktueller Stand: `0.2.116C - Audit Log Human Labels`
 
 ## Kurzfazit
 
-Audit-Log Admin-Ansicht ist kompakter.
+Audit-Log Admin-Ansicht ist jetzt menschenlesbarer.
 
 ```text
 Admin -> Aktivitaets-Log
@@ -13,10 +13,10 @@ Admin -> Aktivitaets-Log
 ## Geaendert
 
 ```text
-1 Zeile pro Eintrag
-Details erst auf Klick
-Retention-Hinweis kompakt
-Default-Limit 25
+technische Action nur noch in Details
+Liste zeigt verstaendliche Texte
+Systemeintraege werden als System angezeigt
+Status deutsch
 ```
 
 ## Wichtig

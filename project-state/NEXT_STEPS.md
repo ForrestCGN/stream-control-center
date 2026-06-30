@@ -2,7 +2,7 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.117_AUDIT_LOG_ADMIN_UI_COMPACT_DEPLOY_VERIFY`
+`RDAP_0.2.117_AUDIT_LOG_HUMAN_LABELS_DEPLOY_VERIFY`
 
 ## Ziel
 
@@ -10,17 +10,17 @@ Live pruefen:
 
 ```text
 Admin -> Aktivitaets-Log
-kompakte Zeilen
-Details-Klick
+menschenlesbare Aktionen
+Details-Klick zeigt Technik
 Filter
-Retention-Hinweis kompakt
+Retention-Hinweis
 ```
 
 ## Danach
 
 ```text
 Retention-Policy entscheiden
-oder Admin/User-Bereich weiter ausbauen
+oder weitere Admin-Bereiche ausbauen
 ```
 
 ## Regeln
