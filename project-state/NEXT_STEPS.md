@@ -1,43 +1,50 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Schritt nach 0.2.59
+## Naechster RDAP-Block nach 0.2.60
 
-Zuerst 0.2.59 lokal installieren, `stepdone.cmd` ausfuehren und auf dem Webserver deployen/testen.
+`RDAP_0.2.61_MEDIA_INDEX_PERSISTENT_TOMBSTONE_REAL_CANDIDATE_TEST_PLAN`
 
-Webserver-Deploy:
+## Ziel
 
-```bash
-bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION dev
-```
+- Sicher planen, wie ein echter persistenter Missing/Tombstone-Kandidat kontrolliert erzeugt oder simuliert wird.
+- Kein produktiver Write in diesem Plan-Step.
+- Kein physisches Loeschen.
+- Kein Auto-Delete.
+- Kein Online->Agent-Trigger.
+- Backup/Rollback-Konzept vor jedem echten Test.
+- Erst read-only klaeren, welche Testmethode sicher ist.
 
-Tests:
+## Ausgangspunkt
 
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/media/index/diff/status | jq '.statusApiVersion, .routeBuild, .readOnly, .reliability.missingOnAgentReliable, .missingClassification.persistentMediaMissingCandidateCount'
-
-curl -fsS http://127.0.0.1:3010/api/remote/media/index/tombstone/persistent/preview | jq '.statusApiVersion, .routeBuild, .readOnly, .writeEnabled, .executeRoutePrepared, .databaseWriteExecuted, .counts, .note'
-
-curl -fsS -X POST http://127.0.0.1:3010/api/remote/media/index/tombstone/persistent/execute -H 'Content-Type: application/json' -d '{}' | jq '.statusApiVersion, .routeBuild, .ok, .reason, .writeExecuted, .databaseWriteExecuted, .softDeleteExecuted'
-```
-
-Erwartung fuer Execute ohne Body:
+0.2.60 ist bestaetigt:
 
 ```text
-ok = false
-reason = confirm_write_required
-writeExecuted = false
-databaseWriteExecuted = false
-softDeleteExecuted = false
+Execute-Route vorhanden.
+Confirm-Block funktioniert.
+Gate-Block funktioniert.
+Noop mit Gates und expectedCandidateCount=0 funktioniert.
+Gates danach wieder aus.
 ```
 
-## Danach moeglich
+## Wichtig
 
-`RDAP_0.2.60_MEDIA_INDEX_DELTA_UPSERT_GATED_PLAN`
+Produktiver Tombstone-Write fuer persistente Media-Dateien erst, wenn:
 
-Ziel:
+```text
+- echte Kandidaten bewusst und sicher erzeugt oder bestaetigt sind
+- Preview candidateCount stimmt
+- expectedCandidateCount exakt passt
+- Gates bewusst gesetzt werden
+- Confirm-Text passt
+- Audit/Readback geprueft wird
+- Backup/Rollback geklaert ist
+```
 
-- Gated Delta-Upsert fuer echte Hard-Changes sauber planen.
-- Kein Auto-Upsert.
-- Kein Online->Agent-Trigger.
-- Keine Datei-Inhalte.
-- Keine absoluten lokalen Pfade.
+Weiterhin verboten:
+
+```text
+- kein Hard-Delete
+- kein physisches Loeschen
+- kein Online->Agent-Trigger
+- kein Blind-Auto-Sync
+```

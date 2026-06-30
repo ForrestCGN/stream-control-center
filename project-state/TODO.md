@@ -26,12 +26,12 @@
 - [x] TTS Legacy-DB-Cleanup gated bauen
 - [x] TTS Legacy-DB-Cleanup auf Webserver bestaetigen
 - [x] Normale persistent geloeschte Media-Dateien read-only Tombstone-Plan bauen
-- [x] Reliability-Note fuer Full-Sync-Compare korrigieren
-- [x] Persistent Tombstone gated Plan dokumentieren
-- [x] Persistent Tombstone read-only Preview-Route bauen
-- [x] 0.2.58P Webserver-Test bestaetigen
-- [x] Tombstone-Gate/Confirm/Audit/Lock/Readback fuer persistente Media-Dateien separat bauen
-- [ ] 0.2.59 Webserver-Test bestaetigen
+- [x] Diff-Reliability-Note bei vollstaendigem Full-Sync korrigieren
+- [x] Persistent Tombstone Preview-Route bauen
+- [x] Persistent Tombstone Execute-Foundation gated bauen
+- [x] Persistent Tombstone Noop-Execute mit Gates bestaetigen
+- [ ] Echten persistenten Tombstone-Kandidaten sicher planen/erzeugen/simulieren
+- [ ] Produktiven Persistent Tombstone Write nur nach separater Freigabe testen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen
 - [ ] Alert-System Arbeiten separat fortsetzen
