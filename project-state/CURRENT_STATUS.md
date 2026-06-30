@@ -1,10 +1,26 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.106 - Media Picker Module Docs Closeout`
+Aktueller Stand: `0.2.107 - Remote Modboard Scope Selection and System Map`
 
 ## Kurzfazit
 
-Der Media-Picker-Block ist als read-only Stand abgeschlossen und in die Modul-Doku ueberfuehrt.
+0.2.107 ist ein Doku-only Scope-Schnitt.
+
+Der Media-Picker-Block bleibt abgeschlossen. Der naechste Runtime-Bereich soll bewusst gewaehlt werden.
+
+## Bestaetigter Media-Picker-Stand
+
+Der Media-Picker ist abgeschlossen als:
+
+```text
+read-only
+mod-tauglich
+online/lokal angeglichen
+dokumentiert
+ohne Writes
+ohne Gates
+ohne Agent-Actions
+```
 
 Modul-Doku:
 
@@ -12,97 +28,72 @@ Modul-Doku:
 docs/modules/media-picker.md
 ```
 
-## Bestaetigter Stand
-
-Online:
-- Media-Picker seit 0.2.101 live ok.
-- Context-Read-API online aktiv:
-  `GET /api/remote/media/index/context/list`
-- Online `root_key=media` bestaetigt mit `total=412`.
-- Keine DB-Writes, keine Gates, keine Upload/Edit/Delete-Aktion, keine Agent-Aktion.
-
-Lokal:
-- 0.2.104 hat lokale Dashboard-v2 Media-UI an den Online-Picker angeglichen.
-- Lokaler Adapter liefert:
-  `GET /api/remote/media/index/context/list`
-- Lokale Route nutzt bestehendes lokales Media-Inventar read-only.
-- Lokale Route unterstuetzt:
-  `root_key`, `module_key`, `category_key`, `full_category_key`, `kind`, `limit`, `offset`.
-- Lokale Syntaxchecks waren sauber.
-- Lokale Context-Route lieferte:
-  `total=412`, `count=25`, `readOnly=True`, `writeEnabled=False`, `databaseWriteExecuted=False`.
-- Lokale Browserpruefung:
-  `Media-System funktioniert wie im ModBoard.`
-- Kein Webserver-Deploy noetig.
-
-## Relevante Runtime-Dateien
-
-Online:
+Systemkarte:
 
 ```text
-remote-modboard/backend/public/assets/modules/media/library.js
-remote-modboard/backend/src/routes/media-index-diff.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
+docs/current/RDAP_0.2.107_REMOTE_MODBOARD_SCOPE_SELECTION_AND_SYSTEM_MAP.md
 ```
 
-Lokal:
+## Runtime-Status
+
+0.2.107 aendert keine Runtime-Dateien.
 
 ```text
-backend/modules/local_remote_modboard_adapter.js
-htdocs/dashboard-v2/assets/modules/media/library.js
+kein Backend
+kein Frontend
+kein Adapter
+keine DB
+keine Gates
+keine Agent-Actions
+kein Webserver-Deploy
 ```
 
-## Sichtbare Mod-Begriffe
+## Systemgrenzen
+
+### Media-Picker
 
 ```text
-Bereich
-Ordner
-Dateityp
-Anzahl
-Anzeigen
-Filter zuruecksetzen
-Zurueck
-Weiter
+abgeschlossen
+read-only
+nicht nebenbei erweitern
 ```
 
-In der Hauptansicht vermeiden:
+### Lokales Dashboard-v2
 
 ```text
-Root
-Kind
-Full Category
-Kontext-API
-remote_media_index
-DB
-Writes
-Agent-Diagnose
-absolute Pfade
+Media-Picker angeglichen
+read-only
+Browser-Test bestaetigt
 ```
 
-## Sicherheit
-
-Weiterhin verboten ohne separaten Plan + Go:
+### Remote-Modboard online
 
 ```text
-kein Gate aktivieren
-keine DB-Zeilen veraendern
-keine Migration
-kein Tombstone-Execute
-kein Hard-Delete
-kein physisches Loeschen
-kein Online->Agent-Trigger
-keine Upload/Edit/Delete-Aktion
-keine Dateiaktion vom Webserver zum Stream-PC
-keine zweite lokale UI
+UI-Wahrheit
+kein Online->Agent Datei-Trigger
+```
+
+### Agent / Sync / Permission
+
+```text
+nur eigener Scope
+```
+
+### DB / Writes / Gates
+
+```text
+nur eigener Write-Scope mit Permission/Confirm/Audit/Lock/Readback
 ```
 
 ## Naechster sinnvoller Block
 
 ```text
-RDAP_0.2.107_NEXT_SYSTEM_SCOPE_SELECTION
+RDAP_0.2.108_NEXT_RUNTIME_SCOPE_PLAN
 ```
 
 Ziel:
-- naechsten Projektbereich bewusst auswaehlen,
-- Media-Picker nicht weiter nebenbei aufblasen,
-- bei neuem Runtime-Scope wieder echte Dateien lesen, Plan nennen, auf `go` warten.
+- naechsten Runtime-Bereich bewusst auswaehlen,
+- relevante Dateien lesen,
+- Plan nennen,
+- auf `go` warten,
+- dann erst ZIP.
