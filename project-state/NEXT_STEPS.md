@@ -2,60 +2,47 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.94_MEDIA_INDEX_DB_CONTEXT_READ_API_READONLY`
+`RDAP_0.2.96_MEDIA_PICKER_READONLY_PLAN`
 
 ## Ausgangslage
 
-`RDAP_0.2.93_MEDIA_INDEX_POST_UPSERT_VERIFY_READONLY` ist auf dem Webserver read-only bestaetigt.
+`RDAP_0.2.94_MEDIA_INDEX_DB_CONTEXT_READ_API_READONLY_FIXED` ist auf dem Webserver live bestaetigt.
 
 Bestaetigt:
 
 ```text
-Diff:
-fullSync = full_sync_compare_available_missing_reliable
-fullItems = 744
-dbTotal = 744
-newOnAgent = 0
-missingReliable = true
-
-Upsert Preview:
-ok = true
-status = media_index_upsert_preview_available_readonly
-candidateCount = 0
-byRoot = {}
-byKind = {}
+GET /api/remote/media/index/context/list
 ```
 
-DB-Readback bestaetigt:
+Live-Checks:
 
 ```text
-images = 46
-media  = 412
-sounds = 276
-videos = 10
-gesamt = 744
+root_key=media:
+ok=true
+status=media_index_context_list_available_readonly
+count=5
+total=412
+readOnly=true
+writeEnabled=false
+databaseWriteExecuted=false
+
+root_key=media&module_key=alerts:
+total=132
+
+root_key=media&full_category_key=alerts/follow:
+total=53
 ```
 
-Audit-Readback bestaetigt:
+Umsetzung 0.2.94:
 
 ```text
-media_index.schema_extension.add_context_columns = success
-media_index.upsert.with_context = success
+remote-modboard/backend/src/routes/media-index-diff.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```
 
-## Wichtig vor dem naechsten Code-Step
+Wichtig: Kein neues Modul, keine neue Route-Datei, keine `app.js`-Aenderung.
 
-Gates bleiben geschlossen:
-
-```text
-MEDIA_INDEX_WRITE_ENABLED=false
-MEDIA_INDEX_DATA_WRITE_ENABLED=false
-MEDIA_INDEX_UPSERT_WRITE_ENABLED=false
-MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=false
-```
-
-Hinweis:
-`MEDIA_INDEX_SCHEMA_WRITE_ENABLED` war beim 0.2.93-Check nicht explizit in der Env-Ausgabe vorhanden. Der Code behandelt fehlende Boolean-Env-Werte als `false`. Fuer bessere Diagnose spaeter explizit als `false` setzen, aber nicht nebenbei in einem API-Step.
+## Sicherheit
 
 Weiterhin verboten ohne separaten Plan + Go:
 
@@ -71,53 +58,31 @@ keine Upload/Edit/Delete-Aktion
 keine File-Aktion vom Webserver zum Stream-PC
 ```
 
-## Ziel fuer 0.2.94
-
-Read-only API fuer Media-Index-Kontextlisten:
+Gates bleiben geschlossen:
 
 ```text
-- neue read-only Route fuer Kontext-/Kategorie-Abfragen aus remote_media_index
-- Filter nach module_key/category_key/full_category_key/kind/root_key
-- Pagination/Limit sicher begrenzen
-- nur deleted=0 standardmaessig anzeigen
-- Grundlage fuer spaetere UI-Auswahl und Modul-Media-Picker
-- keine Writes
+MEDIA_INDEX_WRITE_ENABLED=false
+MEDIA_INDEX_DATA_WRITE_ENABLED=false
+MEDIA_INDEX_UPSERT_WRITE_ENABLED=false
+MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=false
 ```
 
-Moeglicher Route-Vorschlag:
+Hinweis:
+`MEDIA_INDEX_SCHEMA_WRITE_ENABLED` war beim 0.2.93-Check nicht explizit in der Env-Ausgabe vorhanden. Der Code behandelt fehlende Boolean-Env-Werte als `false`. Fuer bessere Diagnose spaeter explizit als `false` setzen, aber nicht nebenbei in einem API-/UI-Step.
+
+## Ziel fuer den naechsten fachlichen Block
+
+Media-Picker/API-Consumer fuer Remote-Modboard UI planen.
+
+Moeglicher Scope:
 
 ```text
-GET /api/remote/media/index/context/list
-```
-
-Moegliche Query-Parameter:
-
-```text
-root_key=media|sounds|videos|images
-module_key=<modul>
-category_key=<kategorie>
-full_category_key=<modul>/<kategorie>
-kind=audio|image|video|unknown
-limit=1..200
-offset=0..n
-```
-
-Moegliche Rueckgabe:
-
-```text
-ok
-service
-module
-moduleVersion
-moduleBuild
-routeBuild
-statusApiVersion
-readOnly=true
-writeEnabled=false
-filters
-counts
-items[]
-safety
+- vorhandene read-only Kontextlisten-API nutzen
+- Filter UI fuer root_key/module_key/category_key/full_category_key/kind
+- Asset-Liste fuer ausgewaehlten Kontext anzeigen
+- keine Upload/Edit/Delete-Aktion
+- keine DB-Writes
+- keine Agent-Aktion
 ```
 
 ## Relevante Dateien zuerst lesen
@@ -127,61 +92,33 @@ project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 remote-modboard/backend/src/routes/media-index-diff.routes.js
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/services/db.service.js
-remote-modboard/backend/src/services/config.service.js
-```
-
-Optional pruefen, falls Route-Registrierung unklar ist:
-
-```text
 remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/routes/*.routes.js
+remote-modboard/backend/src/public/index.html
+remote-modboard/backend/src/public/*.js
+remote-modboard/backend/src/public/*.css
 ```
 
-## Voraussichtliche Tests fuer 0.2.94
+Je nach UI-Struktur zusaetzlich relevante Public-Dateien suchen/lesen, bevor geplant wird.
 
-Syntax:
+## Voraussichtliche Vorab-Checks
+
+API read-only:
 
 ```bash
-node --check remote-modboard/backend/src/routes/media-index-diff.routes.js
-node --check remote-modboard/backend/src/app.js
-```
+curl -fsS 'http://127.0.0.1:3010/api/remote/media/index/context/list?root_key=media&limit=5' \
+  | jq '{ok,status,count,total,readOnly,writeEnabled,databaseWriteExecuted}'
 
-API lokal auf Webserver nach Deploy:
+curl -fsS 'http://127.0.0.1:3010/api/remote/media/index/context/list?root_key=media&module_key=alerts&limit=5' \
+  | jq '{ok,status,count,total,filters}'
 
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq
-
-curl -fsS 'http://127.0.0.1:3010/api/remote/media/index/context/list?root_key=media&limit=5' | jq '{ok,status,count,total,readOnly,writeEnabled}'
-
-curl -fsS 'http://127.0.0.1:3010/api/remote/media/index/context/list?root_key=media&module_key=alerts&limit=5' | jq '{ok,status,count,total,filters,items}'
-
-curl -fsS 'http://127.0.0.1:3010/api/remote/media/index/context/list?root_key=media&full_category_key=alerts/follow&limit=5' | jq '{ok,status,count,total,filters,items}'
-```
-
-Erwartung:
-
-```text
-readOnly = true
-writeEnabled = false
-keine DB-Writes
-keine Gates erforderlich
-Filter liefern plausible Teilmengen aus den bestaetigten 412 media-Zeilen
+curl -fsS 'http://127.0.0.1:3010/api/remote/media/index/context/list?root_key=media&full_category_key=alerts/follow&limit=5' \
+  | jq '{ok,status,count,total,filters}'
 ```
 
 ## Danach sinnvoll
 
-Wenn 0.2.94 bestaetigt ist:
+Erst nach separatem Plan + Go:
 
 ```text
-RDAP_0.2.95_MEDIA_INDEX_CONTEXT_READ_API_DOCS_HANDOFF
+RDAP_0.2.96_MEDIA_PICKER_READONLY_PLAN
 ```
-
-Oder danach fachlich:
-
-```text
-Media-Picker/API-Consumer fuer Remote-Modboard UI planen
-```
-
-Erst nach separatem Plan + Go.

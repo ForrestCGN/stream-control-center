@@ -1,6 +1,6 @@
 # TODO
 
-## RDAP Media Index aktueller Block nach 0.2.93
+## RDAP Media Index aktueller Block nach 0.2.94
 
 - [x] 0.2.79: Diff-Endpoint `moduleBuild`/`routeBuild` Anzeige-Polish bestaetigt.
 - [x] 0.2.83: FullSync Summary ueber komplette Listen bestaetigt.
@@ -13,7 +13,9 @@
 - [x] 0.2.91: Candidate-Feld-Fix und produktiver Upsert bestaetigt, `media=412` in DB.
 - [x] Gates nach produktivem Execute geschlossen halten und pruefen.
 - [x] 0.2.93: Post-Upsert Verify readonly bestaetigt: FullSync 744, DB 744, Upsert Preview 0 Kandidaten, Audit success.
-- [ ] 0.2.94: Read-only DB Context API fuer Media-Index planen und bauen.
+- [x] 0.2.94: Read-only DB Context API fuer Media-Index gebaut und live bestaetigt.
+- [ ] 0.2.95: Context Read API Docs Handoff lokal einspielen und nach GitHub/dev pushen.
+- [ ] 0.2.96: Media-Picker/API-Consumer readonly planen.
 - [ ] Spaeter: `MEDIA_INDEX_SCHEMA_WRITE_ENABLED=false` explizit in Env fuehren, damit Diagnose-Ausgaben vollstaendig sind.
 - [ ] Spaeter: FullSyncCompare persistenter/neu anforderbar machen, weil Runtime-Snapshot nach Service-Restart leer ist.
 - [ ] Spaeter: Gated Delta-Upsert separat planen, erst nach sauberer Read-only-Diagnose.
