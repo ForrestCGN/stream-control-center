@@ -11,14 +11,17 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_upsert_execute_foundation_blocked_086.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_upsert_preview_readonly_085.v1';
-const BUILD = 'RDAP_0.2.86_MEDIA_INDEX_UPSERT_EXECUTE_FOUNDATION_BLOCKED';
-const PREVIOUS_BUILD = 'RDAP_0.2.85_MEDIA_INDEX_UPSERT_PREVIEW_READONLY';
+const STATUS_API_VERSION = 'rdap_media_index_schema_extension_foundation_blocked_087.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_upsert_execute_foundation_blocked_086.v1';
+const BUILD = 'RDAP_0.2.87_MEDIA_INDEX_SCHEMA_EXTENSION_FOUNDATION_BLOCKED';
+const PREVIOUS_BUILD = 'RDAP_0.2.86_MEDIA_INDEX_UPSERT_EXECUTE_FOUNDATION_BLOCKED';
 const ROUTE = '/api/remote/media/index/diff/status';
 const UPSERT_PREVIEW_ROUTE = '/api/remote/media/index/upsert/preview';
 const UPSERT_EXECUTE_ROUTE = '/api/remote/media/index/upsert/execute';
+const SCHEMA_EXTENSION_PREVIEW_ROUTE = '/api/remote/media/index/schema/extension/preview';
+const SCHEMA_EXTENSION_EXECUTE_ROUTE = '/api/remote/media/index/schema/extension/execute';
 const CONFIRM_UPSERT_TEXT = 'RDAP_0.2.86_CONFIRM_MEDIA_INDEX_UPSERT_EXECUTE';
+const CONFIRM_SCHEMA_EXTENSION_TEXT = 'RDAP_0.2.87_CONFIRM_MEDIA_INDEX_SCHEMA_EXTENSION';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
 const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
 const AUDIT_TABLE = 'dashboard_audit_log';
@@ -40,6 +43,14 @@ const MEDIA_ROOT_KEYS = new Set(['sounds', 'videos', 'images', 'media']);
 const TTS_TEMP_ROOT_KEY = 'sounds';
 const TTS_TEMP_PREFIX = 'tts/generated/';
 const TTS_EXCLUDED_LEGACY_CLASSIFICATION = 'tts_generated_excluded_from_sync_legacy_candidate';
+const MEDIA_INDEX_SCHEMA_EXTENSION_COLUMNS = Object.freeze([
+  { name: 'module_key', definition: 'VARCHAR(80) NULL', after: 'sync_version' },
+  { name: 'category_key', definition: 'VARCHAR(120) NULL', after: 'module_key' },
+  { name: 'full_category_key', definition: 'VARCHAR(220) NULL', after: 'category_key' },
+  { name: 'asset_relative_path', definition: 'VARCHAR(500) NULL', after: 'full_category_key' },
+  { name: 'web_path', definition: 'VARCHAR(700) NULL', after: 'asset_relative_path' },
+  { name: 'public_path', definition: 'VARCHAR(700) NULL', after: 'web_path' }
+]);
 
 function registerMediaIndexDiffRoutes(app, context) {
   app.get(ROUTE, async (req, res) => {
@@ -54,6 +65,16 @@ function registerMediaIndexDiffRoutes(app, context) {
 
   app.post(UPSERT_EXECUTE_ROUTE, async (req, res) => {
     const result = await executeMediaIndexUpsertFoundation(context, req);
+    res.status(result.httpStatus || result.status || 200).json(result.body || result);
+  });
+
+  app.get(SCHEMA_EXTENSION_PREVIEW_ROUTE, async (req, res) => {
+    const result = await buildMediaIndexSchemaExtensionPreviewStatus(context, req);
+    res.status(result.httpStatus || 200).json(result.body || result);
+  });
+
+  app.post(SCHEMA_EXTENSION_EXECUTE_ROUTE, async (req, res) => {
+    const result = await executeMediaIndexSchemaExtensionFoundation(context, req);
     res.status(result.httpStatus || result.status || 200).json(result.body || result);
   });
 
@@ -178,6 +199,176 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
       : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.77 akzeptiert zusaetzlich den Media-System-Root media und erhaelt Kontextfelder fuer Diff-/Preview-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
+}
+
+
+async function buildMediaIndexSchemaExtensionPreviewStatus(context = {}, req = null) {
+  const generatedAt = new Date().toISOString();
+  try {
+    const snapshot = await buildMediaIndexSchemaExtensionSnapshot(context.config || {});
+    return {
+      ok: true,
+      service: 'remote-modboard',
+      module: 'remote_media_index_schema_extension_preview',
+      moduleVersion: context.appVersion || '0.2.59',
+      moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
+      routeBuild: BUILD,
+      previousRouteBuild: PREVIOUS_BUILD,
+      statusApiVersion: STATUS_API_VERSION,
+      previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
+      route: SCHEMA_EXTENSION_PREVIEW_ROUTE,
+      executeRoute: SCHEMA_EXTENSION_EXECUTE_ROUTE,
+      generatedAt,
+      readOnly: true,
+      writeEnabled: false,
+      databaseWritesEnabled: false,
+      databaseWriteExecuted: false,
+      executeRoutePrepared: true,
+      table: PERSISTENT_INDEX_TABLE,
+      ...snapshot,
+      requiredConfirmSchema: CONFIRM_SCHEMA_EXTENSION_TEXT,
+      futureWritePolicy: {
+        preparedOnly: true,
+        readOnly: true,
+        requiresSeparateExecuteConfirmation: true,
+        requiresLocalRequest: true,
+        requiresConfirmWrite: true,
+        requiresConfirmSchemaText: true,
+        requiresExpectedMissingColumnCount: true,
+        requiresMediaIndexSchemaWriteGates: true,
+        requiresAudit: true,
+        requiresReadback: true,
+        noDataMutation: true,
+        noDeletes: true,
+        noOnlineToAgentAction: true
+      },
+      safety: buildSchemaExtensionSafety(),
+      note: 'Schema-Extension-Preview liest nur information_schema und zeigt fehlende Kontextspalten. Es wird nichts geschrieben.'
+    };
+  } catch (err) {
+    const code = publicDbError(err).code || 'media_index_schema_extension_preview_failed';
+    return {
+      ok: false,
+      httpStatus: 200,
+      service: 'remote-modboard',
+      module: 'remote_media_index_schema_extension_preview',
+      moduleVersion: context.appVersion || '0.2.59',
+      moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
+      routeBuild: BUILD,
+      statusApiVersion: STATUS_API_VERSION,
+      route: SCHEMA_EXTENSION_PREVIEW_ROUTE,
+      generatedAt,
+      readOnly: true,
+      writeEnabled: false,
+      databaseWriteExecuted: false,
+      status: code,
+      error: code,
+      table: PERSISTENT_INDEX_TABLE,
+      missingColumnCount: null,
+      missingColumns: [],
+      plannedColumns: MEDIA_INDEX_SCHEMA_EXTENSION_COLUMNS,
+      safety: buildSchemaExtensionSafety(),
+      note: 'Schema-Extension-Preview konnte information_schema nicht lesen. Es wurden keine Writes ausgefuehrt.'
+    };
+  }
+}
+
+async function executeMediaIndexSchemaExtensionFoundation(context = {}, req = null) {
+  const generatedAt = new Date().toISOString();
+  const body = req && req.body && typeof req.body === 'object' ? req.body : {};
+  const base = {
+    service: 'remote-modboard',
+    module: 'remote_media_index_schema_extension_execute_foundation',
+    moduleVersion: context.appVersion || '0.2.59',
+    moduleBuild: BUILD,
+    appModuleBuild: context.moduleBuild || null,
+    routeBuild: BUILD,
+    previousRouteBuild: PREVIOUS_BUILD,
+    statusApiVersion: STATUS_API_VERSION,
+    previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
+    route: SCHEMA_EXTENSION_EXECUTE_ROUTE,
+    previewRoute: SCHEMA_EXTENSION_PREVIEW_ROUTE,
+    generatedAt,
+    readOnly: false,
+    localOnly: true,
+    writeEnabled: false,
+    databaseWritesEnabled: false,
+    databaseWriteExecuted: false,
+    schemaWriteExecuted: false,
+    alterTableExecuted: false,
+    auditWritten: false,
+    readBackPerformed: false,
+    noDataMutation: true,
+    noDeletes: true,
+    noOnlineToAgentAction: true,
+    table: PERSISTENT_INDEX_TABLE,
+    requiredConfirmSchema: CONFIRM_SCHEMA_EXTENSION_TEXT,
+    requiredEnvGates: buildMediaIndexSchemaExtensionGateStatus()
+  };
+
+  if (!isLocalRequest(req)) {
+    return blockedExecute(403, base, 'local_request_required');
+  }
+
+  const confirm = requireAdminConfirmWrite({ body });
+  if (!confirm.confirmWriteAccepted) {
+    return blockedExecute(400, base, 'confirm_write_required', { confirmWriteAccepted: false, confirm });
+  }
+
+  const confirmSchema = String(body.confirmSchema || body.confirm_schema || body.confirmText || body.confirm_text || '');
+  if (confirmSchema !== CONFIRM_SCHEMA_EXTENSION_TEXT) {
+    return blockedExecute(400, base, 'confirm_schema_text_required', {
+      confirmWriteAccepted: true,
+      requiredConfirmSchema: CONFIRM_SCHEMA_EXTENSION_TEXT
+    });
+  }
+
+  const expectedMissingColumnCount = Number(body.expectedMissingColumnCount ?? body.expected_missing_column_count);
+  if (!Number.isInteger(expectedMissingColumnCount) || expectedMissingColumnCount < 0 || expectedMissingColumnCount > MEDIA_INDEX_SCHEMA_EXTENSION_COLUMNS.length) {
+    return blockedExecute(400, base, 'expected_missing_column_count_required', {
+      confirmWriteAccepted: true,
+      confirmSchemaAccepted: true,
+      expectedMissingColumnCountAccepted: false
+    });
+  }
+
+  const snapshot = await buildMediaIndexSchemaExtensionSnapshot(context.config || {});
+  if (snapshot.missingColumnCount !== expectedMissingColumnCount) {
+    return blockedExecute(409, base, 'missing_column_count_changed', {
+      confirmWriteAccepted: true,
+      confirmSchemaAccepted: true,
+      expectedMissingColumnCount,
+      currentMissingColumnCount: snapshot.missingColumnCount,
+      snapshot
+    });
+  }
+
+  if (!base.requiredEnvGates.allRequiredGatesEnabled) {
+    return blockedExecute(403, base, 'media_index_schema_extension_write_gate_disabled', {
+      confirmWriteAccepted: true,
+      confirmSchemaAccepted: true,
+      expectedMissingColumnCount,
+      currentMissingColumnCount: snapshot.missingColumnCount,
+      missingColumnCount: snapshot.missingColumnCount,
+      missingColumns: snapshot.missingColumns,
+      requiredEnvGates: base.requiredEnvGates,
+      snapshot
+    });
+  }
+
+  return blockedExecute(403, base, 'media_index_schema_extension_execute_not_enabled_in_087_foundation', {
+    confirmWriteAccepted: true,
+    confirmSchemaAccepted: true,
+    expectedMissingColumnCount,
+    currentMissingColumnCount: snapshot.missingColumnCount,
+    missingColumnCount: snapshot.missingColumnCount,
+    missingColumns: snapshot.missingColumns,
+    requiredEnvGates: base.requiredEnvGates,
+    snapshot,
+    note: '0.2.87 bereitet Schema-Execute nur vor. ALTER TABLE ist in diesem Step absichtlich nicht implementiert.'
+  });
 }
 
 
@@ -858,6 +1049,86 @@ async function executePersistentTombstoneFoundation(context = {}, req = null) {
     });
   }
 }
+
+async function buildMediaIndexSchemaExtensionSnapshot(config) {
+  return await withReadOnlyConnection(config, async (connection) => {
+    const [rows] = await connection.query(
+      `SELECT column_name, column_type, is_nullable, column_default
+         FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = ?
+        ORDER BY ordinal_position`,
+      [PERSISTENT_INDEX_TABLE]
+    );
+    const existingColumns = (Array.isArray(rows) ? rows : []).map(row => String(row.column_name || '').toLowerCase()).filter(Boolean);
+    const existingSet = new Set(existingColumns);
+    const plannedColumns = MEDIA_INDEX_SCHEMA_EXTENSION_COLUMNS.map(col => ({
+      name: col.name,
+      definition: col.definition,
+      after: col.after,
+      exists: existingSet.has(col.name)
+    }));
+    const missingColumns = plannedColumns.filter(col => col.exists !== true);
+    return {
+      status: missingColumns.length > 0 ? 'media_index_schema_extension_needed' : 'media_index_schema_extension_not_needed',
+      databaseSchema: 'DATABASE()',
+      existingColumnCount: existingColumns.length,
+      existingColumns,
+      plannedColumns,
+      missingColumnCount: missingColumns.length,
+      missingColumns,
+      allColumnsPresent: missingColumns.length === 0,
+      alterTablePreview: missingColumns.length > 0 ? buildSchemaExtensionAlterTablePreview(missingColumns) : null,
+      readOnly: true,
+      writeEnabled: false,
+      databaseWriteExecuted: false
+    };
+  });
+}
+
+function buildSchemaExtensionAlterTablePreview(missingColumns) {
+  const parts = (Array.isArray(missingColumns) ? missingColumns : [])
+    .map(col => `ADD COLUMN ${col.name} ${col.definition} AFTER ${col.after}`);
+  return `ALTER TABLE ${PERSISTENT_INDEX_TABLE} ${parts.join(', ')};`;
+}
+
+function buildMediaIndexSchemaExtensionGateStatus() {
+  const requiredEnvGates = [
+    'MEDIA_INDEX_WRITE_ENABLED',
+    'MEDIA_INDEX_SCHEMA_WRITE_ENABLED'
+  ];
+  const gates = {};
+  for (const key of requiredEnvGates) {
+    gates[key] = process.env[key] === 'true';
+  }
+  return {
+    requiredEnvGates,
+    gates,
+    allRequiredGatesEnabled: requiredEnvGates.every(key => gates[key] === true),
+    defaultBlocked: true,
+    writeEnabled: false,
+    databaseWritesEnabled: false,
+    note: 'Schema-Extension ist default blockiert. 0.2.87 fuehrt auch mit Gates kein ALTER TABLE aus.'
+  };
+}
+
+function buildSchemaExtensionSafety() {
+  return {
+    readOnly: true,
+    writesEnabled: false,
+    databaseWritesEnabled: false,
+    databaseWriteExecuted: false,
+    schemaWriteExecuted: false,
+    alterTableExecuted: false,
+    dataMutation: false,
+    deletesEnabled: false,
+    noPhysicalDelete: true,
+    noHardDelete: true,
+    noOnlineToAgentAction: true,
+    secretsExposed: false
+  };
+}
+
 
 async function buildMediaIndexUpsertCandidateSnapshot({ context, previewLimit }) {
   const fullSyncCompareSnapshot = safeBuildFullSyncCompareSnapshotStatus();
