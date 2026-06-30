@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.118 - Local Logs Source Plan`
+Aktueller Stand: `0.2.119 - Local Logs Readonly API Design`
 
 ## Kurzfazit
 
-Lokale Logs sind geplant, aber noch nicht gebaut.
+Lokale Logs-read-only-API ist konkret designt, aber noch nicht gebaut.
 
 ```text
 Admin -> Logs
@@ -19,41 +19,39 @@ Remote-Modboard aktiv
 Lokal / Stream-PC vorbereitet, noch keine API
 ```
 
-## Sichtbar in Logs
+## 0.2.119 Ergebnis
 
 ```text
-Log-Quelle
-Log-Bereich
-Status
-Suche
-Wer
-Anzahl
-Liste
-Details
+bestehende Agent-/Status-Struktur geprueft
+/api/remote/agent/status als read-only Design-Anker erkannt
+Agent Runtime / WSS / Heartbeat-In-Memory beruecksichtigt
+OBS-/Media-read-only Routen als vorhandene Muster beruecksichtigt
+Route-Design fuer lokale Logs festgelegt
+Antwortformat und Offline-Verhalten festgelegt
+Folgeschritt fuer API-Skeleton vorbereitet
 ```
 
-## 0.2.118 Ergebnis
+## Geplante lokale Logs API fuer spaeter
 
 ```text
-Lokale Log-Quelle geplant
-erste sinnvolle Bereiche festgelegt
-bevorzugte Quelle: 127.0.0.1:8080 Dashboard/Agent
-read-only Schutzgrenzen dokumentiert
-Folgeschritt fuer API-Design vorbereitet
+GET /api/remote/local/logs/status
+GET /api/remote/local/logs/list
 ```
 
 ## Wichtig
 
 ```text
-0.2.118 ist Doku-only
+0.2.119 ist Doku-only
 keine Runtime-Aenderung
 kein Deploy noetig
 keine lokale API gebaut
+keine UI aktiviert
 keine Writes
 keine Loeschung
 keine Migration
 keine Agent-Actions
 keine lokalen Steueraktionen
+keine OBS-/Sound-/Overlay-Steuerung
 ```
 
 ## Deploy-Regel

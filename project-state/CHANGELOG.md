@@ -1,13 +1,27 @@
 # CHANGELOG
 
+## 0.2.119 - Local Logs Readonly API Design
+
+- Lokale Logs-read-only-API konkret designt.
+- Bestehende Agent-/Runtime-/OBS-/Media-read-only Struktur geprueft.
+- `/api/remote/agent/status` als read-only Design-Anker erkannt.
+- Geplante lokale Logs-Routen festgelegt:
+  - `GET /api/remote/local/logs/status`
+  - `GET /api/remote/local/logs/list`
+- Antwortformat fuer Status/List und Log-Items festgelegt.
+- Offline-/nicht-erreichbar-Verhalten definiert.
+- Sicherheitsgrenzen dokumentiert.
+- Doku-only.
+- Keine Runtime-Aenderung.
+- Kein Deploy noetig.
+
 ## 0.2.118 - Local Logs Source Plan
 
-- Lokale Logs fuer `Lokal / Stream-PC` geplant.
-- Bevorzugte spaetere Quelle: lokaler Stream-PC / Dashboard / Agent auf `127.0.0.1:8080`.
-- Erste lokale Log-Bereiche eingeordnet: Dashboard/Agent, Media-System, Sound/Playback, OBS/Overlays, System.
-- Schutzgrenzen dokumentiert: read-only, keine Writes, keine Migration, keine Loeschung, keine Agent-Actions, keine lokalen Steueraktionen.
-- Keine lokale API gebaut.
-- Keine UI-Aktivierung der lokalen Quelle.
+- Lokale Log-Quelle geplant.
+- Erste sinnvolle Bereiche festgelegt.
+- Bevorzugte Quelle: `127.0.0.1:8080` Dashboard/Agent.
+- Read-only Schutzgrenzen dokumentiert.
+- Folgeschritt fuer API-Design vorbereitet.
 - Doku-only.
 - Keine Runtime-Aenderung.
 - Kein Deploy noetig.

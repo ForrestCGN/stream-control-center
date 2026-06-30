@@ -2,25 +2,36 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.119_LOCAL_LOGS_READONLY_API_DESIGN`
+`RDAP_0.2.120_LOCAL_LOGS_READONLY_API_SKELETON`
 
 ## Ziel
 
-Konkretes Design fuer eine lokale Logs-read-only-API vorbereiten.
+Lokale Logs-read-only API als Skeleton bauen.
 
 ## Vorher pruefen
 
 ```text
-Welche lokalen 8080 Status-/Recent-/Log-Routen existieren bereits?
-Welche Datei/Modul ist Owner fuer lokalen Agent-/Dashboard-Status?
-Gibt es bestehende sichere Log-/Recent-Strukturen?
-Welche Route darf Remote-Modboard spaeter lesen?
-Wie wird Offline/Stream-PC nicht erreichbar sauber angezeigt?
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/services/agent-status.service.js
+remote-modboard/backend/src/services/agent-runtime.service.js
+remote-modboard/backend/src/routes/obs-readonly.routes.js
+remote-modboard/backend/src/routes/media-readonly.routes.js
+remote-modboard/backend/public/assets/modules/admin/audit-log.js
+```
+
+## Geplante Routen
+
+```text
+GET /api/remote/local/logs/status
+GET /api/remote/local/logs/list
 ```
 
 ## Regeln
 
 ```text
+nur GET
+read-only
 keine Writes
 keine Migration
 keine Loeschung
@@ -28,11 +39,22 @@ keine Agent-Actions
 keine lokalen Steueraktionen
 keine OBS-/Sound-/Overlay-Steuerung
 keine Admin-Notizen weiter ausbauen
-erst Design, dann API
+keine UI-Aktivierung vor API-Test
+```
+
+## Erwarteter Skeleton
+
+```text
+Statusroute mit Sicherheitsflags
+Listenroute mit leerer oder synthetischer sicherer Antwort
+limit max 100
+area/status/search vorbereitet
+Offline-/nicht-erreichbar-Zustand sauber
+/api/remote/routes erweitert
 ```
 
 ## Spaeterer moeglicher Folgeschritt
 
-`RDAP_0.2.120_LOCAL_LOGS_READONLY_API_SKELETON`
+`RDAP_0.2.121_LOCAL_LOGS_UI_SOURCE_ENABLE`
 
-Nur wenn 0.2.119 Design bestaetigt ist.
+Nur wenn 0.2.120 Skeleton lokal und ggf. remote bestaetigt ist.
