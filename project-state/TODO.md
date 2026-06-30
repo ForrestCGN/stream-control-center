@@ -1,6 +1,7 @@
 # TODO
 
-- [x] 0.2.116B: Audit Log Admin UI Compact.
 - [x] 0.2.116C: Audit Log Human Labels.
-- [ ] 0.2.117: Audit Log Human Labels Deploy Verify.
+- [x] 0.2.116D: Logs Module Dropdown.
+- [ ] 0.2.117: Logs Module Dropdown Deploy Verify.
+- [ ] Spaeter: weitere Log-Bereiche sauber anbinden.
 - [ ] Spaeter: Audit-Retention-Policy festlegen.

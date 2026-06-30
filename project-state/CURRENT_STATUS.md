@@ -1,28 +1,31 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.116C - Audit Log Human Labels`
+Aktueller Stand: `0.2.116D - Logs Module Dropdown`
 
 ## Kurzfazit
 
-Audit-Log Admin-Ansicht ist jetzt menschenlesbarer.
+Admin-Bereich hat jetzt eine allgemeine Logs-Seite mit Dropdown fuer Log-Bereiche.
 
 ```text
-Admin -> Aktivitaets-Log
+Admin -> Logs
 ```
 
-## Geaendert
+## Dropdown
 
 ```text
-technische Action nur noch in Details
-Liste zeigt verstaendliche Texte
-Systemeintraege werden als System angezeigt
-Status deutsch
+Alle Logs
+Media-System
+Admin-Notizen
+System / RDAP
+Locks / Schutz
+Weitere Module spaeter
 ```
 
 ## Wichtig
 
 ```text
 nur UI
+bestehende read-only API
 keine Writes
 keine Loeschung
 keine Migration

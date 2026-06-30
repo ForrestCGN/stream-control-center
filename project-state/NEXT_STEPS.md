@@ -2,31 +2,31 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.117_AUDIT_LOG_HUMAN_LABELS_DEPLOY_VERIFY`
+`RDAP_0.2.117_LOGS_MODULE_DROPDOWN_DEPLOY_VERIFY`
 
 ## Ziel
 
 Live pruefen:
 
 ```text
-Admin -> Aktivitaets-Log
-menschenlesbare Aktionen
-Details-Klick zeigt Technik
-Filter
-Retention-Hinweis
+Admin -> Logs
+Dropdown Log-Bereich
+Media-System Filter
+Admin-Notizen Filter
+System/RDAP Filter
+Details-Klick
 ```
 
 ## Danach
 
 ```text
 Retention-Policy entscheiden
-oder weitere Admin-Bereiche ausbauen
+oder weitere Log-Bereiche sauber anbinden
 ```
 
 ## Regeln
 
 ```text
-keine Admin-Notizen
 keine Writes
 keine Migration
 keine Loeschung
