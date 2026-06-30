@@ -11,10 +11,10 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_upsert_with_context_gated_089.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_schema_extension_execute_gated_088.v1';
-const BUILD = 'RDAP_0.2.89_MEDIA_INDEX_UPSERT_WITH_CONTEXT_GATED';
-const PREVIOUS_BUILD = 'RDAP_0.2.88_MEDIA_INDEX_SCHEMA_EXTENSION_EXECUTE_GATED';
+const STATUS_API_VERSION = 'rdap_media_index_upsert_candidates_fix_gated_090.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_upsert_with_context_gated_089.v1';
+const BUILD = 'RDAP_0.2.90_MEDIA_INDEX_UPSERT_CANDIDATES_FIX_GATED';
+const PREVIOUS_BUILD = 'RDAP_0.2.89_MEDIA_INDEX_UPSERT_WITH_CONTEXT_GATED';
 const ROUTE = '/api/remote/media/index/diff/status';
 const UPSERT_PREVIEW_ROUTE = '/api/remote/media/index/upsert/preview';
 const UPSERT_EXECUTE_ROUTE = '/api/remote/media/index/upsert/execute';
@@ -617,6 +617,7 @@ async function buildMediaIndexUpsertPreviewStatus(context = {}, req = null) {
       completedAt: full.completedAt
     },
     candidateCount: candidates.length,
+    candidates,
     byRoot: buildCountByField(candidates, 'rootKey'),
     byKind: buildCountByField(candidates, 'kind'),
     previewLimit,
@@ -761,7 +762,22 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
     });
   }
 
-  const nonMediaCandidates = snapshot.candidates.filter(item => item.rootKey !== 'media');
+  const candidateItems = Array.isArray(snapshot.candidates) ? snapshot.candidates : [];
+  if (candidateItems.length !== snapshot.candidateCount) {
+    return blockedExecute(409, base, 'media_index_upsert_candidates_array_missing', {
+      confirmWriteAccepted: true,
+      confirmUpsertAccepted: true,
+      expectedCandidateCount,
+      expectedRootKey,
+      currentCandidateCount: snapshot.candidateCount,
+      candidateArrayCount: candidateItems.length,
+      databaseWriteExecuted: false,
+      upsertExecuted: false,
+      snapshot
+    });
+  }
+
+  const nonMediaCandidates = candidateItems.filter(item => item.rootKey !== 'media');
   if (nonMediaCandidates.length > 0) {
     return blockedExecute(409, base, 'unexpected_non_media_upsert_candidates', {
       confirmWriteAccepted: true,
@@ -818,7 +834,7 @@ async function executeMediaIndexUpsertFoundation(context = {}, req = null) {
   const config = context && context.config ? context.config : {};
   const now = new Date();
   const auditUid = buildAuditUid(now);
-  const payloads = snapshot.candidates.map(buildMediaIndexUpsertDbPayload).filter(Boolean);
+  const payloads = candidateItems.map(buildMediaIndexUpsertDbPayload).filter(Boolean);
 
   try {
     return await withWriteConnection(config, async (connection) => {
@@ -1651,7 +1667,7 @@ function buildMediaIndexUpsertGateStatus() {
     defaultBlocked: true,
     writeEnabled: false,
     databaseWritesEnabled: false,
-    note: 'Alle Data-Upsert-Gates muessen explizit true sein. 0.2.89 schreibt nur remote_media_index-Zeilen, keine Dateien und keine Deletes.'
+    note: 'Alle Data-Upsert-Gates muessen explizit true sein. 0.2.90 behebt Candidate-Array-Readback und schreibt nur remote_media_index-Zeilen, keine Dateien und keine Deletes.'
   };
 }
 
