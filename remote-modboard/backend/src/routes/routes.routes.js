@@ -8,6 +8,7 @@ const RDAP42_STATUS_API_VERSION = 'rdap_admin_note_ui_status42.v1';
 const RDAP42_BUILD = 'RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP';
 const RDAP61_BUILD = 'RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION';
 const RDAP123_BUILD = 'RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP';
+const RDAP110_BUILD = 'RDAP_0.2.110_ADMIN_NOTE_WRITE_STATUS_RECONCILE';
 
 function registerRoutesRoutes(app, context) {
   app.get('/api/remote/routes', (req, res) => {
@@ -103,9 +104,11 @@ function registerRoutesRoutes(app, context) {
         adminNoteWritesEnabled: false,
         uiWriteButtonsEnabled: false,
         physicalDeleteEnabled: false,
-        routeRemainsReadOnly: true
+        routeRemainsReadOnly: true,
+        statusMeaning: 'Plan-/Diagnose-Route bleibt read-only; sie beschreibt nicht den produktiven Confirmed-Write-Status.'
       },
       adminNoteWriteConfirmed: buildAdminNoteWriteConfirmedUiSemantics(),
+      adminNoteWriteLiveStatus: buildAdminNoteWriteLiveStatus(),
       adminNoteUiStatusSemantics: buildAdminNoteUiStatusSemantics(),
       adminUsersAdminNoteWriteDisabled: {
         prepared: true,
@@ -151,7 +154,8 @@ function registerRoutesRoutes(app, context) {
         communityPagesMayReadAdminNotes: false,
         activeNotesOnly: true,
         allowedFields: ['note_text', 'updated_by_user_uid', 'updated_at'],
-        rawNoteTextLogged: false
+        rawNoteTextLogged: false,
+        statusMeaning: 'Backend-Update ist bewusst produktiv aktiv, aber nur mit Session, DashboardAccess, Permission, Body-confirmWrite, Audit, Lock und Readback; Update-UI bleibt aus.'
       },
       adminAuditLockSchemaStatusReadonly: {
         prepared: true,
@@ -316,7 +320,50 @@ function buildAdminNoteWriteConfirmedUiSemantics() {
     adminNoteCreateUiRequiresBodyConfirmWrite: true,
     adminNoteUpdateRequiresBodyConfirmWrite: true,
     adminNoteUiReadbackRoute: '/api/remote/admin/users/admin-notes/read',
-    noNewFrontendWriteButtonInRdap61: true
+    noNewFrontendWriteButtonInRdap61: true,
+    statusReconciledBuild: RDAP110_BUILD,
+    statusMeaning: 'Confirmed-Write-Backend ist bewusst produktiv. Das ist getrennt vom read-only Write-Plan.'
+  };
+}
+
+function buildAdminNoteWriteLiveStatus() {
+  return {
+    prepared: true,
+    statusApiVersion: 'rdap_admin_note_write110.v1',
+    routeStatusBuild: RDAP110_BUILD,
+    purpose: 'Klaert den Live-Status zwischen read-only Write-Plan und bewusst aktivem Confirmed-Write-Backend.',
+    planRoute: '/api/remote/admin/users/admin-notes/write-plan',
+    planRouteReadOnly: true,
+    confirmedRouteFamily: '/api/remote/admin/users/admin-notes/*',
+    createRoute: '/api/remote/admin/users/admin-notes/create',
+    updateRoute: '/api/remote/admin/users/admin-notes/update',
+    deactivateRoute: '/api/remote/admin/users/admin-notes/deactivate',
+    createBackendWriteEnabled: true,
+    updateBackendWriteEnabled: true,
+    deactivateBackendWriteEnabled: false,
+    productiveWritesEnabled: true,
+    databaseWriteEnabled: true,
+    routeLevelWriteLogicChangedInThisStep: false,
+    gatesChangedInThisStep: false,
+    uiWriteButtonsChangedInThisStep: false,
+    requiredControls: [
+      'valid_session',
+      'dashboard_access',
+      'remote.view',
+      'admin.users.note.write',
+      'body_confirmWrite',
+      'audit_attempt',
+      'lock_acquire',
+      'write',
+      'readback',
+      'audit_success_or_failure',
+      'lock_release'
+    ],
+    physicalDeleteEnabled: false,
+    communityPagesMayReadAdminNotes: false,
+    rawNoteTextLogged: false,
+    statusSummary: 'Create/Update Backend-Writes sind bewusst aktiv und restricted; Write-Plan bleibt read-only; Deactivate/Delete bleiben aus.',
+    nextRecommendedStep: 'Admin-Note UI/Backend Status im Modboard sichtbar sauber benennen, ohne neue Schreibbuttons.'
   };
 }
 
@@ -345,9 +392,11 @@ function buildAdminNoteUiStatusSemantics() {
     databaseMigrationExecuted: false,
     permissionChangesExecuted: false,
     newFrontendWriteFunctionEnabled: false,
+    statusReconciledBuild: RDAP110_BUILD,
     notes: [
       'RDAP40 hat die Create-UI bewusst freigegeben, aber nur fuer write-berechtigte Admins.',
       'RDAP61 aktiviert den Update-Backend-Scope ohne Update-UI.',
+      'RDAP110 klaert den Unterschied zwischen read-only Write-Plan und aktivem Confirmed-Write-Backend.',
       'Deactivate und Delete bleiben deaktiviert.'
     ]
   };

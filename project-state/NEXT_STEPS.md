@@ -2,34 +2,20 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.110_ADMIN_USERS_LIVE_RECHECK_DOCS_OR_NEXT_RUNTIME_FIX`
+`RDAP_0.2.111_ADMIN_NOTE_STATUS_DEPLOY_VERIFY`
 
-## Voraussetzung
+## Ziel
 
-Server-Ausgaben aus 0.2.109 liegen vor.
+Nach Deploy live pruefen:
 
-## Zu pruefen
-
-```text
-/api/remote/routes
-/api/remote/admin/users/write-foundation-diagnostic
-/api/remote/admin/users/permission-diagnostic
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.adminNoteWritePlan.statusMeaning,.adminNoteWriteConfirmed.statusMeaning,.adminNoteWriteLiveStatus'
 ```
 
-## Entscheidung danach
+## Danach entscheiden
 
 ```text
-A. Status nur dokumentieren, wenn alles sauber read-only ist.
-B. Kleinen Runtime-Fix planen, falls Status/API widerspruechlich ist.
-C. Admin/User UI-Read-only naechstklein planen.
-```
-
-## Harte Regeln
-
-```text
-keine Writes
-keine Gates aktivieren
-keine Login-/Session-Umstellung
-keine Agent-Actions
-erst Ausgaben auswerten
+A. Status nur dokumentieren.
+B. Admin-Note UI-Status modfreundlich anzeigen.
+C. Admin/User Read-only UI-Check fortsetzen.
 ```

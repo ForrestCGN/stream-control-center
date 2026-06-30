@@ -1,29 +1,34 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.109 - Admin Users Readonly Status Recheck`
+Aktueller Stand: `0.2.110 - Admin Note Write Status Reconcile`
 
 ## Kurzfazit
 
-0.2.109 ist Doku-/Check-only.
+`/api/remote/routes` benennt den Admin-Note-Write-Status jetzt klarer.
 
-Ziel:
-- Admin/User/Permission live pruefen.
-- Keine Runtime-Code-Aenderung.
-- Keine Writes.
-- Kein Webserver-Deploy.
-
-## Server-Check-Doku
+Neu:
 
 ```text
-docs/current/RDAP_0.2.109_ADMIN_USERS_READONLY_STATUS_RECHECK.md
+adminNoteWriteLiveStatus
 ```
 
-## Naechster Schritt
+## Wichtig
 
-Forrest fuehrt die curl/jq Checks auf dem Webserver aus und postet die Ausgabe.
-
-Danach entscheiden:
+Keine Write-Logik wurde geaendert.
 
 ```text
-RDAP_0.2.110_ADMIN_USERS_LIVE_RECHECK_DOCS_OR_NEXT_RUNTIME_FIX
+Create/Update Backend bleibt bewusst restricted aktiv.
+Write-Plan bleibt read-only.
+Update-UI bleibt aus.
+Deactivate/Delete bleiben aus.
 ```
+
+## Runtime-Aenderung
+
+```text
+remote-modboard/backend/src/routes/routes.routes.js
+```
+
+## Deploy
+
+Webserver-Deploy noetig, weil Runtime-Datei geaendert wurde.
