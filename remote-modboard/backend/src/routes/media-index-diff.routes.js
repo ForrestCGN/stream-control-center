@@ -11,10 +11,10 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_route_build_polish_079.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_media_root_readonly_verify_077.v1';
-const BUILD = 'RDAP_0.2.79_MEDIA_INDEX_DIFF_ROUTE_BUILD_POLISH_READONLY';
-const PREVIOUS_BUILD = 'RDAP_0.2.77_MEDIA_INDEX_DIFF_MEDIA_ROOT_READONLY_VERIFY';
+const STATUS_API_VERSION = 'rdap_media_index_diff_fullsync_summary_083.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_route_build_polish_079.v1';
+const BUILD = 'RDAP_0.2.83_MEDIA_INDEX_DIFF_FULLSYNC_SUMMARY_READONLY';
+const PREVIOUS_BUILD = 'RDAP_0.2.79_MEDIA_INDEX_DIFF_ROUTE_BUILD_POLISH_READONLY';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
 const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
@@ -929,6 +929,20 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
       effectiveNoopChangedOnAgentCount: compareStats.softModifiedAtOnlyCount,
       missingOnAgentCount: missingOnAgentReliable ? missingOnAgent.length : null,
       missingOnAgentReliable,
+      newOnAgentByRoot: buildCountByField(newOnAgent, 'rootKey'),
+      newOnAgentByKind: buildCountByField(newOnAgent, 'kind'),
+      matchedByRoot: buildCountByField([...unchanged, ...changedOnAgent], 'rootKey'),
+      matchedByKind: buildCountByField([...unchanged, ...changedOnAgent], 'kind'),
+      changedOnAgentByRoot: buildCountByField(changedOnAgent, 'rootKey'),
+      changedOnAgentByKind: buildCountByField(changedOnAgent, 'kind'),
+      softChangedOnAgentByRoot: buildCountByField(softChangedOnAgent, 'rootKey'),
+      effectiveChangedOnAgentByRoot: buildCountByField(effectiveChangedOnAgent, 'rootKey'),
+      missingOnAgentByRoot: missingOnAgentReliable ? buildCountByField(missingOnAgent, 'rootKey') : null,
+      missingOnAgentByKind: missingOnAgentReliable ? buildCountByField(missingOnAgent, 'kind') : null,
+      remoteDbByRoot: buildCountByField(dbItems, 'rootKey'),
+      remoteDbByKind: buildCountByField(dbItems, 'kind'),
+      agentByRoot: buildCountByField(agentItems, 'rootKey'),
+      agentByKind: buildCountByField(agentItems, 'kind'),
       ttsTempMissingCandidateCount: missingOnAgentReliable ? missingClassification.ttsGeneratedTempCandidateCount : null,
       tombstoneCandidateDiagnosticCount: missingOnAgentReliable ? missingClassification.tombstoneCandidateDiagnosticCount : null,
       agentSnapshotUnavailable: agentSnapshotUnavailable === true,
@@ -979,6 +993,15 @@ function classifyMissingItem(item) {
     noPhysicalDelete: true,
     noOnlineToAgentAction: true
   };
+}
+
+function buildCountByField(items, fieldName) {
+  const counts = {};
+  for (const item of Array.isArray(items) ? items : []) {
+    const key = safeStatus(item && item[fieldName]) || 'unknown';
+    counts[key] = safeNonNegativeNumber(counts[key]) + 1;
+  }
+  return counts;
 }
 
 function buildMissingClassification(items) {
