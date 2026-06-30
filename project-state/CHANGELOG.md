@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 0.2.58L Final - TTS Legacy DB Cleanup bestaetigt
+
+- Webserver-Preview fuer `RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_GATED` bestaetigt.
+- Preview zeigte genau 1 alten TTS-generated Legacy-Kandidaten.
+- Erster Execute ohne `MEDIA_INDEX_WRITE_ENABLED` / `MEDIA_INDEX_DATA_WRITE_ENABLED` wurde korrekt blockiert.
+- Media-Index-Write-Gates wurden temporaer aktiviert.
+- Cleanup wurde local-only mit `confirmWrite:true`, `confirmCleanup` und `expectedCandidateCount=1` ausgefuehrt.
+- Alter TTS-generated Legacy-Eintrag wurde per Soft-Delete (`deleted=1`) bereinigt.
+- Gates wurden danach wieder deaktiviert.
+- Readback bestaetigt: Cleanup-Preview `candidateCount = 0`.
+- Diff-Readback bestaetigt: `missingOnAgentItems = 0`, keine TTS-Legacy-Kandidaten, keine Tombstone-Kandidaten.
+- Keine normalen persistenten Media-Dateien betroffen.
+- Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+
+
 ## 0.2.58L - Media Index TTS Legacy DB Cleanup gated
 
 - Neue Route `GET /api/remote/media/index/cleanup/tts-generated-legacy/status` ergaenzt.

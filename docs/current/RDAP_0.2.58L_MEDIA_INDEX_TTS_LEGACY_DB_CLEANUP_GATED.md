@@ -172,3 +172,45 @@ Audit erforderlich
 Backup/Readback erforderlich
 Soft-Delete statt Hard-Delete
 ```
+
+
+## Webserver-Bestaetigung
+
+0.2.58L wurde auf dem Webserver ausgefuehrt und bestaetigt.
+
+Preview vor Execute:
+
+```text
+preview.candidateCount = 1
+```
+
+Erster Execute ohne Media-Index-Gates wurde korrekt blockiert:
+
+```text
+reason = media_index_data_write_gate_disabled
+writeExecuted = false
+databaseWriteExecuted = false
+```
+
+Nach temporaer gesetzten Gates wurde der Cleanup ausgefuehrt und danach wurden die Gates wieder deaktiviert.
+
+Readback:
+
+```text
+mediaIndexWriteEnabled = false
+mediaIndexDataWriteEnabled = false
+preview.candidateCount = 0
+```
+
+Diff-Readback:
+
+```text
+missingOnAgentItems = 0
+ttsGeneratedTempCandidateCount = 0
+ttsGeneratedExcludedFromSyncLegacyCount = 0
+persistentMediaMissingCandidateCount = 0
+tombstoneCandidateDiagnosticCount = 0
+previews.ttsTempMissingCandidates = []
+```
+
+Damit ist der alte TTS-generated Legacy-DB-Eintrag sauber bereinigt.

@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Schritt nach 0.2.58L-Test
+## Naechster RDAP-Schritt nach 0.2.58L
 
 `RDAP_0.2.58M_MEDIA_INDEX_PERSISTENT_MISSING_TOMBSTONE_PLAN_READONLY`
 
@@ -15,12 +15,19 @@ Ziel:
 
 ## Ausgangspunkt
 
-0.2.58L bereitet den kontrollierten Cleanup fuer alte TTS-generated Legacy-DB-Eintraege vor.
-
-TTS-generated Dateien sind Sonderfall:
+0.2.58L ist bestaetigt:
 
 ```text
-sounds/tts/generated/** wird nicht synchronisiert und kann als Legacy bereinigt werden.
+Alter sounds:tts/generated/** Legacy-DB-Eintrag wurde per gated Soft-Delete bereinigt.
+Cleanup-Preview danach = 0.
+Diff-Missing danach = 0.
+Media-Index-Write-Gates sind wieder aus.
+```
+
+TTS-generated Dateien bleiben Sonderfall:
+
+```text
+sounds/tts/generated/** wird nicht synchronisiert und soll nicht dauerhaft im Media-Index auftauchen.
 ```
 
 Normale persistente Media-Dateien sind anderer Fall:

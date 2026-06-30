@@ -1,61 +1,94 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58L - Media Index TTS Legacy DB Cleanup gated vorbereitet`
+Aktueller Stand: `0.2.58L - Media Index TTS Legacy DB Cleanup bestaetigt`
 
-## Ausgangspunkt
+## Ergebnis
 
-0.2.58K ist lokal getestet, auf GitHub/dev abgeschlossen, auf dem Webserver bestaetigt und dokumentiert.
-
-Bestaetigter Webserver-Stand 0.2.58K:
-
-```text
-statusApiVersion = rdap_media_index_diff_exclude_tts_generated_sync_058k.v1
-routeBuild = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
-readOnly = true
-writeEnabled = false
-ttsGeneratedExcludedFromSyncLegacyCount = 1
-persistentMediaMissingCandidateCount = 0
-databaseWritesEnabled = false
-deleteEnabled = false
-noOnlineToAgentAction = true
-```
-
-Fachliche Entscheidung:
-
-```text
-TTS-generated Dateien unter sounds/tts/generated/** sind temporaer und werden nicht dauerhaft synchronisiert.
-```
-
-## 0.2.58L
-
-0.2.58L bereitet eine kontrollierte DB-Bereinigung fuer alte TTS-generated Legacy-Eintraege vor.
+0.2.58L wurde lokal installiert, auf GitHub/dev deployed, auf dem Webserver getestet und fachlich bestaetigt.
 
 Statusmarker:
 
 ```text
 rdap_media_index_tts_legacy_cleanup_gated_058l.v1
 RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_GATED
+RDAP_0.2.58L_FINAL_STATUS_AFTER_TTS_LEGACY_CLEANUP_CONFIRMED
 ```
 
-Neue Routen:
+## Bestaetigter Ablauf
+
+Preview vor Execute:
 
 ```text
-GET  /api/remote/media/index/cleanup/tts-generated-legacy/status
-POST /api/remote/media/index/cleanup/tts-generated-legacy
+preview.candidateCount = 1
 ```
 
-## Verhalten
+Kandidat:
 
-- Preview ist read-only.
-- Execute ist local-only.
-- Execute braucht `confirmWrite:true` im JSON-Body.
-- Execute braucht `confirmCleanup:"RDAP_0.2.58L_CONFIRM_TTS_LEGACY_CLEANUP"`.
-- Execute braucht `expectedCandidateCount`.
-- Execute braucht gesetzte `MEDIA_INDEX_WRITE_ENABLED=true` und `MEDIA_INDEX_DATA_WRITE_ENABLED=true`.
-- Execute macht nur Soft-Delete: `deleted=1`.
-- Execute schreibt Audit in `dashboard_audit_log`.
-- Execute macht Readback.
+```text
+sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
+```
+
+Erster Execute ohne Media-Index-Gates wurde korrekt blockiert:
+
+```text
+reason = media_index_data_write_gate_disabled
+writeExecuted = false
+databaseWriteExecuted = false
+```
+
+Nach temporaerer Aktivierung:
+
+```text
+MEDIA_INDEX_WRITE_ENABLED=true
+MEDIA_INDEX_DATA_WRITE_ENABLED=true
+```
+
+wurde der Cleanup mit Body-Confirm ausgefuehrt:
+
+```text
+confirmWrite = true
+confirmCleanup = RDAP_0.2.58L_CONFIRM_TTS_LEGACY_CLEANUP
+expectedCandidateCount = 1
+```
+
+Danach wurden die Gates wieder deaktiviert.
+
+## Readback
+
+Cleanup-Status nach Abschluss:
+
+```text
+mediaIndexWriteEnabled = false
+mediaIndexDataWriteEnabled = false
+preview.candidateCount = 0
+```
+
+Diff-Status nach Abschluss:
+
+```text
+missingOnAgentItems = 0
+ttsGeneratedTempCandidateCount = 0
+ttsGeneratedExcludedFromSyncLegacyCount = 0
+persistentMediaMissingCandidateCount = 0
+tombstoneCandidateDiagnosticCount = 0
+previews.ttsTempMissingCandidates = []
+```
 
 ## Sicherheit
 
-Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger, keine Datei-Inhalte, keine absoluten Pfade, keine Upload/Edit/Delete-Funktion, keine automatische Bereinigung normaler persistenter Media-Dateien.
+- Alter TTS-generated Legacy-DB-Eintrag wurde bereinigt.
+- Soft-Delete (`deleted=1`), kein Hard-Delete.
+- Keine normalen persistenten Media-Dateien betroffen.
+- Kein physisches Loeschen.
+- Kein Online->Agent-Trigger.
+- Keine Datei-Inhalte.
+- Keine absoluten lokalen Pfade.
+- Media-Index-Write-Gates sind wieder aus.
+
+## Naechster sinnvoller RDAP-Step
+
+```text
+RDAP_0.2.58M_MEDIA_INDEX_PERSISTENT_MISSING_TOMBSTONE_PLAN_READONLY
+```
+
+Ziel: normale lokal geloeschte persistente Media-Dateien sauber read-only als spaetere Tombstone-Kandidaten planen. Kein Auto-Delete, kein Write in diesem Plan-Step.

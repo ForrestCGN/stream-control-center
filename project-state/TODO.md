@@ -22,10 +22,11 @@
 - [x] 0.2.58I Webserver-Test dokumentieren
 - [x] TTS temp Missing read-only klassifizieren
 - [x] TTS-generated Dateien aus Agent-Media-Sync ausschliessen
-- [x] 0.2.58K Webserver-Test dokumentieren
-- [ ] TTS Legacy-DB-Cleanup gated testen
-- [ ] Normale persistente Missing-Dateien / Tombstone read-only planen
-- [ ] Alert-System Arbeiten separat fortsetzen
-- [ ] Tombstone-Gate/Confirm/Audit/Lock/Readback fuer persistente Media-Dateien planen
+- [x] 0.2.58K Webserver-Bestaetigung dokumentieren
+- [x] TTS Legacy-DB-Cleanup gated bauen
+- [x] TTS Legacy-DB-Cleanup auf Webserver bestaetigen
+- [ ] Normale persistent geloeschte Media-Dateien read-only Tombstone-Plan bauen
+- [ ] Tombstone-Gate/Confirm/Audit/Lock/Readback fuer persistente Media-Dateien separat bauen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen
+- [ ] Alert-System Arbeiten separat fortsetzen

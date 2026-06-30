@@ -17,50 +17,60 @@ Repository:
 - Remote-Modboard intern Webserver: `http://127.0.0.1:3010`
 - Remote-Modboard live: `https://mods.forrestcgn.de/`
 
-Aktueller RDAP-Stand: `0.2.58L - Media Index TTS Legacy DB Cleanup gated`.
+Aktueller RDAP-Stand: `0.2.58L - Media Index TTS Legacy DB Cleanup bestaetigt`.
 
-0.2.58K ist bestaetigt:
+Bestaetigte fachliche Entscheidung:
 
 ```text
-TTS-generated Dateien unter sounds/tts/generated/** sind temporaer und werden nicht mehr dauerhaft synchronisiert.
+TTS-generated Dateien unter sounds/tts/generated/** sind temporaer und werden nicht dauerhaft synchronisiert.
 ```
 
-0.2.58L baut fuer alte aktive DB-Eintraege unter `sounds:tts/generated/...` einen kontrollierten Cleanup-Write.
-
-Statusmarker 0.2.58L:
+Bestaetigte 0.2.58K-Umsetzung:
 
 ```text
+sounds/tts/generated/** wird vom lokalen Agent-Media-Inventory ausgeschlossen.
+Dadurch nicht im Compact-Snapshot und nicht im Full-Sync.
+```
+
+Bestaetigte 0.2.58L-Umsetzung:
+
+```text
+Alter TTS-generated Legacy-DB-Eintrag wurde per gated Soft-Delete bereinigt.
+Kein Hard-Delete.
+Kein physisches Loeschen.
+Keine normalen persistenten Media-Dateien betroffen.
+Kein Online->Agent-Trigger.
+```
+
+Statusmarker:
+
+```text
+rdap_agent_media_inventory_exclude_tts_generated_058k.v1
+rdap_media_index_diff_exclude_tts_generated_sync_058k.v1
 rdap_media_index_tts_legacy_cleanup_gated_058l.v1
+RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
 RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_GATED
+RDAP_0.2.58L_FINAL_STATUS_AFTER_TTS_LEGACY_CLEANUP_CONFIRMED
 ```
 
-Wichtigster Stand:
+Webserver-Bestaetigung 0.2.58L:
 
-- Neue Route: `GET /api/remote/media/index/cleanup/tts-generated-legacy/status`
-  - read-only Preview alter TTS-generated Legacy-Kandidaten.
-
-- Neue Route: `POST /api/remote/media/index/cleanup/tts-generated-legacy`
-  - local-only.
-  - Body-Confirm erforderlich.
-  - `confirmCleanup = RDAP_0.2.58L_CONFIRM_TTS_LEGACY_CLEANUP` erforderlich.
-  - `expectedCandidateCount` erforderlich.
-  - `MEDIA_INDEX_WRITE_ENABLED=true` und `MEDIA_INDEX_DATA_WRITE_ENABLED=true` erforderlich.
-  - schreibt Audit.
-  - setzt nur `deleted=1`, kein Hard-Delete.
-
-Sicherheit bleibt verbindlich:
-- Kein physisches Loeschen.
-- Kein Online->Agent-Trigger.
-- Keine Datei-Inhalte.
-- Keine absoluten lokalen Pfade.
-- Keine Upload/Edit/Delete-Funktion.
-- Keine automatische Bereinigung normaler persistenter Media-Dateien.
+```text
+Preview vorher: candidateCount = 1
+Erster Execute ohne Media-Index-Gates korrekt blockiert: media_index_data_write_gate_disabled
+Cleanup danach ausgefuehrt mit confirmWrite:true, confirmCleanup und expectedCandidateCount=1
+Gates danach wieder aus
+Cleanup-Preview danach: candidateCount = 0
+Diff danach: missingOnAgentItems = 0
+TTS-Legacy-Kandidaten danach = 0
+Tombstone-Kandidaten danach = 0
+```
 
 Bitte im neuen Chat zuerst lesen:
 1. Masterprompt
 2. `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58L.md`
-3. `docs/current/RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_GATED.md`
-4. `docs/current/RDAP_0.2.58K_FINAL_STATUS_AFTER_WEBSERVER_CONFIRMATION.md`
+3. `docs/current/RDAP_0.2.58L_FINAL_STATUS_AFTER_TTS_LEGACY_CLEANUP_CONFIRMED.md`
+4. `docs/current/RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_GATED.md`
 5. `project-state/CURRENT_STATUS.md`
 6. `project-state/NEXT_STEPS.md`
 7. `project-state/TODO.md`
@@ -68,20 +78,28 @@ Bitte im neuen Chat zuerst lesen:
 9. `project-state/FILES.md`
 
 Danach relevante Source-Dateien aus GitHub/dev lesen, wenn RDAP weitergeht:
-- `remote-modboard/backend/src/app.js`
+- `backend/modules/remote_agent.js`
+- `remote-modboard/backend/src/routes/media-index-diff.routes.js`
 - `remote-modboard/backend/src/routes/media-index-cleanup.routes.js`
 - `remote-modboard/backend/src/services/media-index-tts-legacy-cleanup.service.js`
-- `remote-modboard/backend/src/routes/media-index-diff.routes.js`
-- `backend/modules/remote_agent.js`
+- `remote-modboard/backend/src/services/agent-runtime.service.js`
 
-Naechster sinnvoller RDAP-Step nach erfolgreichem 0.2.58L-Test:
+Naechster sinnvoller RDAP-Step:
 
 ```text
 RDAP_0.2.58M_MEDIA_INDEX_PERSISTENT_MISSING_TOMBSTONE_PLAN_READONLY
 ```
 
 Ziel:
-- Normale lokal geloeschte persistente Media-Dateien spaeter sicher als Missing/Tombstone-Kandidaten behandeln.
-- Erst read-only planen.
+- Normale lokal geloeschte persistente Media-Dateien sicher behandeln.
+- Read-only planen, wie Missing-on-Agent aus vollstaendigem Full-Sync zu Tombstone-Kandidaten wird.
 - Kein Auto-Delete.
-- Nur bei vollstaendigem Full-Sync und `missingOnAgentReliable=true`.
+- Kein DB-Write in diesem Plan-Step.
+- Kein physisches Loeschen.
+- Kein Online->Agent-Trigger.
+
+Wichtig:
+- TTS-generated war ein Sonderfall.
+- Normale persistente Media-Dateien duerfen nicht blind geloescht werden.
+- Spaeterer Tombstone/Delete nur mit eigenem Gate-/Confirm-/Audit-/Backup-/Readback-Step.
+- Alert-Arbeiten nicht mit RDAP vermischen; fuer Alert-System zuerst Masterprompt und relevante GitHub/dev-Dateien lesen.
