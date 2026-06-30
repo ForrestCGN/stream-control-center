@@ -29,8 +29,9 @@
 - [x] Reliability-Note fuer Full-Sync-Compare korrigieren
 - [x] Persistent Tombstone gated Plan dokumentieren
 - [x] Persistent Tombstone read-only Preview-Route bauen
-- [ ] 0.2.58P Webserver-Test bestaetigen
-- [ ] Tombstone-Gate/Confirm/Audit/Lock/Readback fuer persistente Media-Dateien separat bauen
+- [x] 0.2.58P Webserver-Test bestaetigen
+- [x] Tombstone-Gate/Confirm/Audit/Lock/Readback fuer persistente Media-Dateien separat bauen
+- [ ] 0.2.59 Webserver-Test bestaetigen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen
 - [ ] Alert-System Arbeiten separat fortsetzen

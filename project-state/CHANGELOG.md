@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.2.59 - Media Index Persistent Tombstone gated Execute Foundation
+
+- `media-index-diff.routes.js` auf `RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION` aktualisiert.
+- Neue Route `POST /api/remote/media/index/tombstone/persistent/execute` ergaenzt.
+- Preview-Route bleibt erhalten.
+- Execute ist local-only und braucht `confirmWrite:true`, `confirmTombstone`, `expectedCandidateCount` und explizite Media-Index-Gates.
+- Zusaetzliches Gate: `MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=true`.
+- Bei `candidateCount = 0` ist Execute ein Noop ohne DB-Write.
+- Bei Kandidaten > 0 ist nur Soft-Delete (`deleted=1`) vorbereitet, mit Audit und Readback.
+- Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+
 ## 0.2.58P - Media Index Persistent Tombstone gated Preview
 
 - `media-index-diff.routes.js` auf `RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW` aktualisiert.

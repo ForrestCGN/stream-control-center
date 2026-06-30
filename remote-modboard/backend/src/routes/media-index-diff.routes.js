@@ -1,20 +1,25 @@
 'use strict';
 
+const crypto = require('crypto');
 const path = require('path');
 const {
   buildAgentMediaInventoryStatusResponse,
   buildAgentConnectionSummary,
   buildMediaFullSyncCompareSnapshotStatusResponse
 } = require('../services/agent-runtime.service');
-const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
+const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('../services/db.service');
+const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_persistent_tombstone_preview_058p.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_reliability_note_fix_058n.v1';
-const BUILD = 'RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW';
-const PREVIOUS_BUILD = 'RDAP_0.2.58N_MEDIA_INDEX_DIFF_RELIABILITY_NOTE_FIX';
+const STATUS_API_VERSION = 'rdap_media_index_persistent_tombstone_execute_foundation_059.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_persistent_tombstone_preview_058p.v1';
+const BUILD = 'RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION';
+const PREVIOUS_BUILD = 'RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
+const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
+const AUDIT_TABLE = 'dashboard_audit_log';
+const CONFIRM_PERSISTENT_TOMBSTONE_TEXT = 'RDAP_0.2.59_CONFIRM_PERSISTENT_TOMBSTONE_EXECUTE';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
 const MAX_PREVIEW_LIMIT = 50;
@@ -43,6 +48,11 @@ function registerMediaIndexDiffRoutes(app, context) {
     const result = await buildPersistentTombstonePreviewStatus(context, req);
     res.status(result.httpStatus || 200).json(result.body || result);
   });
+
+  app.post(PERSISTENT_TOMBSTONE_EXECUTE_ROUTE, async (req, res) => {
+    const result = await executePersistentTombstoneFoundation(context, req);
+    res.status(result.httpStatus || result.status || 200).json(result.body || result);
+  });
 }
 
 async function buildMediaIndexDiffStatus(context = {}, req = null) {
@@ -67,7 +77,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58N',
+      moduleVersion: context.appVersion || '0.2.59',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -116,7 +126,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58N',
+    moduleVersion: context.appVersion || '0.2.59',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -144,8 +154,9 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       'TTS-generated-temp Dateien sind aus Agent-Inventory und Full-Sync ausgeschlossen.',
       'Tombstone-Kandidatur bleibt reine Diagnose.',
       'Persistente Tombstone-Preview ist read-only unter /api/remote/media/index/tombstone/persistent/preview verfuegbar.',
+      'Persistente Tombstone-Execute-Foundation ist unter /api/remote/media/index/tombstone/persistent/execute vorbereitet und streng gegatet.',
       'Gated Delta-Upsert separat planen.',
-      'Tombstone/deleted=1 nur spaeter mit eigenem Gate, Confirm, Audit/Lock und Readback planen.',
+      'Tombstone/deleted=1 nur mit local-only, Confirm, expectedCandidateCount, Media-Index-Gates, Audit und Readback.',
       'Upload/Edit/Delete bleibt aus.'
     ],
     note: agentSnapshotUnavailable
@@ -165,7 +176,7 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
       ok: false,
       service: 'remote-modboard',
       module: 'remote_media_index_persistent_tombstone_preview',
-      moduleVersion: context.appVersion || '0.2.58P',
+      moduleVersion: context.appVersion || '0.2.59',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -176,7 +187,7 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
       generatedAt,
       readOnly: true,
       writeEnabled: false,
-      executeRoutePrepared: false,
+      executeRoutePrepared: true,
       databaseWriteExecuted: false,
       softDeleteExecuted: false,
       hardDeleteExecuted: false,
@@ -212,7 +223,7 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: 'remote_media_index_persistent_tombstone_preview',
-    moduleVersion: context.appVersion || '0.2.58P',
+    moduleVersion: context.appVersion || '0.2.59',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -223,7 +234,7 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
     generatedAt,
     readOnly: true,
     writeEnabled: false,
-    executeRoutePrepared: false,
+    executeRoutePrepared: true,
     databaseWritesEnabled: false,
     databaseWriteExecuted: false,
     tombstoneWritesEnabled: false,
@@ -280,8 +291,8 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
       futureOnlineToAgentActionAllowed: false
     },
     futureExecuteRequirements: {
-      plannedOnly: true,
-      executeRoutePrepared: false,
+      plannedOnly: false,
+      executeRoutePrepared: true,
       requiredBeforeAnyWrite: [
         'separate_execute_step',
         'local_request_only',
@@ -291,7 +302,7 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
         'expectedCandidateCount_match',
         'MEDIA_INDEX_WRITE_ENABLED=true',
         'MEDIA_INDEX_DATA_WRITE_ENABLED=true',
-        'dedicated_persistent_tombstone_gate',
+        'MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=true',
         'audit_log',
         'backup_or_rollback_concept',
         'readback'
@@ -315,14 +326,344 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
       secretsExposed: false
     },
     nextSteps: [
-      'Preview zuerst auf Webserver bestaetigen.',
-      'Execute/Soft-Delete fuer persistente Missing-Dateien nur in separatem Gate-/Confirm-/Audit-/Backup-/Readback-Step planen.',
-      'Kein Auto-Delete und kein Online->Agent-Trigger.'
+      'Preview und Execute-Foundation auf Webserver bestaetigen.',
+      'Execute schreibt nur bei local-only, Confirm, expectedCandidateCount und expliziten Media-Index-Gates.',
+      'Bei candidateCount=0 bleibt Execute ein Noop ohne DB-Write.',
+      'Kein Auto-Delete, kein Hard-Delete, kein physisches Loeschen und kein Online->Agent-Trigger.'
     ],
     note: missingReliable
       ? 'Persistente Tombstone-Kandidaten werden read-only aus belastbarem Missing-on-Agent/Full-Sync-Compare abgeleitet. Es wird nichts geschrieben.'
       : 'Persistente Tombstone-Kandidaten werden nicht belastbar abgeleitet, solange Missing-on-Agent nicht verlaesslich ist. Es wird nichts geschrieben.'
   };
+}
+
+async function executePersistentTombstoneFoundation(context = {}, req = null) {
+  const generatedAt = new Date().toISOString();
+  const body = req && req.body && typeof req.body === 'object' ? req.body : {};
+  const base = {
+    service: 'remote-modboard',
+    module: 'remote_media_index_persistent_tombstone_execute_foundation',
+    moduleVersion: context.appVersion || '0.2.59',
+    moduleBuild: context.moduleBuild || BUILD,
+    routeBuild: BUILD,
+    previousRouteBuild: PREVIOUS_BUILD,
+    statusApiVersion: STATUS_API_VERSION,
+    previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
+    route: PERSISTENT_TOMBSTONE_EXECUTE_ROUTE,
+    previewRoute: PERSISTENT_TOMBSTONE_PREVIEW_ROUTE,
+    generatedAt,
+    readOnly: false,
+    localOnly: true,
+    writeEnabled: false,
+    databaseWritesEnabled: false,
+    softDeleteOnly: true,
+    hardDeleteExecuted: false,
+    physicalDeleteExecuted: false,
+    noPhysicalDelete: true,
+    noHardDelete: true,
+    noOnlineToAgentAction: true,
+    mediaIndexGates: buildPersistentTombstoneGateStatus(),
+    requiredConfirmTombstone: CONFIRM_PERSISTENT_TOMBSTONE_TEXT
+  };
+
+  if (!isLocalRequest(req)) {
+    return blockedExecute(403, base, 'local_request_required');
+  }
+
+  const confirm = requireAdminConfirmWrite({ body });
+  if (!confirm.confirmWriteAccepted) {
+    return blockedExecute(400, base, 'confirm_write_required', { confirmWriteAccepted: false, confirm });
+  }
+
+  if (String(body.confirmTombstone || body.confirm_tombstone || '') !== CONFIRM_PERSISTENT_TOMBSTONE_TEXT) {
+    return blockedExecute(400, base, 'confirm_tombstone_text_required', {
+      confirmWriteAccepted: true,
+      requiredConfirmTombstone: CONFIRM_PERSISTENT_TOMBSTONE_TEXT
+    });
+  }
+
+  const expectedCandidateCount = Number(body.expectedCandidateCount ?? body.expected_candidate_count);
+  if (!Number.isInteger(expectedCandidateCount) || expectedCandidateCount < 0 || expectedCandidateCount > MAX_DB_ROWS) {
+    return blockedExecute(400, base, 'expected_candidate_count_required', {
+      confirmWriteAccepted: true,
+      expectedCandidateCountAccepted: false
+    });
+  }
+
+  const previewLimit = readPreviewLimit(req);
+  const snapshot = await buildPersistentTombstoneCandidateSnapshot({ context, previewLimit });
+  if (!snapshot.reliable) {
+    return blockedExecute(409, base, 'persistent_tombstone_candidates_unreliable', {
+      confirmWriteAccepted: true,
+      expectedCandidateCount,
+      currentCandidateCount: null,
+      snapshot
+    });
+  }
+
+  if (snapshot.candidateCount !== expectedCandidateCount) {
+    return blockedExecute(409, base, 'candidate_count_changed', {
+      confirmWriteAccepted: true,
+      expectedCandidateCount,
+      currentCandidateCount: snapshot.candidateCount,
+      snapshot
+    });
+  }
+
+  if (!base.mediaIndexGates.allRequiredGatesEnabled) {
+    return blockedExecute(403, base, 'media_index_persistent_tombstone_write_gate_disabled', {
+      confirmWriteAccepted: true,
+      expectedCandidateCount,
+      currentCandidateCount: snapshot.candidateCount,
+      requiredEnvGates: base.mediaIndexGates.requiredEnvGates,
+      snapshot
+    });
+  }
+
+  if (snapshot.candidateCount <= 0) {
+    return {
+      status: 200,
+      body: {
+        ...base,
+        ok: true,
+        status: 'persistent_tombstone_execute_noop_no_candidates',
+        reason: 'no_persistent_tombstone_candidates_to_soft_delete',
+        confirmWriteAccepted: true,
+        confirmTombstoneAccepted: true,
+        expectedCandidateCount,
+        currentCandidateCount: 0,
+        writeEnabled: true,
+        databaseWritesEnabled: true,
+        writeExecuted: false,
+        databaseWriteExecuted: false,
+        softDeleteExecuted: false,
+        hardDeleteExecuted: false,
+        physicalDeleteExecuted: false,
+        auditWritten: false,
+        readBackPerformed: true,
+        readBackCandidateCount: 0,
+        snapshot,
+        note: 'Execute-Foundation wurde vollstaendig bestaetigt, aber es gibt keine persistenten Tombstone-Kandidaten. Kein DB-Write wurde ausgefuehrt.'
+      }
+    };
+  }
+
+  const candidateIds = Array.isArray(snapshot.candidateIds) ? snapshot.candidateIds.filter(Boolean) : [];
+  const now = new Date();
+  const auditUid = buildAuditUid(now);
+  const config = context && context.config ? context.config : {};
+
+  try {
+    return await withWriteConnection(config, async (connection) => {
+      await connection.beginTransaction();
+      try {
+        const placeholders = candidateIds.map(() => '?').join(', ');
+        const [updateResult] = await connection.execute(
+          `UPDATE ${PERSISTENT_INDEX_TABLE}
+              SET deleted = 1,
+                  source = ?,
+                  sync_version = sync_version + 1,
+                  updated_at = ?
+            WHERE id IN (${placeholders})
+              AND deleted = 0`,
+          ['rdap_0.2.59_persistent_tombstone_soft_delete', now, ...candidateIds]
+        );
+
+        const safeMetadata = {
+          step: BUILD,
+          purpose: 'soft_delete_persistent_missing_media_index_entries',
+          table: PERSISTENT_INDEX_TABLE,
+          expectedCandidateCount,
+          candidateCount: snapshot.candidateCount,
+          affectedRows: safeAffectedRows(updateResult),
+          physicalDelete: false,
+          hardDelete: false,
+          onlineToAgentAction: false,
+          generatedAt: now.toISOString()
+        };
+
+        await connection.execute(
+          `INSERT INTO ${AUDIT_TABLE}
+            (audit_uid, actor_user_uid, actor_display_name, actor_login, source, action, resource_type,
+             permission_key, resource_key, status, error_code, old_value_summary, new_value_summary,
+             safe_metadata_json, completed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            auditUid,
+            safeString(body.actorUserUid || body.actor_user_uid || 'system:rdap059-persistent-tombstone', 64),
+            safeString(body.actorDisplayName || body.actor_display_name || 'RDAP 0.2.59 Persistent Tombstone', 120),
+            safeString(body.actorLogin || body.actor_login || 'rdap059-persistent-tombstone', 128),
+            'remote-modboard/rdap059',
+            'media_index.persistent_missing.soft_delete',
+            'remote_media_index',
+            'media.index.tombstone.persistent',
+            'media-index:persistent-tombstone',
+            'success',
+            null,
+            `${snapshot.candidateCount} persistent missing media-index row(s) before tombstone execute.`,
+            `${safeAffectedRows(updateResult)} row(s) soft-deleted via deleted=1. No physical file action, no hard-delete, no Online-to-Agent action.`,
+            JSON.stringify(safeMetadata),
+            now
+          ]
+        );
+
+        await connection.commit();
+
+        const readBackSnapshot = await buildPersistentTombstoneCandidateSnapshot({ context, previewLimit });
+        return {
+          status: 200,
+          body: {
+            ...base,
+            ok: true,
+            status: 'persistent_tombstone_soft_delete_executed',
+            reason: 'persistent_tombstone_soft_delete_executed',
+            confirmWriteAccepted: true,
+            confirmTombstoneAccepted: true,
+            expectedCandidateCount,
+            currentCandidateCountBeforeWrite: snapshot.candidateCount,
+            writeEnabled: true,
+            databaseWritesEnabled: true,
+            writeExecuted: true,
+            databaseWriteExecuted: true,
+            softDeleteExecuted: true,
+            hardDeleteExecuted: false,
+            physicalDeleteExecuted: false,
+            affectedRows: safeAffectedRows(updateResult),
+            auditWritten: true,
+            insertedAuditUid: auditUid,
+            readBackPerformed: true,
+            readBackCandidateCount: readBackSnapshot.candidateCount,
+            readBackClean: readBackSnapshot.candidateCount === 0,
+            snapshotBeforeWrite: snapshot,
+            snapshotAfterWrite: readBackSnapshot,
+            note: 'Persistente Missing-Eintraege wurden per deleted=1 als Tombstone soft-deleted. Es gab keinen Hard-Delete, kein physisches Loeschen und keinen Online->Agent-Trigger.'
+          }
+        };
+      } catch (err) {
+        try { await connection.rollback(); } catch (rollbackErr) { /* ignore rollback error */ }
+        throw err;
+      }
+    }, { scope: 'media_index_data' });
+  } catch (err) {
+    const publicError = publicDbError(err).code || 'persistent_tombstone_execute_failed';
+    return blockedExecute(500, base, publicError, {
+      confirmWriteAccepted: true,
+      expectedCandidateCount,
+      currentCandidateCount: snapshot.candidateCount,
+      writeExecuted: false,
+      databaseWriteExecuted: false,
+      softDeleteExecuted: false
+    });
+  }
+}
+
+async function buildPersistentTombstoneCandidateSnapshot({ context = {}, previewLimit = DEFAULT_PREVIEW_LIMIT } = {}) {
+  const full = sanitizeFullSyncCompareSnapshot(safeBuildFullSyncCompareSnapshotStatus());
+  const dbInventory = await readPersistentIndexItems(context.config || {});
+  const fullReliable = full.complete === true && full.available === true && full.truncated !== true && dbInventory.truncated !== true;
+  const fullIds = new Set(full.items.map(item => item.id).filter(Boolean));
+  const candidates = [];
+  if (fullReliable) {
+    for (const dbItem of dbInventory.items) {
+      if (fullIds.has(dbItem.id)) continue;
+      const classified = classifyMissingItem(dbItem);
+      if (!classified || classified.ttsGeneratedTempCandidate === true) continue;
+      candidates.push({
+        ...classified,
+        candidateType: 'persistent_media_tombstone_candidate',
+        writeAllowed: true,
+        executeAllowed: true,
+        tombstoneWriteAllowed: true,
+        deleteAllowed: false,
+        softDeleteOnly: true,
+        noPhysicalDelete: true,
+        noHardDelete: true,
+        noOnlineToAgentAction: true
+      });
+    }
+  }
+  return {
+    prepared: true,
+    build: BUILD,
+    readOnly: true,
+    reliable: fullReliable,
+    fullSyncCompareComplete: full.complete === true,
+    fullSyncCompareAvailable: full.available === true,
+    fullSyncCompareTruncated: full.truncated === true,
+    databaseSnapshotTruncated: dbInventory.truncated === true,
+    databaseTotal: dbInventory.total,
+    fullSyncItemCount: full.items.length,
+    candidateCount: fullReliable ? candidates.length : null,
+    candidateIds: fullReliable ? candidates.map(item => item.id).filter(Boolean) : [],
+    candidates: candidates.slice(0, previewLimit).map(safePreviewItem),
+    allCandidateIdsReturned: fullReliable ? candidates.length <= previewLimit : false,
+    noFileContent: true,
+    noAbsolutePaths: true,
+    noOnlineToAgentAction: true,
+    noPhysicalDelete: true
+  };
+}
+
+function blockedExecute(status, base, reason, extra = {}) {
+  return {
+    status,
+    body: {
+      ...base,
+      ...extra,
+      ok: false,
+      status: reason,
+      reason,
+      error: reason,
+      writeExecuted: false,
+      databaseWriteExecuted: false,
+      softDeleteExecuted: false,
+      hardDeleteExecuted: false,
+      physicalDeleteExecuted: false,
+      readBackPerformed: false
+    }
+  };
+}
+
+function buildPersistentTombstoneGateStatus() {
+  const mediaIndexWriteEnabled = readBooleanEnv('MEDIA_INDEX_WRITE_ENABLED');
+  const mediaIndexDataWriteEnabled = readBooleanEnv('MEDIA_INDEX_DATA_WRITE_ENABLED');
+  const persistentTombstoneWriteEnabled = readBooleanEnv('MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED');
+  return {
+    mediaIndexWriteEnabled,
+    mediaIndexDataWriteEnabled,
+    persistentTombstoneWriteEnabled,
+    allRequiredGatesEnabled: mediaIndexWriteEnabled && mediaIndexDataWriteEnabled && persistentTombstoneWriteEnabled,
+    requiredEnvGates: [
+      'MEDIA_INDEX_WRITE_ENABLED=true',
+      'MEDIA_INDEX_DATA_WRITE_ENABLED=true',
+      'MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=true'
+    ]
+  };
+}
+
+function isLocalRequest(req) {
+  const ip = String((req && (req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress)) || '');
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip.endsWith(':127.0.0.1');
+}
+
+function readBooleanEnv(name) {
+  const value = String(process.env[name] || '').trim().toLowerCase();
+  return value === 'true' || value === '1' || value === 'yes' || value === 'on';
+}
+
+function safeAffectedRows(result) {
+  const raw = result && (result.affectedRows ?? result.changedRows ?? result.rowCount);
+  return safeNonNegativeNumber(raw);
+}
+
+function buildAuditUid(now) {
+  const suffix = crypto.randomBytes(6).toString('hex');
+  const stamp = now.toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  return `audit:rdap059:persistent_tombstone:${stamp}:${suffix}`;
+}
+
+function safeString(value, maxLength = 255) {
+  return String(value || '').replace(/[\u0000-\u001f]/g, '').slice(0, Math.max(1, maxLength));
 }
 
 function safeBuildAgentMediaInventoryStatus() {
@@ -1044,7 +1385,9 @@ function buildComparePolicy() {
     modifiedAtSoftMatchPolicyEnabled: true,
     effectiveChangeCountsEnabled: true,
     fullSyncCompareSnapshotEnabled: true,
+    persistentTombstoneExecuteFoundationEnabled: true,
     persistentTombstonePreviewRoute: PERSISTENT_TOMBSTONE_PREVIEW_ROUTE,
+    persistentTombstoneExecuteRoute: PERSISTENT_TOMBSTONE_EXECUTE_ROUTE,
     ttsGeneratedExcludedFromAgentSync: true,
     ttsGeneratedExcludedRootKey: TTS_TEMP_ROOT_KEY,
     ttsGeneratedExcludedRelativePathPrefix: TTS_TEMP_PREFIX,
@@ -1157,4 +1500,4 @@ function dateMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-module.exports = { registerMediaIndexDiffRoutes, buildMediaIndexDiffStatus, buildPersistentTombstonePreviewStatus };
+module.exports = { registerMediaIndexDiffRoutes, buildMediaIndexDiffStatus, buildPersistentTombstonePreviewStatus, executePersistentTombstoneFoundation };
