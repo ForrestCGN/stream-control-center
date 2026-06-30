@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.2.103 - Local Media Picker Alignment Plan
+
+- Lokale Media-Picker-Angleichung als naechsten Read-only-Block festgehalten.
+- Online-Media-Picker bleibt fachliche UI-Wahrheit fuer Layout, Sprache und Mod-taugliche Begriffe.
+- Zielbild dokumentiert: eine UI, zwei Runtime-Profile (`online` / `local`).
+- Sicherheitsgrenzen fuer lokale Angleichung festgehalten: keine DB-Writes, keine Gates, keine Upload/Edit/Delete-Aktion, keine Online->Agent Dateiaktion.
+- Naechsten Runtime-Block `0.2.104 - Local Media Picker Readonly Alignment` vorbereitet.
+- Keine Runtime-Code-Dateien geaendert.
+- Kein Backend geaendert.
+- Kein Webserver-Deploy noetig.
+
 ## 0.2.102 - Online Media Picker Docs Handoff
 
 - Doku nach live bestaetigtem Online-Media-Picker Stand `0.2.101` aktualisiert.
@@ -76,12 +87,3 @@
 - Live bestaetigt: `readOnly=true`, `writeEnabled=false`, `databaseWriteExecuted=false`.
 - Live bestaetigt: `media=412`, `alerts=132`, `alerts/follow=53`.
 - Keine DB-Writes, keine Gates, keine Migration, kein neues Modul, keine `app.js`-Aenderung.
-
-## 0.2.93 - Media Index Post-Upsert Verify readonly
-
-- Post-Upsert-Verifikation nach produktivem Context-Upsert read-only ausgefuehrt.
-- Bestaetigt: FullSyncCompare `fullItems=744`, DB `dbTotal=744`, `newOnAgent=0`.
-- Bestaetigt: Upsert Preview `ok=true`, `candidateCount=0`, `byRoot={}`, `byKind={}`.
-- Bestaetigt: DB-Readback `images=46`, `media=412`, `sounds=276`, `videos=10`, gesamt `744` aktive Eintraege.
-- Bestaetigt: Audit-Eintraege fuer `media_index.schema_extension.add_context_columns` und `media_index.upsert.with_context` jeweils `success`.
-- Keine Runtime-Code-Dateien geaendert.

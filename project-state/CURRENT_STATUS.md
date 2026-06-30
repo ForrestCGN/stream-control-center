@@ -1,18 +1,30 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.101 - Media Picker Pagination and Dedup live ok`
+Aktueller Stand: `0.2.103 - Local Media Picker Alignment Plan`
 
 ## Kurzfazit
 
-Der Online-Media-Picker im Remote-Modboard ist fuer den aktuellen Stand mod-tauglich und read-only live bestaetigt.
+Der Online-Media-Picker im Remote-Modboard bleibt der bestaetigte mod-taugliche read-only Stand.
 
-Bestaetigt:
+Mit 0.2.103 wurde keine Runtime-Funktion geaendert. Der Step ist ein Plan-/Handoff-Step fuer die lokale Angleichung des Media-Pickers.
+
+Bestaetigt vor 0.2.103:
 - Media-System-Index ist vollstaendig in `remote_media_index`.
 - Context-Read-API ist live.
 - Bestehende Media-Seite nutzt die Context-API.
 - Pagination funktioniert mit echten API-Seiten ueber `limit` und `offset`.
 - UI ist modfreundlicher formuliert und im CGN-Design poliert.
 - Keine DB-Writes, keine Gates, keine Upload/Edit/Delete-Aktion, keine Agent-Aktion.
+
+0.2.103 haelt fest:
+- Lokale Media-Picker-Angleichung wird als separater Read-only-Block vorbereitet.
+- Online-UI bleibt die fachliche Wahrheit fuer Layout, Sprache und Mod-taugliche Begriffe.
+- Lokale UI darf keine zweite abweichende Bedienlogik werden.
+- Lokale Datenquelle muss read-only bleiben.
+- Keine Online->Agent Dateiaktion.
+- Keine Upload/Edit/Delete-Aktion.
+- Keine DB-Migration.
+- Keine Gates.
 
 ## Bestaetigter Gesamtindex
 
@@ -25,7 +37,7 @@ videos = 10
 gesamt = 744
 ```
 
-## Basis-API
+## Basis-API Online
 
 ```text
 GET /api/remote/media/index/context/list
@@ -63,6 +75,8 @@ Umsetzung:
 0.2.99 - Mod-friendly Filters
 0.2.100 - CGN Design Polish
 0.2.101 - Pagination and Dedup
+0.2.102 - Online Media Picker Docs Handoff
+0.2.103 - Local Media Picker Alignment Plan
 ```
 
 Live bestaetigt:
@@ -78,6 +92,25 @@ Live bestaetigt:
 - Unnoetige Warnboxen/Zaehlungsdopplungen wurden entfernt.
 - Pagination unten zeigt nur noch z. B. `1-25 von 412 Dateien`.
 - `Zurueck` / `Weiter` laden echte neue Seiten aus der Context-API.
+
+## Lokale Angleichung - Zielbild
+
+Die lokale Media-Ansicht soll dieselbe Mod-Bedienlogik wie online verwenden:
+
+```text
+Eine UI, zwei Runtime-Profile:
+- online: Remote-Modboard auf Webserver 3010
+- local: lokales Dashboard / Stream-PC 8080
+```
+
+Fuer die lokale Angleichung gilt:
+- bestehende Struktur bevorzugen,
+- keine neue zweite UI,
+- keine parallele Media-Logik ohne Not,
+- lokale API nur read-only,
+- gleiche Feldnamen/Filter wie Online-Context-API anstreben,
+- keine absoluten Pfade in der Mod-Hauptansicht,
+- keine technischen Diagnosefelder in der Mod-Hauptansicht.
 
 ## Sicherheit
 
@@ -109,13 +142,12 @@ Hinweis:
 ## Naechster sinnvoller Block
 
 ```text
-RDAP_0.2.103_LOCAL_MEDIA_PICKER_ALIGNMENT_PLAN
+RDAP_0.2.104_LOCAL_MEDIA_PICKER_READONLY_ALIGNMENT
 ```
 
 Ziel:
-- Lokale Media-Picker-Angleichung planen.
-- Vorher lokale Dashboard-/Agent-Struktur lesen.
-- Pruefen, ob lokal dieselbe `library.js` genutzt wird.
-- Pruefen, ob lokale API dieselben Felder/Filter liefern kann.
-- Keine Online->Agent Dateiaktion.
-- Keine Writes.
+- lokale Dashboard-/Agent-Struktur final gegen Online-Media-Picker abgleichen,
+- lokale Read-only-API-Kontraktfelder definieren oder angleichen,
+- dann erst minimale Runtime-Angleichung planen/umsetzen,
+- keine Online->Agent Dateiaktion,
+- keine Writes.

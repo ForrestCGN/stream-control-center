@@ -2,19 +2,21 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.103_LOCAL_MEDIA_PICKER_ALIGNMENT_PLAN`
+`RDAP_0.2.104_LOCAL_MEDIA_PICKER_READONLY_ALIGNMENT`
 
 ## Ausgangslage
 
-`0.2.101 - Media Picker Pagination and Dedup` ist online im Remote-Modboard live ok.
+`0.2.103 - Local Media Picker Alignment Plan` ist ein Doku-/Plan-Step.
 
 Bestaetigt:
+- Online-Media-Picker ist seit 0.2.101 live ok.
 - Context-Read-API:
   `GET /api/remote/media/index/context/list`
 - Online-Media-Picker nutzt die Context-API read-only.
 - Pagination funktioniert ueber `limit` und `offset`.
 - UI ist modfreundlich und im CGN-Design poliert.
-- Keine Backend-Aenderung seit 0.2.94 fuer die UI-Schritte.
+- 0.2.102 hat den Online-Stand dokumentiert.
+- 0.2.103 haelt die lokale Angleichung als naechsten Read-only-Block fest.
 - Keine DB-Writes, keine Gates, keine Agent-Aktion.
 
 ## Online-Stand
@@ -43,15 +45,17 @@ Kontext-API
 remote_media_index
 DB
 Writes
+Agent-Diagnose
+absolute Pfade
 ```
 
-## Ziel fuer 0.2.103
+## Ziel fuer 0.2.104
 
-Lokale Media-Picker-Angleichung planen.
+Lokale Media-Picker-Angleichung read-only umsetzen oder, falls lokale API-Felder nicht passen, zuerst den kleinsten API-Kontrakt-Step vorbereiten.
 
-Vor Umsetzung klaeren:
+Vor Umsetzung pruefen:
 ```text
-- nutzt lokale Ansicht dieselbe library.js?
+- nutzt lokale Ansicht dieselbe library.js oder eine lokale Kopie?
 - welche lokale Dashboard-/Agent-UI-Dateien sind betroffen?
 - welche lokalen API-Endpunkte liefern Media-Daten?
 - liefern lokale APIs dieselben Felder wie die Online-Context-API?
@@ -65,6 +69,8 @@ Vor Umsetzung klaeren:
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
 remote-modboard/backend/public/assets/modules/media/library.js
 remote-modboard/backend/public/assets/remote-modboard.css
 remote-modboard/backend/public/assets/modules/module-manifest.js
@@ -75,16 +81,16 @@ remote-modboard/backend/src/routes/routes.routes.js
 Dann lokale Struktur suchen/lesen:
 ```text
 backend/modules/remote_agent.js
+backend/modules/local_remote_modboard_adapter.js
 server.js
-backend/public / htdocs / dashboard / overlays relevante lokale UI-Dateien
-docs/reference/*
+htdocs/dashboard-v2/assets/modules/media/library.js
+htdocs/dashboard-v2/assets/remote-modboard.css
+htdocs/dashboard-v2/assets/modules/module-manifest.js
 docs/current/RDAP119_MODULAR_UI_AND_LOCAL_DASHBOARD_FOUNDATION.md
 docs/current/RDAP122_LOCAL_DASHBOARD_RUNTIME_PROFILE.md
 ```
 
-## Sicherheit
-
-Weiterhin verboten ohne separaten Plan + Go:
+## Harte Regeln fuer 0.2.104
 
 ```text
 keine Gates aktivieren
@@ -96,11 +102,15 @@ kein physisches Loeschen
 kein Online->Agent-Trigger
 keine Upload/Edit/Delete-Aktion
 keine Dateiaktion vom Webserver zum Stream-PC
+keine neue zweite lokale UI
+keine technischen Labels in der Mod-Hauptansicht
+keine weissen Browser-Standard-Dropdowns
 ```
 
-## Erwarteter naechster Ablauf
+## Erwarteter Ablauf
 
-1. Relevante Dateien lesen.
-2. Kurzplan fuer lokale Angleichung nennen.
+1. Relevante Dateien aus GitHub/dev lesen.
+2. Kurzplan nennen.
 3. Auf `go` warten.
 4. Erst dann ZIP bauen.
+5. Wenn Runtime-Dateien geaendert werden: komplette aktuelle Datei lesen und komplette Ersatzdatei liefern.

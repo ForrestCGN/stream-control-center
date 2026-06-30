@@ -1,5 +1,23 @@
 # FILES
 
+## 0.2.103 ZIP-Inhalt
+
+```text
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/RDAP_0.2.103_LOCAL_MEDIA_PICKER_ALIGNMENT_PLAN.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_103.md
+```
+
+## 0.2.103 Runtime-Aenderung
+
+```text
+keine
+```
+
 ## 0.2.102 ZIP-Inhalt
 
 ```text
