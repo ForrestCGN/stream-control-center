@@ -1,15 +1,15 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.66
+## Naechster RDAP-Block nach 0.2.67
 
-`RDAP_0.2.67_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_VERIFY_AND_CREATE_PLAN`
+`RDAP_0.2.68_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_CONFIRM_READONLY`
 
 ## Ziel
 
-- Lokalen gueltigen Media-Root fuer die Testdatei pruefen.
-- Nicht raten, ob `sounds` wirklich gueltig ist.
-- Falls `sounds` nicht gueltig ist, vorhandenen Root wie `audio` fuer die Testdatei planen.
-- Danach erst lokalen Ausfuehrungsplan fuer Testdatei-Anlage, Full-Sync und Preview vorbereiten.
+- Root-Frage konkret bestaetigen.
+- Lokal nur lesen/pruefen, keine Testdatei anlegen.
+- Agent-Scan-/Media-Root-Code lesen.
+- Entscheiden, ob `audio` finaler Testroot wird oder `sounds` doch gueltig ist.
 - Kein produktiver Write.
 - Kein physisches Loeschen.
 - Kein Auto-Delete.
@@ -18,7 +18,7 @@
 
 ## Ausgangspunkt
 
-0.2.66 ist ein Doku-/Vorbereitungs-Step.
+0.2.67 ist ein Doku-/Plan-Step.
 
 Bestaetigter lokaler Basis-Pfad:
 
@@ -26,10 +26,16 @@ Bestaetigter lokaler Basis-Pfad:
 D:\Streaming\stramAssets\htdocs\assets\media
 ```
 
-Geplanter, aber noch zu verifizierender relativer Testpfad:
+Bisheriger, nicht verifizierter Testpfad:
 
 ```text
 sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
+```
+
+Fallback, wenn `sounds` nicht bestaetigt ist:
+
+```text
+audio/rdap-test/rdap-persistent-tombstone-test-001.mp3
 ```
 
 Bestaetigt bleibt:
@@ -42,11 +48,23 @@ previewPersistentCandidateCount = 0.
 Gates nicht gesetzt / nicht aktiv.
 ```
 
-## Wichtig fuer 0.2.67
+## Read-only Pruefung fuer 0.2.68
 
-0.2.67 soll die Root-Frage klaeren, bevor echte lokale Dateiaktionen geplant oder ausgefuehrt werden.
+Lokal auf dem Stream-PC nur lesen:
 
-Weiterhin verboten ohne separaten Ausfuehrungs-Go:
+```powershell
+cd D:\Streaming\stramAssets\htdocs\assets\media
+Get-ChildItem -Directory | Select-Object Name
+```
+
+Im Repo nur lesen:
+
+```powershell
+cd D:\Git\stream-control-center
+Select-String -Path .\backend\modules\remote_agent.js -Pattern "audio|sounds|media|rootKey|allowed" -Context 2,2
+```
+
+## Weiterhin verboten ohne separaten Ausfuehrungs-Go
 
 ```text
 - keine Testdatei anlegen
@@ -63,7 +81,7 @@ Weiterhin verboten ohne separaten Ausfuehrungs-Go:
 
 ## Danach moeglich
 
-Wenn 0.2.67 den gueltigen Root bestaetigt, spaeter separater Step:
+Wenn 0.2.68 den gueltigen Root bestaetigt, spaeter separater Step:
 
 ```text
 - Testdatei lokal anlegen

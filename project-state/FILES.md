@@ -7,8 +7,8 @@
   - Route: `GET /api/remote/media/index/tombstone/persistent/preview`
   - Route: `POST /api/remote/media/index/tombstone/persistent/execute`
   - Stand: `RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION`
-  - Status: 0.2.60 Noop-Execute mit Gates bestaetigt.
-  - 0.2.61-0.2.66: keine Code-Changes, nur Doku-/Plan-/Read-only-Bestaetigungen.
+  - Status: 0.2.63 Read-only Simulation Check bestaetigt.
+  - 0.2.64-0.2.67: kein Code-Change, nur Testquelle/Testdatei/Root-Planung.
   - Schutz: local-only, confirmWrite, confirmTombstone, expectedCandidateCount, drei Env-Gates.
   - Soft-Delete-only vorbereitet.
   - Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
@@ -17,7 +17,7 @@
   - Agent-WSS-Runtime, Media-Inventory, Full-Sync Receiver.
   - Liefert Full-Sync-Compare-Snapshot als read-only In-Memory-Basis.
   - Lokaler Agent/Stream-PC bleibt Quelle fuer Media-Sync-Daten.
-  - Kein Online->Agent-Trigger in 0.2.66.
+  - Kein Online->Agent-Trigger in 0.2.67.
 
 - `remote-modboard/backend/src/services/db.service.js`
   - DB-Verbindungen und Gate-Scope fuer Media-Index Writes.
@@ -30,8 +30,8 @@
 - `backend/modules/remote_agent.js`
   - Lokaler Agent/Adapter.
   - Schließt `sounds/tts/generated/**` Audio-Dateien beim lokalen Media-Scan aus.
-  - Fuer spaetere kontrollierte Testdaten-Quelle relevant.
-  - 0.2.66 aendert diese Datei nicht.
+  - Fuer 0.2.68 relevant: Media-Roots read-only pruefen.
+  - 0.2.67 aendert diese Datei nicht.
 
 - Lokaler Server / Dashboard:
   - `http://127.0.0.1:8080`
@@ -39,18 +39,24 @@
   - Kein lokaler Datei-Delete vom Modboard aus.
   - Kein Online->Agent-Trigger.
 
-- Bestaetigter lokaler Media-Basis-Pfad:
+- Lokaler Media-Basis-Pfad:
   - `D:\Streaming\stramAssets\htdocs\assets\media`
+  - Screenshot zeigt u. a. vorhandenen Root `audio`.
+  - Screenshot zeigt keinen sichtbaren Root `sounds` auf oberster Ebene.
 
-- Geplanter spaeterer Testpfad:
-  - `D:\Streaming\stramAssets\htdocs\assets\media\sounds\rdap-test\rdap-persistent-tombstone-test-001.mp3`
+## Testdatei-Planung
 
-- Geplanter spaeterer Hold-Pfad:
+- Bisheriger nicht verifizierter Pfad:
+  - `sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3`
+
+- Fallback bei nicht bestaetigtem `sounds`-Root:
+  - `audio/rdap-test/rdap-persistent-tombstone-test-001.mp3`
+
+- Lokaler absoluter Fallback-Pfad fuer spaeter:
+  - `D:\Streaming\stramAssets\htdocs\assets\media\audio\rdap-test\rdap-persistent-tombstone-test-001.mp3`
+
+- Hold-Pfad fuer spaeter:
   - `D:\Streaming\stramAssets\htdocs\assets\media\_rdap_hold\rdap-persistent-tombstone-test-001.mp3`
-
-- Offene Root-Frage:
-  - Screenshot zeigte keinen sichtbaren `sounds`-Ordner auf oberster Ebene.
-  - Naechster Step muss `sounds` als gueltigen Media-Root/Key verifizieren oder einen vorhandenen Root wie `audio` planen.
 
 ## RDAP / Remote-Modboard Media Index Cleanup
 
@@ -63,20 +69,17 @@
 
 ## Doku / Handoff
 
+- `docs/current/RDAP_0.2.67_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_VERIFY_AND_CREATE_PLAN.md`
+- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_67.md`
 - `docs/current/RDAP_0.2.66_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_CREATE_READONLY_SYNC_PLAN.md`
 - `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_66.md`
 - `docs/current/RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_65.md`
 - `docs/current/RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_64.md`
 - `docs/current/RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK_CONFIRMED.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_63.md`
 - `docs/current/RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_62.md`
 - `docs/current/RDAP_0.2.61_MEDIA_INDEX_PERSISTENT_TOMBSTONE_REAL_CANDIDATE_TEST_PLAN.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_61.md`
 - `docs/current/RDAP_0.2.60_MEDIA_INDEX_PERSISTENT_TOMBSTONE_NOOP_EXECUTE_WITH_GATES_CONFIRMED.md`
-- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_60.md`
+- `docs/current/RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`

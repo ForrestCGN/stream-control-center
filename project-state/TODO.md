@@ -32,13 +32,13 @@
 - [x] Persistent Tombstone Noop-Execute mit Gates bestaetigen
 - [x] Echten persistenten Tombstone-Kandidaten sicher planen/erzeugen/simulieren
 - [x] Testmethode fuer echten persistenten Tombstone-Kandidaten entscheiden
-- [x] Variante C Read-only-Simulation pruefen und dokumentieren
-- [x] Testquelle fuer candidateCount=1-Test planen
-- [x] Dedizierte Test-Media-Datei read-only vorbereiten
-- [x] Lokalen Ausfuehrungsplan fuer Testdatei/Full-Sync/Preview vorbereiten
-- [ ] Gueltigen lokalen Media-Root fuer Testdatei verifizieren
-- [ ] Testdatei lokal anlegen und read-only Full-Sync/Preview pruefen
-- [ ] candidateCount=1 nur fuer Testdatei read-only bestaetigen
+- [x] Testquelle fuer candidateCount=1 planen
+- [x] Testdatei-Readonly-Vorbereitung planen
+- [x] Lokalen Testdatei-Ausfuehrungsplan dokumentieren
+- [x] Root-Verifikation fuer Testdatei planen
+- [ ] Testdatei-Root lokal/read-only bestaetigen
+- [ ] Dedizierte Testdatei spaeter lokal anlegen und read-only Full-Sync/Preview pruefen
+- [ ] candidateCount=1 fuer dedizierte Testdatei read-only bestaetigen
 - [ ] Produktiven Persistent Tombstone Write nur nach separater Freigabe testen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen

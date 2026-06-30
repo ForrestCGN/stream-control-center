@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.66 - Media Index Persistent Tombstone Test File Create Readonly Sync Plan`
+Aktueller Stand: `0.2.67 - Media Index Persistent Tombstone Test File Root Verify and Create Plan`
 
 ## Ergebnis
 
-0.2.66 dokumentiert den konkreten lokalen Ausfuehrungsplan fuer die spaetere dedizierte Test-Media-Datei.
+0.2.67 dokumentiert die Root-Verifikation fuer die spaetere dedizierte Test-Media-Datei.
 
 Gewaehlte spaetere Testquelle bleibt:
 
@@ -18,19 +18,33 @@ Bestaetigter lokaler Basis-Pfad:
 D:\Streaming\stramAssets\htdocs\assets\media
 ```
 
-Geplanter relativer Testpfad:
+0.2.66 hatte als relativen Testpfad geplant:
 
 ```text
 sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
 ```
 
-Geplanter lokaler absoluter Testpfad fuer spaeter:
+0.2.67 haelt fest:
 
 ```text
-D:\Streaming\stramAssets\htdocs\assets\media\sounds\rdap-test\rdap-persistent-tombstone-test-001.mp3
+Der Screenshot zeigt keinen sichtbaren sounds-Ordner auf oberster Ebene.
+Der Root darf deshalb nicht geraten werden.
+Wenn sounds nicht eindeutig bestaetigt ist, wird audio als vorhandener Root bevorzugt.
 ```
 
-Geplanter Hold-Pfad fuer spaeter:
+Vorgeschlagener Fallback-Testpfad fuer spaeter:
+
+```text
+audio/rdap-test/rdap-persistent-tombstone-test-001.mp3
+```
+
+Lokaler absoluter Fallback-Pfad fuer spaeter:
+
+```text
+D:\Streaming\stramAssets\htdocs\assets\media\audio\rdap-test\rdap-persistent-tombstone-test-001.mp3
+```
+
+Hold-Pfad fuer spaeter:
 
 ```text
 D:\Streaming\stramAssets\htdocs\assets\media\_rdap_hold\rdap-persistent-tombstone-test-001.mp3
@@ -52,6 +66,7 @@ RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK_CONFIRMED
 RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN
 RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN
 RDAP_0.2.66_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_CREATE_READONLY_SYNC_PLAN
+RDAP_0.2.67_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_VERIFY_AND_CREATE_PLAN
 ```
 
 ## Bestaetigte Routen
@@ -90,33 +105,23 @@ Bewertung:
 Nicht gesetzt ist sicher, weil nur true/1/yes/on als aktiv zaehlt.
 ```
 
-## Offene Pfadklaerung
-
-Der Screenshot bestaetigt `assets\media`, zeigt aber keinen sichtbaren `sounds`-Ordner auf oberster Ebene.
-
-Vor echter lokaler Dateiaktion muss deshalb geprueft werden:
-
-```text
-- Ist sounds als Root/Key im Agent-Media-Scan gueltig?
-- Oder muss die Testdatei unter einem vorhandenen Root wie audio geplant werden?
-```
-
 ## Sicherheit
 
-- Kein DB-Write in 0.2.66.
-- Kein Soft-Delete in 0.2.66.
-- Keine Testdatei in 0.2.66.
-- Keine lokale Dateiaktion in 0.2.66.
+- Kein DB-Write in 0.2.67.
+- Kein Soft-Delete in 0.2.67.
+- Keine Testdatei in 0.2.67.
+- Keine lokale Dateiaktion in 0.2.67.
 - Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
 - Kein Auto-Delete.
-- Gates bleiben aus.
+- Keine Gates.
+- Kein Execute.
 
 ## Naechster sinnvoller RDAP-Block
 
 ```text
-RDAP_0.2.67_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_VERIFY_AND_CREATE_PLAN
+RDAP_0.2.68_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_CONFIRM_READONLY
 ```
 
-Ziel: Vor echter Dateiaktion den gueltigen lokalen Media-Root klaeren und danach erst einen sicheren Ausfuehrungsplan fuer Testdatei-Anlage/Full-Sync/Preview vorbereiten.
+Ziel: Root-Frage konkret bestaetigen, lokal nur lesen/pruefen, Agent-Scan-/Media-Root-Code lesen, danach final entscheiden ob `audio` oder `sounds` genutzt wird.
