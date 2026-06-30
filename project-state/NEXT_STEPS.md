@@ -1,15 +1,22 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.68
+## Naechster RDAP-Block nach 0.2.69
 
-`RDAP_0.2.69_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_PLAN`
+`RDAP_0.2.70_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_CODE_PLAN`
 
 ## Ziel
 
-- `backend/modules/media.js` und `backend/modules/remote_agent.js` gemeinsam lesen.
-- Plan erstellen, wie der Remote-Agent das neue Media-System `assets/media/<module>/<category>` fuer den RDAP-Remote-Index beruecksichtigt.
+- Konkreten Source-Aenderungsplan fuer `backend/modules/remote_agent.js` erstellen.
+- Neues Media-System `assets/media/<module>/<category>` in den Remote-Agent-Media-Scan aufnehmen.
 - Legacy-Roots `assets/sounds`, `assets/videos`, `assets/images` weiter read-only erhalten.
-- Neue Media-System-Dateien fuer den Remote-Index sichtbar machen.
+- Inventory-Items um sortierbare Dashboard-Felder planen:
+  - `source`
+  - `moduleKey`
+  - `categoryKey`
+  - `fullCategoryKey`
+  - `rootKey`
+  - `type/kind`
+- Remote-Modboard/Remote-Index kompatibel halten.
 - Keine bestehenden Dateien verschieben oder loeschen.
 - Keine Testdatei anlegen.
 - Kein DB-Write.
@@ -29,6 +36,7 @@ Spaeterer Test-Kontext:
 ```text
 moduleKey: rdap-test
 categoryKey: persistent-tombstone
+fullCategoryKey: rdap-test/persistent-tombstone
 ```
 
 Geplanter spaeterer Testpfad:

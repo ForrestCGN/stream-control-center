@@ -1,16 +1,17 @@
 # CHANGELOG
 
-## 0.2.68 - Media Index Media-System Alignment Plan
+## 0.2.69 - Media Index Remote-Agent Media-System Scan Plan
 
 - Doku-only.
-- Korrigiert die Testdatei-Planung weg vom Legacy-Root `assets/sounds`.
-- Dokumentiert neues Media-System `assets/media/<module>/<category>`.
-- Dokumentiert, dass Legacy-Dateien weiter existieren und genutzt werden duerfen.
-- Legt spaeteren RDAP-Testpfad im neuen Media-System fest:
-  `media/rdap-test/persistent-tombstone/rdap-persistent-tombstone-test-001.mp3`.
+- Neues Media-System `assets/media/<module>/<category>` als zusaetzliche Quelle fuer Remote-Agent-/Remote-Index-Scan geplant.
+- Legacy-Roots `assets/sounds`, `assets/videos`, `assets/images` bleiben erhalten und werden nicht verschoben/geloescht.
+- Kategorien/Module fuer Dashboard-Sortierung/Filter als Pflichtanforderung aufgenommen.
+- Spaeterer RDAP-Testpfad im neuen Media-System bestaetigt.
 - Keine Source-Aenderung.
-- Keine Dateiaktion.
+- Keine Testdatei.
+- Keine lokale Dateiaktion.
 - Keine DB-Aenderung.
+- Keine Migration.
 - Keine Gates.
 - Kein Execute.
 - Kein Webserver-Deploy.

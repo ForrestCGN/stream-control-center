@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.68 - Media Index Media-System Alignment Plan`
+Aktueller Stand: `0.2.69 - Media Index Remote-Agent Media-System Scan Plan`
 
 ## Ergebnis
 
-0.2.68 korrigiert die bisherige Testdatei-Planung: Der spaetere Persistent-Tombstone-Test darf nicht auf dem alten Legacy-Root `assets/sounds` geplant werden, obwohl dieser Ordner existiert und weiterhin genutzt wird.
+0.2.69 dokumentiert den Plan, den Remote-Agent-Media-Scan fachlich an das neue lokale Media-System anzupassen.
 
 ## Systemverstaendnis
 
@@ -31,6 +31,8 @@ Neue Uploads sollen dort liegen und ueber Media-ID / Media-Registry genutzt werd
 ```text
 backend/modules/media.js
 backend/modules/remote_agent.js
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
 ```
 
 ## Relevante Feststellung
@@ -53,25 +55,58 @@ images -> htdocs/assets/images
 
 ## Entscheidung
 
-Keine neue RDAP-Testdatei unter `assets/sounds` planen.
-
-Kein blindes `assets/media/audio` als Root verwenden.
-
-Geplanter spaeterer Testpfad im neuen Media-System:
+Der spaetere RDAP-/Remote-Index-Scan soll beide Welten read-only erfassen:
 
 ```text
-media/rdap-test/persistent-tombstone/rdap-persistent-tombstone-test-001.mp3
+- neues Media-System: assets/media/<module>/<category>/...
+- Legacy: assets/sounds, assets/videos, assets/images
 ```
 
-Absolut:
+Kategorien/Module muessen mittransportiert werden, damit Dashboard und Remote-Modboard nach Quelle, Modul, Kategorie und Typ sortieren/filtern koennen.
+
+## Geplante spaetere Item-Felder
+
+Fuer neue Media-System-Dateien:
+
+```text
+rootKey: media
+source: media_dir
+moduleKey
+categoryKey
+fullCategoryKey
+type/kind
+relativePath
+webPath
+```
+
+Fuer Legacy-Dateien:
+
+```text
+rootKey: sounds|videos|images
+source: legacy_scan
+moduleKey: legacy
+categoryKey: passend oder legacy
+fullCategoryKey: legacy/<...>
+type/kind
+relativePath
+webPath
+```
+
+## Spaeterer Testpfad
 
 ```text
 D:\Streaming\stramAssets\htdocs\assets\media\rdap-test\persistent-tombstone\rdap-persistent-tombstone-test-001.mp3
 ```
 
+Relativ:
+
+```text
+media/rdap-test/persistent-tombstone/rdap-persistent-tombstone-test-001.mp3
+```
+
 ## Sicherheit
 
-0.2.68 war Doku-only.
+0.2.69 war Doku-only.
 
 ```text
 keine Source-Aenderung
@@ -87,11 +122,11 @@ kein Webserver-Deploy
 ## Naechster Block
 
 ```text
-RDAP_0.2.69_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_PLAN
+RDAP_0.2.70_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_CODE_PLAN
 ```
 
 Ziel:
 
 ```text
-Remote-Agent-/Remote-Index-Scan auf das neue Media-System ausrichten, Legacy aber weiter read-only mitfuehren.
+Konkreten Source-Aenderungsplan fuer backend/modules/remote_agent.js erstellen.
 ```
