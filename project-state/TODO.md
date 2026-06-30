@@ -31,7 +31,8 @@
 - [x] Persistent Tombstone Execute-Foundation gated bauen
 - [x] Persistent Tombstone Noop-Execute mit Gates bestaetigen
 - [x] Echten persistenten Tombstone-Kandidaten sicher planen/erzeugen/simulieren
-- [ ] Testmethode fuer echten persistenten Tombstone-Kandidaten entscheiden
+- [x] Testmethode fuer echten persistenten Tombstone-Kandidaten entscheiden
+- [ ] Variante C read-only Simulation/Diagnose auf Webserver pruefen und dokumentieren
 - [ ] Produktiven Persistent Tombstone Write nur nach separater Freigabe testen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen

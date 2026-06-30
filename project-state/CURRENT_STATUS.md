@@ -1,10 +1,16 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.61 - Media Index Persistent Tombstone Real Candidate Test Plan`
+Aktueller Stand: `0.2.62 - Media Index Persistent Tombstone Test Method Decision`
 
 ## Ergebnis
 
-0.2.61 dokumentiert den sicheren Testplan fuer einen echten persistenten Tombstone-Kandidaten.
+0.2.62 dokumentiert die Entscheidung fuer die kuerzeste sichere Testmethode.
+
+Gewaehlte Variante:
+
+```text
+Variante C: reine Simulation / Read-only-Diagnose zuerst
+```
 
 Es wurden keine Source-Dateien geaendert.
 
@@ -17,6 +23,7 @@ rdap_media_index_persistent_tombstone_execute_foundation_059.v1
 RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION
 RDAP_0.2.60_MEDIA_INDEX_PERSISTENT_TOMBSTONE_NOOP_EXECUTE_WITH_GATES_CONFIRMED
 RDAP_0.2.61_MEDIA_INDEX_PERSISTENT_TOMBSTONE_REAL_CANDIDATE_TEST_PLAN
+RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION
 ```
 
 ## Bestaetigte Routen
@@ -27,50 +34,6 @@ GET  /api/remote/media/index/tombstone/persistent/preview
 POST /api/remote/media/index/tombstone/persistent/execute
 ```
 
-## Bestaetigter 0.2.60-Schutz
-
-POST ohne Body:
-
-```text
-reason = confirm_write_required
-writeExecuted = false
-databaseWriteExecuted = false
-softDeleteExecuted = false
-```
-
-POST mit Confirm aber ohne Gates:
-
-```text
-reason = media_index_persistent_tombstone_write_gate_disabled
-writeExecuted = false
-databaseWriteExecuted = false
-softDeleteExecuted = false
-```
-
-Noop-Execute mit temporaer aktivierten Gates und `expectedCandidateCount=0`:
-
-```text
-ok = true
-reason = no_persistent_tombstone_candidates_to_soft_delete
-expectedCandidateCount = 0
-writeExecuted = false
-databaseWriteExecuted = false
-softDeleteExecuted = false
-hardDeleteExecuted = false
-physicalDeleteExecuted = false
-readBackPerformed = true
-readBackCandidateCount = 0
-auditWritten = false
-```
-
-Finaler Gate-Zustand:
-
-```text
-MEDIA_INDEX_WRITE_ENABLED=false
-MEDIA_INDEX_DATA_WRITE_ENABLED=false
-MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=false
-```
-
 ## Kandidatenstand
 
 ```text
@@ -78,23 +41,32 @@ persistentMediaMissingCandidateCount = 0
 previewPersistentCandidateCount = 0
 ```
 
-## 0.2.61 Testplan
-
-Geplante sichere Testvarianten:
+## Gate-Zustand
 
 ```text
-Variante A: echte dedizierte Test-Media-Datei
-Variante B: kontrollierte Test-DB-Zeile
-Variante C: reine Simulation/Read-only-Diagnose
+MEDIA_INDEX_WRITE_ENABLED=false
+MEDIA_INDEX_DATA_WRITE_ENABLED=false
+MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=false
 ```
 
-Empfehlung:
+## 0.2.62 Entscheidung
+
+Variante C wird zuerst weiterverfolgt.
+
+Damit wird nur read-only geprueft:
 
 ```text
-Variante A ist fachlich am saubersten, braucht aber ausdrueckliche Freigabe fuer eine dedizierte Testdatei.
-Variante C bleibt die sicherste Sofortvariante.
-Variante B nur mit DB-Backup/Rollback und ausdruecklicher Freigabe.
+- Diff-Status
+- Persistent Tombstone Preview
+- Counts
+- Reliability
+- Preview-Kandidaten
+- Gate-Zustand
 ```
+
+Kein echter Kandidat wird erzeugt.
+
+Kein `candidateCount=1`-Test in diesem Step.
 
 ## Systemtrennung
 
@@ -130,8 +102,8 @@ Weiterhin gilt:
 
 ## Sicherheit
 
-- Kein DB-Write in 0.2.61.
-- Kein Soft-Delete in 0.2.61.
+- Kein DB-Write in 0.2.62.
+- Kein Soft-Delete in 0.2.62.
 - Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
@@ -141,7 +113,7 @@ Weiterhin gilt:
 ## Naechster sinnvoller RDAP-Block
 
 ```text
-RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION
+RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK
 ```
 
-Ziel: entscheiden, ob ein echter Kandidat ueber dedizierte Test-Media-Datei, kontrollierte Test-DB-Zeile oder weiterhin nur Simulation geprueft wird.
+Ziel: Variante C read-only auf Webserver pruefen/dokumentieren. Kein Write, keine Gates, keine Datei-/DB-Aenderung.

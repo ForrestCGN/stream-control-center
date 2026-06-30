@@ -1,22 +1,31 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.61
+## Naechster RDAP-Block nach 0.2.62
 
-`RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION`
+`RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK`
 
 ## Ziel
 
-- Entscheiden, wie ein echter persistenter Missing/Tombstone-Kandidat sicher getestet wird.
-- Kein produktiver Write ohne separaten Freigabe-Step.
+- Variante C read-only auf dem Webserver pruefen und dokumentieren.
+- Diff-Status gezielt auslesen.
+- Persistent Tombstone Preview gezielt auslesen.
+- CandidateCount bestaetigen.
+- Gate-Zustand bestaetigen.
+- Kein produktiver Write.
 - Kein physisches Loeschen.
 - Kein Auto-Delete.
 - Kein Online->Agent-Trigger.
-- Backup/Rollback vor jedem echten Test konkretisieren.
 - Lokales Dashboard/Agent und Remote-Modboard sauber getrennt halten.
 
 ## Ausgangspunkt
 
-0.2.61 ist ein Doku-/Plan-Step.
+0.2.62 ist ein Doku-/Decision-Step.
+
+Entscheidung:
+
+```text
+Variante C zuerst: reine Simulation / Read-only-Diagnose
+```
 
 Bestaetigt bleibt:
 
@@ -29,48 +38,27 @@ Gates danach wieder aus.
 Aktuell keine persistenten Tombstone-Kandidaten.
 ```
 
-## Testmethoden zur Entscheidung
+## Read-only Checks fuer 0.2.63
 
-### Variante A: Echte dedizierte Test-Media-Datei
+Webserver intern:
 
-- Fachlich am saubersten.
-- Braucht ausdrueckliche Freigabe.
-- Testdatei muss eindeutig benannt sein.
-- Keine echte Produktiv-Media verwenden.
-- Keine lokale Datei loeschen ohne Freigabe.
-- Backup/Rueckverschiebung vorher klaeren.
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/media/index/diff/status | jq '.statusApiVersion, .routeBuild, .counts, .missingClassification, .reliability'
+curl -fsS http://127.0.0.1:3010/api/remote/media/index/tombstone/persistent/preview | jq '.statusApiVersion, .routeBuild, .counts, .reliability, .preview'
+```
 
-### Variante B: Kontrollierte Test-DB-Zeile
+Gate-Zustand:
 
-- Nur mit ausdruecklicher Freigabe.
-- Vorher MariaDB-Backup.
-- Test-ID eindeutig.
-- Rollback vorher festlegen.
-- Kein produktiver Tombstone-Write im selben Step.
+```bash
+systemctl show scc-remote-modboard.service -p Environment | tr ' ' '\n' | grep -E 'MEDIA_INDEX_WRITE_ENABLED|MEDIA_INDEX_DATA_WRITE_ENABLED|MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED'
+```
 
-### Variante C: Reine Simulation/Read-only-Diagnose
-
-- Sicherste Variante.
-- Keine Dateiaktion.
-- Kein DB-Write.
-- Keine Gates.
-- Prueft keinen echten candidateCount=1-Fall.
-
-## Pflicht vor spaeterem Tombstone-Write
+Erwartet:
 
 ```text
-- aktuelle Preview
-- candidateCount
-- expectedCandidateCount exakt passend
-- konkrete Candidate-ID(s)
-- local-only Request
-- confirmWrite:true
-- confirmTombstone:"RDAP_0.2.59_CONFIRM_PERSISTENT_TOMBSTONE_EXECUTE"
-- MEDIA_INDEX_WRITE_ENABLED=true
-- MEDIA_INDEX_DATA_WRITE_ENABLED=true
-- MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=true
-- Backup/Rollback bestaetigt
-- Audit/Readback geplant
+MEDIA_INDEX_WRITE_ENABLED=false
+MEDIA_INDEX_DATA_WRITE_ENABLED=false
+MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=false
 ```
 
 ## Weiterhin verboten
@@ -82,4 +70,15 @@ Aktuell keine persistenten Tombstone-Kandidaten.
 - kein Blind-Auto-Sync
 - keine Upload/Edit/Delete-Funktion
 - keine DB-/Dateiaenderung ohne separaten Freigabe-Step
+- keine Gates aktivieren
+- keinen echten Tombstone-Write ausfuehren
+```
+
+## Danach moeglich
+
+Wenn 0.2.63 sauber dokumentiert ist, separat entscheiden:
+
+```text
+A: dedizierte Test-Media-Datei fuer echten candidateCount=1-Test
+B: kontrollierte Test-DB-Zeile fuer echten candidateCount=1-Test
 ```

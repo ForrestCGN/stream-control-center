@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 0.2.62 - Media Index Persistent Tombstone Test Method Decision
+
+- Kuerzeste sichere Testmethode entschieden: Variante C zuerst.
+- Variante C bedeutet reine Simulation / Read-only-Diagnose.
+- Kein echter Kandidat wird erzeugt.
+- Kein candidateCount=1-Test in diesem Step.
+- Keine Test-Media-Datei angelegt.
+- Keine Test-DB-Zeile geschrieben.
+- Keine Source-Dateien geaendert.
+- Keine DB-Zeile veraendert.
+- Keine Datei geloescht oder verschoben.
+- Keine Gates aktiviert.
+- Kein echter Tombstone-Write ausgefuehrt.
+- Kein Webserver-Deploy noetig.
+- Remote-Modboard/Webserver und lokales Dashboard/Agent bleiben sauber getrennt.
+- Weiterhin kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+
 ## 0.2.61 - Media Index Persistent Tombstone Real Candidate Test Plan
 
 - Read-only Testplan fuer echten persistenten Tombstone-Kandidaten dokumentiert.

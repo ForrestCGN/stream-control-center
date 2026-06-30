@@ -9,6 +9,7 @@
   - Stand: `RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION`
   - Status: 0.2.60 Noop-Execute mit Gates bestaetigt.
   - 0.2.61: kein Code-Change, nur Testplan.
+  - 0.2.62: kein Code-Change, nur Testmethoden-Entscheidung Variante C.
   - Schutz: local-only, confirmWrite, confirmTombstone, expectedCandidateCount, drei Env-Gates.
   - Soft-Delete-only vorbereitet.
   - Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
@@ -17,7 +18,7 @@
   - Agent-WSS-Runtime, Media-Inventory, Full-Sync Receiver.
   - Liefert Full-Sync-Compare-Snapshot als read-only In-Memory-Basis.
   - Lokaler Agent/Stream-PC bleibt Quelle fuer Media-Sync-Daten.
-  - Kein Online->Agent-Trigger in 0.2.61.
+  - Kein Online->Agent-Trigger in 0.2.62.
 
 - `remote-modboard/backend/src/services/db.service.js`
   - DB-Verbindungen und Gate-Scope fuer Media-Index Writes.
@@ -31,7 +32,7 @@
   - Lokaler Agent/Adapter.
   - Schließt `sounds/tts/generated/**` Audio-Dateien beim lokalen Media-Scan aus.
   - Kann spaeter fuer kontrollierte Testdaten-Quelle relevant sein.
-  - 0.2.61 aendert diese Datei nicht.
+  - 0.2.62 aendert diese Datei nicht.
 
 - Lokaler Server / Dashboard:
   - `http://127.0.0.1:8080`
@@ -50,6 +51,8 @@
 
 ## Doku / Handoff
 
+- `docs/current/RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION.md`
+- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_62.md`
 - `docs/current/RDAP_0.2.61_MEDIA_INDEX_PERSISTENT_TOMBSTONE_REAL_CANDIDATE_TEST_PLAN.md`
 - `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_61.md`
 - `docs/current/RDAP_0.2.60_MEDIA_INDEX_PERSISTENT_TOMBSTONE_NOOP_EXECUTE_WITH_GATES_CONFIRMED.md`
