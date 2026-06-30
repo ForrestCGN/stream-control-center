@@ -623,6 +623,23 @@
 
   function pagedInventoryItems(items) {
     const pageSize = currentPageSize();
+    if (contextItemsActive()) {
+      const context = contextSummary();
+      const totalPages = Math.max(1, Math.ceil(context.total / pageSize));
+      const page = Math.min(Math.max(1, Number(state.page || 1)), totalPages);
+      state.page = page;
+      const start = (page - 1) * pageSize;
+      return {
+        page,
+        pageSize,
+        totalPages,
+        start,
+        end: Math.min(start + items.length, context.total),
+        total: context.total,
+        items
+      };
+    }
+
     const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
     const page = Math.min(Math.max(1, Number(state.page || 1)), totalPages);
     state.page = page;
@@ -633,6 +650,7 @@
       totalPages,
       start,
       end: Math.min(start + pageSize, items.length),
+      total: items.length,
       items: items.slice(start, start + pageSize)
     };
   }
@@ -828,7 +846,7 @@
     const pageData = pagedInventoryItems(items);
     const cards = pageData.items.map((item, index) => {
       const safeItem = safeObject(item);
-      const itemIndex = pageData.start + index;
+      const itemIndex = contextItemsActive() ? index : pageData.start + index;
       const title = mediaTitle(safeItem);
       const area = mediaArea(safeItem);
       const kind = mediaKindLabel(safeItem);
@@ -847,8 +865,9 @@
 
     const from = pageData.start + 1;
     const to = pageData.end;
+    const totalLabel = pageData.total || items.length;
     const pager = `<div class="rdap-media-pager">
-      <span class="rdap-media-page-info">${escapeHtml(String(from))}-${escapeHtml(String(to))} von ${escapeHtml(String(contextItemsActive() ? (safeObject(state.contextData).total || items.length) : items.length))} Medien · Seite ${escapeHtml(String(pageData.page))}/${escapeHtml(String(pageData.totalPages))}${contextItemsActive() ? ' · Auswahl' : ''}</span>
+      <span class="rdap-media-page-info">${escapeHtml(String(from))}-${escapeHtml(String(to))} von ${escapeHtml(String(totalLabel))} Dateien</span>
       <span class="login-actions" style="justify-content:flex-end;flex-wrap:wrap">
         <button class="secondaryButton small" type="button" data-media-page="prev" ${pageData.page <= 1 ? 'disabled' : ''}>Zurueck</button>
         <button class="secondaryButton small" type="button" data-media-page="next" ${pageData.page >= pageData.totalPages ? 'disabled' : ''}>Weiter</button>
@@ -860,7 +879,7 @@
   function renderFilters(data) {
     const context = contextSummary();
     if (context.active) {
-      return `${chip(`${context.count}/${context.total} Dateien`, 'info')} <button class="secondaryButton small" type="button" data-media-context-clear="1">Filter zuruecksetzen</button>`;
+      return '<button class="secondaryButton small" type="button" data-media-context-clear="1">Filter zuruecksetzen</button>';
     }
 
     const inventory = safeObject(data && data.inventory);
@@ -877,12 +896,6 @@
 
   function renderContextControls() {
     const filters = safeObject(state.contextFilters);
-    const context = contextSummary();
-    const status = state.contextLoading
-      ? 'Dateien werden geladen ...'
-      : (state.contextError
-        ? `Fehler: ${state.contextError}`
-        : (contextItemsActive() ? `${context.count} von ${context.total} Dateien angezeigt` : 'Filter waehlen und anzeigen'));
     const moduleOptions = contextModuleOptions();
     const categoryOptions = contextCategoryOptions(filters.moduleKey);
     const kindOptions = [['', 'Alle Dateitypen'], ['audio', 'Sounds'], ['image', 'Bilder'], ['video', 'Videos']];
@@ -892,7 +905,6 @@
       <label class="rdap-media-context-field"><span>Dateityp</span><select class="rdap-media-select" data-media-context-kind="1">${kindOptions.map(([key, label]) => `<option value="${escapeHtml(key)}" ${filters.kind === key ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>
       <label class="rdap-media-context-field"><span>Anzahl</span><select class="rdap-media-select" data-media-page-size="1" title="Dateien pro Seite">${PAGE_SIZE_OPTIONS.map(size => `<option value="${escapeHtml(String(size))}" ${currentPageSize() === size ? 'selected' : ''}>${escapeHtml(String(size))} pro Seite</option>`).join('')}</select></label>
       <button class="secondaryButton small" type="button" data-media-context-load="1" ${state.contextLoading ? 'disabled' : ''}>Anzeigen</button>
-      <div class="rdap-media-list-note">${escapeHtml(status)} · read-only</div>
     </div>`;
   }
 
@@ -953,7 +965,14 @@
     const inventoryStatus = context.active ? `${context.total} Dateien` : (inventory.active ? `${inventoryCount} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt');
     const statusText = state.error ? 'Fehler' : (state.loading || state.contextLoading ? 'Lade...' : (context.active ? 'Dateiauswahl aktiv · read-only' : (inventory.active ? 'Inventar aktiv · read-only' : 'Read-only vorbereitet')));
     const truncatedNotice = '';
-    const readOnlyNotice = '<div class="admin-lock-note"><i>i</i><div><strong>Diese Ansicht ist read-only.</strong><span>Dateien kommen vom Stream-PC/Agent. Upload, Bearbeiten und Loeschen sind deaktiviert.</span></div></div>';
+    const contextIntroCards = context.active ? '' : `
+          <article class="cgn-card span2">
+            <div class="card-head"><div><p class="cgn-eyebrow">Bereiche</p><h2>Media-Bereiche</h2></div>${chip('read-only', 'info')}</div>
+            <div class="module-list">${renderRootRows(data)}</div>
+          </article>
+
+          ${renderSyncStatusCard()}
+`;
 
     mountPanel(`
       <section class="rdap-view" data-page-panel="${PAGE_ID}">
@@ -968,15 +987,9 @@
         </section>
 
         <section class="page-grid">
-          <article class="cgn-card span2">
-            <div class="card-head"><div><p class="cgn-eyebrow">Bereiche</p><h2>Media-Bereiche</h2></div>${chip('read-only', 'info')}</div>
-            <div class="module-list">${renderRootRows(data)}</div>
-          </article>
-
-          ${renderSyncStatusCard()}
-
+          ${contextIntroCards}
           <article class="cgn-card span2 rdap-media-inventory-card">
-            <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div>${chip(context.active ? 'Auswahl aktiv' : (inventory.active ? 'Inventar aktiv' : 'wartet'), context.active || inventory.active ? 'ok' : 'warn')}</div>
+            <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div></div>
             <div class="rdap-media-toolbar">
               <div class="rdap-media-toolbar-row">${renderFilters(data)} <button class="secondaryButton small" type="button" data-media-refresh="1">Neu laden</button></div>
               <div class="rdap-media-toolbar-row">${renderSortControls()}</div>
@@ -1035,8 +1048,10 @@
         const nextSize = Number(pageSizeSelect.value || DEFAULT_PAGE_SIZE);
         state.pageSize = PAGE_SIZE_OPTIONS.includes(nextSize) ? nextSize : DEFAULT_PAGE_SIZE;
         resetListPage();
-        if (contextItemsActive()) loadContextItems();
-        else safeRender();
+        if (contextItemsActive()) {
+          state.page = 1;
+          loadContextItems();
+        } else safeRender();
       });
     }
 
@@ -1045,7 +1060,8 @@
         const direction = button.getAttribute('data-media-page');
         state.page += direction === 'next' ? 1 : -1;
         state.detailItem = null;
-        safeRender();
+        if (contextItemsActive()) loadContextItems();
+        else safeRender();
       });
     });
 
@@ -1110,10 +1126,17 @@
     });
 
     const contextKind = panel.querySelector('[data-media-context-kind]');
-    if (contextKind) contextKind.addEventListener('change', () => { state.contextFilters.kind = contextKind.value || ''; });
+    if (contextKind) contextKind.addEventListener('change', () => {
+      state.contextFilters.kind = contextKind.value || '';
+      resetListPage();
+      safeRender();
+    });
 
     const contextLoad = panel.querySelector('[data-media-context-load]');
-    if (contextLoad) contextLoad.addEventListener('click', () => loadContextItems());
+    if (contextLoad) contextLoad.addEventListener('click', () => {
+      resetListPage();
+      loadContextItems();
+    });
 
     const refresh = panel.querySelector('[data-media-refresh]');
     if (refresh) refresh.addEventListener('click', () => { loadStatus(); loadContextItems(); });
@@ -1122,7 +1145,10 @@
   function buildContextQuery() {
     const filters = safeObject(state.contextFilters);
     const params = new URLSearchParams();
-    params.set('limit', String(currentPageSize()));
+    const pageSize = currentPageSize();
+    const page = Math.max(1, Number(state.page || 1));
+    params.set('limit', String(pageSize));
+    params.set('offset', String((page - 1) * pageSize));
     params.set('root_key', filters.rootKey || 'media');
     if (filters.moduleKey) params.set('module_key', filters.moduleKey);
     if (filters.categoryKey) params.set('category_key', filters.categoryKey);
@@ -1142,7 +1168,7 @@
       if (!res.ok || !body || body.ok !== true) throw new Error(body && body.error ? body.error : `HTTP ${res.status}`);
       state.contextData = body;
       state.filter = 'all';
-      resetListPage();
+      state.detailItem = null;
     } catch (err) {
       state.contextError = err && err.message ? err.message : String(err || 'media_context_failed');
       state.contextData = null;
