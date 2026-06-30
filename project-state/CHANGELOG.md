@@ -1,16 +1,22 @@
 # CHANGELOG
 
+## 0.2.113 - Audit Log Readonly API
+
+- Neue read-only Route:
+  - `GET /api/remote/admin/audit/log`
+- Liefert Audit-/Aktivitaets-Log aus `dashboard_audit_log`.
+- Filter:
+  - `limit`
+  - `status`
+  - `action`
+  - `actor`
+- `/api/remote/routes` um `adminAuditLogReadonly` erweitert.
+- Keine Writes.
+- Keine Migration.
+- Keine UI.
+- Keine Agent-Actions.
+- Admin-Notizen bleiben geparkt.
+
 ## 0.2.112 - Audit Log Readonly View Plan
 
-- Kurswechsel festgelegt:
-  - Admin-Notizen geparkt.
-  - Audit-/Aktivitaets-Log wird neues Hauptziel.
-- Naechster Runtime-Step vorbereitet:
-  `RDAP_0.2.113_AUDIT_LOG_READONLY_API`
-- Keine Runtime-Code-Dateien geaendert.
-- Kein Webserver-Deploy noetig.
-
-## 0.2.111 - Admin Note Status Deploy Confirmed
-
-- 0.2.110 live bestaetigt.
-- Keine Runtime-Code-Dateien geaendert.
+- Audit-/Aktivitaets-Log als Hauptziel festgelegt.

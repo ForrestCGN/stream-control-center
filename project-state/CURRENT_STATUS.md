@@ -1,20 +1,16 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.112 - Audit Log Readonly View Plan`
+Aktueller Stand: `0.2.113 - Audit Log Readonly API`
 
 ## Kurzfazit
 
-Admin-Notizen sind geparkt.
-
-Neues Hauptziel:
+Audit-/Aktivitaets-Log hat jetzt eine read-only API.
 
 ```text
-Aktivitaets-Log / Audit-Log
+GET /api/remote/admin/audit/log
 ```
 
-## Zielbild
-
-Im Modboard soll sichtbar werden:
+## Zweck
 
 ```text
 wer
@@ -23,15 +19,24 @@ was gemacht hat
 Status/Ergebnis
 ```
 
-## Naechster Runtime-Step
+## Wichtig
 
 ```text
-RDAP_0.2.113_AUDIT_LOG_READONLY_API
+keine Writes
+keine Migration
+keine UI
+keine Agent-Actions
+Admin-Notizen bleiben geparkt
 ```
 
-## 0.2.112
+## Runtime-Aenderung
 
-Doku-only Kurswechsel.
+```text
+remote-modboard/backend/src/services/audit-read.service.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+```
 
-Keine Runtime-Aenderung.
-Kein Webserver-Deploy.
+## Deploy
+
+Webserver-Deploy noetig, weil Runtime-Dateien geaendert wurden.

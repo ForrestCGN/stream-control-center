@@ -9,6 +9,7 @@ const RDAP42_BUILD = 'RDAP42_ADMIN_NOTE_STATUS_SEMANTICS_CLEANUP';
 const RDAP61_BUILD = 'RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION';
 const RDAP123_BUILD = 'RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP';
 const RDAP110_BUILD = 'RDAP_0.2.110_ADMIN_NOTE_WRITE_STATUS_RECONCILE';
+const RDAP113_BUILD = 'RDAP_0.2.113_AUDIT_LOG_READONLY_API';
 
 function registerRoutesRoutes(app, context) {
   app.get('/api/remote/routes', (req, res) => {
@@ -51,6 +52,7 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/lock-audit/schema-adapter/status', description: 'Read-only Schema-Adapter-Diagnose' },
         { method: 'GET', path: '/api/remote/admin/audit-lock/schema-status', description: 'RDAP33 read-only Audit-/Lock-Schema und Runtime-Status; keine Writes' },
         { method: 'GET', path: '/api/remote/lock-audit/schema-status', description: 'Alias fuer RDAP33 read-only Audit-/Lock-Schema und Runtime-Status' },
+        { method: 'GET', path: '/api/remote/admin/audit/log', description: 'RDAP113 read-only Audit-Log-Liste: wer/wann/was/Status; keine Writes' },
         { method: 'GET', path: '/api/remote/admin/audit/test-insert/status', description: 'RDAP36 Audit-Testinsert-Status; schreibt nichts' },
         { method: 'POST', path: '/api/remote/admin/audit/test-insert', description: 'RDAP36 lokaler Audit-Testinsert mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
         { method: 'GET', path: '/api/remote/admin/locks/test/status', description: 'RDAP37 Lock-Test-Status; schreibt nichts' },
@@ -180,6 +182,7 @@ function registerRoutesRoutes(app, context) {
         uiWriteButtonsEnabled: false,
         routeRemainsReadOnly: true
       },
+      adminAuditLogReadonly: buildAdminAuditLogReadonlyStatus(),
       adminAuditTestInsert: {
         prepared: true,
         statusRoute: '/api/remote/admin/audit/test-insert/status',
@@ -295,6 +298,46 @@ function buildLocalLanModeSummary(publicConfig = {}) {
     routeStatusAligned: true,
     routeStatusBuild: RDAP123_BUILD,
     safetyNote: 'Lokaler Modus oeffnet nur die Weboberflaeche im LAN. Produktive Aktionen bleiben weiter durch Backend-Scope, Permission, Confirm-Write, Audit, Lock und Readback begrenzt.'
+  };
+}
+
+function buildAdminAuditLogReadonlyStatus() {
+  return {
+    prepared: true,
+    route: '/api/remote/admin/audit/log',
+    method: 'GET',
+    routeBuild: RDAP113_BUILD,
+    statusApiVersion: 'rdap_audit113.v1',
+    tableName: 'dashboard_audit_log',
+    purpose: 'Read-only Aktivitaets-Log: wer, wann, was gemacht hat und Status.',
+    readOnly: true,
+    writeEnabled: false,
+    databaseWriteEnabled: false,
+    productiveWritesEnabled: false,
+    migrationEnabled: false,
+    auditInsertEnabled: false,
+    auditUpdateEnabled: false,
+    uiWriteButtonsEnabled: false,
+    agentActionsEnabled: false,
+    returnsItems: true,
+    maxLimit: 100,
+    defaultLimit: 50,
+    filters: ['limit', 'status', 'action', 'actor'],
+    fields: [
+      'createdAt',
+      'completedAt',
+      'actorLogin',
+      'actorDisplayName',
+      'action',
+      'resourceType',
+      'resourceKey',
+      'status',
+      'errorCode',
+      'summary'
+    ],
+    secretsLogged: false,
+    rawPayloadLoggingEnabled: false,
+    adminNotesParked: true
   };
 }
 

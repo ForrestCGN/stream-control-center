@@ -2,24 +2,24 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.113_AUDIT_LOG_READONLY_API`
+`RDAP_0.2.114_AUDIT_LOG_READONLY_API_DEPLOY_VERIFY`
 
 ## Ziel
 
-Read-only API fuer Aktivitaets-Log bauen:
+Nach Deploy live pruefen:
 
-```text
-GET /api/remote/admin/audit/log
+```bash
+curl -fsS "http://127.0.0.1:3010/api/remote/admin/audit/log?limit=5" | jq '.ok,.count,.items[0]'
+curl -fsS "http://127.0.0.1:3010/api/remote/routes" | jq '.adminAuditLogReadonly'
 ```
 
-## Vorher lesen
+## Danach
 
 ```text
-remote-modboard/backend/src/services/audit-read.service.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/services/db.service.js
+RDAP_0.2.115_AUDIT_LOG_UI_READONLY
 ```
+
+Read-only Modboard-Ansicht fuer Aktivitaets-Log.
 
 ## Regeln
 
@@ -29,5 +29,4 @@ keine Writes
 keine Migration
 keine Gates aktivieren
 keine Agent-Actions
-erst API, UI spaeter
 ```
