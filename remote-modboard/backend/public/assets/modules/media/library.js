@@ -458,6 +458,23 @@
     return contextData.ok === true && Array.isArray(contextData.items);
   }
 
+  function contextSummary() {
+    const context = safeObject(state.contextData);
+    const count = contextItemsActive() ? Number(context.count || (Array.isArray(context.items) ? context.items.length : 0) || 0) : 0;
+    const total = contextItemsActive() ? Number(context.total || count || 0) : 0;
+    const returned = Math.max(0, Number.isFinite(count) ? count : 0);
+    const totalSeen = Math.max(returned, Number.isFinite(total) ? total : returned);
+    const percent = totalSeen > 0 ? Math.round((returned / totalSeen) * 100) : 0;
+    return {
+      active: contextItemsActive(),
+      count: returned,
+      total: totalSeen,
+      truncated: totalSeen > returned,
+      percent: Math.max(0, Math.min(100, percent)),
+      filters: safeObject(context.filters)
+    };
+  }
+
   function rawInventoryItems() {
     if (contextItemsActive()) {
       return Array.isArray(state.contextData.items) ? state.contextData.items : [];
@@ -522,6 +539,25 @@
   }
 
   function renderRootRows(data) {
+    const context = contextSummary();
+    if (context.active) {
+      const filters = context.filters;
+      const filterText = [
+        filters.rootKey || filters.root_key || state.contextFilters.rootKey || 'media',
+        filters.moduleKey || filters.module_key || state.contextFilters.moduleKey || '',
+        filters.categoryKey || filters.category_key || state.contextFilters.categoryKey || '',
+        filters.fullCategoryKey || filters.full_category_key || state.contextFilters.fullCategoryKey || '',
+        filters.kind || state.contextFilters.kind || ''
+      ].filter(Boolean).join(' / ');
+      return `<div class="module-row">
+        <span class="module-icon cyan">CTX</span>
+        <div>
+          <b>Kontext-API</b>
+          <small>${escapeHtml(String(context.count))} von ${escapeHtml(String(context.total))} Medien${filterText ? ` · ${escapeHtml(filterText)}` : ''}</small>
+        </div>
+      </div>`;
+    }
+
     const inventory = safeObject(data && data.inventory);
     const groups = safeObject(inventory.groups);
     const roots = Array.isArray(data && data.plannedRoots) ? data.plannedRoots : [];
@@ -561,6 +597,17 @@
   }
 
   function syncProgress(sync) {
+    const context = contextSummary();
+    if (context.active) {
+      return {
+        state: context.truncated ? 'context_limited' : 'context_complete',
+        returned: context.count,
+        totalSeen: context.total,
+        percent: context.percent,
+        truncated: context.truncated
+      };
+    }
+
     const data = safeObject(state.data);
     const inventory = safeObject(data.inventory);
     const counts = safeObject(inventory.counts);
@@ -600,6 +647,8 @@
     if (stateText === 'complete') return 'Vollstaendig';
     if (stateText === 'failed') return 'Fehler';
     if (stateText === 'compact_limited') return 'Unvollstaendig';
+    if (stateText === 'context_limited') return 'Kontext aktiv';
+    if (stateText === 'context_complete') return 'Kontext komplett';
     if (stateText === 'local_direct_read') return 'Lokal direkt';
     if (stateText === 'available') return 'Verfuegbar';
     return 'Bereit';
@@ -613,18 +662,23 @@
     const isOnline = data.runtimeMode !== 'local' && !safeObject(data.mode).local;
     const dbReadActive = mediaDbReadActive(data);
     const status = syncStateLabel(progress.state);
-    const dbText = isOnline
-      ? (dbReadActive ? 'Online-DB aktiv' : 'Online-DB vorbereitet')
-      : 'Lokal liest direkt';
-    const detail = dbReadActive
-      ? `${progress.returned} Medien aus dem Online-Index geladen. DB-Read-Source ist read-only aktiv.`
-      : (sync.currentLimitProblemVisible
-        ? `Aktuell kommen ${progress.returned} von ${progress.totalSeen} Dateien online an. Full-Sync in Chunks ist als naechster DB-Schritt vorbereitet.`
-        : (isOnline ? 'Online-Index und Sync-Fortschritt sind vorbereitet. Produktive DB-Writes folgen separat.' : 'Lokal ist der Stream-PC die Datei-Wahrheit.'));
-    const chipKind = progress.truncated ? 'warn' : 'info';
-    const footerLabel = dbReadActive ? 'DB Read-only' : 'Read-only Foundation';
+    const context = contextSummary();
+    const dbText = context.active
+      ? 'Kontext-API aktiv'
+      : (isOnline
+        ? (dbReadActive ? 'Online-DB aktiv' : 'Online-DB vorbereitet')
+        : 'Lokal liest direkt');
+    const detail = context.active
+      ? `${progress.returned} von ${progress.totalSeen || progress.returned} Kontext-Medien aus dem Online-Index geladen. Diese Ansicht bleibt read-only und schreibt nichts.`
+      : (dbReadActive
+        ? `${progress.returned} Medien aus dem Online-Index geladen. DB-Read-Source ist read-only aktiv.`
+        : (sync.currentLimitProblemVisible
+          ? `Aktuell kommen ${progress.returned} von ${progress.totalSeen} Dateien online an. Full-Sync in Chunks ist als naechster DB-Schritt vorbereitet.`
+          : (isOnline ? 'Online-Index und Sync-Fortschritt sind vorbereitet. Produktive DB-Writes folgen separat.' : 'Lokal ist der Stream-PC die Datei-Wahrheit.')));
+    const chipKind = context.active ? 'info' : (progress.truncated ? 'warn' : 'info');
+    const footerLabel = context.active ? 'Context Read-only' : (dbReadActive ? 'DB Read-only' : 'Read-only Foundation');
     return `<article class="cgn-card span2 rdap-media-sync-card">
-      <div class="card-head"><div><p class="cgn-eyebrow">Sync-Status</p><h2>Media-Synchronisierung</h2></div>${chip(status, chipKind)}</div>
+      <div class="card-head"><div><p class="cgn-eyebrow">${context.active ? 'Kontext-Status' : 'Sync-Status'}</p><h2>${context.active ? 'Media-Kontext' : 'Media-Synchronisierung'}</h2></div>${chip(status, chipKind)}</div>
       <div class="rdap-media-sync-progress">
         <div class="rdap-media-sync-meta"><strong>${escapeHtml(dbText)}</strong><span>${escapeHtml(detail)}</span></div>
         <div class="rdap-media-sync-bar" aria-label="Sync-Fortschritt"><i style="width:${escapeHtml(String(progress.percent))}%"></i></div>
@@ -713,6 +767,11 @@
   }
 
   function renderFilters(data) {
+    const context = contextSummary();
+    if (context.active) {
+      return `${chip(`Kontext-API ${context.count}/${context.total}`, 'info')} <button class="secondaryButton small" type="button" data-media-context-clear="1">Kontext zuruecksetzen</button>`;
+    }
+
     const inventory = safeObject(data && data.inventory);
     const counts = safeObject(inventory.counts);
     const filters = [
@@ -731,7 +790,7 @@
       ? 'Kontext wird geladen ...'
       : (state.contextError
         ? `Kontext-Fehler: ${state.contextError}`
-        : (contextItemsActive() ? `Kontext aktiv: ${context.count || 0} von ${context.total || 0}` : 'Kontext-API read-only vorbereitet'));
+        : (contextItemsActive() ? `Kontext aktiv: ${contextSummary().count} von ${contextSummary().total}` : 'Kontext-API read-only vorbereitet'));
     return `<div class="rdap-media-context-controls">
       <label class="rdap-media-context-field"><span>Root</span><select class="rdap-media-select" data-media-context-root="1">${['media', 'sounds', 'images', 'videos'].map(key => `<option value="${escapeHtml(key)}" ${filters.rootKey === key ? 'selected' : ''}>${escapeHtml(key)}</option>`).join('')}</select></label>
       <label class="rdap-media-context-field"><span>Modul</span><input class="rdap-media-search" type="text" data-media-context-module="1" placeholder="z.B. alerts" value="${escapeHtml(filters.moduleKey)}"></label>
@@ -795,11 +854,12 @@
 
     const runtimeLabel = data.runtimeMode === 'local' || mode.local ? 'Lokal' : 'Online';
     const inventoryCount = counts.returned || counts.total || 0;
-    const context = safeObject(state.contextData);
-    const contextTotal = contextItemsActive() ? Number(context.total || context.count || 0) : 0;
-    const inventoryStatus = contextItemsActive() ? `${contextTotal} Kontext-Medien` : (inventory.active ? `${inventoryCount} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt');
-    const statusText = state.error ? 'Fehler' : (state.loading || state.contextLoading ? 'Lade...' : (contextItemsActive() ? 'Kontext-API aktiv · read-only' : (inventory.active ? 'Inventar aktiv · read-only' : 'Read-only vorbereitet')));
-    const truncatedNotice = inventory.truncated ? `<div class="admin-lock-note"><i>!</i><div><strong>Liste gekuerzt.</strong><span>Es werden ${escapeHtml(String(inventoryCount || inventory.limit || 0))} Medien angezeigt.</span></div></div>` : '';
+    const context = contextSummary();
+    const inventoryStatus = context.active ? `${context.total} Kontext-Medien` : (inventory.active ? `${inventoryCount} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt');
+    const statusText = state.error ? 'Fehler' : (state.loading || state.contextLoading ? 'Lade...' : (context.active ? 'Kontext-API aktiv · read-only' : (inventory.active ? 'Inventar aktiv · read-only' : 'Read-only vorbereitet')));
+    const truncatedNotice = context.active && context.truncated
+      ? `<div class="admin-lock-note"><i>!</i><div><strong>Kontextliste gekuerzt.</strong><span>Es werden ${escapeHtml(String(context.count))} von ${escapeHtml(String(context.total))} Kontext-Medien angezeigt. Es wird nichts geschrieben.</span></div></div>`
+      : (!context.active && inventory.truncated ? `<div class="admin-lock-note"><i>!</i><div><strong>Liste gekuerzt.</strong><span>Es werden ${escapeHtml(String(inventoryCount || inventory.limit || 0))} Medien angezeigt.</span></div></div>` : '');
     const readOnlyNotice = '<div class="admin-lock-note"><i>i</i><div><strong>Diese Ansicht ist read-only.</strong><span>Dateien kommen vom Stream-PC/Agent. Upload, Bearbeiten und Loeschen sind deaktiviert.</span></div></div>';
 
     mountPanel(`
@@ -810,7 +870,7 @@
 
         <section class="metric-grid">
           <article class="metric-card cgn-card"><span>Modus</span><strong>${escapeHtml(runtimeLabel)}</strong><small>Online/Lokal</small><div class="cgn-progress"><i style="width:70%"></i></div></article>
-          <article class="metric-card cgn-card"><span>Inventar</span><strong>${escapeHtml(inventoryStatus)}</strong><small>${escapeHtml(inventory.active ? 'aktiv' : 'wartet')}</small><div class="cgn-progress ${inventory.active ? '' : 'cgn-progress--warn'}"><i style="width:${inventory.active ? '80' : '15'}%"></i></div></article>
+          <article class="metric-card cgn-card"><span>Inventar</span><strong>${escapeHtml(inventoryStatus)}</strong><small>${escapeHtml(context.active ? 'Kontext aktiv' : (inventory.active ? 'aktiv' : 'wartet'))}</small><div class="cgn-progress ${inventory.active || context.active ? '' : 'cgn-progress--warn'}"><i style="width:${context.active ? escapeHtml(String(context.percent)) : (inventory.active ? '80' : '15')}%"></i></div></article>
           <article class="metric-card cgn-card"><span>Status</span><strong>Read-only</strong><small>keine Bearbeitung</small><div class="cgn-progress cgn-progress--warn"><i style="width:0%"></i></div></article>
         </section>
 
@@ -823,7 +883,7 @@
           ${renderSyncStatusCard()}
 
           <article class="cgn-card span2 rdap-media-inventory-card">
-            <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div>${chip(inventory.active ? 'Inventar aktiv' : 'wartet', inventory.active ? 'ok' : 'warn')}</div>
+            <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div>${chip(context.active ? 'Kontext aktiv' : (inventory.active ? 'Inventar aktiv' : 'wartet'), context.active || inventory.active ? 'ok' : 'warn')}</div>
             <div class="rdap-media-toolbar">
               <div class="rdap-media-toolbar-row">${renderFilters(data)} <button class="secondaryButton small" type="button" data-media-refresh="1">Neu laden</button></div>
               <div class="rdap-media-toolbar-row">${renderSortControls()}</div>
@@ -842,6 +902,8 @@
     panel.querySelectorAll('[data-media-filter]').forEach((button) => {
       button.addEventListener('click', () => {
         state.filter = button.getAttribute('data-media-filter') || 'all';
+        state.contextData = null;
+        state.contextError = '';
         resetListPage();
         safeRender();
       });
@@ -916,6 +978,14 @@
         state.syncDialogOpen = false;
         safeRender();
       });
+    });
+
+    const contextClear = panel.querySelector('[data-media-context-clear]');
+    if (contextClear) contextClear.addEventListener('click', () => {
+      state.contextData = null;
+      state.contextError = '';
+      resetListPage();
+      safeRender();
     });
 
     const contextRoot = panel.querySelector('[data-media-context-root]');
