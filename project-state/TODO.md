@@ -25,7 +25,7 @@
 - [x] 0.2.58K Webserver-Bestaetigung dokumentieren
 - [x] TTS Legacy-DB-Cleanup gated bauen
 - [x] TTS Legacy-DB-Cleanup auf Webserver bestaetigen
-- [ ] Normale persistent geloeschte Media-Dateien read-only Tombstone-Plan bauen
+- [x] Normale persistent geloeschte Media-Dateien read-only Tombstone-Plan bauen
 - [ ] Tombstone-Gate/Confirm/Audit/Lock/Readback fuer persistente Media-Dateien separat bauen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen

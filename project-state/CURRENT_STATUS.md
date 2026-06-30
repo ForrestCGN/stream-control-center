@@ -1,94 +1,80 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58L - Media Index TTS Legacy DB Cleanup bestaetigt`
+Aktueller Stand: `0.2.58M - Media Index Persistent Missing Tombstone Plan read-only vorbereitet`
 
 ## Ergebnis
 
-0.2.58L wurde lokal installiert, auf GitHub/dev deployed, auf dem Webserver getestet und fachlich bestaetigt.
+0.2.58M ist ein Doku-/Plan-Step fuer normale lokal geloeschte persistente Media-Dateien.
+
+Es wurden keine Code-Dateien geaendert und keine produktiven Writes vorbereitet oder ausgefuehrt.
 
 Statusmarker:
 
 ```text
-rdap_media_index_tts_legacy_cleanup_gated_058l.v1
-RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_GATED
-RDAP_0.2.58L_FINAL_STATUS_AFTER_TTS_LEGACY_CLEANUP_CONFIRMED
+RDAP_0.2.58M_MEDIA_INDEX_PERSISTENT_MISSING_TOMBSTONE_PLAN_READONLY
+rdap_media_index_persistent_missing_tombstone_plan_058m.v1
 ```
 
-## Bestaetigter Ablauf
+## Ausgangspunkt
 
-Preview vor Execute:
+0.2.58L wurde lokal installiert, auf GitHub/dev deployed, auf dem Webserver getestet und fachlich bestaetigt.
+
+Bestaetigter 0.2.58L-Status:
 
 ```text
-preview.candidateCount = 1
+Alter sounds:tts/generated/** Legacy-DB-Eintrag wurde per gated Soft-Delete bereinigt.
+Cleanup-Preview danach = 0.
+Diff-Status danach = missingOnAgentItems 0.
+Media-Index-Write-Gates sind wieder aus.
 ```
 
-Kandidat:
+## 0.2.58M-Regel
+
+Normale persistente Media-Dateien duerfen nur read-only als spaetere Tombstone-Kandidaten betrachtet werden, wenn der Missing-on-Agent-Status belastbar ist.
+
+Belastbar bedeutet:
 
 ```text
-sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
-```
-
-Erster Execute ohne Media-Index-Gates wurde korrekt blockiert:
-
-```text
-reason = media_index_data_write_gate_disabled
-writeExecuted = false
-databaseWriteExecuted = false
-```
-
-Nach temporaerer Aktivierung:
-
-```text
-MEDIA_INDEX_WRITE_ENABLED=true
-MEDIA_INDEX_DATA_WRITE_ENABLED=true
-```
-
-wurde der Cleanup mit Body-Confirm ausgefuehrt:
-
-```text
-confirmWrite = true
-confirmCleanup = RDAP_0.2.58L_CONFIRM_TTS_LEGACY_CLEANUP
-expectedCandidateCount = 1
-```
-
-Danach wurden die Gates wieder deaktiviert.
-
-## Readback
-
-Cleanup-Status nach Abschluss:
-
-```text
-mediaIndexWriteEnabled = false
-mediaIndexDataWriteEnabled = false
-preview.candidateCount = 0
-```
-
-Diff-Status nach Abschluss:
-
-```text
-missingOnAgentItems = 0
-ttsGeneratedTempCandidateCount = 0
-ttsGeneratedExcludedFromSyncLegacyCount = 0
-persistentMediaMissingCandidateCount = 0
-tombstoneCandidateDiagnosticCount = 0
-previews.ttsTempMissingCandidates = []
+Agent-Full-Sync vollstaendig
+Agent-Snapshot nicht unavailable
+Agent-Snapshot nicht truncated
+DB-Snapshot nicht truncated
+Eintrag fehlt im vollstaendigen Agent-Snapshot
+Kein TTS-generated Sonderfall
 ```
 
 ## Sicherheit
 
-- Alter TTS-generated Legacy-DB-Eintrag wurde bereinigt.
-- Soft-Delete (`deleted=1`), kein Hard-Delete.
-- Keine normalen persistenten Media-Dateien betroffen.
+- Kein DB-Write.
+- Kein `UPDATE remote_media_index`.
+- Kein `deleted=1` fuer normale persistente Media-Dateien.
+- Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
 - Keine Datei-Inhalte.
 - Keine absoluten lokalen Pfade.
-- Media-Index-Write-Gates sind wieder aus.
+- Keine Upload/Edit/Delete-Funktion.
+- Keine Agent-Action.
+
+## Testhinweis
+
+Da 0.2.58M Doku-only ist:
+
+```text
+kein Webserver-Deploy noetig
+keine Node-Syntaxchecks noetig
+```
+
+Sinnvolle Statuspruefung bleibt:
+
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/media/index/diff/status | jq '.statusApiVersion, .routeBuild, .readOnly, .counts.missingOnAgentReliable, .counts.missingOnAgentCount, .missingClassification.persistentMediaMissingCandidateCount, .missingClassification.tombstoneCandidateDiagnosticCount, .reliability'
+```
 
 ## Naechster sinnvoller RDAP-Step
 
 ```text
-RDAP_0.2.58M_MEDIA_INDEX_PERSISTENT_MISSING_TOMBSTONE_PLAN_READONLY
+RDAP_0.2.58N_MEDIA_INDEX_PERSISTENT_MISSING_TOMBSTONE_GATED_PREP
 ```
 
-Ziel: normale lokal geloeschte persistente Media-Dateien sauber read-only als spaetere Tombstone-Kandidaten planen. Kein Auto-Delete, kein Write in diesem Plan-Step.
+Ziel: Gated Tombstone/Soft-Delete-Route fuer normale persistente Missing-Kandidaten vorbereiten. Nur local-only, nur mit confirmWrite, Confirm-Token, expectedCandidateCount, Gates, Audit, Lock/Backup/Readback. Kein physisches Loeschen, kein Online->Agent-Trigger.

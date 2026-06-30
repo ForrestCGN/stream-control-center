@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.2.58M - Media Index Persistent Missing Tombstone Plan read-only
+
+- Read-only Plan fuer normale lokal geloeschte persistente Media-Dateien dokumentiert.
+- Klare Abgrenzung zu `sounds/tts/generated/**` als temporaerem TTS-Sonderfall dokumentiert.
+- Missing-on-Agent fuer normale persistente Media-Dateien darf nur bei vollstaendigem, nicht gekuerztem Full-Sync/Agent-Snapshot als spaetere Tombstone-Kandidatur gelten.
+- Kein Code-Write.
+- Kein DB-Write.
+- Kein `deleted=1` fuer persistente Media-Dateien.
+- Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+- Naechster Step als eigener gated Tombstone-/Soft-Delete-Prep-Step festgelegt.
+
 ## 0.2.58L Final - TTS Legacy DB Cleanup bestaetigt
 
 - Webserver-Preview fuer `RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_GATED` bestaetigt.
