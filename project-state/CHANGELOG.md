@@ -1,16 +1,24 @@
 # CHANGELOG
 
-## 0.2.58N - Media Index Diff Reliability Note Fix
+## 0.2.58O - Media Index Persistent Tombstone gated Plan dokumentiert
 
-- `remote-modboard/backend/src/routes/media-index-diff.routes.js` auf `RDAP_0.2.58N_MEDIA_INDEX_DIFF_RELIABILITY_NOTE_FIX` aktualisiert.
-- `statusApiVersion` auf `rdap_media_index_diff_reliability_note_fix_058n.v1` aktualisiert.
-- Reliability-Note korrigiert: Wenn der Full-Sync-Compare vollstaendig ist und `missingOnAgentReliable=true` liefert, dominiert nicht mehr die Warnung des gekuerzten Compact-Agent-Snapshots.
-- Keine DB-Writes, kein Tombstone-Write, kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+- Gated Plan fuer normale persistente Media-Missing/Tombstone-Faelle dokumentiert.
+- Klargestellt: normale persistente Media-Dateien sind kein TTS-generated Sonderfall.
+- Spaeterer Flow nur ueber Preview, Confirm-Write, Gates, Audit/Lock, Backup/Readback und Soft-Delete/Tombstone.
+- Kein Code geaendert.
+- Kein DB-Write.
+- Kein Hard-Delete.
+- Kein physisches Loeschen.
+- Kein Online->Agent-Trigger.
+- Kein Webserver-Deploy noetig.
 
-## 0.2.58M - Media Index Persistent Missing Tombstone Plan read-only
+## 0.2.58N - Media Index Diff Reliability Note Fix bestaetigt
 
-- Read-only Plan fuer normale persistent geloeschte Media-Dateien dokumentiert.
-- Kein Code, kein DB-Write, kein physisches Loeschen, kein Online->Agent-Trigger.
+- `media-index-diff.routes.js` auf `RDAP_0.2.58N_MEDIA_INDEX_DIFF_RELIABILITY_NOTE_FIX` aktualisiert.
+- `statusApiVersion = rdap_media_index_diff_reliability_note_fix_058n.v1` bestaetigt.
+- Reliability-Notiz korrigiert: Wenn Full-Sync-Compare vollstaendig ist, ist Missing-Diagnose trotz gekuerztem Compact-Agent-Snapshot read-only belastbar.
+- Keine Write-/Delete-/Agent-Trigger-Logik geaendert.
+- Keine Tombstone-Kandidaten aktuell: `persistentMediaMissingCandidateCount = 0`, `tombstoneCandidateDiagnosticCount = 0`.
 
 ## 0.2.58L Final - TTS Legacy DB Cleanup bestaetigt
 

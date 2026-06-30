@@ -1,47 +1,55 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58N - Media Index Diff Reliability Note Fix`
+Aktueller Stand: `0.2.58O - Media Index Persistent Tombstone gated Plan dokumentiert`
 
 ## Ergebnis
 
-0.2.58N korrigiert die Reliability-Notiz der read-only Media-Index-Diff-Route.
-
-Statusmarker:
+0.2.58N wurde bestaetigt:
 
 ```text
-rdap_media_index_diff_reliability_note_fix_058n.v1
-RDAP_0.2.58N_MEDIA_INDEX_DIFF_RELIABILITY_NOTE_FIX
+statusApiVersion = rdap_media_index_diff_reliability_note_fix_058n.v1
+routeBuild = RDAP_0.2.58N_MEDIA_INDEX_DIFF_RELIABILITY_NOTE_FIX
+readOnly = true
 ```
 
-## Ausgangspunkt
-
-Nach 0.2.58M konnte die Diff-Route gleichzeitig melden:
+Die Reliability-Notiz ist sauber:
 
 ```text
-agentSnapshotTruncated = true
-fullSyncCompareMissingOnAgentReliable = true
-missingOnAgentReliable = true
-note = Agent-Snapshot ist gekuerzt...
+Full-Sync-Compare-Snapshot ist vollstaendig; Missing-Diagnose ist trotz gekuerztem Compact-Agent-Snapshot read-only belastbar.
 ```
 
-Das war fachlich missverstaendlich, weil der vollstaendige Full-Sync-Compare die Missing-Diagnose belastbar macht, auch wenn der Compact-Agent-Snapshot gekuerzt ist.
+Aktueller Kandidatenstand:
 
-## Aenderung
+```text
+persistentMediaMissingCandidateCount = 0
+tombstoneCandidateDiagnosticCount = 0
+```
 
-`buildReliabilityBlock()` priorisiert jetzt den vollstaendigen Full-Sync-Compare vor der Compact-Snapshot-Truncated-Notiz.
+## 0.2.58O
 
-Wenn `fullSyncCompareMissingOnAgentReliable = true` gilt, meldet die Note jetzt, dass die Missing-Diagnose trotz gekuerztem Compact-Agent-Snapshot read-only belastbar ist.
+0.2.58O dokumentiert den gated Plan fuer normale persistente Media-Missing/Tombstone-Faelle.
 
-## Sicherheit
+Dieser Stand ist Doku-only:
 
-- Read-only bleibt aktiv.
-- Keine DB-Writes.
-- Kein Tombstone-Write.
+- Kein Code geaendert.
+- Kein DB-Write.
 - Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
-- Keine Upload/Edit/Delete-Funktion.
+- Kein Webserver-Deploy noetig.
+
+## Schutzentscheidung
+
+Normale persistente Media-Dateien duerfen spaeter nur ueber einen getrennten gated Flow behandelt werden:
+
+```text
+Preview -> Confirm-Write -> Gates -> Audit/Lock -> Soft-Delete/Tombstone -> Readback
+```
 
 ## Naechster sinnvoller RDAP-Step
 
-Tombstone-Gate/Confirm/Audit/Lock/Readback fuer persistente Media-Dateien separat planen, aber nur als eigener Write-Step und nicht automatisch.
+```text
+RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW
+```
+
+Ziel: Preview-Route fuer persistente Missing/Tombstone-Kandidaten bauen. Weiterhin kein Execute-Write, falls kein separater Write-Scope freigegeben wird.

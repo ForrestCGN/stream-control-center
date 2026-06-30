@@ -1,34 +1,33 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Schritt nach 0.2.58N
+## Naechster RDAP-Schritt nach 0.2.58O
 
-Persistente Media-Tombstones bleiben separater Scope.
-
-Moeglicher naechster Step:
-
-```text
-RDAP_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_FLOW
-```
+`RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW`
 
 Ziel:
 
-- Normale lokal geloeschte persistente Media-Dateien nur bei belastbarer Missing-Diagnose behandeln.
-- Kein Auto-Delete.
-- Tombstone/Delete nur mit eigenem Gate-/Confirm-/Audit-/Lock-/Backup-/Readback-Step.
+- Preview-Route fuer normale persistente Missing/Tombstone-Kandidaten bauen.
+- Nur read-only Preview.
+- Kein DB-Write.
+- Kein Execute-Write in diesem Step, ausser Forrest gibt dafuer ausdruecklich einen getrennten Scope frei.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
 
-## Voraussetzung
+## Ausgangspunkt
 
-Vor einem Write-Step muss die Diff-Route echte Kandidaten zeigen:
+0.2.58N ist bestaetigt:
 
 ```text
-persistentMediaMissingCandidateCount > 0
-tombstoneCandidateDiagnosticCount > 0
-missingOnAgentReliable = true
+statusApiVersion = rdap_media_index_diff_reliability_note_fix_058n.v1
+routeBuild = RDAP_0.2.58N_MEDIA_INDEX_DIFF_RELIABILITY_NOTE_FIX
+readOnly = true
 ```
 
-Wenn keine Kandidaten vorhanden sind, ist kein Tombstone-Write-Step noetig.
+0.2.58O hat den gated Tombstone-Plan dokumentiert.
+
+## Wichtig
+
+Tombstone/Delete fuer normale persistente Media-Dateien erst mit eigenem Gate-/Confirm-/Audit-/Lock-/Backup-/Readback-Step.
 
 ## Arbeitswechsel
 
