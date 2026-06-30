@@ -11,10 +11,10 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_upsert_candidates_fix_gated_090.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_upsert_with_context_gated_089.v1';
-const BUILD = 'RDAP_0.2.90_MEDIA_INDEX_UPSERT_CANDIDATES_FIX_GATED';
-const PREVIOUS_BUILD = 'RDAP_0.2.89_MEDIA_INDEX_UPSERT_WITH_CONTEXT_GATED';
+const STATUS_API_VERSION = 'rdap_media_index_upsert_candidates_field_fix_gated_091.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_upsert_candidates_fix_gated_090.v1';
+const BUILD = 'RDAP_0.2.91_MEDIA_INDEX_UPSERT_CANDIDATES_FIELD_FIX_GATED';
+const PREVIOUS_BUILD = 'RDAP_0.2.90_MEDIA_INDEX_UPSERT_CANDIDATES_FIX_GATED';
 const ROUTE = '/api/remote/media/index/diff/status';
 const UPSERT_PREVIEW_ROUTE = '/api/remote/media/index/upsert/preview';
 const UPSERT_EXECUTE_ROUTE = '/api/remote/media/index/upsert/execute';
@@ -1490,6 +1490,7 @@ async function buildMediaIndexUpsertCandidateSnapshot({ context, previewLimit })
     databaseWriteExecuted: false,
     table: PERSISTENT_INDEX_TABLE,
     candidateCount: candidates.length,
+    candidates,
     byRoot: buildCountByField(candidates, 'rootKey'),
     byKind: buildCountByField(candidates, 'kind'),
     candidateIds: candidates.map(item => item.id).filter(Boolean),
@@ -1667,7 +1668,7 @@ function buildMediaIndexUpsertGateStatus() {
     defaultBlocked: true,
     writeEnabled: false,
     databaseWritesEnabled: false,
-    note: 'Alle Data-Upsert-Gates muessen explizit true sein. 0.2.90 behebt Candidate-Array-Readback und schreibt nur remote_media_index-Zeilen, keine Dateien und keine Deletes.'
+    note: 'Alle Data-Upsert-Gates muessen explizit true sein. 0.2.91 gibt Candidate-Items im Execute-Snapshot zurueck und schreibt nur remote_media_index-Zeilen, keine Dateien und keine Deletes.'
   };
 }
 
