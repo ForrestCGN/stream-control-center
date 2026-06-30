@@ -6,15 +6,44 @@
 
 ## Ziel
 
-UI-Quelle `Lokal / Stream-PC` in Admin -> Logs aktivieren und an das 0.2.120 Skeleton anbinden.
+UI-Quelle `Lokal / Stream-PC` in `Admin -> Logs` aktivieren und an das 0.2.120 Skeleton anbinden.
 
-## Vorher pruefen
+## Wichtige Klarstellung
+
+```text
+3010 = Remote-Modboard Backend auf dem Webserver
+8080 = lokaler Stream-PC / Dashboard / Agent beim Nutzer
+```
+
+0.2.121 soll zuerst die vorhandene Remote-Modboard-UI an die bereits vorhandenen Remote-Modboard-Routen anbinden.
+
+Keine Aenderung am lokalen 8080-Dashboard in diesem Step, ausser sie wird vorher explizit geplant.
+
+## Vorher wirklich lesen
 
 ```text
 remote-modboard/backend/public/assets/modules/admin/audit-log.js
-GET /api/remote/local/logs/status
-GET /api/remote/local/logs/list
-GET /api/remote/routes
+remote-modboard/backend/src/services/local-logs-readonly.service.js
+remote-modboard/backend/src/routes/local-logs-readonly.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/RDAP_0.2.120_LOCAL_LOGS_READONLY_API_SKELETON_DEPLOY_CONFIRMED.md
+```
+
+## Erwarteter UI-Step
+
+```text
+Log-Quelle Lokal / Stream-PC aktivierbar machen
+bei source=local /api/remote/local/logs/list abfragen
+Status/Leerzustand sauber anzeigen
+count/items aus local API verwenden
+Remote-Modboard Quelle unveraendert lassen
+keine echten lokalen Items aggregieren
+keine 8080-Aenderung ohne separaten Plan
 ```
 
 ## Regeln
@@ -29,16 +58,6 @@ keine lokalen Steueraktionen
 keine OBS-/Sound-/Overlay-Steuerung
 keine Admin-Notizen weiter ausbauen
 Remote-Logs unveraendert lassen
-```
-
-## Erwarteter UI-Step
-
-```text
-Lokal / Stream-PC Dropdown-Option aktivieren
-Quelle local ruft /api/remote/local/logs/list auf
-Offline-/leer-Zustand sauber anzeigen
-Status/Count korrekt anzeigen
-Remote-Modboard Quelle unveraendert
 ```
 
 ## Spaeterer moeglicher Folgeschritt

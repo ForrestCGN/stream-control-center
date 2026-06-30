@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 0.2.120 - Local Logs Readonly API Skeleton Deploy Confirmed
+
+- 0.2.120 serverseitig live bestaetigt.
+- Getestet auf Webserver `127.0.0.1:3010`.
+- Bestaetigte Routen:
+  - `GET /api/remote/local/logs/status`
+  - `GET /api/remote/local/logs/list`
+  - `GET /api/remote/routes` mit `.localLogsReadonly`
+- Bestaetigte Werte:
+  - `statusApiVersion = rdap_local_logs120.v1`
+  - `routeBuild = RDAP_0.2.120_LOCAL_LOGS_READONLY_API_SKELETON`
+  - `readOnly = true`
+  - `writeEnabled = false`
+  - `items = []`
+  - `count = 0`
+  - `maxLimit = 100`
+  - `agentActionsEnabled = false`
+  - `localControlActionsEnabled = false`
+- Wichtige Klarstellung dokumentiert:
+  - `3010` ist Remote-Modboard Backend auf dem Webserver.
+  - `8080` ist lokaler Stream-PC / Dashboard / Agent beim Nutzer.
+- Noch nicht erledigt:
+  - lokale Logs-UI-Quelle `Lokal / Stream-PC` aktivieren.
+  - echtes lokales Item-Aggregating.
+  - lokales 8080-Dashboard separat anpassen.
+
 ## 0.2.120 - Local Logs Readonly API Skeleton
 
 - Lokale Logs-read-only API als Skeleton gebaut.
@@ -50,7 +76,3 @@
 - Doku-only.
 - Keine Runtime-Aenderung.
 - Kein Deploy noetig.
-
-## 0.2.116E - Logs Clean Selector UI
-
-- Logs-Hauptansicht bereinigt.
