@@ -2,37 +2,34 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.109_ADMIN_USERS_READONLY_STATUS_RECHECK`
+`RDAP_0.2.110_ADMIN_USERS_LIVE_RECHECK_DOCS_OR_NEXT_RUNTIME_FIX`
 
-## Ziel
+## Voraussetzung
 
-Admin/User/Permission read-only neu pruefen.
+Server-Ausgaben aus 0.2.109 liegen vor.
 
-## Vorher lesen
+## Zu pruefen
 
 ```text
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-project-state/CHANGELOG.md
-docs/current/RDAP_0.2.108_ADMIN_USERS_PERMISSION_SCOPE_PLAN.md
-docs/current/ROUTE_SERVICE_DOCS_CONSOLIDATED_CURRENT.md
-remote-modboard/backend/src/routes/admin-users.routes.js
-remote-modboard/backend/src/routes/admin-mini-write-foundation.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/services/admin-user-permission-read.service.js
-remote-modboard/backend/src/services/admin-user-write-foundation.service.js
-remote-modboard/backend/src/services/config.service.js
+/api/remote/routes
+/api/remote/admin/users/write-foundation-diagnostic
+/api/remote/admin/users/permission-diagnostic
+```
+
+## Entscheidung danach
+
+```text
+A. Status nur dokumentieren, wenn alles sauber read-only ist.
+B. Kleinen Runtime-Fix planen, falls Status/API widerspruechlich ist.
+C. Admin/User UI-Read-only naechstklein planen.
 ```
 
 ## Harte Regeln
 
 ```text
-read-only zuerst
 keine Writes
 keine Gates aktivieren
 keine Login-/Session-Umstellung
 keine Agent-Actions
-Plan vor ZIP
+erst Ausgaben auswerten
 ```
