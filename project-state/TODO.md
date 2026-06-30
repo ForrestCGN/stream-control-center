@@ -1,5 +1,21 @@
 # TODO
 
+## RDAP Media Index aktueller Block nach 0.2.91
+
+- [x] 0.2.79: Diff-Endpoint `moduleBuild`/`routeBuild` Anzeige-Polish bestaetigt.
+- [x] 0.2.83: FullSync Summary ueber komplette Listen bestaetigt.
+- [x] 0.2.85: Upsert Preview readonly bestaetigt, 412 Kandidaten.
+- [x] 0.2.86: Upsert Execute Foundation blocked bestaetigt.
+- [x] 0.2.87: Schema Extension Foundation blocked bestaetigt.
+- [x] 0.2.88: Schema Extension Execute gated ausgefuehrt, 6 Kontextspalten angelegt.
+- [x] 0.2.89: Upsert with Context gated implementiert; erster Execute-Fehler analysiert, kein Write passiert.
+- [x] 0.2.90: 500 bei fehlendem Candidate-Array verhindert.
+- [x] 0.2.91: Candidate-Feld-Fix und produktiver Upsert bestaetigt, `media=412` in DB.
+- [ ] Gates nach produktivem Execute geschlossen halten und pruefen.
+- [ ] 0.2.93: Post-Upsert Verify readonly ausfuehren.
+- [ ] 0.2.94: Read-only DB Context API fuer Media-Index planen.
+- [ ] Spaeter: FullSyncCompare persistenter/neu anforderbar machen, weil Runtime-Snapshot nach Service-Restart leer ist.
+
 - [x] 0.2.73: `backend/modules/remote_agent.js` inline fuer Media-System-Scan erweitern.
 - [x] 0.2.73 lokal Syntax/Status pruefen.
 - [x] 0.2.73 per `stepdone.cmd` nach GitHub/dev pushen.

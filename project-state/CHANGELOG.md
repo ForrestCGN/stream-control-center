@@ -1,5 +1,73 @@
 # CHANGELOG
 
+## 0.2.92 - Media Index DB Upsert Docs Handoff
+
+- Doku nach erfolgreichem Schema- und Data-Upsert aktualisiert.
+- Festgehalten: `remote_media_index` enthaelt jetzt `images=46`, `media=412`, `sounds=276`, `videos=10`, gesamt `744` aktive Eintraege.
+- Festgehalten: Media-System-Kontextspalten sind vorhanden und befuellt: `module_key`, `category_key`, `full_category_key`, `asset_relative_path`, `web_path`, `public_path`.
+- Festgehalten: produktiver Upsert war erfolgreich mit `candidateCount=412`, `affectedRows=412`, `presentAfterCount=412`, `missingAfterCount=0`, `auditWritten=true`.
+- Festgehalten: Gates muessen nach Execute wieder geschlossen sein.
+- Naechsten read-only Verify-Block 0.2.93 vorbereitet.
+- New-Chat-Prompt nach 0.2.91 erstellt.
+- Keine Runtime-Code-Dateien geaendert.
+
+## 0.2.91 - Media Index Upsert Candidates Field Fix gated
+
+- `remote-modboard/backend/src/routes/media-index-diff.routes.js` korrigiert.
+- Execute-Snapshot gibt jetzt `candidates` zurueck.
+- Gate-false Test bestaetigt: `candidateCount=412`, `databaseWriteExecuted=false`, `upsertExecuted=false`.
+- Produktiver Upsert hinter Gates erfolgreich ausgefuehrt.
+- Readback bestaetigt: `media=412`, Kontextfelder gefuellt, Audit geschrieben.
+
+## 0.2.90 - Media Index Upsert Candidates Fix gated
+
+- `remote-modboard/backend/src/routes/media-index-diff.routes.js` abgesichert.
+- Fehlendes Candidate-Array erzeugt keinen 500 mehr, sondern blockiert sicher.
+- Keine DB-Writes ausgefuehrt.
+
+## 0.2.89 - Media Index Upsert with Context gated
+
+- `remote-modboard/backend/src/routes/media-index-diff.routes.js` erweitert.
+- Gated Data-Upsert fuer `remote_media_index` mit Kontextspalten implementiert.
+- Erster Execute zeigte 500 wegen fehlendem `snapshot.candidates`.
+- Per SQL bestaetigt: kein Write passiert, `media` war danach noch nicht in der DB.
+
+## 0.2.88 - Media Index Schema Extension Execute gated
+
+- `remote-modboard/backend/src/routes/media-index-diff.routes.js` erweitert.
+- Echte Schema-Erweiterung hinter Gates ausgefuehrt.
+- Spalten hinzugefuegt: `module_key`, `category_key`, `full_category_key`, `asset_relative_path`, `web_path`, `public_path`.
+- Readback: `missingColumnCount=0`, `allColumnsPresent=true`.
+- Audit geschrieben.
+
+## 0.2.87 - Media Index Schema Extension Foundation blocked
+
+- Schema-Extension Preview/Execute Foundation vorbereitet.
+- Preview bestaetigte 6 fehlende Kontextspalten.
+- Execute default blockiert, kein ALTER TABLE.
+
+## 0.2.86 - Media Index Upsert Execute Foundation blocked
+
+- Upsert-Execute-Route vorbereitet.
+- LocalOnly, Confirm, expectedCandidateCount und Gates eingebaut.
+- Gate-false Test bestaetigt, kein DB-Write.
+
+## 0.2.85 - Media Index Upsert Preview readonly
+
+- Read-only Upsert-Preview ergaenzt.
+- Bestaetigt: `candidateCount=412`, `byRoot.media=412`, `byKind.audio=335`, `image=42`, `video=35`.
+
+## 0.2.83 - Media Index Diff FullSync Summary readonly
+
+- FullSync Summary ueber komplette Listen ergaenzt.
+- Bestaetigt: 412 neue `media`-Items im Agent-FullSync gegen DB.
+
+## 0.2.79 bis 0.2.82 - Media Index Diff/DB Readiness readonly
+
+- Route-Build-Anzeige bereinigt.
+- FullSyncCompare und DB-Readiness bestaetigt.
+- Ergebnis: FullSync 744 Items, DB vorher 332 Legacy-Items, 412 neue `media`-Items.
+
 ## 0.2.78 - Media Index 0.2.77 Live Confirm Docs Handoff
 
 - Live-Bestaetigung von 0.2.77 dokumentiert.

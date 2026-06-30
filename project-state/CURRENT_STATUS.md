@@ -1,126 +1,266 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.77 - Media Index Diff Media Root Readonly Verify`
+Aktueller Stand: `0.2.91 - Media Index Upsert Candidates Field Fix gated + produktiver Context-Upsert bestaetigt`
 
-## Ergebnis
+## Kurzfazit
 
-0.2.77 ist lokal eingespielt, per `stepdone.cmd` nach GitHub/dev gepusht, auf dem Webserver deployed und live fachlich bestaetigt.
+Der Media-System-Index ist jetzt vollstaendig in `remote_media_index` vorhanden.
 
-Bestaetigter Remote-Diff-Endpoint:
+Bestaetigt auf dem Webserver:
 
 ```text
-http://127.0.0.1:3010/api/remote/media/index/diff/status
+remote_media_index aktiv:
+images = 46
+media  = 412
+sounds = 276
+videos = 10
+gesamt = 744
 ```
 
-Bestaetigter Live-Status:
+Die neuen Media-System-Kontextspalten wurden angelegt und fuer `root_key = media` befuellt:
 
 ```text
-statusApiVersion = rdap_media_index_diff_media_root_readonly_verify_077.v1
-readOnly = true
-writeEnabled = false
+module_key
+category_key
+full_category_key
+asset_relative_path
+web_path
+public_path
 ```
 
-Bestaetigt: `media`-Items erscheinen jetzt in der Diff-/Preview-Ausgabe:
+Produktiver Upsert wurde bestaetigt:
 
 ```text
-.previews.newOnAgent[] | select(.rootKey=="media")
+status = media_index_upsert_with_context_execute_success
+candidateCount = 412
+affectedRows = 412
+presentAfterCount = 412
+missingAfterCount = 0
+databaseWriteExecuted = true
+upsertExecuted = true
+auditWritten = true
+readBackPerformed = true
 ```
 
-Bestaetigte Kontextfelder in Preview:
+## Bestaetigte Module/Kategorien im DB-Readback
 
 ```text
-id
-rootKey
-source
-moduleKey
-categoryKey
-fullCategoryKey
-assetRelativePath
-webPath
-publicPath
+general       137
+alerts        132
+stream_events 35
+vip           31
+commands      26
+channelpoints 25
+birthday      9
+shot_alarm    6
+vip30         6
+audio         2
+hypetrain     2
+twitch_events 1
 ```
 
-Beispiel bestaetigt:
+Beispiele fuer `full_category_key` aus dem Readback:
 
 ```text
-rootKey = media
-source = media_system
-moduleKey = alerts
-categoryKey = bits
-fullCategoryKey = alerts/bits
-assetRelativePath = alerts/bits/...
-webPath = /assets/media/alerts/bits/...
-publicPath = /assets/media/alerts/bits/...
+alerts/bits
+alerts/donation
+alerts/follow
+alerts/raid
+alerts/sub
+birthday/general
+channelpoints/general
+commands/general
+general/audio
+general/intro
+general/images
+general/transitions
+stream_events/1-jahres-event
+vip/general
+vip30/general
 ```
 
-## Hinweis zu moduleBuild
+## Was bei neuen lokalen Kategorien/Modulen passiert
 
-Der Diff-Endpoint zeigte live:
+Neue Kategorien oder Module brauchen keine weitere DB-Migration. Sie werden als neue Zeilen in `remote_media_index` gespeichert:
 
 ```text
-moduleBuild = RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY
-statusApiVersion = rdap_media_index_diff_media_root_readonly_verify_077.v1
+root_key = media
+module_key = <modul>
+category_key = <kategorie>
+full_category_key = <modul>/<kategorie>
+asset_relative_path = <modul>/<kategorie>/<datei>
+web_path/public_path = passende Public-Pfade
 ```
 
-Das ist fachlich nicht blockierend.
-
-Grund: Die Route nutzt bei `moduleBuild` noch den globalen `context.moduleBuild`, waehrend `statusApiVersion` und das Verhalten bereits 0.2.77 bestaetigen.
-
-Ein spaeterer kleiner Polish-Step soll die Anzeige von `moduleBuild`/`routeBuild` sauber trennen.
-
-## Betroffene Source-Datei aus 0.2.77
+Ablauf spaeter:
 
 ```text
-remote-modboard/backend/src/routes/media-index-diff.routes.js
+1. Lokal neue Datei/Kategorie/Modul entsteht.
+2. Agent FullSync erkennt sie.
+3. Diff/Upsert-Preview zeigt neue Kandidaten.
+4. Gated Upsert schreibt nur neue/geaenderte DB-Zeilen.
+5. Keine neue Spalte noetig.
 ```
 
-## Fachlicher Stand
+## RDAP-Verlauf seit 0.2.79
 
-0.2.73 hat den lokalen Agent erweitert:
+### 0.2.79 - Route Build Polish readonly
+
+- `remote-modboard/backend/src/routes/media-index-diff.routes.js`
+- `moduleBuild`/`routeBuild` sauber getrennt.
+- Bestaetigt: `moduleBuild = RDAP_0.2.79_MEDIA_INDEX_DIFF_ROUTE_BUILD_POLISH_READONLY`.
+- `appModuleBuild` zeigt weiterhin den globalen App-Build.
+- Keine Writes.
+
+### 0.2.80 bis 0.2.82 - FullSync/DB Readiness readonly
+
+- FullSyncCompare bestaetigt: `fullItems = 744`.
+- DB hatte vorher `332` aktive Legacy-Items.
+- FullSync vs DB: `412` neue Agent-Items unter `root_key = media`.
+- 332 Legacy-Items hatten nur Softdiff bei `modified_at`.
+- Keine Writes.
+
+### 0.2.83 - FullSync Summary readonly
+
+- Echte Summary ueber volle FullSync-Listen ergaenzt.
+- Bestaetigt:
 
 ```text
-backend/modules/remote_agent.js
+newOnAgentCount = 412
+newOnAgentByRoot.media = 412
+newOnAgentByKind.image = 42
+newOnAgentByKind.audio = 335
+newOnAgentByKind.video = 35
 ```
 
-0.2.75 hat die Remote-Agent-Runtime kompatibel gemacht:
+### 0.2.84 - DB-Schema pruefen readonly
+
+- Tabelle liegt in Schema `c3stream_control`.
+- Tabelle: `c3stream_control.remote_media_index`.
+- Vor der Migration fehlten Kontextspalten.
+
+### 0.2.85 - Upsert Preview readonly
+
+- Route: `/api/remote/media/index/upsert/preview`.
+- Bestaetigt:
 
 ```text
-remote-modboard/backend/src/services/agent-runtime.service.js
+candidateCount = 412
+byRoot.media = 412
+byKind.image = 42
+byKind.audio = 335
+byKind.video = 35
+databaseWriteExecuted = false
 ```
 
-0.2.77 hat die Diff-/Preview-Route kompatibel gemacht:
+### 0.2.86 - Upsert Execute Foundation blocked
+
+- Route: `/api/remote/media/index/upsert/execute` vorbereitet.
+- Confirm + expectedCount + Gates vorbereitet.
+- Bestaetigt: Gate blockiert, kein Write.
+
+### 0.2.87 - Schema Extension Foundation blocked
+
+- Routes:
+  - `/api/remote/media/index/schema/extension/preview`
+  - `/api/remote/media/index/schema/extension/execute`
+- Preview zeigte `missingColumnCount = 6`.
+- Execute war default blockiert.
+
+### 0.2.88 - Schema Extension Execute gated
+
+- Echte Schema-Erweiterung hinter Gates implementiert.
+- Bestaetigt:
 
 ```text
-remote-modboard/backend/src/routes/media-index-diff.routes.js
+status = media_index_schema_extension_execute_success
+beforeMissingColumnCount = 6
+afterMissingColumnCount = 0
+databaseWriteExecuted = true
+schemaWriteExecuted = true
+alterTableExecuted = true
+auditWritten = true
 ```
 
-Damit ist der Pfad lokal -> Agent-Inventory -> Remote-Agent-Runtime -> Media-Index-Diff/Preview fuer `assets/media/<module>/<category>/...` read-only bestaetigt.
+- Readback bestaetigt: `allColumnsPresent = true`.
 
-## Sicherheit
+### 0.2.89 - Upsert with Context gated
+
+- Produktiver Kontext-Upsert implementiert.
+- Erster Execute-Versuch schlug wegen fehlendem Candidate-Array mit 500 fehl.
+- Bestaetigt: kein Write passiert, DB blieb bei Legacy-Roots.
+
+### 0.2.90 - Upsert Candidates Fix gated
+
+- 500 verhindert, sichere Blockade statt Crash.
+- Noch nicht ausreichend, weil Candidate-Feld im Snapshot weiter fehlte.
+- Kein Write.
+
+### 0.2.91 - Upsert Candidates Field Fix gated
+
+- `candidates` im Execute-Snapshot ergaenzt.
+- Gate-false Test erfolgreich blockiert.
+- Danach produktiver Upsert mit Gates true erfolgreich ausgefuehrt.
+
+## Sicherheit / Gates
+
+Schema- und Data-Writes waren nur mit expliziten Gates moeglich.
+
+Verwendete Gates:
 
 ```text
-keine DB-Aenderung
-keine Migration
-keine Gates aktiviert
-kein Tombstone-Execute
+MEDIA_INDEX_WRITE_ENABLED
+MEDIA_INDEX_SCHEMA_WRITE_ENABLED
+MEDIA_INDEX_DATA_WRITE_ENABLED
+MEDIA_INDEX_UPSERT_WRITE_ENABLED
+```
+
+Nach produktiven Executes muessen Gates wieder geschlossen bleiben:
+
+```text
+MEDIA_INDEX_WRITE_ENABLED=false
+MEDIA_INDEX_SCHEMA_WRITE_ENABLED=false
+MEDIA_INDEX_DATA_WRITE_ENABLED=false
+MEDIA_INDEX_UPSERT_WRITE_ENABLED=false
+```
+
+Weiterhin verboten ohne separaten Plan + Go:
+
+```text
 kein Hard-Delete
 kein physisches Loeschen
-keine Online->Agent-Actions
-keine Datei-Inhalte im Transport
-keine absoluten Pfade im Transport
+kein Online->Agent-Trigger
+keine Dateiaktion
+keine Upload/Edit/Delete-Aktion
+keine Blind-Migration
+keine Gates dauerhaft offen lassen
 ```
 
-## Naechster sinnvoller Block
+## Wichtige Eigenheit
+
+FullSyncCompare ist aktuell Runtime-Speicher. Nach Service-Restart ist der Snapshot zunaechst leer/pending, bis der Agent wieder einen vollstaendigen FullSync geliefert hat.
+
+Daher vor jedem Upsert-Execute erst pruefen:
+
+```bash
+curl -sS http://127.0.0.1:3010/api/remote/media/index/upsert/preview \
+  | jq '{ok,status,candidateCount,byRoot,byKind}'
+```
+
+Nur wenn `ok=true` und `candidateCount` plausibel ist, Execute planen.
+
+## Aktuell naechster sinnvoller Block
 
 ```text
-RDAP_0.2.79_MEDIA_INDEX_DIFF_ROUTE_BUILD_POLISH_READONLY
+RDAP_0.2.93_MEDIA_INDEX_POST_UPSERT_VERIFY_READONLY
 ```
 
 Ziel:
 
 ```text
-Nur Anzeige-Polish:
-moduleBuild/routeBuild im Diff-Endpoint sauber trennen,
-damit moduleBuild nicht mehr global 0.2.28 zeigt.
-Keine Funktionsaenderung. Weiterhin read-only.
+- Gates geschlossen verifizieren.
+- Upsert-Preview nach FullSync soll candidateCount=0 zeigen.
+- Diff/FullSyncCompare soll total 744 und DB total 744 zeigen.
+- Kontextfelder stichprobenartig per read-only SQL/API pruefen.
+- Keine Code-Aenderung, keine Writes.
 ```
