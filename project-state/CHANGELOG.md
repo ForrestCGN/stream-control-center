@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.2.58K Final - Webserver-Bestaetigung dokumentiert
+
+- Webserver-Test fuer `RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC` dokumentiert.
+- `statusApiVersion = rdap_media_index_diff_exclude_tts_generated_sync_058k.v1` bestaetigt.
+- `routeBuild = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC` bestaetigt.
+- `readOnly = true` und `writeEnabled = false` bestaetigt.
+- `ttsGeneratedExcludedFromSyncLegacyCount = 1` bestaetigt.
+- `persistentMediaMissingCandidateCount = 0` bestaetigt.
+- Alter DB-Eintrag `sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3` als `tts_generated_excluded_from_sync_legacy_candidate` bestaetigt.
+- Kein Code geaendert; Doku-only Abschluss.
+- Naechsten RDAP-Step `RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_PLAN_READONLY` festgelegt.
+
 ## 0.2.58K - Media Index exclude TTS generated from Sync
 
 - `backend/modules/remote_agent.js` auf `RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC` aktualisiert.

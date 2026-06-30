@@ -1,42 +1,10 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58K - Media Index exclude TTS generated from Sync vorbereitet`
+Aktueller Stand: `0.2.58K - Media Index exclude TTS generated from Sync bestaetigt`
 
 ## Ergebnis
 
-0.2.58J wurde von Forrest auf dem Webserver bestaetigt und nach GitHub/dev uebernommen.
-
-Bestaetigter 0.2.58J-Webserver-Befund:
-
-```text
-statusApiVersion = rdap_media_index_diff_tts_temp_missing_classification_058j.v1
-routeBuild = RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION
-readOnly = true
-writeEnabled = false
-fullSyncCompare.readOnly = true
-fullSyncCompare.missingOnAgentReliable = true
-ttsGeneratedTempCandidateCount = 1
-persistentMediaMissingCandidateCount = 0
-tombstoneWritesEnabled = false
-deleteEnabled = false
-databaseWritesEnabled = false
-```
-
-Bestaetigter TTS-temp Missing-Eintrag:
-
-```text
-sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
-```
-
-Fachliche Entscheidung:
-
-```text
-TTS-generated Dateien sind temporaer und sollen nicht synchronisiert werden.
-```
-
-## 0.2.58K
-
-0.2.58K bereitet den Ausschluss von TTS-generated Dateien aus dem Agent-Media-Sync vor.
+0.2.58K ist lokal getestet, auf GitHub/dev abgeschlossen, auf dem Webserver deployed und bestaetigt.
 
 Statusmarker:
 
@@ -46,17 +14,76 @@ rdap_media_index_diff_exclude_tts_generated_sync_058k.v1
 RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
 ```
 
-## Umsetzung
+## Fachliche Entscheidung
 
-- `backend/modules/remote_agent.js`
-  - `sounds/tts/generated/**` Audio-Dateien werden beim lokalen Media-Scan ausgeschlossen.
-  - Dadurch landen sie nicht im Compact-Snapshot und nicht im Full-Sync.
-  - Diagnose ueber `exclusionPolicy`, `counts.excludedFromSync`, `counts.ttsGeneratedExcludedFromSync`.
+```text
+TTS-generated Dateien sind temporaer und sollen nicht synchronisiert werden.
+```
 
-- `remote-modboard/backend/src/routes/media-index-diff.routes.js`
-  - Alte DB-Eintraege aus `sounds:tts/generated/...` werden als aus dem Sync ausgeschlossene Legacy-/Temp-Kandidaten diagnostiziert.
-  - Route bleibt read-only.
+Betroffener Pfad:
+
+```text
+sounds/tts/generated/**
+```
+
+Ab 0.2.58K werden diese Dateien im lokalen Agent-Media-Scan ausgeschlossen und dadurch nicht mehr in Compact-Snapshot oder Full-Sync-Chunks aufgenommen.
+
+## Bestaetigter lokaler Agent-Test
+
+```text
+prepared = True
+build = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
+readOnly = True
+active = True
+excludesFromCompactInventory = True
+excludesFromFullSync = True
+databaseWritesEnabled = False
+deleteEnabled = False
+noFileContent = True
+noAbsolutePaths = True
+excludedFromSync = 0
+ttsGeneratedExcludedFromSync = 0
+```
+
+## Bestaetigter Webserver-Test
+
+```text
+statusApiVersion = rdap_media_index_diff_exclude_tts_generated_sync_058k.v1
+routeBuild = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
+readOnly = true
+writeEnabled = false
+fullSyncCompare.readOnly = true
+```
+
+Missing-/Legacy-Klassifizierung:
+
+```text
+missingOnAgentItems = 1
+ttsGeneratedTempCandidateCount = 1
+ttsGeneratedExcludedFromSyncLegacyCount = 1
+persistentMediaMissingCandidateCount = 0
+tombstoneCandidateDiagnosticCount = 1
+tombstoneWritesEnabled = false
+deleteEnabled = false
+databaseWritesEnabled = false
+noOnlineToAgentAction = true
+```
+
+Bestaetigter Legacy-Diagnose-Eintrag:
+
+```text
+sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
+missingClassification = tts_generated_excluded_from_sync_legacy_candidate
+```
 
 ## Sicherheit
 
 Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone, kein physisches Loeschen, keine Upload/Edit/Delete-Funktion, keine Online->Agent-Dateiaktionen, kein Agent-Trigger, keine Datei-Inhalte, keine absoluten Pfade.
+
+## Naechster sinnvoller RDAP-Step
+
+```text
+RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_PLAN_READONLY
+```
+
+Ziel: Alte TTS-generated DB-Eintraege read-only als Cleanup-Kandidaten planen. Keine direkte Bereinigung.

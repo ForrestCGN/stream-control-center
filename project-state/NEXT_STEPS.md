@@ -1,6 +1,6 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Schritt nach 0.2.58K-Test
+## Naechster RDAP-Schritt
 
 `RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_PLAN_READONLY`
 
@@ -12,15 +12,29 @@ Ziel:
 - Kein Upsert.
 - Kein Timestamp-Schreiben.
 - Kein Tombstone/Delete.
+- Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
 
 ## Ausgangspunkt
 
-0.2.58K schliesst `sounds/tts/generated/**` aus dem Agent-Media-Sync aus.
+0.2.58K ist bestaetigt:
 
-Dadurch sollen kuenftige Compact-Snapshots und Full-Sync-Chunks keine TTS-generated temp Dateien mehr enthalten.
+```text
+statusApiVersion = rdap_media_index_diff_exclude_tts_generated_sync_058k.v1
+routeBuild = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
+readOnly = true
+writeEnabled = false
+```
 
-Alte DB-Eintraege koennen weiterhin als Legacy-/Temp-Diagnose erscheinen:
+TTS-generated Dateien unter:
+
+```text
+sounds/tts/generated/**
+```
+
+werden ab 0.2.58K aus dem Agent-Media-Sync ausgeschlossen.
+
+Alter DB-Eintrag bleibt als Legacy-/Temp-Diagnose sichtbar:
 
 ```text
 tts_generated_excluded_from_sync_legacy_candidate

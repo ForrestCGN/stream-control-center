@@ -22,8 +22,21 @@ RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
 
 ## Geaenderte Dateien
 
+Code-Step 0.2.58K:
+
 - `backend/modules/remote_agent.js`
 - `remote-modboard/backend/src/routes/media-index-diff.routes.js`
+- `docs/current/RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC.md`
+- `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58K.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
+Finaler Doku-Abschluss nach Webserver-Bestaetigung:
+
+- `docs/current/RDAP_0.2.58K_FINAL_STATUS_AFTER_WEBSERVER_CONFIRMATION.md`
 - `docs/current/RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC.md`
 - `docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_58K.md`
 - `project-state/CURRENT_STATUS.md`
@@ -45,6 +58,30 @@ Damit gilt:
 - keine Datei-Inhalte
 - keine absoluten Pfade
 - keine Dateiaktion
+
+## Lokaler Agent-Test
+
+Forrest hat den lokalen Agent-Status nach 0.2.58K bestaetigt:
+
+```text
+prepared = True
+build = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
+readOnly = True
+active = True
+excludesFromCompactInventory = True
+excludesFromFullSync = True
+databaseWritesEnabled = False
+deleteEnabled = False
+noFileContent = True
+noAbsolutePaths = True
+excludedFromSync = 0
+ttsGeneratedExcludedFromSync = 0
+```
+
+Einordnung:
+
+- `excludedFromSync = 0` ist korrekt, wenn lokal zum Testzeitpunkt keine Dateien unter `sounds/tts/generated/` vorhanden waren.
+- Entscheidend ist, dass die Policy aktiv ist und fuer Compact-Snapshot und Full-Sync greift.
 
 ## Remote Diff Route
 
@@ -69,6 +106,49 @@ previews.ttsTempMissingCandidates
 counts.ttsTempMissingCandidateCount
 ```
 
+## Bestaetigter Webserver-Test
+
+Forrest hat 0.2.58K auf dem Webserver bestaetigt:
+
+```text
+statusApiVersion = rdap_media_index_diff_exclude_tts_generated_sync_058k.v1
+routeBuild = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
+readOnly = true
+writeEnabled = false
+fullSyncCompare.missingClassification.prepared = true
+fullSyncCompare.missingClassification.readOnly = true
+fullSyncCompare.missingClassification.missingOnAgentItems = 1
+fullSyncCompare.missingClassification.ttsGeneratedTempCandidateCount = 1
+fullSyncCompare.missingClassification.ttsGeneratedExcludedFromSyncLegacyCount = 1
+fullSyncCompare.missingClassification.persistentMediaMissingCandidateCount = 0
+fullSyncCompare.missingClassification.tombstoneCandidateDiagnosticCount = 1
+fullSyncCompare.missingClassification.tombstoneWritesEnabled = false
+fullSyncCompare.missingClassification.deleteEnabled = false
+fullSyncCompare.missingClassification.databaseWritesEnabled = false
+fullSyncCompare.missingClassification.noOnlineToAgentAction = true
+```
+
+Bestaetigter Legacy-Diagnose-Eintrag:
+
+```text
+sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
+missingClassification = tts_generated_excluded_from_sync_legacy_candidate
+ttsGeneratedExcludedFromSyncLegacy = true
+excludedFromSyncLegacy = true
+temporaryFileCandidate = true
+tombstoneCandidateDiagnostic = true
+tombstoneWriteAllowed = false
+deleteAllowed = false
+```
+
+## Ergebnis
+
+0.2.58K ist lokal getestet, auf GitHub/dev uebernommen, auf dem Webserver deployed und per Route bestaetigt.
+
+TTS-generated Dateien unter `sounds/tts/generated/**` sind ab diesem Stand kein Bestandteil des persistenten Media-Sync mehr.
+
+Der bestehende alte DB-Eintrag bleibt sichtbar, aber nur als Legacy-/Temp-Diagnose. Es wurde nichts geloescht und nichts in der DB geaendert.
+
 ## Sicherheit
 
 Weiterhin verboten:
@@ -84,56 +164,18 @@ Weiterhin verboten:
 - keine Datei-Inhalte
 - keine absoluten lokalen Pfade
 
-## Lokale Tests
-
-```powershell
-cd D:\Git\stream-control-center
-
-node --check .\backend\modules\remote_agent.js
-node --check .\remote-modboard\backend\src\routes\media-index-diff.routes.js
-
-git status
-```
-
-## Lokaler Agent Status
-
-Nach lokalem Test-Deploy / Node-Neustart:
-
-```powershell
-curl.exe -fsS http://127.0.0.1:8080/api/remote-agent/media/inventory/status | ConvertFrom-Json | Select-Object -ExpandProperty inventory | Select-Object -ExpandProperty exclusionPolicy
-```
-
-Erwartung:
+## Naechster Schritt
 
 ```text
-exclusionPolicy.active = true
-exclusionPolicy.excludesFromCompactInventory = true
-exclusionPolicy.excludesFromFullSync = true
-exclusionPolicy.rules[0].rootKey = sounds
-exclusionPolicy.rules[0].relativePathPrefix = tts/generated/
+RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_PLAN_READONLY
 ```
 
-## Webserver-Deploy
+Ziel:
 
-Da `remote-modboard/` Code geaendert wurde, ist nach `stepdone.cmd` ein Webserver-Deploy noetig:
-
-```bash
-bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC dev
-```
-
-## Webserver-Test
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/media/index/diff/status | jq '.statusApiVersion, .routeBuild, .readOnly, .writeEnabled, .fullSyncCompare.missingClassification, .fullSyncCompare.previews.ttsTempMissingCandidates'
-```
-
-Erwartung:
-
-```text
-statusApiVersion = rdap_media_index_diff_exclude_tts_generated_sync_058k.v1
-routeBuild = RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC
-readOnly = true
-writeEnabled = false
-```
-
-Wenn der lokale Agent nach 0.2.58K einen neuen Full-Sync gesendet hat, sollen TTS-generated Dateien nicht mehr in den Agent-Items enthalten sein. Alte DB-Eintraege koennen weiterhin als Legacy-/Temp-Diagnose erscheinen.
+- Alte TTS-generated DB-Eintraege read-only als Cleanup-Kandidaten planen.
+- Keine direkte Bereinigung.
+- Kein DB-Write.
+- Kein Upsert.
+- Kein Tombstone/Delete.
+- Kein physisches Loeschen.
+- Kein Online->Agent-Trigger.
