@@ -212,13 +212,41 @@
       }
       [data-page-panel="media-library"] .rdap-media-search,
       [data-page-panel="media-library"] .rdap-media-select{
-        min-height:34px;
+        min-height:38px;
         border-radius:999px;
-        border:1px solid rgba(255,255,255,.12);
-        background:rgba(255,255,255,.06);
+        border:1px solid rgba(145,100,255,.24);
+        background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(27,216,255,.035));
         color:var(--text);
-        padding:7px 12px;
+        padding:8px 13px;
         outline:none;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.045);
+        color-scheme:dark;
+      }
+      [data-page-panel="media-library"] .rdap-media-search:focus,
+      [data-page-panel="media-library"] .rdap-media-select:focus{
+        border-color:rgba(27,216,255,.52);
+        box-shadow:0 0 0 1px rgba(27,216,255,.18),0 0 18px rgba(27,216,255,.12),inset 0 1px 0 rgba(255,255,255,.06);
+      }
+      [data-page-panel="media-library"] .rdap-media-select{
+        appearance:none;
+        background-image:
+          linear-gradient(145deg,rgba(255,255,255,.07),rgba(27,216,255,.035)),
+          linear-gradient(45deg,transparent 50%,var(--cyan) 50%),
+          linear-gradient(135deg,var(--cyan) 50%,transparent 50%);
+        background-position:
+          0 0,
+          calc(100% - 17px) 50%,
+          calc(100% - 11px) 50%;
+        background-size:
+          auto,
+          6px 6px,
+          6px 6px;
+        background-repeat:no-repeat;
+        padding-right:32px;
+      }
+      [data-page-panel="media-library"] .rdap-media-select option{
+        background:#111733;
+        color:#f7f8ff;
       }
       [data-page-panel="media-library"] .rdap-media-search{
         min-width:min(320px,100%);
@@ -924,9 +952,7 @@
     const context = contextSummary();
     const inventoryStatus = context.active ? `${context.total} Dateien` : (inventory.active ? `${inventoryCount} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt');
     const statusText = state.error ? 'Fehler' : (state.loading || state.contextLoading ? 'Lade...' : (context.active ? 'Dateiauswahl aktiv · read-only' : (inventory.active ? 'Inventar aktiv · read-only' : 'Read-only vorbereitet')));
-    const truncatedNotice = context.active && context.truncated
-      ? `<div class="admin-lock-note"><i>!</i><div><strong>Liste aufgeteilt.</strong><span>Es werden ${escapeHtml(String(context.count))} von ${escapeHtml(String(context.total))} Dateien angezeigt. Du kannst die Anzahl pro Seite aendern.</span></div></div>`
-      : (!context.active && inventory.truncated ? `<div class="admin-lock-note"><i>!</i><div><strong>Liste gekuerzt.</strong><span>Es werden ${escapeHtml(String(inventoryCount || inventory.limit || 0))} Medien angezeigt.</span></div></div>` : '');
+    const truncatedNotice = '';
     const readOnlyNotice = '<div class="admin-lock-note"><i>i</i><div><strong>Diese Ansicht ist read-only.</strong><span>Dateien kommen vom Stream-PC/Agent. Upload, Bearbeiten und Loeschen sind deaktiviert.</span></div></div>';
 
     mountPanel(`
