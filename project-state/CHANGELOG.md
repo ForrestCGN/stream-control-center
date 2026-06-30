@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.2.106 - Media Picker Module Docs Closeout
+
+- Neue Modul-Doku erstellt:
+  `docs/modules/media-picker.md`
+- Online-/Lokal-Stand des Media-Pickers zusammengefuehrt dokumentiert.
+- Bestaetigte API-Routen, UI-Begriffe, Runtime-Profile und Sicherheitsgrenzen festgehalten.
+- Media-Picker-Block als read-only, mod-tauglich, online/lokal angeglichen und dokumentiert abgeschlossen.
+- Keine Runtime-Code-Dateien geaendert.
+- Kein Backend geaendert.
+- Kein Webserver-Deploy noetig.
+- Naechsten Block `0.2.107 - Next System Scope Selection` vorbereitet.
+
 ## 0.2.105 - Local Media Picker Verify and Polish Docs
 
 - Lokale Browserpruefung nach 0.2.104 dokumentiert.
@@ -41,14 +53,4 @@
 - Naechsten Runtime-Block `0.2.104 - Local Media Picker Readonly Alignment` vorbereitet.
 - Keine Runtime-Code-Dateien geaendert.
 - Kein Backend geaendert.
-- Kein Webserver-Deploy noetig.
-
-## 0.2.102 - Online Media Picker Docs Handoff
-
-- Doku nach live bestaetigtem Online-Media-Picker Stand `0.2.101` aktualisiert.
-- Festgehalten: Media-Picker ist online read-only nutzbar und modfreundlicher formuliert.
-- Festgehalten: Pagination funktioniert ueber Context-API mit `limit` und `offset`.
-- Festgehalten: keine DB-Writes, keine Gates, keine Upload/Edit/Delete-Aktion, keine Agent-Aktion.
-- Naechsten Block fuer lokale Angleichung vorbereitet.
-- Keine Runtime-Code-Dateien geaendert.
 - Kein Webserver-Deploy noetig.
