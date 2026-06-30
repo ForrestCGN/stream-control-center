@@ -2,36 +2,25 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.120_LOCAL_LOGS_READONLY_API_SKELETON`
+`RDAP_0.2.121_LOCAL_LOGS_UI_SOURCE_ENABLE`
 
 ## Ziel
 
-Lokale Logs-read-only API als Skeleton bauen.
+UI-Quelle `Lokal / Stream-PC` in Admin -> Logs aktivieren und an das 0.2.120 Skeleton anbinden.
 
 ## Vorher pruefen
 
 ```text
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/services/agent-status.service.js
-remote-modboard/backend/src/services/agent-runtime.service.js
-remote-modboard/backend/src/routes/obs-readonly.routes.js
-remote-modboard/backend/src/routes/media-readonly.routes.js
 remote-modboard/backend/public/assets/modules/admin/audit-log.js
-```
-
-## Geplante Routen
-
-```text
 GET /api/remote/local/logs/status
 GET /api/remote/local/logs/list
+GET /api/remote/routes
 ```
 
 ## Regeln
 
 ```text
-nur GET
-read-only
+nur UI-Anbindung an bestehende read-only API
 keine Writes
 keine Migration
 keine Loeschung
@@ -39,22 +28,21 @@ keine Agent-Actions
 keine lokalen Steueraktionen
 keine OBS-/Sound-/Overlay-Steuerung
 keine Admin-Notizen weiter ausbauen
-keine UI-Aktivierung vor API-Test
+Remote-Logs unveraendert lassen
 ```
 
-## Erwarteter Skeleton
+## Erwarteter UI-Step
 
 ```text
-Statusroute mit Sicherheitsflags
-Listenroute mit leerer oder synthetischer sicherer Antwort
-limit max 100
-area/status/search vorbereitet
-Offline-/nicht-erreichbar-Zustand sauber
-/api/remote/routes erweitert
+Lokal / Stream-PC Dropdown-Option aktivieren
+Quelle local ruft /api/remote/local/logs/list auf
+Offline-/leer-Zustand sauber anzeigen
+Status/Count korrekt anzeigen
+Remote-Modboard Quelle unveraendert
 ```
 
 ## Spaeterer moeglicher Folgeschritt
 
-`RDAP_0.2.121_LOCAL_LOGS_UI_SOURCE_ENABLE`
+`RDAP_0.2.122_LOCAL_LOGS_FIRST_SAFE_ITEMS`
 
-Nur wenn 0.2.120 Skeleton lokal und ggf. remote bestaetigt ist.
+Nur wenn 0.2.121 UI-Anbindung bestaetigt ist.

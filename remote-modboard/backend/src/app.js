@@ -14,6 +14,7 @@ const { registerLockAuditDiagnosticRoutes } = require('./routes/lock-audit-diagn
 const { registerAdminUsersRoutes } = require('./routes/admin-users.routes');
 const { registerAdminMiniWriteFoundationRoutes } = require('./routes/admin-mini-write-foundation.routes');
 const { registerAgentStatusRoutes } = require('./routes/agent-status.routes');
+const { registerLocalLogsReadonlyRoutes } = require('./routes/local-logs-readonly.routes');
 const { registerRoutesRoutes } = require('./routes/routes.routes');
 const { installObsReadonlyResponseDecorators, registerObsReadonlyRoutes } = require('./routes/obs-readonly.routes');
 const { registerMediaReadonlyRoutes } = require('./routes/media-readonly.routes');
@@ -47,6 +48,7 @@ function createApp({ config, moduleBuild, appVersion, buildName, stepRef }) {
   registerAdminUsersRoutes(app, context);
   registerAdminMiniWriteFoundationRoutes(app, context);
   registerAgentStatusRoutes(app, context);
+  registerLocalLogsReadonlyRoutes(app, context);
   registerRoutesRoutes(app, context);
   registerObsReadonlyRoutes(app, context);
   registerMediaReadonlyRoutes(app, context);

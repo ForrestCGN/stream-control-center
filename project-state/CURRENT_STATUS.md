@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.119 - Local Logs Readonly API Design`
+Aktueller Stand: `0.2.120 - Local Logs Readonly API Skeleton`
 
 ## Kurzfazit
 
-Lokale Logs-read-only-API ist konkret designt, aber noch nicht gebaut.
+Lokale Logs-read-only-API ist als Skeleton gebaut.
 
 ```text
 Admin -> Logs
@@ -16,35 +16,27 @@ Die Logs-Hauptansicht bleibt sauber und bestaetigt.
 
 ```text
 Remote-Modboard aktiv
-Lokal / Stream-PC vorbereitet, noch keine API
+Lokal / Stream-PC API-Skeleton vorhanden, UI noch nicht aktiviert
 ```
 
-## 0.2.119 Ergebnis
+## 0.2.120 Ergebnis
 
 ```text
-bestehende Agent-/Status-Struktur geprueft
-/api/remote/agent/status als read-only Design-Anker erkannt
-Agent Runtime / WSS / Heartbeat-In-Memory beruecksichtigt
-OBS-/Media-read-only Routen als vorhandene Muster beruecksichtigt
-Route-Design fuer lokale Logs festgelegt
-Antwortformat und Offline-Verhalten festgelegt
-Folgeschritt fuer API-Skeleton vorbereitet
-```
-
-## Geplante lokale Logs API fuer spaeter
-
-```text
-GET /api/remote/local/logs/status
-GET /api/remote/local/logs/list
+GET /api/remote/local/logs/status gebaut
+GET /api/remote/local/logs/list gebaut
+Statusroute mit Sicherheitsflags
+Listenroute mit leerer Skeleton-Antwort
+limit max 100
+area/status/search vorbereitet
+Offline-/nicht-erreichbar-Zustand sauber
+/api/remote/routes erweitert
 ```
 
 ## Wichtig
 
 ```text
-0.2.119 ist Doku-only
-keine Runtime-Aenderung
-kein Deploy noetig
-keine lokale API gebaut
+read-only
+keine echten lokalen Log-Items aggregiert
 keine UI aktiviert
 keine Writes
 keine Loeschung
@@ -54,10 +46,17 @@ keine lokalen Steueraktionen
 keine OBS-/Sound-/Overlay-Steuerung
 ```
 
+## Neue Routen
+
+```text
+GET /api/remote/local/logs/status
+GET /api/remote/local/logs/list
+```
+
 ## Deploy-Regel
 
-Nur bei spaeteren Code-/Remote-Modboard-Aenderungen:
+Bei Code-/Remote-Modboard-Aenderungen nach lokalem stepdone/GitHub-dev:
 
 ```bash
-bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh <STEP_NAME> dev
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP_0.2.120_LOCAL_LOGS_READONLY_API_SKELETON dev
 ```

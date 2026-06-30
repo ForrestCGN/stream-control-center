@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 0.2.120 - Local Logs Readonly API Skeleton
+
+- Lokale Logs-read-only API als Skeleton gebaut.
+- Neue Routen:
+  - `GET /api/remote/local/logs/status`
+  - `GET /api/remote/local/logs/list`
+- Statusroute liefert Sicherheitsflags, Agent-Connection-Zustand und vorbereitete Bereiche.
+- Listenroute liefert bewusst noch `items: []` und `count: 0`.
+- `limit`, `area`, `status`, `search` vorbereitet; Limit hart auf 100 begrenzt.
+- `/api/remote/routes` um lokale Logs erweitert.
+- Keine UI-Aktivierung.
+- Keine echten lokalen Log-Items.
+- Keine Writes, keine Migration, keine Loeschung, keine Agent-Actions.
+
 ## 0.2.119 - Local Logs Readonly API Design
 
 - Lokale Logs-read-only-API konkret designt.

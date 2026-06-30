@@ -2,6 +2,7 @@
 
 const { ADMIN_NOTE_WRITE_CONFIRMED_SUMMARY } = require('../services/admin-user-admin-note-write-confirmed.service');
 const { buildAgentRoutesSummary } = require('../services/agent-status.service');
+const { buildLocalLogsRoutesSummary } = require('./local-logs-readonly.routes');
 const { buildMediaRoutesSummary } = require('./media-readonly.routes');
 
 const RDAP42_STATUS_API_VERSION = 'rdap_admin_note_ui_status42.v1';
@@ -60,6 +61,8 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/admin/locks/test/status', description: 'RDAP37 Lock-Test-Status; schreibt nichts' },
         { method: 'POST', path: '/api/remote/admin/locks/test-cycle', description: 'RDAP37 lokaler Lock-Test mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
         { method: 'GET', path: '/api/remote/agent/status', description: 'RDAP82 read-only Stream-PC-Verbindungsstatus mit Runtime-disabled Skeleton; keine Agent-Actions' },
+        { method: 'GET', path: '/api/remote/local/logs/status', description: 'RDAP 0.2.120 lokale Logs read-only Status-Skeleton; keine Agent-Actions, keine Writes' },
+        { method: 'GET', path: '/api/remote/local/logs/list', description: 'RDAP 0.2.120 lokale Logs read-only Listen-Skeleton; leer, Filter vorbereitet, keine Writes' },
         { method: 'GET', path: '/api/remote/media/status', description: 'Media-System Status inkl. 0.2.56 remote_media_index Read-Source, Agent-Memory-Fallback und Media-Index Write-Gates; keine Uploads, keine Deletes' },
         { method: 'GET', path: '/api/remote/media/index/write-gate/status', description: 'Media-Index Write-Gate Status; zeigt separate MEDIA_INDEX_* Gates ohne Writes' },
         { method: 'GET', path: '/api/remote/media/index/schema/status', description: 'Media-Index Schema-Status; read-only INFORMATION_SCHEMA Diagnose' },
@@ -70,6 +73,7 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/modboard', description: 'Remote-Modboard UI Alias' }
       ],
       mediaReadonly: buildMediaRoutesSummary(context),
+      localLogsReadonly: buildLocalLogsRoutesSummary(context),
       adminNoteReadRestored: {
         prepared: true,
         route: '/api/remote/admin/users/admin-notes/read',
