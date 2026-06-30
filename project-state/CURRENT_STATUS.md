@@ -1,27 +1,37 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.111 - Admin Note Status Deploy Confirmed`
+Aktueller Stand: `0.2.112 - Audit Log Readonly View Plan`
 
 ## Kurzfazit
 
-0.2.110 ist live bestaetigt.
+Admin-Notizen sind geparkt.
+
+Neues Hauptziel:
 
 ```text
-adminNoteWriteLiveStatus sichtbar
-Status korrekt
+Aktivitaets-Log / Audit-Log
 ```
 
-## Aktiver Admin-Note-Status
+## Zielbild
+
+Im Modboard soll sichtbar werden:
 
 ```text
-Create/Update Backend-Writes sind bewusst aktiv und restricted.
-Write-Plan bleibt read-only.
-Deactivate/Delete bleiben aus.
+wer
+wann
+was gemacht hat
+Status/Ergebnis
 ```
 
-## 0.2.111
+## Naechster Runtime-Step
 
-Doku-only Abschluss.
+```text
+RDAP_0.2.113_AUDIT_LOG_READONLY_API
+```
+
+## 0.2.112
+
+Doku-only Kurswechsel.
 
 Keine Runtime-Aenderung.
-Kein weiterer Webserver-Deploy noetig.
+Kein Webserver-Deploy.

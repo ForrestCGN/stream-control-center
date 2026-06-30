@@ -2,21 +2,32 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.112_ADMIN_NOTE_UI_STATUS_OR_ADMIN_USERS_READONLY_UI`
+`RDAP_0.2.113_AUDIT_LOG_READONLY_API`
 
-## Entscheidung
+## Ziel
+
+Read-only API fuer Aktivitaets-Log bauen:
 
 ```text
-A. Admin-Note Status modfreundlich in UI anzeigen.
-B. Admin/User Read-only UI-Check fortsetzen.
-C. Admin/User Permission-Diagnose live mit Login pruefen.
+GET /api/remote/admin/audit/log
+```
+
+## Vorher lesen
+
+```text
+remote-modboard/backend/src/services/audit-read.service.js
+remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/services/db.service.js
 ```
 
 ## Regeln
 
 ```text
-keine neuen Writes
+keine Admin-Notizen
+keine Writes
+keine Migration
 keine Gates aktivieren
-keine Login-/Session-Umstellung ohne eigenen Scope
 keine Agent-Actions
+erst API, UI spaeter
 ```
