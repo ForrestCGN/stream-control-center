@@ -1,55 +1,54 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58O - Media Index Persistent Tombstone gated Plan dokumentiert`
+Aktueller Stand: `0.2.58P - Media Index Persistent Tombstone gated Preview vorbereitet`
 
 ## Ergebnis
 
-0.2.58N wurde bestaetigt:
+0.2.58P ergaenzt eine read-only Preview-/Statusroute fuer normale persistente Media-Dateien, die in einem belastbaren Missing-on-Agent/Full-Sync-Compare als spaetere Tombstone-Kandidaten gelten koennen.
+
+Statusmarker:
 
 ```text
-statusApiVersion = rdap_media_index_diff_reliability_note_fix_058n.v1
-routeBuild = RDAP_0.2.58N_MEDIA_INDEX_DIFF_RELIABILITY_NOTE_FIX
-readOnly = true
+rdap_media_index_persistent_tombstone_preview_058p.v1
+RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW
 ```
 
-Die Reliability-Notiz ist sauber:
+## Neue Route
 
 ```text
-Full-Sync-Compare-Snapshot ist vollstaendig; Missing-Diagnose ist trotz gekuerztem Compact-Agent-Snapshot read-only belastbar.
+GET /api/remote/media/index/tombstone/persistent/preview
 ```
 
-Aktueller Kandidatenstand:
+## Sicherheit
 
-```text
-persistentMediaMissingCandidateCount = 0
-tombstoneCandidateDiagnosticCount = 0
-```
-
-## 0.2.58O
-
-0.2.58O dokumentiert den gated Plan fuer normale persistente Media-Missing/Tombstone-Faelle.
-
-Dieser Stand ist Doku-only:
-
-- Kein Code geaendert.
-- Kein DB-Write.
+- Read-only.
+- Keine Execute-Route.
+- Keine DB-Writes.
+- Kein `deleted=1`.
 - Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
-- Kein Webserver-Deploy noetig.
+- Keine Datei-Inhalte.
+- Keine absoluten lokalen Pfade.
 
-## Schutzentscheidung
+## Webserver-Test offen
 
-Normale persistente Media-Dateien duerfen spaeter nur ueber einen getrennten gated Flow behandelt werden:
+Nach `stepdone.cmd` ist wegen Remote-Code ein Webserver-Deploy noetig.
 
-```text
-Preview -> Confirm-Write -> Gates -> Audit/Lock -> Soft-Delete/Tombstone -> Readback
+```bash
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW dev
+```
+
+Danach pruefen:
+
+```bash
+curl -fsS http://127.0.0.1:3010/api/remote/media/index/tombstone/persistent/preview | jq '.statusApiVersion, .routeBuild, .readOnly, .writeEnabled, .executeRoutePrepared, .databaseWriteExecuted, .counts, .note'
 ```
 
 ## Naechster sinnvoller RDAP-Step
 
 ```text
-RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW
+RDAP_0.2.58Q_MEDIA_INDEX_PERSISTENT_TOMBSTONE_EXECUTE_GATED_DRY_BLOCKED
 ```
 
-Ziel: Preview-Route fuer persistente Missing/Tombstone-Kandidaten bauen. Weiterhin kein Execute-Write, falls kein separater Write-Scope freigegeben wird.
+Erst nach bestaetigtem Preview-Webserver-Test.
