@@ -1,23 +1,13 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.116E - Logs Clean Selector UI`
+Aktueller Stand: `0.2.117 - Logs Clean Selector UI Deploy Confirmed`
 
 ## Kurzfazit
 
-Logs-Ansicht ist bereinigt.
+Logs-Ansicht ist sauber bestaetigt.
 
 ```text
 Admin -> Logs
-```
-
-## Entfernt
-
-```text
-Retention
-Selbstbereinigung
-Beschreibung unter Titel
-aeltester/neuster Eintrag
-Bestand/Zeitraum
 ```
 
 ## Sichtbar
@@ -33,10 +23,22 @@ Liste
 Details
 ```
 
+## Entfernt
+
+```text
+Retention
+Selbstbereinigung
+Beschreibung unter Titel
+aeltester/neuster Eintrag
+Bestand/Zeitraum
+```
+
 ## Wichtig
 
 ```text
-nur UI
+0.2.117 ist Doku-only
+keine Runtime-Aenderung
+kein Deploy noetig
 Remote-Logs aktiv
 Lokal/Stream-PC vorbereitet, noch keine API
 keine Writes
@@ -44,8 +46,8 @@ keine Loeschung
 keine Migration
 ```
 
-## Runtime/UI-Aenderung
+## Deploy-Regel
 
-```text
-remote-modboard/backend/public/assets/modules/admin/audit-log.js
+```bash
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh <STEP_NAME> dev
 ```
