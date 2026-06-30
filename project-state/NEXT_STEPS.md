@@ -1,12 +1,13 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.70
+## Naechster RDAP-Block nach 0.2.71
 
-`RDAP_0.2.71_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_CODE_PREP`
+`RDAP_0.2.72_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_WIRING`
 
 ## Ziel
 
-- `backend/modules/remote_agent.js` minimal anpassen.
+- `backend/modules/remote_agent.js` minimal verdrahten.
+- Helper `backend/modules/helpers/helper_media_inventory_roots.js` verwenden.
 - Neues Media-System `assets/media/<module>/<category>` in den Remote-Agent-Media-Scan aufnehmen.
 - Legacy-Roots `assets/sounds`, `assets/videos`, `assets/images` weiter read-only erhalten.
 - Inventory-Items um sortierbare Dashboard-Felder ergaenzen:
@@ -22,28 +23,6 @@
 - Kein DB-Write.
 - Keine Gates.
 - Kein Tombstone-Execute.
-
-## Ausgangspunkt
-
-Neues Media-System:
-
-```text
-D:\Streaming\stramAssets\htdocs\assets\media\<module>\<category>\...
-```
-
-Spaeterer Test-Kontext:
-
-```text
-moduleKey: rdap-test
-categoryKey: persistent-tombstone
-fullCategoryKey: rdap-test/persistent-tombstone
-```
-
-Geplanter spaeterer Testpfad:
-
-```text
-media/rdap-test/persistent-tombstone/rdap-persistent-tombstone-test-001.mp3
-```
 
 ## Weiterhin verboten ohne separaten Ausfuehrungs-Go
 
