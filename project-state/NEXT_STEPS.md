@@ -1,16 +1,15 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.65
+## Naechster RDAP-Block nach 0.2.66
 
-`RDAP_0.2.66_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_CREATE_READONLY_SYNC_PLAN`
+`RDAP_0.2.67_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_VERIFY_AND_CREATE_PLAN`
 
 ## Ziel
 
-- Konkreten lokalen Ausfuehrungsplan fuer die dedizierte Test-Media-Datei erstellen.
-- Lokalen absoluten Pfad pruefen lassen, nicht raten.
-- Testdateiname bleibt eindeutig.
-- Hold-/Backup-/Rueckweg festlegen.
-- Ablauf fuer lokale Anlage, Full-Sync und Preview dokumentieren.
+- Lokalen gueltigen Media-Root fuer die Testdatei pruefen.
+- Nicht raten, ob `sounds` wirklich gueltig ist.
+- Falls `sounds` nicht gueltig ist, vorhandenen Root wie `audio` fuer die Testdatei planen.
+- Danach erst lokalen Ausfuehrungsplan fuer Testdatei-Anlage, Full-Sync und Preview vorbereiten.
 - Kein produktiver Write.
 - Kein physisches Loeschen.
 - Kein Auto-Delete.
@@ -19,9 +18,15 @@
 
 ## Ausgangspunkt
 
-0.2.65 ist ein Doku-/Vorbereitungs-Step.
+0.2.66 ist ein Doku-/Vorbereitungs-Step.
 
-Festgelegt:
+Bestaetigter lokaler Basis-Pfad:
+
+```text
+D:\Streaming\stramAssets\htdocs\assets\media
+```
+
+Geplanter, aber noch zu verifizierender relativer Testpfad:
 
 ```text
 sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
@@ -37,9 +42,9 @@ previewPersistentCandidateCount = 0.
 Gates nicht gesetzt / nicht aktiv.
 ```
 
-## Wichtig fuer 0.2.66
+## Wichtig fuer 0.2.67
 
-0.2.66 soll den lokalen Ausfuehrungsplan konkretisieren.
+0.2.67 soll die Root-Frage klaeren, bevor echte lokale Dateiaktionen geplant oder ausgefuehrt werden.
 
 Weiterhin verboten ohne separaten Ausfuehrungs-Go:
 
@@ -58,7 +63,7 @@ Weiterhin verboten ohne separaten Ausfuehrungs-Go:
 
 ## Danach moeglich
 
-Wenn 0.2.66 sauber vorbereitet ist, spaeter separater Step:
+Wenn 0.2.67 den gueltigen Root bestaetigt, spaeter separater Step:
 
 ```text
 - Testdatei lokal anlegen

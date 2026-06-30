@@ -1,10 +1,10 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.65 - Media Index Persistent Tombstone Test File Readonly Prep Plan`
+Aktueller Stand: `0.2.66 - Media Index Persistent Tombstone Test File Create Readonly Sync Plan`
 
 ## Ergebnis
 
-0.2.65 dokumentiert die konkrete Read-only-Vorbereitung fuer die spaetere dedizierte Test-Media-Datei.
+0.2.66 dokumentiert den konkreten lokalen Ausfuehrungsplan fuer die spaetere dedizierte Test-Media-Datei.
 
 Gewaehlte spaetere Testquelle bleibt:
 
@@ -12,10 +12,28 @@ Gewaehlte spaetere Testquelle bleibt:
 A: dedizierte Test-Media-Datei
 ```
 
-Festgelegter relativer Testpfad fuer spaeter:
+Bestaetigter lokaler Basis-Pfad:
+
+```text
+D:\Streaming\stramAssets\htdocs\assets\media
+```
+
+Geplanter relativer Testpfad:
 
 ```text
 sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
+```
+
+Geplanter lokaler absoluter Testpfad fuer spaeter:
+
+```text
+D:\Streaming\stramAssets\htdocs\assets\media\sounds\rdap-test\rdap-persistent-tombstone-test-001.mp3
+```
+
+Geplanter Hold-Pfad fuer spaeter:
+
+```text
+D:\Streaming\stramAssets\htdocs\assets\media\_rdap_hold\rdap-persistent-tombstone-test-001.mp3
 ```
 
 Es wurden keine Source-Dateien geaendert.
@@ -33,6 +51,7 @@ RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION
 RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK_CONFIRMED
 RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN
 RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN
+RDAP_0.2.66_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_CREATE_READONLY_SYNC_PLAN
 ```
 
 ## Bestaetigte Routen
@@ -71,67 +90,33 @@ Bewertung:
 Nicht gesetzt ist sicher, weil nur true/1/yes/on als aktiv zaehlt.
 ```
 
-## 0.2.65 Vorbereitung
+## Offene Pfadklaerung
 
-Dokumentiert wurde:
+Der Screenshot bestaetigt `assets\media`, zeigt aber keinen sichtbaren `sounds`-Ordner auf oberster Ebene.
 
-```text
-- relativer Testpfad
-- spaeterer Ablauf fuer Testdatei-Anlage
-- spaeterer Ablauf fuer Missing-Situation
-- Rueckweg/Hold-Prinzip
-- read-only Pruefbefehle
-- Verbot aller Datei-/DB-/Gate-/Execute-Aktionen in 0.2.65
-```
-
-## Systemtrennung
-
-Remote-Modboard/Webserver:
+Vor echter lokaler Dateiaktion muss deshalb geprueft werden:
 
 ```text
-- Online-DB
-- Diff
-- Preview
-- Execute-Foundation
-- Gates
-- Confirm
-- Audit
-- Readback
-```
-
-Lokales Dashboard/Agent/Stream-PC:
-
-```text
-- lokaler Media-Scan
-- lokale Testdatei erst in spaeterem separatem Step
-- Full-Sync-Payloads
-- lokale Statusdaten
-```
-
-Weiterhin gilt:
-
-```text
-- Kein Online->Agent-Trigger.
-- Kein Remote-Ausloesen lokaler Dateiaktionen.
-- Kein Loeschen lokaler Dateien vom Modboard aus.
-- Kein Upload/Edit/Delete-Scope.
+- Ist sounds als Root/Key im Agent-Media-Scan gueltig?
+- Oder muss die Testdatei unter einem vorhandenen Root wie audio geplant werden?
 ```
 
 ## Sicherheit
 
-- Kein DB-Write in 0.2.65.
-- Kein Soft-Delete in 0.2.65.
+- Kein DB-Write in 0.2.66.
+- Kein Soft-Delete in 0.2.66.
+- Keine Testdatei in 0.2.66.
+- Keine lokale Dateiaktion in 0.2.66.
 - Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
 - Kein Auto-Delete.
 - Gates bleiben aus.
-- Keine Testdatei wurde angelegt.
 
 ## Naechster sinnvoller RDAP-Block
 
 ```text
-RDAP_0.2.66_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_CREATE_READONLY_SYNC_PLAN
+RDAP_0.2.67_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_VERIFY_AND_CREATE_PLAN
 ```
 
-Ziel: konkreten lokalen Ausfuehrungsplan fuer das Anlegen der dedizierten Testdatei und read-only Sync/Preview vorbereiten, weiterhin ohne Tombstone-Write und ohne Gates.
+Ziel: Vor echter Dateiaktion den gueltigen lokalen Media-Root klaeren und danach erst einen sicheren Ausfuehrungsplan fuer Testdatei-Anlage/Full-Sync/Preview vorbereiten.
