@@ -2,28 +2,25 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.117_AUDIT_LOG_ADMIN_UI_DEPLOY_VERIFY`
+`RDAP_0.2.117_AUDIT_LOG_ADMIN_UI_COMPACT_DEPLOY_VERIFY`
 
 ## Ziel
 
-Nach Deploy live pruefen:
-
-```bash
-curl -fsS "http://127.0.0.1:3010/api/remote/routes" | jq '.adminAuditRetentionReadonly.readOnly,.adminAuditLogReadonly.readOnly'
-```
-
-Browser:
+Live pruefen:
 
 ```text
 Admin -> Aktivitaets-Log
+kompakte Zeilen
+Details-Klick
+Filter
+Retention-Hinweis kompakt
 ```
 
-## Danach entscheiden
+## Danach
 
 ```text
-A. UI polish/Lesbarkeit fuer Audit-Tabelle
-B. Retention-Policy entscheiden
-C. Admin/User-Bereich weiter ausbauen
+Retention-Policy entscheiden
+oder Admin/User-Bereich weiter ausbauen
 ```
 
 ## Regeln

@@ -1,49 +1,39 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.116 - Audit Log Admin Area Readonly UI`
+Aktueller Stand: `0.2.116B - Audit Log Admin UI Compact`
 
 ## Kurzfazit
 
-Admin-Bereich hat jetzt eine read-only Ansicht fuer Audit-/Aktivitaets-Log.
+Audit-Log Admin-Ansicht ist kompakter.
 
 ```text
 Admin -> Aktivitaets-Log
 ```
 
-## Sichtbar
+## Geaendert
 
 ```text
-Retention-Kacheln
-Audit-Log Tabelle
-Filter
+1 Zeile pro Eintrag
+Details erst auf Klick
+Retention-Hinweis kompakt
+Default-Limit 25
 ```
-
-## Nicht sichtbar
-
-```text
-Admin-Notizen in Hauptnavigation
-```
-
-Admin-Notizen bleiben geparkt.
 
 ## Wichtig
 
 ```text
+nur UI
 keine Writes
 keine Loeschung
 keine Migration
 keine Selbstbereinigung
 keine Agent-Actions
-keine Aktionsbuttons
 ```
 
 ## Runtime/UI-Aenderung
 
 ```text
-remote-modboard/backend/public/index.html
-remote-modboard/backend/public/assets/modules/module-manifest.js
 remote-modboard/backend/public/assets/modules/admin/audit-log.js
-remote-modboard/backend/public/assets/modules/admin/users.js
 ```
 
 ## Deploy
