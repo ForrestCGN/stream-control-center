@@ -1,6 +1,6 @@
 # TODO
 
-## RDAP Media Index aktueller Block nach 0.2.94
+## RDAP Media Index / Media Picker aktueller Block nach 0.2.101
 
 - [x] 0.2.79: Diff-Endpoint `moduleBuild`/`routeBuild` Anzeige-Polish bestaetigt.
 - [x] 0.2.83: FullSync Summary ueber komplette Listen bestaetigt.
@@ -14,21 +14,22 @@
 - [x] Gates nach produktivem Execute geschlossen halten und pruefen.
 - [x] 0.2.93: Post-Upsert Verify readonly bestaetigt: FullSync 744, DB 744, Upsert Preview 0 Kandidaten, Audit success.
 - [x] 0.2.94: Read-only DB Context API fuer Media-Index gebaut und live bestaetigt.
-- [ ] 0.2.95: Context Read API Docs Handoff lokal einspielen und nach GitHub/dev pushen.
-- [ ] 0.2.96: Media-Picker/API-Consumer readonly planen.
+- [x] 0.2.95: Context Read API Docs Handoff erledigt.
+- [x] 0.2.96: Media-Picker/API-Consumer readonly online umgesetzt.
+- [x] 0.2.97: Media-Picker Context UI Polish.
+- [x] 0.2.98: Page-Size-Dropdown.
+- [x] 0.2.99: Mod-friendly Filters.
+- [x] 0.2.100: CGN Design Polish.
+- [x] 0.2.101: Pagination and Dedup live ok.
+- [x] 0.2.102: Online Media-Picker Docs Handoff.
+- [ ] 0.2.103: Local Media-Picker Alignment Plan.
 - [ ] Spaeter: `MEDIA_INDEX_SCHEMA_WRITE_ENABLED=false` explizit in Env fuehren, damit Diagnose-Ausgaben vollstaendig sind.
 - [ ] Spaeter: FullSyncCompare persistenter/neu anforderbar machen, weil Runtime-Snapshot nach Service-Restart leer ist.
 - [ ] Spaeter: Gated Delta-Upsert separat planen, erst nach sauberer Read-only-Diagnose.
 
-## RDAP Media Index Verlauf lokal/remote
+## Leitlinie UI
 
-- [x] 0.2.73: `backend/modules/remote_agent.js` inline fuer Media-System-Scan erweitern.
-- [x] 0.2.73 lokal Syntax/Status pruefen.
-- [x] 0.2.73 per `stepdone.cmd` nach GitHub/dev pushen.
-- [x] 0.2.75: Remote-Modboard akzeptiert `media`-Root read-only.
-- [x] 0.2.75: Kontextfelder kommen remote an.
-- [x] 0.2.75: Webserver-Deploy/live bestaetigt.
-- [x] 0.2.77: Media-Index-Diff/Preview akzeptiert `media`-Root read-only.
-- [x] 0.2.77: Preview zeigt `media`-Items mit Kontextfeldern.
-- [x] 0.2.77: Webserver-Deploy/live fachlich bestaetigt.
-- [x] 0.2.79: Diff-Endpoint `moduleBuild`/`routeBuild` Anzeige-Polish bestaetigt.
+- [x] Mod-UI statt Entwickler-UI: alltaegliche Begriffe verwenden.
+- [x] CGN-Design beachten: dunkles Lila/Blau, Neon-Cyan/Violett, runde Panels, Glow/Chips.
+- [x] Keine weissen Browser-Standard-Dropdowns.
+- [x] Keine technischen Warnboxen ohne echten Fehler.
