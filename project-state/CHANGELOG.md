@@ -1,28 +1,41 @@
 # CHANGELOG
 
+## 0.2.64 - Media Index Persistent Tombstone Candidate One Test Source Plan
+
+- Quelle fuer spaeteren echten `candidateCount=1`-Test entschieden.
+- Bevorzugte Variante: dedizierte Test-Media-Datei.
+- Kontrollierte Test-DB-Zeile bleibt Reserve.
+- Vorgeschlagener spaeterer relativer Testpfad dokumentiert: `sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3`.
+- Remote-Modboard/Webserver und lokales Dashboard/Agent weiter sauber getrennt dokumentiert.
+- Keine Source-Dateien geaendert.
+- Keine Test-Media-Datei angelegt.
+- Keine lokale Datei verschoben oder geloescht.
+- Keine DB-Zeile veraendert.
+- Keine Gates aktiviert.
+- Kein echter Tombstone-Write ausgefuehrt.
+- Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+
 ## 0.2.63 - Media Index Persistent Tombstone Readonly Simulation Check bestaetigt
 
-- Variante C read-only auf dem Webserver geprueft und dokumentiert.
-- Diff-Status gelesen.
-- Persistent Tombstone Preview gelesen.
-- Full-Sync-Compare als vollstaendig bestaetigt.
-- Missing-Diagnose als belastbar bestaetigt.
+- Variante C read-only auf dem Webserver bestaetigt.
+- Diff-Status und Persistent Tombstone Preview gelesen.
+- Full-Sync-Compare vollstaendig und Missing-Diagnose zuverlaessig.
 - `persistentMediaMissingCandidateCount = 0` bestaetigt.
 - `previewPersistentCandidateCount = 0` bestaetigt.
 - `persistentTombstoneCandidates = []` bestaetigt.
-- Gate-Check ergab keine gesetzten/aktiven Media-Index-Tombstone-Gates.
+- Gate-Check ergab keine Ausgabe; Gates nicht gesetzt bzw. nicht aktiv.
 - Keine Source-Dateien geaendert.
 - Keine DB-Zeile veraendert.
 - Keine Datei geloescht.
 - Keine Gates aktiviert.
-- Kein Execute ausgefuehrt.
 - Kein echter Tombstone-Write ausgefuehrt.
-- Weiterhin kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
 
 ## 0.2.62 - Media Index Persistent Tombstone Test Method Decision
 
-- Kuerzeste sichere Testmethode entschieden.
-- Variante C zuerst: reine Simulation / Read-only-Diagnose.
+- Kuerzeste sichere Testmethode entschieden: Variante C zuerst.
+- Variante C bedeutet reine Simulation / Read-only-Diagnose.
+- Kein echter Kandidat wird erzeugt.
+- Kein `candidateCount=1`-Test in diesem Step.
 - Keine Source-Dateien geaendert.
 - Keine DB-Zeile veraendert.
 - Keine Datei geloescht.
@@ -66,15 +79,3 @@
 - Execute bleibt Soft-Delete-only vorbereitet.
 - Confirm-Block und Gate-Block auf Webserver bestaetigt.
 - Kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
-
-## 0.2.58P - Media Index Persistent Tombstone gated Preview
-
-- `GET /api/remote/media/index/tombstone/persistent/preview` ergaenzt.
-- Preview bleibt read-only.
-- Keine Execute-Route in 0.2.58P.
-- Keine DB-Writes, kein Tombstone-Write, kein physisches Loeschen.
-
-## 0.2.58N - Media Index Diff Reliability Note Fix
-
-- Reliability-Note korrigiert, wenn Full-Sync-Compare vollstaendig ist, aber Compact-Agent-Snapshot gekuerzt ist.
-- Webserver bestaetigt: Missing-Diagnose ist trotz gekuerztem Compact-Agent-Snapshot belastbar, wenn Full-Sync-Compare vollstaendig ist.

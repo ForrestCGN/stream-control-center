@@ -1,20 +1,26 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.63 - Media Index Persistent Tombstone Readonly Simulation Check bestaetigt`
+Aktueller Stand: `0.2.64 - Media Index Persistent Tombstone Candidate One Test Source Plan`
 
 ## Ergebnis
 
-0.2.63 bestaetigt die in 0.2.62 gewaehlte kuerzeste sichere Methode:
+0.2.64 dokumentiert die Entscheidung fuer die spaetere Quelle eines echten `candidateCount=1`-Tests.
+
+Gewaehlte Variante:
 
 ```text
-Variante C: reine Simulation / Read-only-Diagnose zuerst
+A: dedizierte Test-Media-Datei
 ```
 
-Der Webserver wurde read-only geprueft.
+Reserve:
+
+```text
+B: kontrollierte Test-DB-Zeile nur falls Variante A nicht sauber steuerbar ist.
+```
 
 Es wurden keine Source-Dateien geaendert.
 
-Es wurden keine produktiven Writes ausgefuehrt, keine DB-Zeilen veraendert, keine Dateien geloescht, keine Gates aktiviert und kein echter Tombstone-Write gestartet.
+Es wurden keine produktiven Writes ausgefuehrt, keine DB-Zeilen veraendert, keine Dateien angelegt, verschoben oder geloescht, keine Gates aktiviert und kein echter Tombstone-Write gestartet.
 
 ## Zuletzt bestaetigte Code-Basis
 
@@ -25,6 +31,7 @@ RDAP_0.2.60_MEDIA_INDEX_PERSISTENT_TOMBSTONE_NOOP_EXECUTE_WITH_GATES_CONFIRMED
 RDAP_0.2.61_MEDIA_INDEX_PERSISTENT_TOMBSTONE_REAL_CANDIDATE_TEST_PLAN
 RDAP_0.2.62_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_METHOD_DECISION
 RDAP_0.2.63_MEDIA_INDEX_PERSISTENT_TOMBSTONE_READONLY_SIMULATION_CHECK_CONFIRMED
+RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN
 ```
 
 ## Bestaetigte Routen
@@ -35,69 +42,87 @@ GET  /api/remote/media/index/tombstone/persistent/preview
 POST /api/remote/media/index/tombstone/persistent/execute
 ```
 
-## Bestaetigter Read-only-Check
-
-Diff-Status:
-
-```text
-agentTotal = 120
-remoteDbTotal = 332
-matchedCount = 120
-newOnAgentCount = 0
-changedOnAgentCount = 120
-hardChangedOnAgentCount = 0
-effectiveChangedOnAgentCount = 0
-softChangedOnAgentCount = 120
-missingOnAgentReliable = true
-persistentMediaMissingCandidateCount = 0
-tombstoneCandidateDiagnosticCount = 0
-readOnly = true
-writesEnabled = false
-```
-
-Preview:
-
-```text
-persistentMediaMissingCandidateCount = 0
-ttsGeneratedTempCandidateCount = 0
-tombstoneCandidateDiagnosticCount = 0
-previewPersistentCandidateCount = 0
-persistentTombstoneCandidates = []
-```
-
-Reliability:
+## Bestaetigter 0.2.63-Read-only-Stand
 
 ```text
 fullSyncComparePrepared = true
 fullSyncCompareAvailable = true
 fullSyncCompareComplete = true
 fullSyncCompareMissingOnAgentReliable = true
-agentSnapshotTruncated = true
-databaseSnapshotTruncated = false
 missingOnAgentReliable = true
+persistentMediaMissingCandidateCount = 0
+previewPersistentCandidateCount = 0
+persistentTombstoneCandidates = []
+writesEnabled = false
 ```
 
 ## Gate-Zustand
 
-Gate-Check ergab keine Ausgabe fuer:
-
 ```text
-MEDIA_INDEX_WRITE_ENABLED
-MEDIA_INDEX_DATA_WRITE_ENABLED
-MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED
+MEDIA_INDEX_WRITE_ENABLED nicht gesetzt / nicht aktiv
+MEDIA_INDEX_DATA_WRITE_ENABLED nicht gesetzt / nicht aktiv
+MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED nicht gesetzt / nicht aktiv
 ```
 
 Bewertung:
 
 ```text
-Die Gates sind nicht gesetzt bzw. nicht aktiv.
 Nicht gesetzt ist sicher, weil nur true/1/yes/on als aktiv zaehlt.
+```
+
+## 0.2.64 Entscheidung
+
+Fuer den spaeteren echten Kandidaten-Test wird Variante A bevorzugt:
+
+```text
+Dedizierte Test-Media-Datei
+```
+
+Vorgeschlagener relativer Testpfad fuer spaeter:
+
+```text
+sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
+```
+
+Diese Datei wurde in 0.2.64 nicht angelegt.
+
+## Systemtrennung
+
+Remote-Modboard/Webserver:
+
+```text
+- Online-DB
+- Diff
+- Preview
+- Execute-Foundation
+- Gates
+- Confirm
+- Audit
+- Readback
+```
+
+Lokales Dashboard/Agent/Stream-PC:
+
+```text
+- lokale Media-Scans
+- Full-Sync-Payloads
+- spaetere kontrollierte Test-Media-Datei
+```
+
+Weiterhin gilt:
+
+```text
+- Kein Online->Agent-Trigger.
+- Kein Remote-Ausloesen lokaler Dateiaktionen.
+- Kein Loeschen lokaler Dateien vom Modboard aus.
+- Kein Upload/Edit/Delete-Scope in diesem Block.
 ```
 
 ## Sicherheit
 
-- Kein DB-Write in 0.2.63.
-- Kein Soft-Delete in 0.2.63.
+- Kein DB-Write in 0.2.64.
+- Kein Soft-Delete in 0.2.64.
+- Keine Testdatei in 0.2.64.
 - Kein Hard-Delete.
 - Kein physisches Loeschen.
 - Kein Online->Agent-Trigger.
@@ -107,7 +132,7 @@ Nicht gesetzt ist sicher, weil nur true/1/yes/on als aktiv zaehlt.
 ## Naechster sinnvoller RDAP-Block
 
 ```text
-RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN
+RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN
 ```
 
-Ziel: entscheiden, ob ein echter `candidateCount=1`-Test ueber dedizierte Test-Media-Datei oder kontrollierte Test-DB-Zeile vorbereitet wird.
+Ziel: konkrete Read-only-Vorbereitung fuer die dedizierte Test-Media-Datei planen, inklusive lokalem Pfad, Dateiname, Backup/Rueckweg und Webserver-Preview-Ablauf. Noch kein Execute.

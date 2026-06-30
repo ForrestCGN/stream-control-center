@@ -1,70 +1,67 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.63
+## Naechster RDAP-Block nach 0.2.64
 
-`RDAP_0.2.64_MEDIA_INDEX_PERSISTENT_TOMBSTONE_CANDIDATE_ONE_TEST_SOURCE_PLAN`
+`RDAP_0.2.65_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_READONLY_PREP_PLAN`
 
 ## Ziel
 
-- Entscheiden, ob ein echter `candidateCount=1`-Test vorbereitet wird.
-- Bevorzugt: dedizierte Test-Media-Datei.
-- Alternative: kontrollierte Test-DB-Zeile.
-- Kein produktiver Write ohne separaten Freigabe-Step.
+- Konkrete Read-only-Vorbereitung fuer die dedizierte Test-Media-Datei planen.
+- Lokalen Testpfad festlegen.
+- Testdateiname festlegen.
+- Backup-/Rueckweg fuer die Testdatei festlegen.
+- Ablauf fuer Full-Sync/Preview dokumentieren.
+- Kein produktiver Write.
 - Kein physisches Loeschen.
 - Kein Auto-Delete.
 - Kein Online->Agent-Trigger.
-- Backup/Rollback vor jedem echten Test konkretisieren.
 - Lokales Dashboard/Agent und Remote-Modboard sauber getrennt halten.
 
 ## Ausgangspunkt
 
-0.2.63 hat Variante C read-only bestaetigt:
+0.2.64 ist ein Doku-/Plan-Step.
+
+Entscheidung:
 
 ```text
-Diff-Status lesbar.
-Preview lesbar.
+A: dedizierte Test-Media-Datei fuer spaeteren candidateCount=1-Test bevorzugt.
+```
+
+Bestaetigt bleibt:
+
+```text
 Full-Sync-Compare vollstaendig.
-Missing-Diagnose belastbar.
-persistentMediaMissingCandidateCount = 0
-previewPersistentCandidateCount = 0
-persistentTombstoneCandidates = []
+Missing-Diagnose zuverlaessig.
+persistentMediaMissingCandidateCount = 0.
+previewPersistentCandidateCount = 0.
 Gates nicht gesetzt / nicht aktiv.
 ```
 
-## Offener Punkt
-
-Variante C prueft keinen echten `candidateCount=1`-Fall.
-
-Dafuer muss separat entschieden werden:
+## Vorgeschlagener spaeterer Testpfad
 
 ```text
-A: dedizierte Test-Media-Datei
-B: kontrollierte Test-DB-Zeile
+sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
 ```
 
-## Empfehlung
+## Wichtig
+
+0.2.65 soll weiterhin nur vorbereiten, nicht ausfuehren.
+
+Weiterhin verboten:
 
 ```text
-Variante A bevorzugen.
-```
-
-Begruendung:
-
-```text
-Eine dedizierte Test-Media-Datei ist fachlich realistischer als eine kuenstliche DB-Zeile.
-Sie muss aber eindeutig als Testdatei erkennbar sein und darf keine Produktiv-Media ersetzen.
-```
-
-## Weiterhin verboten
-
-```text
+- keine Testdatei anlegen ohne separates go
+- keine lokale Datei verschieben
+- keine lokale Datei loeschen
+- keine DB-Zeile veraendern
+- keine Gates aktivieren
+- keinen echten Tombstone-Write ausfuehren
 - kein Hard-Delete
 - kein physisches Loeschen
 - kein Online->Agent-Trigger
 - kein Blind-Auto-Sync
-- keine Upload/Edit/Delete-Funktion
-- keine DB-/Dateiaenderung ohne separaten Freigabe-Step
-- keine Gates aktivieren
-- keinen echten Tombstone-Write ausfuehren
-- keine lokale Datei loeschen oder verschieben ohne ausdrueckliche Freigabe
 ```
+
+## Danach moeglich
+
+Wenn 0.2.65 sauber vorbereitet ist, spaeter separater Step fuer kontrollierte lokale Testdatei-Anlage und read-only Full-Sync/Preview-Test.
