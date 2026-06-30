@@ -10,6 +10,7 @@ const RDAP61_BUILD = 'RDAP61_ADMIN_NOTE_UPDATE_BACKEND_IMPLEMENTATION';
 const RDAP123_BUILD = 'RDAP123_ROUTES_STATUS_AND_HANDOFF_CLEANUP';
 const RDAP110_BUILD = 'RDAP_0.2.110_ADMIN_NOTE_WRITE_STATUS_RECONCILE';
 const RDAP113_BUILD = 'RDAP_0.2.113_AUDIT_LOG_READONLY_API';
+const RDAP115_BUILD = 'RDAP_0.2.115_AUDIT_LOG_RETENTION_STATUS_AND_ADMIN_UI_PREP';
 
 function registerRoutesRoutes(app, context) {
   app.get('/api/remote/routes', (req, res) => {
@@ -53,6 +54,7 @@ function registerRoutesRoutes(app, context) {
         { method: 'GET', path: '/api/remote/admin/audit-lock/schema-status', description: 'RDAP33 read-only Audit-/Lock-Schema und Runtime-Status; keine Writes' },
         { method: 'GET', path: '/api/remote/lock-audit/schema-status', description: 'Alias fuer RDAP33 read-only Audit-/Lock-Schema und Runtime-Status' },
         { method: 'GET', path: '/api/remote/admin/audit/log', description: 'RDAP113 read-only Audit-Log-Liste: wer/wann/was/Status; keine Writes' },
+        { method: 'GET', path: '/api/remote/admin/audit/retention/status', description: 'RDAP115 read-only Audit-Retention-Status fuer Admin-Bereich: Anzahl, Zeitraum, Cleanup-Status; keine Writes' },
         { method: 'GET', path: '/api/remote/admin/audit/test-insert/status', description: 'RDAP36 Audit-Testinsert-Status; schreibt nichts' },
         { method: 'POST', path: '/api/remote/admin/audit/test-insert', description: 'RDAP36 lokaler Audit-Testinsert mit Body-confirmWrite und testOnly; keine produktive Admin-Aktion' },
         { method: 'GET', path: '/api/remote/admin/locks/test/status', description: 'RDAP37 Lock-Test-Status; schreibt nichts' },
@@ -183,6 +185,7 @@ function registerRoutesRoutes(app, context) {
         routeRemainsReadOnly: true
       },
       adminAuditLogReadonly: buildAdminAuditLogReadonlyStatus(),
+      adminAuditRetentionReadonly: buildAdminAuditRetentionReadonlyStatus(),
       adminAuditTestInsert: {
         prepared: true,
         statusRoute: '/api/remote/admin/audit/test-insert/status',
@@ -337,6 +340,38 @@ function buildAdminAuditLogReadonlyStatus() {
     ],
     secretsLogged: false,
     rawPayloadLoggingEnabled: false,
+    adminNotesParked: true
+  };
+}
+
+function buildAdminAuditRetentionReadonlyStatus() {
+  return {
+    prepared: true,
+    route: '/api/remote/admin/audit/retention/status',
+    method: 'GET',
+    routeBuild: RDAP115_BUILD,
+    statusApiVersion: 'rdap_audit115.v1',
+    tableName: 'dashboard_audit_log',
+    purpose: 'Admin-Bereich Retention-Status: Anzahl Eintraege, aeltester/neuster Eintrag, Zeitraum und Cleanup-Status.',
+    readOnly: true,
+    writeEnabled: false,
+    databaseWriteEnabled: false,
+    productiveWritesEnabled: false,
+    migrationEnabled: false,
+    auditCleanupEnabled: false,
+    auditPruneEnabled: false,
+    auditDeleteEnabled: false,
+    physicalDeleteEnabled: false,
+    autoCleanupEnabled: false,
+    retentionPolicyConfigured: false,
+    currentRetentionMode: 'unbounded_currently',
+    proposedRetention: {
+      maxAgeDays: 180,
+      maxRows: 10000,
+      mode: 'proposal_only'
+    },
+    returnsStorageSummary: true,
+    adminUiPrep: true,
     adminNotesParked: true
   };
 }

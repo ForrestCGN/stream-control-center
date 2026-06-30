@@ -2,37 +2,37 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.115_AUDIT_LOG_UI_READONLY`
+`RDAP_0.2.116_AUDIT_LOG_ADMIN_AREA_READONLY_UI`
 
 ## Ziel
 
-Read-only Modboard-Ansicht fuer Aktivitaets-Log.
-
-Anzeige:
+Admin-Bereich Read-only UI fuer Audit-Log:
 
 ```text
-wann
-wer
-was
-Ziel/Ressource
-Status
+Retention-Kacheln
+Audit-Liste
+Filter
+keine Aktionen
 ```
 
-## Datenquelle
+## Datenquellen
 
 ```text
+GET /api/remote/admin/audit/retention/status
 GET /api/remote/admin/audit/log
 ```
 
 ## Regeln
 
 ```text
+Admin-Bereich
 keine Admin-Notizen
 keine Writes
 keine Migration
+keine Loeschung
 keine Gates aktivieren
 keine Agent-Actions
-keine Buttons fuer Aktionen
+keine Aktionsbuttons
 ```
 
 ## Deploy-Regel

@@ -4,6 +4,7 @@ const { buildDatabaseReadiness, withReadOnlyConnection, publicDbError } = requir
 
 const AUDIT_TABLE = 'dashboard_audit_log';
 const RDAP113_AUDIT_LOG_BUILD = 'RDAP_0.2.113_AUDIT_LOG_READONLY_API';
+const RDAP115_AUDIT_RETENTION_BUILD = 'RDAP_0.2.115_AUDIT_LOG_RETENTION_STATUS_AND_ADMIN_UI_PREP';
 
 const EXPECTED_AUDIT_COLUMNS = [
   'id',
@@ -79,10 +80,15 @@ async function buildAuditReadStatus({ context, req }) {
     auditLogReadonlyApiPrepared: true,
     auditLogReadonlyApiBuild: RDAP113_AUDIT_LOG_BUILD,
     auditLogReadonlyApiRoute: '/api/remote/admin/audit/log',
+    auditRetentionStatusPrepared: true,
+    auditRetentionStatusBuild: RDAP115_AUDIT_RETENTION_BUILD,
+    auditRetentionStatusRoute: '/api/remote/admin/audit/retention/status',
     auditWritePrepared: false,
     auditWriteEnabled: false,
     auditInsertEnabled: false,
     auditUpdateEnabled: false,
+    auditCleanupEnabled: false,
+    auditPruneEnabled: false,
     secretsLogged: false,
     rawPayloadLoggingEnabled: false,
     productiveAuthorizationEnabled: false,
@@ -108,9 +114,9 @@ async function buildAuditReadStatus({ context, req }) {
     notes: [
       'RDAP14 liest Audit-Struktur nur diagnostisch.',
       'RDAP113 ergaenzt eine read-only Audit-Log-Liste fuer wer/wann/was/Status.',
+      'RDAP115 ergaenzt read-only Retention-Status fuer Gesamtzahl, Zeitraum und Cleanup-Status.',
       'Dieser Service schreibt keine Audit-Eintraege und aktualisiert keine bestehenden Zeilen.',
-      'Schema-Inspektion erfolgt nur bei db=1 und nur per SELECT/INFORMATION_SCHEMA.',
-      'Der Schema-Adapter bewertet nur Mapping/Kompatibilitaet und aktiviert keine Writes.',
+      'Es gibt keine automatische Audit-Selbstbereinigung in diesem Stand.',
       'Secrets, Tokens, Cookies, ENV-Werte und Rohpayloads duerfen nicht geloggt werden.'
     ]
   };
@@ -238,6 +244,156 @@ async function buildAuditLogReadonlyList({ context, req }) {
       error: publicError || 'audit_log_read_failed'
     };
   }
+}
+
+async function buildAuditRetentionReadonlyStatus({ context, req }) {
+  const readiness = buildDatabaseReadiness(context.config);
+  const base = {
+    ok: true,
+    service: 'remote-modboard',
+    module: 'remote_audit_retention_status_readonly',
+    moduleBuild: context.moduleBuild,
+    routeBuild: RDAP115_AUDIT_RETENTION_BUILD,
+    statusApiVersion: 'rdap_audit115.v1',
+    route: '/api/remote/admin/audit/retention/status',
+    method: 'GET',
+    readOnly: true,
+    writeEnabled: false,
+    databaseWriteEnabled: false,
+    productiveWritesEnabled: false,
+    migrationEnabled: false,
+    auditCleanupEnabled: false,
+    auditPruneEnabled: false,
+    auditDeleteEnabled: false,
+    physicalDeleteEnabled: false,
+    agentActionsEnabled: false,
+    uiActionButtonsEnabled: false,
+    tableName: AUDIT_TABLE,
+    retentionPolicy: {
+      configured: false,
+      mode: 'unbounded_currently',
+      maxAgeDays: null,
+      maxRows: null,
+      autoCleanupEnabled: false,
+      cleanupJobPrepared: false,
+      cleanupRoutePrepared: false,
+      cleanupRouteEnabled: false,
+      recommendation: {
+        maxAgeDays: 180,
+        maxRows: 10000,
+        mode: 'proposed_not_active'
+      }
+    },
+    storage: {
+      totalRows: 0,
+      oldestCreatedAt: null,
+      newestCreatedAt: null,
+      spanDays: null,
+      rowsByStatus: []
+    },
+    columns: {
+      inspected: false,
+      detectedColumns: [],
+      compatibleForRead: false
+    },
+    notes: [
+      'Diese Route liest nur den Audit-Log-Bestand und den Retention-Status.',
+      'Aktuell ist keine automatische Selbstbereinigung konfiguriert.',
+      'Es werden keine Audit-Zeilen geloescht, archiviert oder veraendert.',
+      'Empfehlung fuer spaeter: 180 Tage oder 10000 Eintraege, aber erst mit eigenem Confirm-/Backup-/Audit-Scope.'
+    ]
+  };
+
+  if (!readiness.configured || !readiness.driverAvailable) {
+    return {
+      ...base,
+      ok: false,
+      reason: readiness.error || 'db_not_ready',
+      database: {
+        configured: readiness.configured,
+        driverAvailable: readiness.driverAvailable,
+        error: readiness.error
+      }
+    };
+  }
+
+  try {
+    return await withReadOnlyConnection(context.config, async (connection) => {
+      const columns = await readTableColumnsWithConnection(connection, AUDIT_TABLE);
+      const detectedSet = new Set(columns);
+      if (!detectedSet.has('created_at')) {
+        return {
+          ...base,
+          ok: false,
+          reason: 'audit_retention_created_at_missing',
+          columns: {
+            inspected: true,
+            detectedColumns: columns,
+            compatibleForRead: false
+          }
+        };
+      }
+
+      const [[summary]] = await connection.query(
+        `
+          SELECT
+            COUNT(*) AS total_rows,
+            MIN(created_at) AS oldest_created_at,
+            MAX(created_at) AS newest_created_at,
+            TIMESTAMPDIFF(DAY, MIN(created_at), MAX(created_at)) AS span_days
+          FROM \`${AUDIT_TABLE}\`
+        `
+      );
+
+      const rowsByStatus = detectedSet.has('status')
+        ? await readAuditRowsByStatus(connection)
+        : [];
+
+      return {
+        ...base,
+        storage: {
+          totalRows: Number(summary.total_rows || 0),
+          oldestCreatedAt: summary.oldest_created_at || null,
+          newestCreatedAt: summary.newest_created_at || null,
+          spanDays: summary.span_days === null || summary.span_days === undefined
+            ? null
+            : Number(summary.span_days),
+          rowsByStatus
+        },
+        columns: {
+          inspected: true,
+          detectedColumns: columns,
+          compatibleForRead: true
+        },
+        reason: 'audit_retention_status_readonly'
+      };
+    });
+  } catch (err) {
+    const publicError = publicDbError(err).code;
+    return {
+      ...base,
+      ok: false,
+      reason: publicError || 'audit_retention_status_read_failed',
+      error: publicError || 'audit_retention_status_read_failed'
+    };
+  }
+}
+
+async function readAuditRowsByStatus(connection) {
+  const [rows] = await connection.query(
+    `
+      SELECT status, COUNT(*) AS total_rows
+      FROM \`${AUDIT_TABLE}\`
+      GROUP BY status
+      ORDER BY total_rows DESC, status ASC
+      LIMIT 20
+    `
+  );
+
+  return rows.map((row) => ({
+    status: row.status || null,
+    totalRows: Number(row.total_rows || 0)
+  }));
 }
 
 function buildAuditSchemaAdapterStatus(detectedColumns) {
@@ -493,6 +649,7 @@ function pickDetectedMappings(detectedSet, map) {
 module.exports = {
   buildAuditReadStatus,
   buildAuditLogReadonlyList,
+  buildAuditRetentionReadonlyStatus,
   buildAuditSchemaAdapterStatus,
   EXPECTED_AUDIT_COLUMNS,
   REQUIRED_AUDIT_READ_FIELDS,

@@ -1,7 +1,11 @@
 'use strict';
 
 const { buildLockReadStatus } = require('../services/lock-read.service');
-const { buildAuditReadStatus, buildAuditLogReadonlyList } = require('../services/audit-read.service');
+const {
+  buildAuditReadStatus,
+  buildAuditLogReadonlyList,
+  buildAuditRetentionReadonlyStatus
+} = require('../services/audit-read.service');
 const { buildAdminAuditLockSchemaStatusReadonly } = require('../services/admin-audit-lock-schema-status-readonly.service');
 const {
   buildAdminAuditTestInsertStatus,
@@ -43,6 +47,11 @@ function registerLockAuditDiagnosticRoutes(app, context) {
 
   app.get('/api/remote/admin/audit/log', async (req, res) => {
     const result = await buildAuditLogReadonlyList({ context, req });
+    res.status(result.status || 200).json(result.body || result);
+  });
+
+  app.get('/api/remote/admin/audit/retention/status', async (req, res) => {
+    const result = await buildAuditRetentionReadonlyStatus({ context, req });
     res.status(result.status || 200).json(result.body || result);
   });
 
@@ -88,6 +97,8 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
     auditSchemaAdapterPrepared: true,
     auditLogReadonlyApiPrepared: true,
     auditLogReadonlyApiRoute: '/api/remote/admin/audit/log',
+    auditRetentionStatusPrepared: true,
+    auditRetentionStatusRoute: '/api/remote/admin/audit/retention/status',
     writeRoutesEnabled: false,
     lockAcquireEnabled: false,
     lockHeartbeatEnabled: false,
@@ -95,6 +106,8 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
     lockForceTakeoverEnabled: false,
     auditInsertEnabled: false,
     auditUpdateEnabled: false,
+    auditCleanupEnabled: false,
+    auditPruneEnabled: false,
     productiveAuthorizationEnabled: false,
     agentActionsEnabled: false,
     obsControlEnabled: false,
@@ -124,6 +137,20 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
       maxLimit: 100,
       filters: ['limit', 'status', 'action', 'actor'],
       purpose: 'Mod-taugliche read-only Liste: wer, wann, was gemacht hat und Status.'
+    },
+    rdap115AuditRetentionStatus: {
+      prepared: true,
+      route: '/api/remote/admin/audit/retention/status',
+      method: 'GET',
+      statusApiVersion: 'rdap_audit115.v1',
+      tableName: 'dashboard_audit_log',
+      readOnly: true,
+      writeEnabled: false,
+      productiveWritesEnabled: false,
+      cleanupEnabled: false,
+      pruneEnabled: false,
+      autoCleanupEnabled: false,
+      purpose: 'Admin-Bereich Retention-Status: Anzahl, aeltester/neuster Eintrag, Zeitraum, Cleanup-Status.'
     },
     rdap36AuditTestInsert: {
       prepared: true,
@@ -165,6 +192,7 @@ function buildLockAuditResponse({ context, req, locks, audit, adapterOnly }) {
       'Mit db=1 werden nur INFORMATION_SCHEMA-SELECTs ueber read-only Connection ausgefuehrt.',
       'RDAP33 ergaenzt eine separate read-only Schema-/Runtime-Statusroute mit Counts und sicheren Previews.',
       'RDAP113 ergaenzt eine read-only Audit-Log-Liste fuer wer/wann/was/Status.',
+      'RDAP115 ergaenzt read-only Retention-Status fuer Admin-Bereich und UI-Planung.',
       'RDAP36 ergaenzt einen lokalen, bestaetigten Audit-Testinsert; produktive Writes bleiben gesperrt.',
       'RDAP37 ergaenzt einen lokalen, bestaetigten Lock-Test fuer Acquire/Heartbeat/Release.',
       'Es gibt keine Admin-Notiz-Writes, keine Remote-Writes und keine Agent-Actions.',
