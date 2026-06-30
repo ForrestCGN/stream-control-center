@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 0.2.76 - Media Index 0.2.75 Live Confirm Docs Handoff
+
+- Live-Bestaetigung von 0.2.75 dokumentiert.
+- Festgehalten: Remote-Modboard akzeptiert `rootKey = media` read-only.
+- Festgehalten: `counts.media = 34` und `groups.media.count = 34`.
+- Festgehalten: Kontextfelder `source`, `moduleKey`, `categoryKey`, `fullCategoryKey`, `assetRelativePath`, `webPath`, `publicPath` kommen remote an.
+- Naechsten read-only Diff-/Preview-Verify-Block 0.2.77 vorbereitet.
+- Keine Code-Dateien geaendert.
+
+## 0.2.75 - Media Index Remote-Agent Media Root Remote Accept Readonly
+
+- `remote-modboard/backend/src/services/agent-runtime.service.js` erweitert.
+- Remote-Agent-Runtime akzeptiert jetzt `media` zusaetzlich zu `sounds`, `videos`, `images`.
+- Remote-Sanitize fuer Media-Inventory und Full-Sync erhaelt Kontextfelder read-only.
+- Webserver-Deploy/live bestaetigt.
+- Keine DB-Writes/Gates/Deletes aktiviert.
+
 ## 0.2.74 - Media Index 0.2.73 Docs Handoff
 
 - Doku-Stand nach lokal bestaetigtem 0.2.73 korrigiert.

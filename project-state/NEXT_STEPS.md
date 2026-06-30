@@ -1,39 +1,40 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.74
+## Naechster RDAP-Block nach 0.2.76
 
-`RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_FULL_SYNC_MEDIA_SYSTEM_VERIFY_READONLY`
+`RDAP_0.2.77_MEDIA_INDEX_DIFF_MEDIA_ROOT_READONLY_VERIFY`
 
 ## Ausgangslage
 
-`RDAP_0.2.73_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_INLINE_WIRING` ist lokal bestaetigt und nach GitHub/dev gepusht.
+`RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_MEDIA_ROOT_REMOTE_ACCEPT_READONLY` ist live bestaetigt.
 
-Bestaetigt:
+Bestaetigt auf dem Webserver:
 
 ```text
-moduleVersion    : 0.1.8E
-moduleBuild      : RDAP_0.2.73_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_INLINE_WIRING
-statusApiVersion : rdap_agent_media_inventory_media_system_scan_073.v1
-readOnly         : True
-writeEnabled     : False
+moduleBuild = RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_MEDIA_ROOT_REMOTE_ACCEPT_READONLY
+counts.media = 34
+groups.media.count = 34
 ```
 
-0.2.74 ist nur Doku-/Handoff-Korrektur.
+Bestaetigt: Items mit `rootKey = media` kommen remote mit Kontextfeldern an:
 
-## Ziel fuer 0.2.75
+```text
+source
+moduleKey
+categoryKey
+fullCategoryKey
+assetRelativePath
+webPath
+publicPath
+```
 
-- Lokal pruefen, ob `backend/modules/remote_agent.js` den neuen Root `media` sauber im Inventory ausgibt.
-- Pruefen, ob Items aus `assets/media/<module>/<category>/...` die neuen Kontextfelder enthalten:
-  - `source`
-  - `moduleKey`
-  - `categoryKey`
-  - `fullCategoryKey`
-  - `assetRelativePath`
-  - `webPath`
-  - `publicPath`
-- Pruefen, ob Full-Sync-Chunks diese Felder weiterhin read-only transportieren.
-- Pruefen, ob Remote-Modboard/Agent-Runtime die Felder nicht verwirft oder wegen Root `media` ablehnt.
-- Falls Remote-Seite `media` noch nicht akzeptiert, separaten Remote-Code-Step planen.
+## Ziel fuer 0.2.77
+
+- Media-Index-Diff/Preview read-only pruefen.
+- Pruefen, ob `media`-Root im Diff-/Preview-Kontext sichtbar oder noch blockiert ist.
+- Pruefen, ob `source`, `moduleKey`, `categoryKey`, `fullCategoryKey`, `assetRelativePath`, `webPath`/`publicPath` erhalten bleiben.
+- Falls `remote-modboard/backend/src/routes/media-index-diff.routes.js` noch nur `sounds/videos/images` kennt, separaten kleinen Remote-Diff-Kompatibilitaets-Step planen.
+- Keine DB-Writes, keine Gates, kein Tombstone-Execute.
 
 ## Relevante Dateien zuerst lesen
 
@@ -41,39 +42,27 @@ writeEnabled     : False
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 backend/modules/remote_agent.js
-backend/modules/media.js
 remote-modboard/backend/src/services/agent-runtime.service.js
 remote-modboard/backend/src/routes/media-index-diff.routes.js
+remote-modboard/backend/src/routes/media-index-preview.routes.js
+remote-modboard/backend/src/routes/media-index.routes.js
 ```
 
-## Voraussichtliche Pruefungen
+Falls einzelne Preview-/Index-Dateien nicht existieren, ueber GitHub-Suche nach `media-index` und `MEDIA_ROOT_KEYS` suchen.
 
-Lokal:
+## Voraussichtliche Read-only-Pruefungen
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/media/inventory/status" |
-  Select-Object moduleVersion,moduleBuild,statusApiVersion,readOnly,writeEnabled
-
-Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/media/inventory/status" |
-  Select-Object -ExpandProperty inventory |
-  Select-Object -ExpandProperty roots
-```
-
-Nur wenn bereits echte Dateien unter `assets/media/<module>/<category>/...` vorhanden sind:
-
-```powershell
-$inv = Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/media/inventory/status"
-$inv.items |
-  Where-Object rootKey -eq "media" |
-  Select-Object -First 10 id,rootKey,source,moduleKey,categoryKey,fullCategoryKey,assetRelativePath,webPath,publicPath,kind,name
-```
-
-Remote nur Diagnose/read-only, falls Agent verbunden ist:
+Remote:
 
 ```bash
-curl -fsS http://127.0.0.1:3010/api/remote/agent/media/inventory/status | jq
-curl -fsS http://127.0.0.1:3010/api/remote/media/index/diff/status | jq
+curl -fsS http://127.0.0.1:3010/api/remote/agent/media/inventory/status \
+  | jq '.moduleBuild, .counts.media, .groups.media.count'
+
+curl -fsS http://127.0.0.1:3010/api/remote/media/index/diff/status \
+  | jq '{ok,moduleBuild,statusApiVersion,status,readOnly,writeEnabled}'
 ```
+
+Nur kurze Ausgaben verwenden, keine kompletten grossen JSON-Dumps.
 
 ## Weiterhin verboten ohne separaten Ausfuehrungs-Go
 

@@ -1,61 +1,32 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.73 - Media Index Remote-Agent Media-System Scan Inline Wiring`
+Aktueller Stand: `0.2.75 - Media Index Remote-Agent Media Root Remote Accept Readonly`
 
 ## Ergebnis
 
-0.2.73 ist lokal getestet, aktiv und per `stepdone.cmd` nach GitHub/dev gepusht.
+0.2.75 ist lokal eingespielt, per `stepdone.cmd` nach GitHub/dev gepusht, auf dem Webserver deployed und live bestaetigt.
 
-Bestaetigter lokaler Status:
-
-```text
-moduleVersion    : 0.1.8E
-moduleBuild      : RDAP_0.2.73_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_INLINE_WIRING
-statusApiVersion : rdap_agent_media_inventory_media_system_scan_073.v1
-readOnly         : True
-writeEnabled     : False
-```
-
-`backend/modules/remote_agent.js` wurde direkt inline erweitert.
-
-Der Remote-Agent scannt jetzt read-only:
+Bestaetigter Remote-Endpoint:
 
 ```text
-Legacy-Assets:
-htdocs/assets/sounds
-htdocs/assets/videos
-htdocs/assets/images
-
-Media-System:
-htdocs/assets/media/<module>/<category>/...
+http://127.0.0.1:3010/api/remote/agent/media/inventory/status
 ```
 
-## Wichtige Korrektur
-
-Fuer 0.2.73 war kein Webserver-Deploy noetig.
-
-Grund:
+Bestaetigter Live-Status:
 
 ```text
-0.2.73 aendert nur backend/modules/remote_agent.js im lokalen Agent.
-remote-modboard/backend/** wurde nicht geaendert.
+moduleBuild = RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_MEDIA_ROOT_REMOTE_ACCEPT_READONLY
+counts.media = 34
+groups.media.count = 34
 ```
 
-Alte Werte unter `http://127.0.0.1:3010/api/remote/status` auf dem Webserver sind fuer diesen Step nicht massgeblich.
-
-## Fachlicher Stand
-
-Legacy-Assets bleiben lesbar und werden nicht verschoben oder geloescht.
-
-Neue Media-System-Dateien liegen unter:
+Der Remote-Modboard-Agent-Runtime-Service akzeptiert jetzt read-only den neuen Root:
 
 ```text
-D:\Streaming\stramAssets\htdocs\assets\media\<module>\<category>\...
+media
 ```
 
-Der Agent transportiert weiterhin keine Datei-Inhalte und keine absoluten Pfade.
-
-Inventory-Items koennen fuer Media-System-Dateien zusaetzliche Sortier-/Kontextfelder enthalten:
+Die neuen Kontextfelder kommen remote durch:
 
 ```text
 source
@@ -67,28 +38,77 @@ webPath
 publicPath
 ```
 
-## Naechster sinnvoller Block
+Beispiel bestaetigt:
 
 ```text
-RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_FULL_SYNC_MEDIA_SYSTEM_VERIFY_READONLY
+rootKey = media
+source = media_system
+moduleKey = alerts
+categoryKey = bits
+fullCategoryKey = alerts/bits
+webPath = /assets/media/alerts/bits/...
+publicPath = /assets/media/alerts/bits/...
 ```
 
-Ziel:
+## Betroffene Source-Datei aus 0.2.75
 
 ```text
-Pruefen, ob media-Root und neue Felder im lokalen Agent-Inventory, Full-Sync und Remote-Snapshot sauber ankommen.
-Weiterhin read-only. Keine Testdatei automatisch anlegen. Keine DB-Writes, keine Gates, keine Deletes.
+remote-modboard/backend/src/services/agent-runtime.service.js
+```
+
+## Fachlicher Stand
+
+0.2.73 hat den lokalen Agent erweitert:
+
+```text
+backend/modules/remote_agent.js
+```
+
+0.2.75 hat die Remote-Seite kompatibel gemacht:
+
+```text
+remote-modboard/backend/src/services/agent-runtime.service.js
+```
+
+Damit ist der Pfad lokal -> Agent-Inventory -> Remote-Agent-Runtime fuer `assets/media/<module>/<category>/...` read-only bestaetigt.
+
+Legacy-Roots bleiben weiter gueltig:
+
+```text
+sounds
+videos
+images
+```
+
+Neuer Root ist zusaetzlich gueltig:
+
+```text
+media
 ```
 
 ## Sicherheit
 
 ```text
-keine Testdatei automatisch anlegen
-keine lokale Datei verschieben
-keine lokale Datei loeschen
 keine DB-Aenderung
 keine Migration
-keine Gates
+keine Gates aktiviert
 kein Tombstone-Execute
-kein Webserver-Deploy fuer 0.2.73/0.2.74 noetig
+kein Hard-Delete
+kein physisches Loeschen
+keine Online->Agent-Actions
+keine Datei-Inhalte im Transport
+keine absoluten Pfade im Transport
+```
+
+## Naechster sinnvoller Block
+
+```text
+RDAP_0.2.77_MEDIA_INDEX_DIFF_MEDIA_ROOT_READONLY_VERIFY
+```
+
+Ziel:
+
+```text
+Pruefen, ob media-Root auch im Media-Index-Diff/Preview sauber sichtbar ist.
+Weiterhin read-only. Keine DB-Writes, keine Gates, keine Deletes.
 ```
