@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 0.2.61 - Media Index Persistent Tombstone Real Candidate Test Plan
+
+- Read-only Testplan fuer echten persistenten Tombstone-Kandidaten dokumentiert.
+- Keine Source-Dateien geaendert.
+- Keine DB-Zeile veraendert.
+- Keine Datei geloescht.
+- Keine Gates aktiviert.
+- Kein echter Tombstone-Write ausgefuehrt.
+- Testvarianten dokumentiert:
+  - echte dedizierte Test-Media-Datei
+  - kontrollierte Test-DB-Zeile
+  - reine Simulation/Read-only-Diagnose
+- Remote-Modboard/Webserver und lokales Dashboard/Agent sauber getrennt dokumentiert.
+- Weiterhin kein Hard-Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+
 ## 0.2.60 - Media Index Persistent Tombstone Noop Execute with Gates bestaetigt
 
 - Temporär `MEDIA_INDEX_WRITE_ENABLED=true`, `MEDIA_INDEX_DATA_WRITE_ENABLED=true` und `MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=true` auf dem Webserver gesetzt.

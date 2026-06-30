@@ -30,8 +30,10 @@
 - [x] Persistent Tombstone Preview-Route bauen
 - [x] Persistent Tombstone Execute-Foundation gated bauen
 - [x] Persistent Tombstone Noop-Execute mit Gates bestaetigen
-- [ ] Echten persistenten Tombstone-Kandidaten sicher planen/erzeugen/simulieren
+- [x] Echten persistenten Tombstone-Kandidaten sicher planen/erzeugen/simulieren
+- [ ] Testmethode fuer echten persistenten Tombstone-Kandidaten entscheiden
 - [ ] Produktiven Persistent Tombstone Write nur nach separater Freigabe testen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen
+- [ ] Lokales Dashboard/Agent-Testdaten-Quelle fuer Media-Index sauber getrennt weiterplanen
 - [ ] Alert-System Arbeiten separat fortsetzen
