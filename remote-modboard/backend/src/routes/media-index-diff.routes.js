@@ -9,10 +9,10 @@ const {
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_exclude_tts_generated_sync_058k.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_tts_temp_missing_classification_058j.v1';
-const BUILD = 'RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC';
-const PREVIOUS_BUILD = 'RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION';
+const STATUS_API_VERSION = 'rdap_media_index_diff_reliability_note_fix_058n.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_exclude_tts_generated_sync_058k.v1';
+const BUILD = 'RDAP_0.2.58N_MEDIA_INDEX_DIFF_RELIABILITY_NOTE_FIX';
+const PREVIOUS_BUILD = 'RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -61,7 +61,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58K',
+      moduleVersion: context.appVersion || '0.2.58N',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -110,7 +110,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58K',
+    moduleVersion: context.appVersion || '0.2.58N',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -498,13 +498,15 @@ function buildReliabilityBlock({ agentInventory, agentSnapshotDiagnostic, dbInve
   const metadataCompareWarnings = diff && diff.counts ? safeNonNegativeNumber(diff.counts.metadataCompareWarnings) : 0;
   const fullSyncMissingReliable = fullSyncCompare && fullSyncCompare.missingOnAgentReliable === true;
   const missingOnAgentReliable = fullSyncMissingReliable || (!agentSnapshotUnavailable && !(agentInventory && agentInventory.truncated === true) && !dbTruncated);
-  let note = fullSyncMissingReliable ? 'Full-Sync-Compare-Snapshot ist vollstaendig; Missing-Diagnose und TTS-temp-Klassifizierung sind read-only belastbar.' : 'Agent- und DB-Snapshot sind nicht als gekuerzt gemeldet.';
-  if (agentSnapshotUnavailable) {
+  let note = fullSyncMissingReliable
+    ? 'Full-Sync-Compare-Snapshot ist vollstaendig; Missing-Diagnose ist trotz gekuerztem Compact-Agent-Snapshot read-only belastbar.'
+    : 'Agent- und DB-Snapshot sind nicht als gekuerzt gemeldet.';
+  if (!fullSyncMissingReliable && agentSnapshotUnavailable) {
     note = agentSnapshotDiagnostic && agentSnapshotDiagnostic.note
       ? agentSnapshotDiagnostic.note
       : 'Agent-Snapshot ist leer oder nicht verfuegbar. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loesch-/Tombstone-Status bewertet.';
-  } else if (agentInventory && agentInventory.truncated === true) {
-    note = 'Agent-Snapshot ist gekuerzt. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loeschstatus bewertet.';
+  } else if (!fullSyncMissingReliable && agentInventory && agentInventory.truncated === true) {
+    note = 'Agent-Snapshot ist gekuerzt und kein vollstaendiger Full-Sync-Compare ist belastbar. Fehlende DB-Eintraege werden deshalb nicht als belastbarer Loeschstatus bewertet.';
   } else if (dbTruncated) {
     note = 'DB-Snapshot ist gekuerzt. Fehlende Agent-Eintraege werden deshalb nicht vollstaendig bewertet.';
   }

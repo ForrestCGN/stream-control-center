@@ -26,6 +26,7 @@
 - [x] TTS Legacy-DB-Cleanup gated bauen
 - [x] TTS Legacy-DB-Cleanup auf Webserver bestaetigen
 - [x] Normale persistent geloeschte Media-Dateien read-only Tombstone-Plan bauen
+- [x] Reliability-Note bei vollstaendigem Full-Sync-Compare korrigieren
 - [ ] Tombstone-Gate/Confirm/Audit/Lock/Readback fuer persistente Media-Dateien separat bauen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen
