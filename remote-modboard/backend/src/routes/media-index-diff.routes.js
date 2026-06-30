@@ -9,10 +9,10 @@ const {
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_tts_temp_missing_classification_058j.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_full_sync_compare_snapshot_058i.v1';
-const BUILD = 'RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION';
-const PREVIOUS_BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
+const STATUS_API_VERSION = 'rdap_media_index_diff_exclude_tts_generated_sync_058k.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_tts_temp_missing_classification_058j.v1';
+const BUILD = 'RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC';
+const PREVIOUS_BUILD = 'RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -30,6 +30,7 @@ const MEDIA_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
 const MEDIA_ROOT_KEYS = new Set(['sounds', 'videos', 'images']);
 const TTS_TEMP_ROOT_KEY = 'sounds';
 const TTS_TEMP_PREFIX = 'tts/generated/';
+const TTS_EXCLUDED_LEGACY_CLASSIFICATION = 'tts_generated_excluded_from_sync_legacy_candidate';
 
 function registerMediaIndexDiffRoutes(app, context) {
   app.get(ROUTE, async (req, res) => {
@@ -60,7 +61,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58J',
+      moduleVersion: context.appVersion || '0.2.58K',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -109,7 +110,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58J',
+    moduleVersion: context.appVersion || '0.2.58K',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -134,7 +135,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     reliability,
     safety: buildSafetyBlock(),
     nextSteps: [
-      'TTS-generated-temp Missing-Kandidaten read-only pruefen.',
+      'TTS-generated-temp Dateien sind aus Agent-Inventory und Full-Sync ausgeschlossen.',
       'Tombstone-Kandidatur bleibt reine Diagnose.',
       'Gated Delta-Upsert separat planen.',
       'Tombstone/deleted=1 nur spaeter mit eigenem Gate, Confirm, Audit/Lock und Readback planen.',
@@ -142,7 +143,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ],
     note: agentSnapshotUnavailable
       ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
-      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58J klassifiziert Missing-Eintraege diagnostisch, darunter TTS generated temp files. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58K klassifiziert alte TTS generated DB-Eintraege als aus dem Sync ausgeschlossene temporaere Legacy-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -439,11 +440,13 @@ function classifyMissingItem(item) {
   const isTtsGeneratedTempCandidate = safe.rootKey === TTS_TEMP_ROOT_KEY
     && relativePath.startsWith(TTS_TEMP_PREFIX)
     && MEDIA_AUDIO_EXTENSIONS.has(safe.extension);
-  const classification = isTtsGeneratedTempCandidate ? 'tts_generated_temp_missing_candidate' : 'persistent_media_missing_candidate';
+  const classification = isTtsGeneratedTempCandidate ? TTS_EXCLUDED_LEGACY_CLASSIFICATION : 'persistent_media_missing_candidate';
   return {
     ...safe,
     missingClassification: classification,
     ttsGeneratedTempCandidate: isTtsGeneratedTempCandidate,
+    ttsGeneratedExcludedFromSyncLegacy: isTtsGeneratedTempCandidate,
+    excludedFromSyncLegacy: isTtsGeneratedTempCandidate,
     temporaryFileCandidate: isTtsGeneratedTempCandidate,
     tombstoneCandidateDiagnostic: true,
     tombstoneWriteAllowed: false,
@@ -465,6 +468,7 @@ function buildMissingClassification(items) {
     reliableInputRequired: true,
     missingOnAgentItems: list.length,
     ttsGeneratedTempCandidateCount,
+    ttsGeneratedExcludedFromSyncLegacyCount: ttsGeneratedTempCandidateCount,
     persistentMediaMissingCandidateCount,
     tombstoneCandidateDiagnosticCount: list.length,
     tombstoneWritesEnabled: false,
@@ -473,11 +477,12 @@ function buildMissingClassification(items) {
     noOnlineToAgentAction: true,
     rules: [
       {
-        key: 'tts_generated_temp_missing_candidate',
+        key: TTS_EXCLUDED_LEGACY_CLASSIFICATION,
         rootKey: TTS_TEMP_ROOT_KEY,
         relativePathPrefix: TTS_TEMP_PREFIX,
         audioOnly: true,
-        meaning: 'DB kennt eine TTS-generated-Datei, die im vollstaendigen Agent-Snapshot nicht mehr vorhanden ist. Das ist nur ein temporaerer Missing-Kandidat.'
+        excludedFromAgentSyncSinceBuild: BUILD,
+        meaning: 'DB kennt eine alte TTS-generated-Datei. Diese Dateien sind temporaer und werden ab 0.2.58K nicht mehr vom Agent-Media-Inventory/Full-Sync synchronisiert. Das bleibt reine Legacy-Diagnose.'
       },
       {
         key: 'persistent_media_missing_candidate',
@@ -516,6 +521,7 @@ function buildReliabilityBlock({ agentInventory, agentSnapshotDiagnostic, dbInve
     fullSyncCompareMissingOnAgentReliable: fullSyncMissingReliable,
     missingClassificationReadOnly: true,
     ttsTempClassificationEnabled: true,
+    ttsGeneratedExcludedFromSyncPolicyEnabled: true,
     tombstoneCandidateOnlyDiagnostic: true,
     metadataCompareWarnings,
     note
@@ -724,6 +730,8 @@ function safePreviewItem(item) {
   };
   if (item && item.missingClassification) preview.missingClassification = safeStatus(item.missingClassification);
   if (item && item.ttsGeneratedTempCandidate === true) preview.ttsGeneratedTempCandidate = true;
+  if (item && item.ttsGeneratedExcludedFromSyncLegacy === true) preview.ttsGeneratedExcludedFromSyncLegacy = true;
+  if (item && item.excludedFromSyncLegacy === true) preview.excludedFromSyncLegacy = true;
   if (item && item.temporaryFileCandidate === true) preview.temporaryFileCandidate = true;
   if (item && item.tombstoneCandidateDiagnostic === true) preview.tombstoneCandidateDiagnostic = true;
   if (item && item.tombstoneWriteAllowed === false) preview.tombstoneWriteAllowed = false;
@@ -856,6 +864,9 @@ function buildComparePolicy() {
     modifiedAtSoftMatchPolicyEnabled: true,
     effectiveChangeCountsEnabled: true,
     fullSyncCompareSnapshotEnabled: true,
+    ttsGeneratedExcludedFromAgentSync: true,
+    ttsGeneratedExcludedRootKey: TTS_TEMP_ROOT_KEY,
+    ttsGeneratedExcludedRelativePathPrefix: TTS_TEMP_PREFIX,
     fullSyncCompareSnapshotReadOnly: true,
     fullSyncCompareSnapshotInMemoryOnly: true,
     ttsTempMissingClassificationEnabled: true,

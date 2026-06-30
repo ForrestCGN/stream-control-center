@@ -1,13 +1,13 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Schritt
+## Naechster RDAP-Schritt nach 0.2.58K-Test
 
-`RDAP_0.2.58K_MEDIA_INDEX_TOMBSTONE_GATE_PLAN_READONLY`
+`RDAP_0.2.58L_MEDIA_INDEX_TTS_LEGACY_DB_CLEANUP_PLAN_READONLY`
 
 Ziel:
 
-- Tombstone-/Loeschstatus nur planen.
-- Gate/Confirm/Audit/Lock/Readback-Anforderungen dokumentieren.
+- Alte TTS-generated DB-Eintraege read-only als Cleanup-Kandidaten planen.
+- Keine direkte Bereinigung.
 - Kein DB-Write.
 - Kein Upsert.
 - Kein Timestamp-Schreiben.
@@ -16,20 +16,14 @@ Ziel:
 
 ## Ausgangspunkt
 
-0.2.58J klassifiziert Missing-Eintraege read-only:
+0.2.58K schliesst `sounds/tts/generated/**` aus dem Agent-Media-Sync aus.
+
+Dadurch sollen kuenftige Compact-Snapshots und Full-Sync-Chunks keine TTS-generated temp Dateien mehr enthalten.
+
+Alte DB-Eintraege koennen weiterhin als Legacy-/Temp-Diagnose erscheinen:
 
 ```text
-missingClassification
-previews.ttsTempMissingCandidates
-previews.tombstoneCandidatesDiagnostic
-counts.ttsTempMissingCandidateCount
-counts.tombstoneCandidateDiagnosticCount
-```
-
-Der bestaetigte Missing-Eintrag ist ein TTS-generated-temp-Kandidat:
-
-```text
-sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
+tts_generated_excluded_from_sync_legacy_candidate
 ```
 
 ## Wichtig

@@ -21,7 +21,9 @@
 - [x] Full-Sync read-only Compare-Snapshot bauen
 - [x] 0.2.58I Webserver-Test dokumentieren
 - [x] TTS temp Missing read-only klassifizieren
+- [ ] TTS-generated Dateien aus Agent-Media-Sync ausschliessen
 - [ ] Alert-System Arbeiten separat fortsetzen
+- [ ] TTS Legacy-DB-Cleanup read-only planen
 - [ ] Tombstone-Gate/Confirm/Audit/Lock/Readback read-only planen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
 - [ ] Online->Agent Queue separat planen

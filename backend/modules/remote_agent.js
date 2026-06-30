@@ -21,8 +21,8 @@ try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule
 
 const MODULE = 'remote_agent';
 const MODULE_VERSION = '0.1.8D';
-const MODULE_BUILD = 'RDAP_0.2.58D_MEDIA_AGENT_INVENTORY_SYNC_RECONNECT_DIAGNOSTIC';
-const STATUS_API_VERSION = 'rdap_agent_media_inventory_reconnect_diagnostic_058d.v1';
+const MODULE_BUILD = 'RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC';
+const STATUS_API_VERSION = 'rdap_agent_media_inventory_exclude_tts_generated_058k.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -47,6 +47,14 @@ const MEDIA_ROOTS = Object.freeze([
   { key: 'sounds', label: 'Sounds', localPathHint: 'htdocs/assets/sounds', publicBasePath: '/assets/sounds', types: ['audio', 'video'] },
   { key: 'videos', label: 'Videos', localPathHint: 'htdocs/assets/videos', publicBasePath: '/assets/videos', types: ['video'] },
   { key: 'images', label: 'Bilder', localPathHint: 'htdocs/assets/images', publicBasePath: '/assets/images', types: ['image'] }
+]);
+const MEDIA_SYNC_EXCLUDED_PATH_RULES = Object.freeze([
+  {
+    key: 'tts_generated_temp_files',
+    rootKey: 'sounds',
+    relativePathPrefix: 'tts/generated/',
+    reason: 'tts_generated_files_are_temporary_and_not_part_of_persistent_media_sync'
+  }
 ]);
 
 const LOADED_AT = new Date().toISOString();
@@ -630,6 +638,8 @@ function buildMediaSyncFoundationStatus(inventory = {}) {
     currentTransportLimited: true,
     currentTransportLimitItems: MEDIA_WSS_TRANSPORT_LIMITS[0],
     currentTransportMaxBytes: MEDIA_WSS_TRANSPORT_MAX_BYTES,
+    excludedPathRules: buildMediaSyncExcludedPathRules(),
+    ttsGeneratedExcludedFromSync: safeNonNegativeNumber(counts.ttsGeneratedExcludedFromSync),
     completeInventoryInCurrentTransport: !truncated && returned >= totalSeen,
     progress: {
       state: truncated ? 'compact_limited' : (returned > 0 ? 'available' : 'pending'),
@@ -638,7 +648,7 @@ function buildMediaSyncFoundationStatus(inventory = {}) {
       percent: totalSeen > 0 ? Math.min(100, Math.round((returned / totalSeen) * 100)) : 0,
       truncated
     },
-    note: '0.2.53 beschreibt den Zielzustand: Online-DB als Media-Index, Full-Sync in Chunks, Delta-Sync und spaetere Online->Agent-Auftragsqueue. Dieser Agent sendet in diesem Build weiterhin read-only compact memory-only.'
+    note: '0.2.58K sendet TTS-generated temp files unter sounds/tts/generated/ nicht mehr im Media-Inventory/Full-Sync. Alles bleibt read-only; keine Dateiaktion, kein DB-Write.'
   };
 }
 
@@ -821,6 +831,7 @@ function buildMediaInventoryTransportPayload(inventory, options = {}) {
     groups,
     counts,
     syncFoundation: buildMediaSyncFoundationStatus({ ...source, items, counts, truncated: source.truncated === true }),
+    exclusionPolicy: buildMediaInventoryExclusionPolicy(counts),
     onlineIndexTarget: { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     limit,
     hardLimit: MEDIA_SCAN_HARD_LIMIT,
@@ -866,7 +877,7 @@ function scanLocalMediaInventory(limit) {
   const safeLimit = Math.max(1, Math.min(Number(limit || MEDIA_SCAN_DEFAULT_LIMIT), MEDIA_SCAN_HARD_LIMIT));
   const items = [];
   const groups = emptyMediaGroups();
-  const counts = { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 };
+  const counts = { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0, excludedFromSync: 0, ttsGeneratedExcludedFromSync: 0 };
   const errors = [];
   let truncated = false;
 
@@ -909,6 +920,7 @@ function preparedMediaInventory(scannedAt, status, active, limit, items, groups,
     groups,
     counts,
     syncFoundation: buildMediaSyncFoundationStatus({ active: Boolean(active), items, counts, truncated: truncated === true, scannedAt, status }),
+    exclusionPolicy: buildMediaInventoryExclusionPolicy(counts),
     onlineIndexTarget: { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     limit,
     hardLimit: MEDIA_SCAN_HARD_LIMIT,
@@ -969,19 +981,25 @@ function walkMediaRoot({ root, absoluteRoot, currentDir, depth, limit, items, gr
       counts.skipped += 1;
       continue;
     }
-    counts.totalSeen += 1;
-    if (items.length >= limit) {
-      setTruncated();
-      return;
-    }
     const rel = normalizeMediaRelativePath(path.relative(absoluteRoot, absolutePath));
     if (!rel || rel.includes('..')) {
       counts.skipped += 1;
       continue;
     }
+    const kind = mediaKindForExtension(ext);
+    const exclusion = classifyMediaSyncExclusion(root.key, rel, kind);
+    if (exclusion.excluded === true) {
+      counts.excludedFromSync += 1;
+      if (exclusion.key === 'tts_generated_temp_files') counts.ttsGeneratedExcludedFromSync += 1;
+      continue;
+    }
+    counts.totalSeen += 1;
+    if (items.length >= limit) {
+      setTruncated();
+      return;
+    }
     let stat = null;
     try { stat = fs.statSync(absolutePath); } catch (err) { counts.skipped += 1; continue; }
-    const kind = mediaKindForExtension(ext);
     const item = {
       id: `${root.key}:${rel}`,
       rootKey: root.key,
@@ -1001,6 +1019,47 @@ function walkMediaRoot({ root, absoluteRoot, currentDir, depth, limit, items, gr
     counts[root.key] = (counts[root.key] || 0) + 1;
     counts[kind] = (counts[kind] || 0) + 1;
   }
+}
+
+
+function classifyMediaSyncExclusion(rootKey, relativePath, kind) {
+  const safeRoot = safeMediaRootKey(rootKey);
+  const rel = normalizeMediaRelativePath(relativePath).toLowerCase();
+  const safeKind = safeMediaKind(kind || 'media');
+  for (const rule of MEDIA_SYNC_EXCLUDED_PATH_RULES) {
+    if (safeRoot === rule.rootKey && rel.startsWith(rule.relativePathPrefix) && safeKind === 'audio') {
+      return { excluded: true, key: rule.key, reason: rule.reason };
+    }
+  }
+  return { excluded: false, key: null, reason: null };
+}
+
+function buildMediaSyncExcludedPathRules() {
+  return MEDIA_SYNC_EXCLUDED_PATH_RULES.map(rule => ({
+    key: rule.key,
+    rootKey: rule.rootKey,
+    relativePathPrefix: rule.relativePathPrefix,
+    audioOnly: true,
+    reason: rule.reason
+  }));
+}
+
+function buildMediaInventoryExclusionPolicy(counts = {}) {
+  return {
+    prepared: true,
+    build: MODULE_BUILD,
+    readOnly: true,
+    active: true,
+    excludesFromCompactInventory: true,
+    excludesFromFullSync: true,
+    databaseWritesEnabled: false,
+    deleteEnabled: false,
+    noFileContent: true,
+    noAbsolutePaths: true,
+    excludedFromSync: safeNonNegativeNumber(counts.excludedFromSync),
+    ttsGeneratedExcludedFromSync: safeNonNegativeNumber(counts.ttsGeneratedExcludedFromSync),
+    rules: buildMediaSyncExcludedPathRules()
+  };
 }
 
 function buildMediaGroupsFromItems(items, sourceGroups) {
@@ -1032,8 +1091,10 @@ function stripMediaGroupItems(groups) {
 }
 
 function buildMediaCountsFromItems(items, sourceCounts) {
-  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length };
+  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length, excludedFromSync: 0, ttsGeneratedExcludedFromSync: 0 };
   if (sourceCounts && Number.isFinite(Number(sourceCounts.skipped))) counts.skipped = Math.max(0, Math.floor(Number(sourceCounts.skipped)));
+  if (sourceCounts && Number.isFinite(Number(sourceCounts.excludedFromSync))) counts.excludedFromSync = Math.max(0, Math.floor(Number(sourceCounts.excludedFromSync)));
+  if (sourceCounts && Number.isFinite(Number(sourceCounts.ttsGeneratedExcludedFromSync))) counts.ttsGeneratedExcludedFromSync = Math.max(0, Math.floor(Number(sourceCounts.ttsGeneratedExcludedFromSync)));
   if (sourceCounts && Number.isFinite(Number(sourceCounts.totalSeen))) counts.totalSeen = Math.max(items.length, Math.floor(Number(sourceCounts.totalSeen)));
   for (const item of items) {
     if (Object.prototype.hasOwnProperty.call(counts, item.rootKey)) counts[item.rootKey] += 1;
@@ -1076,6 +1137,7 @@ function buildMediaInventoryStatusResponse(req = null) {
     counts,
     syncFoundation: inventory.syncFoundation || buildMediaSyncFoundationStatus(inventory),
     fullSync: buildMediaFullSyncStatus(),
+    exclusionPolicy: inventory.exclusionPolicy || buildMediaInventoryExclusionPolicy(counts),
     onlineIndexTarget: inventory.onlineIndexTarget || { prepared: true, planned: true, database: 'remote_modboard_mariadb', table: 'remote_media_index', activeWrites: false },
     safety: { readOnly: true, uploadEnabled: false, editEnabled: false, deleteEnabled: false, noFileContent: true, noAbsolutePaths: true, noAgentActionExecution: true, noFileWrite: true, noDatabaseWrite: true, noShellOrProcessActions: true, secretsExposed: false }
   });

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.2.58K - Media Index exclude TTS generated from Sync
+
+- `backend/modules/remote_agent.js` auf `RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC` aktualisiert.
+- Statusmarker `rdap_agent_media_inventory_exclude_tts_generated_058k.v1` ergaenzt.
+- TTS-generated temp files unter `sounds/tts/generated/` werden beim lokalen Media-Scan ausgeschlossen.
+- Der Ausschluss wirkt vor Compact-Snapshot und Full-Sync-Chunks.
+- Neue Agent-Diagnose: `exclusionPolicy`, `counts.excludedFromSync`, `counts.ttsGeneratedExcludedFromSync`.
+- `media-index-diff.routes.js` auf `rdap_media_index_diff_exclude_tts_generated_sync_058k.v1` aktualisiert.
+- Alte DB-Eintraege unter `sounds:tts/generated/...` werden als `tts_generated_excluded_from_sync_legacy_candidate` diagnostiziert.
+- Kompatible 0.2.58J-Felder bleiben sichtbar.
+- Keine DB-Writes, kein Upsert, kein Timestamp-Schreiben, kein Tombstone/Delete, kein physisches Loeschen, kein Online->Agent-Trigger.
+
 ## 0.2.58J - Media Index TTS Temp Missing Read-only Classification
 
 - `media-index-diff.routes.js` auf `RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION` aktualisiert.
@@ -22,13 +34,3 @@
 - Missing-Eintrag `sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3` als TTS-generated-temp-Verdacht dokumentiert.
 - Naechsten RDAP-Step `RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION` festgelegt.
 - Kein Code geaendert; Doku-only Abschluss.
-
-## 0.2.58I - Media Full-Sync Read-only Compare Snapshot
-
-- `agent-runtime.service.js` um read-only In-Memory-Full-Sync-Compare-Snapshot erweitert.
-- Valide Full-Sync-Chunks werden nach `chunkIndex` gepuffert.
-- Bei vollstaendigem Empfang wird ein kompletter sanitizter Media-Index-Snapshot in-memory aufgebaut.
-- `media-index-diff.routes.js` liefert zusaetzlich `fullSyncCompare`.
-- Compact-Diff-Ausgabe bleibt kompatibel erhalten.
-- Missing/Tombstone bleibt Diagnose und wird nur bei vollstaendigem Full-Sync-Compare als reliable markiert.
-- Keine DB-Writes, kein Upsert, kein Tombstone/Delete, kein Agent-Trigger.
