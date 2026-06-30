@@ -5,12 +5,13 @@
 
   const ADMIN_ORDER = [
     { page: 'admin-users', label: 'Benutzerverwaltung', title: 'Benutzerverwaltung', tab: 'read-only', order: 10 },
-    { page: 'admin-notes', label: 'Admin-Notizen', title: 'Admin-Notizen', tab: 'read-only', order: 20 },
+    { page: 'audit-log', label: 'Aktivitäts-Log', title: 'Aktivitäts-Log', tab: 'read-only', order: 20 },
     { page: 'connections', label: 'Verbindungen', title: 'Verbindungen', tab: 'read-only', order: 30 },
     { page: 'routes', label: 'Doku / Details', title: 'Doku / Details', tab: 'read-only', order: 90 }
   ];
 
   const HIDDEN_ADMIN_PAGES = new Set([
+    'admin-notes',
     'admin-user-detail',
     'user-detail',
     'admin-user',
@@ -25,6 +26,13 @@
     ['benutzer', 'admin-users'],
     ['users', 'admin-users'],
     ['userverwaltung', 'admin-users'],
+    ['aktivitäts-log', 'audit-log'],
+    ['aktivitaets-log', 'audit-log'],
+    ['aktivitaets log', 'audit-log'],
+    ['aktivitäts log', 'audit-log'],
+    ['audit-log', 'audit-log'],
+    ['audit log', 'audit-log'],
+    ['log', 'audit-log'],
     ['admin-notizen', 'admin-notes'],
     ['admin notizen', 'admin-notes'],
     ['admin notes', 'admin-notes'],
@@ -188,6 +196,8 @@
 
       if (
         HIDDEN_ADMIN_PAGES.has(page) ||
+        /^Admin-Notizen$/i.test(label) ||
+        /^Notizen$/i.test(label) ||
         /^User-Detail$/i.test(label) ||
         /^Rollen\s*&\s*Rechte$/i.test(label) ||
         /^Sicherheit$/i.test(label)
@@ -262,7 +272,7 @@
     const intro = panel.querySelector('.page-header p:not(.cgn-eyebrow)');
     if (eyebrow) eyebrow.textContent = 'Admin / Benutzerverwaltung';
     if (title) title.textContent = 'Benutzerverwaltung';
-    if (intro) intro.textContent = 'Admin-Übersicht über bekannte Modboard-Benutzer, Rollen und Sitzungen. Rollen werden später im User-Detail verwaltet.';
+    if (intro) intro.textContent = 'Admin-Übersicht über bekannte Modboard-Benutzer, Rollen und Sitzungen. Rollen werden später im User-Detail verwaltet. Aktivitäten stehen im Admin-Bereich unter Aktivitäts-Log.';
 
     const infoTitle = [...panel.querySelectorAll('.card-head h2')].find((node) => node.textContent.trim() === 'Bearbeiten kommt in den passenden Bereichen' || node.textContent.trim() === 'Bearbeiten bleibt gesperrt');
     if (infoTitle) infoTitle.textContent = 'Bearbeiten bleibt gesperrt';
@@ -276,12 +286,13 @@
   }
 
   function installStyle() {
-    if (document.getElementById('rdap118AdminNavPolishStyle')) return;
+    if (document.getElementById('rdap116AdminNavAuditLogStyle')) return;
 
     const style = document.createElement('style');
-    style.id = 'rdap118AdminNavPolishStyle';
+    style.id = 'rdap116AdminNavAuditLogStyle';
     style.textContent = `
       .nav-group[data-target="nav-admin-users-management"],#nav-admin-users-management{display:none!important}
+      #nav-admin .nav-link[data-page="admin-notes"],
       #nav-admin .nav-link[data-page="admin-user-detail"],
       #nav-admin .nav-link[data-page="user-detail"],
       #nav-admin .nav-link[data-page="admin-user"],
@@ -298,8 +309,8 @@
   }
 
   function installAdminNavObserver() {
-    if (document.documentElement.dataset.rdap118AdminNavObserver === '1') return;
-    document.documentElement.dataset.rdap118AdminNavObserver = '1';
+    if (document.documentElement.dataset.rdap116AdminNavObserver === '1') return;
+    document.documentElement.dataset.rdap116AdminNavObserver = '1';
 
     const nav = document.querySelector('.cgn-nav');
     if (!nav) return;
@@ -311,13 +322,7 @@
   }
 
   function loadAdminNotesModuleScript() {
-    if (document.querySelector('script[data-rdap-admin-notes-module="1"]')) return;
-
-    const script = document.createElement('script');
-    script.src = '/assets/modules/admin/notes.js';
-    script.defer = true;
-    script.dataset.rdapAdminNotesModule = '1';
-    document.head.appendChild(script);
+    return;
   }
 
   function loadAdminConnectionsModuleScript() {

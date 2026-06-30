@@ -1,50 +1,54 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.115 - Audit Log Retention Status and Admin UI Prep`
+Aktueller Stand: `0.2.116 - Audit Log Admin Area Readonly UI`
 
 ## Kurzfazit
 
-Audit-/Aktivitaets-Log hat jetzt zusaetzlich einen read-only Retention-Status.
+Admin-Bereich hat jetzt eine read-only Ansicht fuer Audit-/Aktivitaets-Log.
 
 ```text
-GET /api/remote/admin/audit/retention/status
+Admin -> Aktivitaets-Log
 ```
 
-## Zweck
-
-Klaert vor der Admin-Bereich-UI:
+## Sichtbar
 
 ```text
-wie viele Eintraege
-aeltester Eintrag
-neuester Eintrag
-Zeitraum in Tagen
-Status nach Ergebnis
-ob Selbstbereinigung aktiv ist
+Retention-Kacheln
+Audit-Log Tabelle
+Filter
 ```
 
-## Aktueller Retention-Stand
+## Nicht sichtbar
 
 ```text
-keine Retention konfiguriert
-keine Auto-Selbstbereinigung
+Admin-Notizen in Hauptnavigation
+```
+
+Admin-Notizen bleiben geparkt.
+
+## Wichtig
+
+```text
+keine Writes
 keine Loeschung
-Speicherung aktuell unbegrenzt
+keine Migration
+keine Selbstbereinigung
+keine Agent-Actions
+keine Aktionsbuttons
 ```
 
-## Runtime-Aenderung
+## Runtime/UI-Aenderung
 
 ```text
-remote-modboard/backend/src/services/audit-read.service.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/public/index.html
+remote-modboard/backend/public/assets/modules/module-manifest.js
+remote-modboard/backend/public/assets/modules/admin/audit-log.js
+remote-modboard/backend/public/assets/modules/admin/users.js
 ```
 
 ## Deploy
 
 Webserver-Deploy noetig.
-
-Verbindlich:
 
 ```bash
 bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh <STEP_NAME> dev

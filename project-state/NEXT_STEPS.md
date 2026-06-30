@@ -2,41 +2,37 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.116_AUDIT_LOG_ADMIN_AREA_READONLY_UI`
+`RDAP_0.2.117_AUDIT_LOG_ADMIN_UI_DEPLOY_VERIFY`
 
 ## Ziel
 
-Admin-Bereich Read-only UI fuer Audit-Log:
+Nach Deploy live pruefen:
 
-```text
-Retention-Kacheln
-Audit-Liste
-Filter
-keine Aktionen
+```bash
+curl -fsS "http://127.0.0.1:3010/api/remote/routes" | jq '.adminAuditRetentionReadonly.readOnly,.adminAuditLogReadonly.readOnly'
 ```
 
-## Datenquellen
+Browser:
 
 ```text
-GET /api/remote/admin/audit/retention/status
-GET /api/remote/admin/audit/log
+Admin -> Aktivitaets-Log
+```
+
+## Danach entscheiden
+
+```text
+A. UI polish/Lesbarkeit fuer Audit-Tabelle
+B. Retention-Policy entscheiden
+C. Admin/User-Bereich weiter ausbauen
 ```
 
 ## Regeln
 
 ```text
-Admin-Bereich
 keine Admin-Notizen
 keine Writes
 keine Migration
 keine Loeschung
 keine Gates aktivieren
 keine Agent-Actions
-keine Aktionsbuttons
-```
-
-## Deploy-Regel
-
-```bash
-bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh <STEP_NAME> dev
 ```
