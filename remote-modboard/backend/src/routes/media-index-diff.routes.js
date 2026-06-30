@@ -11,10 +11,10 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_media_root_readonly_verify_077.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_persistent_tombstone_execute_foundation_059.v1';
-const BUILD = 'RDAP_0.2.77_MEDIA_INDEX_DIFF_MEDIA_ROOT_READONLY_VERIFY';
-const PREVIOUS_BUILD = 'RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION';
+const STATUS_API_VERSION = 'rdap_media_index_diff_route_build_polish_079.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_media_root_readonly_verify_077.v1';
+const BUILD = 'RDAP_0.2.79_MEDIA_INDEX_DIFF_ROUTE_BUILD_POLISH_READONLY';
+const PREVIOUS_BUILD = 'RDAP_0.2.77_MEDIA_INDEX_DIFF_MEDIA_ROOT_READONLY_VERIFY';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
 const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
@@ -78,7 +78,8 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       service: 'remote-modboard',
       module: MODULE,
       moduleVersion: context.appVersion || '0.2.59',
-      moduleBuild: context.moduleBuild || BUILD,
+      moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
       statusApiVersion: STATUS_API_VERSION,
@@ -127,7 +128,8 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     service: 'remote-modboard',
     module: MODULE,
     moduleVersion: context.appVersion || '0.2.59',
-    moduleBuild: context.moduleBuild || BUILD,
+    moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -177,7 +179,8 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
       service: 'remote-modboard',
       module: 'remote_media_index_persistent_tombstone_preview',
       moduleVersion: context.appVersion || '0.2.59',
-      moduleBuild: context.moduleBuild || BUILD,
+      moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
       statusApiVersion: STATUS_API_VERSION,
@@ -224,7 +227,8 @@ async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
     service: 'remote-modboard',
     module: 'remote_media_index_persistent_tombstone_preview',
     moduleVersion: context.appVersion || '0.2.59',
-    moduleBuild: context.moduleBuild || BUILD,
+    moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
     statusApiVersion: STATUS_API_VERSION,
@@ -344,7 +348,8 @@ async function executePersistentTombstoneFoundation(context = {}, req = null) {
     service: 'remote-modboard',
     module: 'remote_media_index_persistent_tombstone_execute_foundation',
     moduleVersion: context.appVersion || '0.2.59',
-    moduleBuild: context.moduleBuild || BUILD,
+    moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
     statusApiVersion: STATUS_API_VERSION,
