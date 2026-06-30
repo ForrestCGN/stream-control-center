@@ -3,11 +3,15 @@
 (function registerAdminAuditLogModule() {
   const PAGE_ID = 'audit-log';
   const AUDIT_LOG_ENDPOINT = '/api/remote/admin/audit/log';
-  const RETENTION_ENDPOINT = '/api/remote/admin/audit/retention/status';
   let loading = false;
 
+  const LOG_SOURCES = {
+    remote: { label: 'Remote-Modboard', hint: 'Webserver-Logs' },
+    local: { label: 'Lokal / Stream-PC', hint: 'vorbereitet, API kommt später' }
+  };
+
   const LOG_AREAS = {
-    all: { label: 'Alle Logs', action: '', hint: 'Alle vorhandenen Audit-Einträge.' },
+    all: { label: 'Alle Logs', action: '', hint: 'Alle vorhandenen Remote-Logs.' },
     media: { label: 'Media-System', action: 'media', hint: 'Medienindex, Media-Schema, TTS/Legacy.' },
     adminNotes: { label: 'Admin-Notizen', action: 'note', hint: 'Erstellte oder geänderte Admin-Notizen.' },
     system: { label: 'System / RDAP', action: 'rdap', hint: 'System-, RDAP- und technische Wartungseinträge.' },
@@ -45,40 +49,27 @@
     }
 
     panel.innerHTML = `
-      <section class="page-header module-page-header cgn-card rdap-audit-header">
+      <section class="page-header module-page-header cgn-card rdap-logs-header">
         <div>
-          <p class="cgn-eyebrow">Admin / Logs</p>
+          <p class="cgn-eyebrow">Admin</p>
           <h1>Logs</h1>
-          <p>Read-only Übersicht. Wähle oben den Log-Bereich; weitere Module können später ergänzt werden.</p>
         </div>
-        <div class="rdap-audit-header-actions">
-          <span class="cgn-chip cgn-chip--info" id="auditLogReadonlyPill">read-only</span>
-          <button class="secondaryButton small" type="button" id="auditLogRefreshButton">Neu laden</button>
+        <div class="rdap-logs-header-actions">
+          <span class="cgn-chip cgn-chip--info" id="logsReadonlyPill">read-only</span>
+          <button class="secondaryButton small" type="button" id="logsRefreshButton">Neu laden</button>
         </div>
       </section>
 
-      <section class="metric-grid rdap-audit-retention-grid rdap-audit-retention-grid--compact">
-        <article class="metric-card cgn-card"><span>Einträge</span><strong id="auditMetricTotal">—</strong><small>gesamt</small></article>
-        <article class="metric-card cgn-card"><span>Ältester</span><strong id="auditMetricOldest">—</strong><small>Start</small></article>
-        <article class="metric-card cgn-card"><span>Neuester</span><strong id="auditMetricNewest">—</strong><small>letzter</small></article>
-        <article class="metric-card cgn-card"><span>Bereinigung</span><strong id="auditMetricCleanup">—</strong><small id="auditMetricRetentionHint">Status</small></article>
-      </section>
-
-      <section class="cgn-card rdap-audit-retention-note">
-        <span class="cgn-chip cgn-chip--warn" id="auditRetentionPill">unbegrenzt</span>
-        <strong>Keine Selbstbereinigung aktiv</strong>
-        <span id="auditRetentionText">Speicherung aktuell unbegrenzt.</span>
-      </section>
-
-      <section class="cgn-card rdap-audit-list-card">
-        <div class="card-head rdap-audit-tools-head">
-          <div><p class="cgn-eyebrow">Log-Bereich</p><h2 id="auditAreaTitle">Alle Logs</h2></div>
-          <span class="cgn-chip" id="auditLogPill">lädt</span>
-        </div>
-
-        <div class="rdap-audit-area-row">
-          <label>Log auswählen
-            <select id="auditFilterArea">
+      <section class="cgn-card rdap-logs-card">
+        <div class="rdap-logs-selectors">
+          <label>Log-Quelle
+            <select id="logsFilterSource">
+              <option value="remote">Remote-Modboard</option>
+              <option value="local" disabled>Lokal / Stream-PC später</option>
+            </select>
+          </label>
+          <label>Log-Bereich
+            <select id="logsFilterArea">
               <option value="all">Alle Logs</option>
               <option value="media">Media-System</option>
               <option value="adminNotes">Admin-Notizen</option>
@@ -87,12 +78,8 @@
               <option value="future">Weitere Module später</option>
             </select>
           </label>
-          <span id="auditAreaHint">Alle vorhandenen Audit-Einträge.</span>
-        </div>
-
-        <div class="rdap-audit-filters rdap-audit-filters--compact">
           <label>Status
-            <select id="auditFilterStatus">
+            <select id="logsFilterStatus">
               <option value="">Alle</option>
               <option value="success">Erfolg</option>
               <option value="attempt">Versuch</option>
@@ -100,13 +87,13 @@
             </select>
           </label>
           <label>Suche
-            <input id="auditFilterAction" type="search" placeholder="z.B. Medien, Notiz">
+            <input id="logsFilterSearch" type="search" placeholder="z.B. Medien, Notiz">
           </label>
           <label>Wer
-            <input id="auditFilterActor" type="search" placeholder="Name / Login">
+            <input id="logsFilterActor" type="search" placeholder="Name / Login">
           </label>
           <label>Anzahl
-            <select id="auditFilterLimit">
+            <select id="logsFilterLimit">
               <option value="25" selected>25</option>
               <option value="50">50</option>
               <option value="100">100</option>
@@ -114,92 +101,92 @@
           </label>
         </div>
 
-        <div class="rdap-audit-list" id="auditLogList">Lade Logs …</div>
+        <div class="card-head rdap-logs-list-head">
+          <div><p class="cgn-eyebrow" id="logsAreaEyebrow">Remote-Modboard</p><h2 id="logsAreaTitle">Alle Logs</h2></div>
+          <span class="cgn-chip" id="logsCountPill">lädt</span>
+        </div>
+
+        <div class="rdap-logs-list" id="logsList">Lade Logs …</div>
       </section>
     `;
 
     installStyle();
     bindActions();
-    renderSelectedArea();
+    renderSelectedMeta();
     return panel;
   }
 
   function installStyle() {
-    ['rdap116AuditLogUiStyle', 'rdap116bAuditLogCompactStyle', 'rdap116cAuditLogHumanLabelsStyle'].forEach((id) => {
+    [
+      'rdap116AuditLogUiStyle',
+      'rdap116bAuditLogCompactStyle',
+      'rdap116cAuditLogHumanLabelsStyle',
+      'rdap116dLogsModuleDropdownStyle'
+    ].forEach((id) => {
       const oldStyle = document.getElementById(id);
       if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
     });
-    if (document.getElementById('rdap116dLogsModuleDropdownStyle')) return;
+    if (document.getElementById('rdap116eLogsCleanSelectorStyle')) return;
 
     const style = document.createElement('style');
-    style.id = 'rdap116dLogsModuleDropdownStyle';
+    style.id = 'rdap116eLogsCleanSelectorStyle';
     style.textContent = `
       #nav-admin .nav-link[data-page="admin-notes"]{display:none!important}
       [data-page-panel="audit-log"]{gap:12px!important}
-      [data-page-panel="audit-log"] .rdap-audit-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 16px!important}
-      [data-page-panel="audit-log"] .rdap-audit-header h1{font-size:24px!important;margin:0!important}
-      [data-page-panel="audit-log"] .rdap-audit-header p:not(.cgn-eyebrow){max-width:840px;margin-top:5px!important;font-size:13px!important}
-      [data-page-panel="audit-log"] .rdap-audit-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-      [data-page-panel="audit-log"] .rdap-audit-retention-grid--compact{gap:8px!important;margin:0!important}
-      [data-page-panel="audit-log"] .rdap-audit-retention-grid--compact .metric-card{min-height:74px!important;padding:12px 14px!important}
-      [data-page-panel="audit-log"] .rdap-audit-retention-grid--compact .metric-card strong{font-size:20px!important;line-height:1.05!important}
-      [data-page-panel="audit-log"] .rdap-audit-retention-grid--compact .metric-card .cgn-progress{display:none!important}
-      [data-page-panel="audit-log"] .rdap-audit-retention-note{display:flex!important;align-items:center!important;gap:10px!important;padding:10px 12px!important;border-radius:16px!important;background:rgba(255,209,102,.07)!important;border:1px solid rgba(255,209,102,.16)!important}
-      [data-page-panel="audit-log"] .rdap-audit-retention-note strong{font-size:13px!important;white-space:nowrap}
-      [data-page-panel="audit-log"] .rdap-audit-retention-note span:last-child{font-size:12px!important;color:var(--muted)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      [data-page-panel="audit-log"] .rdap-audit-list-card{padding:14px!important}
-      [data-page-panel="audit-log"] .rdap-audit-tools-head{margin-bottom:10px!important}
-      [data-page-panel="audit-log"] .rdap-audit-area-row{display:grid;grid-template-columns:280px 1fr;gap:10px;align-items:end;margin-bottom:10px;padding:10px;border-radius:14px;background:rgba(27,216,255,.055);border:1px solid rgba(27,216,255,.12)}
-      [data-page-panel="audit-log"] .rdap-audit-area-row label{display:grid;gap:4px;color:var(--muted);font-size:11px}
-      [data-page-panel="audit-log"] .rdap-audit-area-row span{font-size:12px;color:var(--muted);padding-bottom:8px}
-      [data-page-panel="audit-log"] .rdap-audit-filters--compact{display:grid;grid-template-columns:.8fr 1fr 1fr .65fr;gap:8px;margin:0 0 10px!important}
-      [data-page-panel="audit-log"] .rdap-audit-filters--compact label{display:grid;gap:4px;color:var(--muted);font-size:11px}
-      [data-page-panel="audit-log"] .rdap-audit-filters--compact input,
-      [data-page-panel="audit-log"] .rdap-audit-filters--compact select,
-      [data-page-panel="audit-log"] .rdap-audit-area-row select{min-height:32px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:rgba(12,12,28,.72);color:var(--text);padding:6px 9px;outline:none;font-size:13px}
-      [data-page-panel="audit-log"] .rdap-audit-list{display:grid;gap:6px}
-      [data-page-panel="audit-log"] .rdap-audit-row{display:grid;grid-template-columns:112px 160px minmax(240px,1fr) 105px 82px;gap:10px;align-items:center;padding:8px 10px;border:1px solid rgba(255,255,255,.07);border-radius:14px;background:rgba(255,255,255,.026)}
-      [data-page-panel="audit-log"] .rdap-audit-row:hover{background:rgba(255,255,255,.04)}
-      [data-page-panel="audit-log"] .rdap-audit-row-main{display:grid;gap:2px;min-width:0}
-      [data-page-panel="audit-log"] .rdap-audit-row-main strong{font-size:13px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      [data-page-panel="audit-log"] .rdap-audit-row-main small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      [data-page-panel="audit-log"] .rdap-audit-human-action{font-size:15px!important;font-weight:900!important;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      [data-page-panel="audit-log"] .rdap-audit-time{font-size:12px;line-height:1.25}
-      [data-page-panel="audit-log"] .rdap-audit-details-toggle{justify-self:end;min-height:28px!important;padding:5px 9px!important;border-radius:10px!important;font-size:12px!important}
-      [data-page-panel="audit-log"] .rdap-audit-detail{grid-column:1/-1;display:none;margin-top:2px;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.16);color:var(--muted);font-size:12px;line-height:1.35;word-break:break-word}
-      [data-page-panel="audit-log"] .rdap-audit-row.is-open .rdap-audit-detail{display:block}
-      [data-page-panel="audit-log"] .rdap-audit-status-wrap{display:flex;justify-content:flex-end}
-      @media (max-width:1180px){[data-page-panel="audit-log"] .rdap-audit-row{grid-template-columns:100px 140px minmax(210px,1fr) 92px 78px}}
-      @media (max-width:860px){[data-page-panel="audit-log"] .rdap-audit-area-row{grid-template-columns:1fr}[data-page-panel="audit-log"] .rdap-audit-area-row span{padding-bottom:0}[data-page-panel="audit-log"] .rdap-audit-filters--compact{grid-template-columns:1fr 1fr}[data-page-panel="audit-log"] .rdap-audit-row{grid-template-columns:1fr;align-items:start}[data-page-panel="audit-log"] .rdap-audit-status-wrap{justify-content:flex-start}[data-page-panel="audit-log"] .rdap-audit-details-toggle{justify-self:start}}
-      @media (max-width:640px){[data-page-panel="audit-log"] .rdap-audit-header{display:grid}[data-page-panel="audit-log"] .rdap-audit-filters--compact{grid-template-columns:1fr}[data-page-panel="audit-log"] .rdap-audit-retention-note{display:grid!important}[data-page-panel="audit-log"] .rdap-audit-retention-note span:last-child{white-space:normal}}
+      [data-page-panel="audit-log"] .rdap-logs-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px!important}
+      [data-page-panel="audit-log"] .rdap-logs-header h1{font-size:26px!important;margin:0!important;line-height:1!important}
+      [data-page-panel="audit-log"] .rdap-logs-header .cgn-eyebrow{margin-bottom:4px!important}
+      [data-page-panel="audit-log"] .rdap-logs-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+      [data-page-panel="audit-log"] .rdap-logs-card{padding:14px!important}
+      [data-page-panel="audit-log"] .rdap-logs-selectors{display:grid;grid-template-columns:1.1fr 1.1fr .75fr 1fr 1fr .65fr;gap:8px;margin-bottom:12px}
+      [data-page-panel="audit-log"] .rdap-logs-selectors label{display:grid;gap:4px;color:var(--muted);font-size:11px}
+      [data-page-panel="audit-log"] .rdap-logs-selectors input,
+      [data-page-panel="audit-log"] .rdap-logs-selectors select{min-height:32px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:rgba(12,12,28,.72);color:var(--text);padding:6px 9px;outline:none;font-size:13px}
+      [data-page-panel="audit-log"] .rdap-logs-selectors select:disabled{opacity:.55}
+      [data-page-panel="audit-log"] .rdap-logs-list-head{margin:2px 0 10px!important}
+      [data-page-panel="audit-log"] .rdap-logs-list{display:grid;gap:6px}
+      [data-page-panel="audit-log"] .rdap-log-row{display:grid;grid-template-columns:112px 160px minmax(240px,1fr) 105px 82px;gap:10px;align-items:center;padding:8px 10px;border:1px solid rgba(255,255,255,.07);border-radius:14px;background:rgba(255,255,255,.026)}
+      [data-page-panel="audit-log"] .rdap-log-row:hover{background:rgba(255,255,255,.04)}
+      [data-page-panel="audit-log"] .rdap-log-row-main{display:grid;gap:2px;min-width:0}
+      [data-page-panel="audit-log"] .rdap-log-row-main strong{font-size:13px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      [data-page-panel="audit-log"] .rdap-log-row-main small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      [data-page-panel="audit-log"] .rdap-log-human-action{font-size:15px!important;font-weight:900!important;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      [data-page-panel="audit-log"] .rdap-log-time{font-size:12px;line-height:1.25}
+      [data-page-panel="audit-log"] .rdap-log-details-toggle{justify-self:end;min-height:28px!important;padding:5px 9px!important;border-radius:10px!important;font-size:12px!important}
+      [data-page-panel="audit-log"] .rdap-log-detail{grid-column:1/-1;display:none;margin-top:2px;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.16);color:var(--muted);font-size:12px;line-height:1.35;word-break:break-word}
+      [data-page-panel="audit-log"] .rdap-log-row.is-open .rdap-log-detail{display:block}
+      [data-page-panel="audit-log"] .rdap-log-status-wrap{display:flex;justify-content:flex-end}
+      @media (max-width:1260px){[data-page-panel="audit-log"] .rdap-logs-selectors{grid-template-columns:1fr 1fr 1fr}[data-page-panel="audit-log"] .rdap-log-row{grid-template-columns:100px 140px minmax(210px,1fr) 92px 78px}}
+      @media (max-width:860px){[data-page-panel="audit-log"] .rdap-logs-selectors{grid-template-columns:1fr 1fr}[data-page-panel="audit-log"] .rdap-log-row{grid-template-columns:1fr;align-items:start}[data-page-panel="audit-log"] .rdap-log-status-wrap{justify-content:flex-start}[data-page-panel="audit-log"] .rdap-log-details-toggle{justify-self:start}}
+      @media (max-width:640px){[data-page-panel="audit-log"] .rdap-logs-header{display:grid}[data-page-panel="audit-log"] .rdap-logs-selectors{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
 
   function bindActions() {
-    const button = document.getElementById('auditLogRefreshButton');
-    if (button && button.dataset.rdap116dBound !== '1') {
-      button.dataset.rdap116dBound = '1';
-      button.addEventListener('click', () => loadAuditLog('manual'));
+    const button = document.getElementById('logsRefreshButton');
+    if (button && button.dataset.rdap116eBound !== '1') {
+      button.dataset.rdap116eBound = '1';
+      button.addEventListener('click', () => loadLogs('manual'));
     }
 
-    ['auditFilterArea', 'auditFilterStatus', 'auditFilterAction', 'auditFilterActor', 'auditFilterLimit'].forEach((id) => {
+    ['logsFilterSource', 'logsFilterArea', 'logsFilterStatus', 'logsFilterSearch', 'logsFilterActor', 'logsFilterLimit'].forEach((id) => {
       const node = document.getElementById(id);
-      if (!node || node.dataset.rdap116dBound === '1') return;
-      node.dataset.rdap116dBound = '1';
+      if (!node || node.dataset.rdap116eBound === '1') return;
+      node.dataset.rdap116eBound = '1';
       node.addEventListener(node.tagName === 'SELECT' ? 'change' : 'input', debounce(() => {
-        if (id === 'auditFilterArea') renderSelectedArea();
-        loadAuditLog('filter');
+        renderSelectedMeta();
+        loadLogs('filter');
       }, 250));
     });
 
-    const list = document.getElementById('auditLogList');
-    if (list && list.dataset.rdap116dBound !== '1') {
-      list.dataset.rdap116dBound = '1';
+    const list = document.getElementById('logsList');
+    if (list && list.dataset.rdap116eBound !== '1') {
+      list.dataset.rdap116eBound = '1';
       list.addEventListener('click', (event) => {
-        const button = event.target && event.target.closest ? event.target.closest('[data-audit-toggle]') : null;
+        const button = event.target && event.target.closest ? event.target.closest('[data-log-toggle]') : null;
         if (!button) return;
-        const row = button.closest('.rdap-audit-row');
+        const row = button.closest('.rdap-log-row');
         if (!row) return;
         const open = row.classList.toggle('is-open');
         button.textContent = open ? 'weniger' : 'Details';
@@ -207,24 +194,28 @@
     }
   }
 
-  function renderSelectedArea() {
+  function renderSelectedMeta() {
+    const source = getSelectedSource();
     const area = getSelectedArea();
-    setText('auditAreaTitle', area.label);
-    setText('auditAreaHint', area.hint);
+    setText('logsAreaEyebrow', source.label);
+    setText('logsAreaTitle', area.label);
   }
 
-  async function loadAuditLog(reason) {
+  async function loadLogs(reason) {
     if (loading) return;
     loading = true;
     setButtonLoading(true);
 
-    const [retention, log] = await Promise.all([
-      getJson(RETENTION_ENDPOINT),
-      getJson(buildLogUrl())
-    ]);
+    const sourceKey = getValue('logsFilterSource') || 'remote';
+    if (sourceKey !== 'remote') {
+      renderLogs({ ok: true, body: { items: [] } }, reason, 'Diese Log-Quelle ist vorbereitet. Lokale Logs kommen mit eigener API später.');
+      setButtonLoading(false);
+      loading = false;
+      return;
+    }
 
-    renderRetention(retention);
-    renderLog(log, reason);
+    const result = await getJson(buildLogUrl());
+    renderLogs(result, reason);
 
     setButtonLoading(false);
     loading = false;
@@ -232,10 +223,10 @@
 
   function buildLogUrl() {
     const params = new URLSearchParams();
-    const status = getValue('auditFilterStatus');
-    const search = getValue('auditFilterAction');
-    const actor = getValue('auditFilterActor');
-    const limit = getValue('auditFilterLimit') || '25';
+    const status = getValue('logsFilterStatus');
+    const search = getValue('logsFilterSearch');
+    const actor = getValue('logsFilterActor');
+    const limit = getValue('logsFilterLimit') || '25';
     const area = getSelectedArea();
 
     params.set('limit', limit);
@@ -246,8 +237,13 @@
     return `${AUDIT_LOG_ENDPOINT}?${params.toString()}`;
   }
 
+  function getSelectedSource() {
+    const key = getValue('logsFilterSource') || 'remote';
+    return LOG_SOURCES[key] || LOG_SOURCES.remote;
+  }
+
   function getSelectedArea() {
-    const key = getValue('auditFilterArea') || 'all';
+    const key = getValue('logsFilterArea') || 'all';
     return LOG_AREAS[key] || LOG_AREAS.all;
   }
 
@@ -277,42 +273,17 @@
     }
   }
 
-  function renderRetention(result) {
-    const body = result && result.body ? result.body : {};
-    const storage = body.storage || {};
-    const policy = body.retentionPolicy || {};
-    const totalRows = Number(storage.totalRows || 0);
-    setText('auditMetricTotal', totalRows.toLocaleString('de-DE'));
-    setText('auditMetricOldest', formatDateShort(storage.oldestCreatedAt));
-    setText('auditMetricNewest', formatDateShort(storage.newestCreatedAt));
-    setText('auditMetricCleanup', policy.autoCleanupEnabled ? 'Aktiv' : 'Aus');
-    setText('auditMetricRetentionHint', policy.configured ? 'konfiguriert' : 'unbegrenzt');
-
-    const retentionPill = document.getElementById('auditRetentionPill');
-    if (retentionPill) {
-      retentionPill.textContent = policy.autoCleanupEnabled ? 'aktiv' : 'unbegrenzt';
-      retentionPill.className = policy.autoCleanupEnabled ? 'cgn-chip cgn-chip--ok' : 'cgn-chip cgn-chip--warn';
-    }
-
-    const recommendation = policy.recommendation || {};
-    const spanDays = storage.spanDays === null || storage.spanDays === undefined ? '—' : `${storage.spanDays} Tage`;
-    setText('auditRetentionText', policy.autoCleanupEnabled
-      ? `Selbstbereinigung aktiv · Bestand: ${spanDays}`
-      : `Keine Selbstbereinigung · ${totalRows.toLocaleString('de-DE')} Einträge · ${spanDays} · Vorschlag: ${recommendation.maxAgeDays || 180} Tage / ${(recommendation.maxRows || 10000).toLocaleString('de-DE')} Einträge`
-    );
-  }
-
-  function renderLog(result, reason) {
+  function renderLogs(result, reason, emptyMessage) {
     const body = result && result.body ? result.body : {};
     let items = Array.isArray(body.items) ? body.items : [];
-    const list = document.getElementById('auditLogList');
+    const list = document.getElementById('logsList');
     if (!list) return;
 
-    const areaKey = getValue('auditFilterArea') || 'all';
+    const areaKey = getValue('logsFilterArea') || 'all';
     if (areaKey === 'future') items = [];
 
     const ok = Boolean(result && result.ok);
-    const pill = document.getElementById('auditLogPill');
+    const pill = document.getElementById('logsCountPill');
     if (pill) {
       pill.textContent = ok ? `${items.length} Einträge` : 'Fehler';
       pill.className = ok ? 'cgn-chip cgn-chip--ok' : 'cgn-chip cgn-chip--warn';
@@ -324,23 +295,23 @@
     }
 
     if (!items.length) {
-      list.textContent = areaKey === 'future'
+      list.textContent = emptyMessage || (areaKey === 'future'
         ? 'Dieser Log-Bereich ist vorbereitet. Einträge kommen später.'
-        : 'Keine passenden Einträge gefunden.';
+        : 'Keine passenden Einträge gefunden.');
       return;
     }
 
     list.innerHTML = items.map((item, index) => {
-      const human = humanizeAuditItem(item);
+      const human = humanizeLogItem(item);
       const actor = human.actor;
       return `
-        <article class="rdap-audit-row">
-          <div class="rdap-audit-time">${escapeHtml(formatDateCompact(item.createdAt))}</div>
-          <div class="rdap-audit-row-main"><strong>${escapeHtml(actor.title)}</strong><small>${escapeHtml(actor.sub)}</small></div>
-          <div class="rdap-audit-row-main"><span class="rdap-audit-human-action">${escapeHtml(human.title)}</span><small>${escapeHtml(human.sub)}</small></div>
-          <div class="rdap-audit-status-wrap">${statusChip(item.status, item.errorCode)}</div>
-          <button class="secondaryButton rdap-audit-details-toggle" type="button" data-audit-toggle="${index}">Details</button>
-          <div class="rdap-audit-detail">
+        <article class="rdap-log-row">
+          <div class="rdap-log-time">${escapeHtml(formatDateCompact(item.createdAt))}</div>
+          <div class="rdap-log-row-main"><strong>${escapeHtml(actor.title)}</strong><small>${escapeHtml(actor.sub)}</small></div>
+          <div class="rdap-log-row-main"><span class="rdap-log-human-action">${escapeHtml(human.title)}</span><small>${escapeHtml(human.sub)}</small></div>
+          <div class="rdap-log-status-wrap">${statusChip(item.status, item.errorCode)}</div>
+          <button class="secondaryButton rdap-log-details-toggle" type="button" data-log-toggle="${index}">Details</button>
+          <div class="rdap-log-detail">
             <strong>Log-Bereich:</strong> ${escapeHtml(resolveAreaLabelForItem(item))}<br>
             <strong>Technische Aktion:</strong> ${escapeHtml(item.action || '—')}<br>
             <strong>Ziel:</strong> ${escapeHtml([item.resourceType, item.resourceKey].filter(Boolean).join(': ') || '—')}<br>
@@ -362,42 +333,22 @@
     return 'System / RDAP';
   }
 
-  function humanizeAuditItem(item) {
+  function humanizeLogItem(item) {
     const action = String(item.action || '').toLowerCase();
     const resourceType = String(item.resourceType || '').toLowerCase();
     const resourceKey = String(item.resourceKey || '').toLowerCase();
     const summary = String(item.summary || '').toLowerCase();
 
-    if (action.includes('media_index.upsert')) {
-      return { title: 'Medienindex aktualisiert', sub: 'Medienbestand wurde neu eingelesen.', actor: systemActor(item) };
-    }
-    if (action.includes('media_index.schema')) {
-      return { title: 'Media-System vorbereitet', sub: 'Datenmodell fuer Medien wurde erweitert.', actor: systemActor(item) };
-    }
-    if (action.includes('media_index.tts') || action.includes('legacy.soft_delete') || resourceKey.includes('tts-generated-legacy')) {
-      return { title: 'Alte TTS-Einträge bereinigt', sub: 'Legacy-TTS wurde im Medienindex ausgeblendet.', actor: systemActor(item) };
-    }
-    if (action.includes('admin.user_note.update') || action.includes('admin_note') || resourceType.includes('admin_user_note')) {
-      return { title: 'Admin-Notiz geändert', sub: 'Eine interne Admin-Notiz wurde aktualisiert.', actor: humanActor(item) };
-    }
-    if (action.includes('admin.user_note.create')) {
-      return { title: 'Admin-Notiz erstellt', sub: 'Eine interne Admin-Notiz wurde angelegt.', actor: humanActor(item) };
-    }
-    if (action.includes('lock')) {
-      return { title: 'Schutz-/Lock-Aktion', sub: 'Ein geschützter Vorgang wurde verwaltet.', actor: systemActor(item) };
-    }
-    if (action.includes('test_insert')) {
-      return { title: 'Audit-Testeintrag geschrieben', sub: 'Lokaler Test zur Audit-Prüfung.', actor: systemActor(item) };
-    }
-    if (summary.includes('media index')) {
-      return { title: 'Media-System Aktion', sub: 'Technische Medienverwaltung.', actor: systemActor(item) };
-    }
+    if (action.includes('media_index.upsert')) return { title: 'Medienindex aktualisiert', sub: 'Medienbestand wurde neu eingelesen.', actor: systemActor(item) };
+    if (action.includes('media_index.schema')) return { title: 'Media-System vorbereitet', sub: 'Datenmodell fuer Medien wurde erweitert.', actor: systemActor(item) };
+    if (action.includes('media_index.tts') || action.includes('legacy.soft_delete') || resourceKey.includes('tts-generated-legacy')) return { title: 'Alte TTS-Einträge bereinigt', sub: 'Legacy-TTS wurde im Medienindex ausgeblendet.', actor: systemActor(item) };
+    if (action.includes('admin.user_note.update') || action.includes('admin_note') || resourceType.includes('admin_user_note')) return { title: 'Admin-Notiz geändert', sub: 'Eine interne Admin-Notiz wurde aktualisiert.', actor: humanActor(item) };
+    if (action.includes('admin.user_note.create')) return { title: 'Admin-Notiz erstellt', sub: 'Eine interne Admin-Notiz wurde angelegt.', actor: humanActor(item) };
+    if (action.includes('lock')) return { title: 'Schutz-/Lock-Aktion', sub: 'Ein geschützter Vorgang wurde verwaltet.', actor: systemActor(item) };
+    if (action.includes('test_insert')) return { title: 'Audit-Testeintrag geschrieben', sub: 'Lokaler Test zur Audit-Prüfung.', actor: systemActor(item) };
+    if (summary.includes('media index')) return { title: 'Media-System Aktion', sub: 'Technische Medienverwaltung.', actor: systemActor(item) };
 
-    return {
-      title: readableFromAction(item.action || 'Aktion ausgeführt'),
-      sub: readableTarget(item),
-      actor: humanActor(item)
-    };
+    return { title: readableFromAction(item.action || 'Aktion ausgeführt'), sub: readableTarget(item), actor: humanActor(item) };
   }
 
   function systemActor(item) {
@@ -414,24 +365,17 @@
   }
 
   function trimActorSub(value) {
-    return String(value || '')
-      .replace(/^system:/, '')
-      .replace(/^rdap(\d+)/i, 'RDAP $1')
-      .slice(0, 42);
+    return String(value || '').replace(/^system:/, '').replace(/^rdap(\d+)/i, 'RDAP $1').slice(0, 42);
   }
 
   function readableFromAction(value) {
-    const text = String(value || '')
-      .replace(/[_.:]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    const text = String(value || '').replace(/[_.:]+/g, ' ').replace(/\s+/g, ' ').trim();
     if (!text) return 'Aktion ausgeführt';
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
   function readableTarget(item) {
-    const target = [item.resourceType, item.resourceKey].filter(Boolean).join(': ');
-    return target || 'Technischer Eintrag';
+    return [item.resourceType, item.resourceKey].filter(Boolean).join(': ') || 'Technischer Eintrag';
   }
 
   function statusChip(status, errorCode) {
@@ -442,7 +386,7 @@
   }
 
   function setButtonLoading(value) {
-    const button = document.getElementById('auditLogRefreshButton');
+    const button = document.getElementById('logsRefreshButton');
     if (!button) return;
     button.disabled = Boolean(value);
     button.textContent = value ? 'lädt…' : 'Neu laden';
@@ -465,13 +409,6 @@
     return date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   }
 
-  function formatDateShort(value) {
-    if (!value) return '—';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
-    return date.toLocaleDateString('de-DE');
-  }
-
   function debounce(fn, delay) {
     let timer = null;
     return function debounced() {
@@ -492,13 +429,13 @@
   function install() {
     registerPage();
     createPanel();
-    loadAuditLog('initial');
+    loadLogs('initial');
   }
 
   install();
   document.addEventListener('DOMContentLoaded', install);
   window.addEventListener('rdap:module-registry-ready', install);
   window.addEventListener('rdap:main-router-page-change', (event) => {
-    if (event && event.detail && event.detail.page === PAGE_ID) loadAuditLog('page');
+    if (event && event.detail && event.detail.page === PAGE_ID) loadLogs('page');
   });
 })();

@@ -1,15 +1,15 @@
 # FILES
 
-## 0.2.116D Runtime/UI
+## 0.2.116E Runtime/UI
 
 ```text
 remote-modboard/backend/public/assets/modules/admin/audit-log.js
 ```
 
-## 0.2.116D Doku
+## 0.2.116E Doku
 
 ```text
-docs/current/RDAP_0.2.116D_LOGS_MODULE_DROPDOWN.md
+docs/current/RDAP_0.2.116E_LOGS_CLEAN_SELECTOR_UI.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

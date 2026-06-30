@@ -1,7 +1,7 @@
 # TODO
 
-- [x] 0.2.116C: Audit Log Human Labels.
 - [x] 0.2.116D: Logs Module Dropdown.
-- [ ] 0.2.117: Logs Module Dropdown Deploy Verify.
-- [ ] Spaeter: weitere Log-Bereiche sauber anbinden.
-- [ ] Spaeter: Audit-Retention-Policy festlegen.
+- [x] 0.2.116E: Logs Clean Selector UI.
+- [ ] 0.2.117: Logs Clean Selector UI Deploy Verify.
+- [ ] Spaeter: lokale Logs API planen.
+- [ ] Spaeter: weitere Log-Bereiche anbinden.
