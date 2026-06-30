@@ -11,10 +11,10 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_persistent_tombstone_execute_foundation_059.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_persistent_tombstone_preview_058p.v1';
-const BUILD = 'RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION';
-const PREVIOUS_BUILD = 'RDAP_0.2.58P_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_PREVIEW';
+const STATUS_API_VERSION = 'rdap_media_index_diff_media_root_readonly_verify_077.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_persistent_tombstone_execute_foundation_059.v1';
+const BUILD = 'RDAP_0.2.77_MEDIA_INDEX_DIFF_MEDIA_ROOT_READONLY_VERIFY';
+const PREVIOUS_BUILD = 'RDAP_0.2.59_MEDIA_INDEX_PERSISTENT_TOMBSTONE_GATED_EXECUTE_FOUNDATION';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
 const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
@@ -33,7 +33,7 @@ const MODIFIED_AT_SOFT_OFFSET_BUCKETS = Object.freeze([
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
 const MEDIA_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
-const MEDIA_ROOT_KEYS = new Set(['sounds', 'videos', 'images']);
+const MEDIA_ROOT_KEYS = new Set(['sounds', 'videos', 'images', 'media']);
 const TTS_TEMP_ROOT_KEY = 'sounds';
 const TTS_TEMP_PREFIX = 'tts/generated/';
 const TTS_EXCLUDED_LEGACY_CLASSIFICATION = 'tts_generated_excluded_from_sync_legacy_candidate';
@@ -161,7 +161,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ],
     note: agentSnapshotUnavailable
       ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
-      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58K klassifiziert alte TTS generated DB-Eintraege als aus dem Sync ausgeschlossene temporaere Legacy-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.77 akzeptiert zusaetzlich den Media-System-Root media und erhaelt Kontextfelder fuer Diff-/Preview-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -1172,9 +1172,26 @@ function sanitizeMediaItem(item) {
   if (!extension) return null;
   const id = safeMediaId(source.id || `${rootKey}:${relativePath}`);
   if (!id) return null;
+
+  const pathParts = relativePath.split('/').filter(Boolean);
+  const defaultSource = rootKey === 'media' ? 'media_system' : 'legacy_asset_root';
+  const moduleKey = safeMediaContextKey(source.moduleKey || (rootKey === 'media' ? pathParts[0] : rootKey), rootKey);
+  const categoryKey = safeMediaContextKey(source.categoryKey || (rootKey === 'media' ? pathParts[1] : (pathParts.length > 1 ? pathParts[0] : 'legacy')), rootKey === 'media' ? 'general' : 'legacy');
+  const fullCategoryKey = safeMediaContextPath(source.fullCategoryKey || `${moduleKey}/${categoryKey}`, `${moduleKey}/${categoryKey}`);
+  const assetRelativePath = safeRelativePath(source.assetRelativePath || relativePath);
+  const publicPath = safePublicMediaPath(source.publicPath || source.webPath || `/${rootKey}/${relativePath}`);
+  const webPath = safePublicMediaPath(source.webPath || source.publicPath || publicPath);
+
   return {
     id,
     rootKey,
+    source: safeMediaContextKey(source.source || defaultSource, defaultSource),
+    moduleKey,
+    categoryKey,
+    fullCategoryKey,
+    assetRelativePath,
+    webPath,
+    publicPath,
     relativePath,
     kind: safeKind(source.kind),
     sizeBytes: safeNonNegativeNumber(source.sizeBytes),
@@ -1244,6 +1261,13 @@ function safePreviewItem(item) {
   const preview = {
     id: safe.id || '',
     rootKey: safe.rootKey || '',
+    source: safe.source || '',
+    moduleKey: safe.moduleKey || '',
+    categoryKey: safe.categoryKey || '',
+    fullCategoryKey: safe.fullCategoryKey || '',
+    assetRelativePath: safe.assetRelativePath || '',
+    webPath: safe.webPath || '',
+    publicPath: safe.publicPath || '',
     relativePath: safe.relativePath || '',
     kind: safe.kind || '',
     sizeBytes: safeNonNegativeNumber(safe.sizeBytes),
@@ -1393,6 +1417,9 @@ function buildComparePolicy() {
     ttsGeneratedExcludedRelativePathPrefix: TTS_TEMP_PREFIX,
     fullSyncCompareSnapshotReadOnly: true,
     fullSyncCompareSnapshotInMemoryOnly: true,
+    mediaRootReadonlyAccepted: true,
+    acceptedRootKeys: Array.from(MEDIA_ROOT_KEYS),
+    mediaSystemContextFieldsPreserved: ['source', 'moduleKey', 'categoryKey', 'fullCategoryKey', 'assetRelativePath', 'webPath', 'publicPath'],
     ttsTempMissingClassificationEnabled: true,
     ttsTempMissingClassificationRule: `${TTS_TEMP_ROOT_KEY}:${TTS_TEMP_PREFIX}*`,
     tombstoneCandidateOnlyDiagnostic: true,
@@ -1435,10 +1462,29 @@ function safeRootKey(value) {
   return MEDIA_ROOT_KEYS.has(key) ? key : '';
 }
 
+function safeMediaContextKey(value, fallback = '') {
+  const raw = String(value || fallback || '').trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '_').slice(0, 80);
+  const key = raw.replace(/^_+|_+$/g, '');
+  return key || String(fallback || '').trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '_').slice(0, 80);
+}
+
+function safeMediaContextPath(value, fallback = '') {
+  const raw = String(value || fallback || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 180);
+  if (!raw || raw.includes('..') || /^[a-zA-Z]:/.test(raw) || raw.startsWith('~') || raw.startsWith('http://') || raw.startsWith('https://')) return safeMediaContextPath(fallback || 'uncategorized/general', 'uncategorized/general');
+  const parts = raw.split('/').filter(Boolean).map(part => safeMediaContextKey(part, 'uncategorized')).filter(Boolean);
+  return parts.length ? parts.join('/').slice(0, 180) : 'uncategorized/general';
+}
+
 function safeRelativePath(value) {
   const rel = String(value || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 220);
   if (!rel || rel.includes('..') || /^[a-zA-Z]:/.test(rel) || rel.startsWith('~')) return '';
   return rel;
+}
+
+function safePublicMediaPath(value) {
+  const raw = String(value || '').replace(/\\/g, '/').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 260);
+  if (!raw || raw.includes('..') || /^[a-zA-Z]:/.test(raw) || raw.startsWith('http://') || raw.startsWith('https://')) return '';
+  return raw.startsWith('/') ? raw : `/${raw}`;
 }
 
 function safeExtension(value) {
