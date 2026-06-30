@@ -1,46 +1,9 @@
 # TODO
 
-- [x] Full-Sync Chunk Receiver bauen
-- [x] Gate-blockierten Complete-State klaeren
-- [x] Kontrollierten MEDIA_INDEX Write-Test ausfuehren
-- [x] Aktiven Write-Completion-State korrigieren
-- [x] Build-/Statusmarker auf 0.2.55C synchronisieren
-- [x] `RDAP_0.2.56_MEDIA_INDEX_READ_SOURCE` bauen
-- [x] DB-Read-Source in UI-Sync-Karte korrekt anzeigen
-- [x] Delta-Sync / Loeschstatus separat planen
-- [x] Read-only Diff-Diagnose Agent vs. `remote_media_index` bauen
-- [x] Diff-Metadatenvergleich normalisieren
-- [x] Leeren Agent-Snapshot als nicht belastbar fuer Missing/Loeschstatus markieren
-- [x] Agent-Snapshot-Diagnose in Diff-Route ergaenzen
-- [x] Lokalen Agent-Initial-Media-Inventory-Retry und Diagnose ergaenzen
-- [x] ModifiedAt-Delta-Diagnose in Diff-Route ergaenzen
-- [x] ModifiedAt-Soft-Match-Policy in Diff-Route ergaenzen
-- [x] Effective-/Strict-Change-Counts in Diff-Route ergaenzen
-- [x] 0.2.58G Webserver-Test dokumentieren
-- [x] Full-Sync-/Compact-Snapshot-Verhaeltnis fuer Missing/Tombstone planen
-- [x] Full-Sync read-only Compare-Snapshot bauen
-- [x] 0.2.58I Webserver-Test dokumentieren
-- [x] TTS temp Missing read-only klassifizieren
-- [x] TTS-generated Dateien aus Agent-Media-Sync ausschliessen
-- [x] 0.2.58K Webserver-Bestaetigung dokumentieren
-- [x] TTS Legacy-DB-Cleanup gated bauen
-- [x] TTS Legacy-DB-Cleanup auf Webserver bestaetigen
-- [x] Normale persistent geloeschte Media-Dateien read-only Tombstone-Plan bauen
-- [x] Diff-Reliability-Note bei vollstaendigem Full-Sync korrigieren
-- [x] Persistent Tombstone Preview-Route bauen
-- [x] Persistent Tombstone Execute-Foundation gated bauen
-- [x] Persistent Tombstone Noop-Execute mit Gates bestaetigen
-- [x] Echten persistenten Tombstone-Kandidaten sicher planen/erzeugen/simulieren
-- [x] Testmethode fuer echten persistenten Tombstone-Kandidaten entscheiden
-- [x] Testquelle fuer candidateCount=1 planen
-- [x] Testdatei-Readonly-Vorbereitung planen
-- [x] Lokalen Testdatei-Ausfuehrungsplan dokumentieren
-- [x] Root-Verifikation fuer Testdatei planen
-- [ ] Testdatei-Root lokal/read-only bestaetigen
-- [ ] Dedizierte Testdatei spaeter lokal anlegen und read-only Full-Sync/Preview pruefen
-- [ ] candidateCount=1 fuer dedizierte Testdatei read-only bestaetigen
-- [ ] Produktiven Persistent Tombstone Write nur nach separater Freigabe testen
-- [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
-- [ ] Online->Agent Queue separat planen
-- [ ] Lokales Dashboard/Agent-Testdaten-Quelle fuer Media-Index sauber getrennt weiterplanen
-- [ ] Alert-System Arbeiten separat fortsetzen
+## RDAP Media Index / Media-System Alignment
+
+- [ ] 0.2.69 planen: Remote-Agent-Scan an neues Media-System `assets/media/<module>/<category>` angleichen.
+- [ ] Legacy-Roots weiter read-only mitfuehren.
+- [ ] Keine alten Dateien verschieben oder loeschen.
+- [ ] Media-ID / `media_assets`-Registry-Bezug fuer Remote-Index klaeren.
+- [ ] Erst danach spaeteren candidateCount=1-Test vorbereiten.

@@ -1,67 +1,40 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.67
+## Naechster RDAP-Block nach 0.2.68
 
-`RDAP_0.2.68_MEDIA_INDEX_PERSISTENT_TOMBSTONE_TEST_FILE_ROOT_CONFIRM_READONLY`
+`RDAP_0.2.69_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_PLAN`
 
 ## Ziel
 
-- Root-Frage konkret bestaetigen.
-- Lokal nur lesen/pruefen, keine Testdatei anlegen.
-- Agent-Scan-/Media-Root-Code lesen.
-- Entscheiden, ob `audio` finaler Testroot wird oder `sounds` doch gueltig ist.
-- Kein produktiver Write.
-- Kein physisches Loeschen.
-- Kein Auto-Delete.
-- Kein Online->Agent-Trigger.
-- Lokales Dashboard/Agent und Remote-Modboard sauber getrennt halten.
+- `backend/modules/media.js` und `backend/modules/remote_agent.js` gemeinsam lesen.
+- Plan erstellen, wie der Remote-Agent das neue Media-System `assets/media/<module>/<category>` fuer den RDAP-Remote-Index beruecksichtigt.
+- Legacy-Roots `assets/sounds`, `assets/videos`, `assets/images` weiter read-only erhalten.
+- Neue Media-System-Dateien fuer den Remote-Index sichtbar machen.
+- Keine bestehenden Dateien verschieben oder loeschen.
+- Keine Testdatei anlegen.
+- Kein DB-Write.
+- Keine Gates.
+- Kein Tombstone-Execute.
 
 ## Ausgangspunkt
 
-0.2.67 ist ein Doku-/Plan-Step.
-
-Bestaetigter lokaler Basis-Pfad:
+Neues Media-System:
 
 ```text
-D:\Streaming\stramAssets\htdocs\assets\media
+D:\Streaming\stramAssets\htdocs\assets\media\<module>\<category>\...
 ```
 
-Bisheriger, nicht verifizierter Testpfad:
+Spaeterer Test-Kontext:
 
 ```text
-sounds/rdap-test/rdap-persistent-tombstone-test-001.mp3
+moduleKey: rdap-test
+categoryKey: persistent-tombstone
 ```
 
-Fallback, wenn `sounds` nicht bestaetigt ist:
+Geplanter spaeterer Testpfad:
 
 ```text
-audio/rdap-test/rdap-persistent-tombstone-test-001.mp3
-```
-
-Bestaetigt bleibt:
-
-```text
-Full-Sync-Compare vollstaendig.
-Missing-Diagnose zuverlaessig.
-persistentMediaMissingCandidateCount = 0.
-previewPersistentCandidateCount = 0.
-Gates nicht gesetzt / nicht aktiv.
-```
-
-## Read-only Pruefung fuer 0.2.68
-
-Lokal auf dem Stream-PC nur lesen:
-
-```powershell
-cd D:\Streaming\stramAssets\htdocs\assets\media
-Get-ChildItem -Directory | Select-Object Name
-```
-
-Im Repo nur lesen:
-
-```powershell
-cd D:\Git\stream-control-center
-Select-String -Path .\backend\modules\remote_agent.js -Pattern "audio|sounds|media|rootKey|allowed" -Context 2,2
+media/rdap-test/persistent-tombstone/rdap-persistent-tombstone-test-001.mp3
 ```
 
 ## Weiterhin verboten ohne separaten Ausfuehrungs-Go
@@ -77,18 +50,4 @@ Select-String -Path .\backend\modules\remote_agent.js -Pattern "audio|sounds|med
 - kein physisches Loeschen
 - kein Online->Agent-Trigger
 - kein Blind-Auto-Sync
-```
-
-## Danach moeglich
-
-Wenn 0.2.68 den gueltigen Root bestaetigt, spaeter separater Step:
-
-```text
-- Testdatei lokal anlegen
-- Full-Sync/Preview read-only pruefen
-- Testdatei kontrolliert in Hold-Pfad verschieben
-- Full-Sync/Preview read-only pruefen
-- candidateCount=1 nur fuer diese Testdatei bestaetigen
-- Rueckweg pruefen
-- weiterhin kein Execute
 ```
