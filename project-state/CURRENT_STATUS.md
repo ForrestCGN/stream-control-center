@@ -1,34 +1,36 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.75 - Media Index Remote-Agent Media Root Remote Accept Readonly`
+Aktueller Stand: `0.2.77 - Media Index Diff Media Root Readonly Verify`
 
 ## Ergebnis
 
-0.2.75 ist lokal eingespielt, per `stepdone.cmd` nach GitHub/dev gepusht, auf dem Webserver deployed und live bestaetigt.
+0.2.77 ist lokal eingespielt, per `stepdone.cmd` nach GitHub/dev gepusht, auf dem Webserver deployed und live fachlich bestaetigt.
 
-Bestaetigter Remote-Endpoint:
+Bestaetigter Remote-Diff-Endpoint:
 
 ```text
-http://127.0.0.1:3010/api/remote/agent/media/inventory/status
+http://127.0.0.1:3010/api/remote/media/index/diff/status
 ```
 
 Bestaetigter Live-Status:
 
 ```text
-moduleBuild = RDAP_0.2.75_MEDIA_INDEX_REMOTE_AGENT_MEDIA_ROOT_REMOTE_ACCEPT_READONLY
-counts.media = 34
-groups.media.count = 34
+statusApiVersion = rdap_media_index_diff_media_root_readonly_verify_077.v1
+readOnly = true
+writeEnabled = false
 ```
 
-Der Remote-Modboard-Agent-Runtime-Service akzeptiert jetzt read-only den neuen Root:
+Bestaetigt: `media`-Items erscheinen jetzt in der Diff-/Preview-Ausgabe:
 
 ```text
-media
+.previews.newOnAgent[] | select(.rootKey=="media")
 ```
 
-Die neuen Kontextfelder kommen remote durch:
+Bestaetigte Kontextfelder in Preview:
 
 ```text
+id
+rootKey
 source
 moduleKey
 categoryKey
@@ -46,14 +48,30 @@ source = media_system
 moduleKey = alerts
 categoryKey = bits
 fullCategoryKey = alerts/bits
+assetRelativePath = alerts/bits/...
 webPath = /assets/media/alerts/bits/...
 publicPath = /assets/media/alerts/bits/...
 ```
 
-## Betroffene Source-Datei aus 0.2.75
+## Hinweis zu moduleBuild
+
+Der Diff-Endpoint zeigte live:
 
 ```text
-remote-modboard/backend/src/services/agent-runtime.service.js
+moduleBuild = RDAP_0.2.28_MEDIA_AGENT_SLOW_SYNC_STATUS_POLISH_READONLY
+statusApiVersion = rdap_media_index_diff_media_root_readonly_verify_077.v1
+```
+
+Das ist fachlich nicht blockierend.
+
+Grund: Die Route nutzt bei `moduleBuild` noch den globalen `context.moduleBuild`, waehrend `statusApiVersion` und das Verhalten bereits 0.2.77 bestaetigen.
+
+Ein spaeterer kleiner Polish-Step soll die Anzeige von `moduleBuild`/`routeBuild` sauber trennen.
+
+## Betroffene Source-Datei aus 0.2.77
+
+```text
+remote-modboard/backend/src/routes/media-index-diff.routes.js
 ```
 
 ## Fachlicher Stand
@@ -64,27 +82,19 @@ remote-modboard/backend/src/services/agent-runtime.service.js
 backend/modules/remote_agent.js
 ```
 
-0.2.75 hat die Remote-Seite kompatibel gemacht:
+0.2.75 hat die Remote-Agent-Runtime kompatibel gemacht:
 
 ```text
 remote-modboard/backend/src/services/agent-runtime.service.js
 ```
 
-Damit ist der Pfad lokal -> Agent-Inventory -> Remote-Agent-Runtime fuer `assets/media/<module>/<category>/...` read-only bestaetigt.
-
-Legacy-Roots bleiben weiter gueltig:
+0.2.77 hat die Diff-/Preview-Route kompatibel gemacht:
 
 ```text
-sounds
-videos
-images
+remote-modboard/backend/src/routes/media-index-diff.routes.js
 ```
 
-Neuer Root ist zusaetzlich gueltig:
-
-```text
-media
-```
+Damit ist der Pfad lokal -> Agent-Inventory -> Remote-Agent-Runtime -> Media-Index-Diff/Preview fuer `assets/media/<module>/<category>/...` read-only bestaetigt.
 
 ## Sicherheit
 
@@ -103,12 +113,14 @@ keine absoluten Pfade im Transport
 ## Naechster sinnvoller Block
 
 ```text
-RDAP_0.2.77_MEDIA_INDEX_DIFF_MEDIA_ROOT_READONLY_VERIFY
+RDAP_0.2.79_MEDIA_INDEX_DIFF_ROUTE_BUILD_POLISH_READONLY
 ```
 
 Ziel:
 
 ```text
-Pruefen, ob media-Root auch im Media-Index-Diff/Preview sauber sichtbar ist.
-Weiterhin read-only. Keine DB-Writes, keine Gates, keine Deletes.
+Nur Anzeige-Polish:
+moduleBuild/routeBuild im Diff-Endpoint sauber trennen,
+damit moduleBuild nicht mehr global 0.2.28 zeigt.
+Keine Funktionsaenderung. Weiterhin read-only.
 ```

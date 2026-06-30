@@ -1,5 +1,22 @@
 # FILES
 
+## 0.2.78 ZIP-Inhalt
+
+```text
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/PROMPT_FOR_NEW_CHAT_RDAP_AFTER_MEDIA_0_2_77.md
+```
+
+## 0.2.77 Source-Aenderung
+
+```text
+remote-modboard/backend/src/routes/media-index-diff.routes.js
+```
+
 ## 0.2.76 ZIP-Inhalt
 
 ```text

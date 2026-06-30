@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 0.2.78 - Media Index 0.2.77 Live Confirm Docs Handoff
+
+- Live-Bestaetigung von 0.2.77 dokumentiert.
+- Festgehalten: Media-Index-Diff/Preview akzeptiert `rootKey = media` read-only.
+- Festgehalten: Preview zeigt `media`-Items unter `.previews.newOnAgent`.
+- Festgehalten: Kontextfelder `source`, `moduleKey`, `categoryKey`, `fullCategoryKey`, `assetRelativePath`, `webPath`, `publicPath` bleiben in Preview erhalten.
+- Hinweis dokumentiert: `moduleBuild` zeigt noch globalen 0.2.28-Build, waehrend `statusApiVersion` und Verhalten 0.2.77 bestaetigen.
+- Naechsten Anzeige-Polish-Block 0.2.79 vorbereitet.
+- Keine Code-Dateien geaendert.
+
+## 0.2.77 - Media Index Diff Media Root Readonly Verify
+
+- `remote-modboard/backend/src/routes/media-index-diff.routes.js` erweitert.
+- `MEDIA_ROOT_KEYS` akzeptiert jetzt auch `media`.
+- Diff-/Preview-Sanitize erhaelt Media-System-Kontextfelder read-only.
+- Webserver-Deploy/live fachlich bestaetigt.
+- Keine DB-Writes/Gates/Deletes aktiviert.
+
 ## 0.2.76 - Media Index 0.2.75 Live Confirm Docs Handoff
 
 - Live-Bestaetigung von 0.2.75 dokumentiert.

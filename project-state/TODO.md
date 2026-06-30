@@ -6,5 +6,8 @@
 - [x] 0.2.75: Remote-Modboard akzeptiert `media`-Root read-only.
 - [x] 0.2.75: Kontextfelder kommen remote an.
 - [x] 0.2.75: Webserver-Deploy/live bestaetigt.
-- [ ] 0.2.77: Media-Index-Diff/Preview fuer `media`-Root read-only pruefen.
-- [ ] Falls Diff/Preview `media` noch blockiert, separaten Remote-Diff-Kompatibilitaets-Step planen.
+- [x] 0.2.77: Media-Index-Diff/Preview akzeptiert `media`-Root read-only.
+- [x] 0.2.77: Preview zeigt `media`-Items mit Kontextfeldern.
+- [x] 0.2.77: Webserver-Deploy/live fachlich bestaetigt.
+- [ ] 0.2.79: Diff-Endpoint `moduleBuild`/`routeBuild` Anzeige-Polish planen.
+- [ ] Spaeter: Gated Delta-Upsert separat planen, erst nach sauberer Read-only-Diagnose.
