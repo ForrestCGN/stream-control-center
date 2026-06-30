@@ -6,8 +6,8 @@ const http = require("http");
 const express = require("express");
 
 const MODULE_NAME = "local_remote_modboard_adapter";
-const MODULE_VERSION = "0.2.27B";
-const MODULE_BUILD = "RDAP_0.2.27B_MEDIA_SYNC_COMPACT_FRAME_FIX";
+const MODULE_VERSION = "0.2.104";
+const MODULE_BUILD = "0.2.104 - Local Media Picker Readonly Alignment";
 const API_PREFIX = "/api/remote";
 const INVENTORY_SOURCE_MODE = "local_adapter_remote_agent_component_status";
 
@@ -21,7 +21,8 @@ const MEDIA_SCAN_MAX_DEPTH = 5;
 const MEDIA_ROOTS = Object.freeze([
   { key: "sounds", label: "Sounds", localPathHint: "htdocs/assets/sounds", publicBasePath: "/assets/sounds", types: ["audio", "video"] },
   { key: "videos", label: "Videos", localPathHint: "htdocs/assets/videos", publicBasePath: "/assets/videos", types: ["video"] },
-  { key: "images", label: "Bilder", localPathHint: "htdocs/assets/images", publicBasePath: "/assets/images", types: ["image"] }
+  { key: "images", label: "Bilder", localPathHint: "htdocs/assets/images", publicBasePath: "/assets/images", types: ["image"] },
+  { key: "media", label: "Media-System", localPathHint: "htdocs/assets/media", publicBasePath: "/assets/media", types: ["audio", "video", "image", "media"] }
 ]);
 
 const MODULE_META = {
@@ -389,6 +390,7 @@ async function agentExecutorDiagnosticPayload(ctx = {}) {
       { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/status`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/model`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/media/status`, readOnly: true, localMediaInventoryReadonlyPrepared: true },
+      { method: "GET", path: `${API_PREFIX}/media/index/context/list`, readOnly: true, localMediaContextListReadonly: true },
       { method: "GET", path: "/api/remote-agent/status", readOnly: true, source: "remote_agent" }
     ],
     note: "0.2.16 liest nur bestehenden remote_agent-Status und bereitet die lokale OBS-Inventarquelle read-only vor. Es werden keine Agent-Kommandos angenommen oder ausgefuehrt."
@@ -574,7 +576,9 @@ function localRoutesPayload(ctx = {}) {
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/status`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/agent-executor/handshake`, readOnly: true },
       { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/status`, readOnly: true, inventorySourcePrepared: true },
-      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/model`, readOnly: true, inventorySourcePrepared: true }
+      { method: "GET", path: `${API_PREFIX}/local-dashboard/obs/model`, readOnly: true, inventorySourcePrepared: true },
+      { method: "GET", path: `${API_PREFIX}/media/status`, readOnly: true, localMediaInventoryReadonlyPrepared: true },
+      { method: "GET", path: `${API_PREFIX}/media/index/context/list`, readOnly: true, localMediaContextListReadonly: true }
     ],
     localSafety: localSafetyPayload(),
     loadedModules: getLoadedModules(ctx),
@@ -696,11 +700,10 @@ function readMediaLimit(req) {
 }
 
 function emptyMediaGroups() {
-  return {
-    sounds: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
-    videos: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
-    images: { prepared: true, exists: true, count: 0, items: [], emptyReason: null }
-  };
+  return MEDIA_ROOTS.reduce((groups, root) => {
+    groups[root.key] = { prepared: true, exists: true, count: 0, items: [], emptyReason: null };
+    return groups;
+  }, {});
 }
 
 function mediaKindForExtension(ext) {
@@ -712,6 +715,34 @@ function mediaKindForExtension(ext) {
 
 function normalizeMediaRelativePath(value) {
   return String(value || "").replace(/\\/g, "/").replace(/^\/+/, "");
+}
+
+
+function mediaPathSegments(relativePath) {
+  return normalizeMediaRelativePath(relativePath).split("/").map(part => String(part || "").trim()).filter(Boolean);
+}
+
+function deriveMediaModuleKey(rootKey, relativePath) {
+  const key = String(rootKey || "").trim().toLowerCase();
+  const parts = mediaPathSegments(relativePath);
+  if (key === "media" && parts.length > 1) return parts[0].toLowerCase();
+  if (key === "sounds" || key === "videos" || key === "images") return "general";
+  return key || "media";
+}
+
+function deriveMediaCategoryKey(rootKey, relativePath) {
+  const key = String(rootKey || "").trim().toLowerCase();
+  const parts = mediaPathSegments(relativePath);
+  if (key === "media" && parts.length > 2) return parts[1].toLowerCase();
+  if (parts.length > 1) return parts[0].toLowerCase();
+  return "general";
+}
+
+function deriveMediaFullCategoryKey(rootKey, relativePath) {
+  const moduleKey = deriveMediaModuleKey(rootKey, relativePath);
+  const categoryKey = deriveMediaCategoryKey(rootKey, relativePath);
+  if (!moduleKey || moduleKey === categoryKey) return categoryKey || "";
+  return `${moduleKey}/${categoryKey}`;
 }
 
 function walkMediaRoot({ root, absoluteRoot, currentDir, depth, limit, items, groups, counts, errors, truncatedRef, setTruncated }) {
@@ -773,6 +804,9 @@ function walkMediaRoot({ root, absoluteRoot, currentDir, depth, limit, items, gr
       name: path.basename(rel),
       relativePath: rel,
       publicPath: `${root.publicBasePath}/${rel}`,
+      moduleKey: deriveMediaModuleKey(root.key, rel),
+      categoryKey: deriveMediaCategoryKey(root.key, rel),
+      fullCategoryKey: deriveMediaFullCategoryKey(root.key, rel),
       extension: ext,
       sizeBytes: stat.size,
       modifiedAt: stat.mtime ? stat.mtime.toISOString() : null,
@@ -792,7 +826,10 @@ function buildLocalMediaInventory(req = null) {
   const projectRoot = getProjectRoot();
   const items = [];
   const groups = emptyMediaGroups();
-  const counts = { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 };
+  const counts = MEDIA_ROOTS.reduce((acc, root) => {
+    acc[root.key] = 0;
+    return acc;
+  }, { total: 0, audio: 0, video: 0, image: 0, media: 0, returned: 0, skipped: 0, totalSeen: 0 });
   const errors = [];
   let truncated = false;
 
@@ -837,13 +874,132 @@ function buildLocalMediaInventory(req = null) {
   };
 }
 
+
+function readContextLimit(req) {
+  const raw = req && req.query ? Number.parseInt(String(req.query.limit || ""), 10) : 0;
+  if (!Number.isFinite(raw) || raw <= 0) return 50;
+  return Math.max(1, Math.min(raw, 200));
+}
+
+function readContextOffset(req) {
+  const raw = req && req.query ? Number.parseInt(String(req.query.offset || ""), 10) : 0;
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+  return Math.max(0, Math.min(raw, 5000));
+}
+
+function safeContextKey(value) {
+  return String(value || "").trim().toLowerCase().replace(/\\/g, "/").replace(/[^a-z0-9_\/.-]/g, "").slice(0, 120);
+}
+
+function localMediaContextFilters(req) {
+  const query = req && req.query ? req.query : {};
+  const rootKey = safeContextKey(query.root_key || "media") || "media";
+  const moduleKey = safeContextKey(query.module_key || "");
+  const categoryKey = safeContextKey(query.category_key || "");
+  const fullCategoryKey = safeContextKey(query.full_category_key || "");
+  const kind = safeContextKey(query.kind || "");
+  return { rootKey, moduleKey, categoryKey, fullCategoryKey, kind };
+}
+
+function filterLocalMediaContextItems(items, filters) {
+  return items.filter((item) => {
+    if (!item || typeof item !== "object") return false;
+    const rootKey = String(item.rootKey || "").toLowerCase();
+    const moduleKey = String(item.moduleKey || "").toLowerCase();
+    const categoryKey = String(item.categoryKey || "").toLowerCase();
+    const fullCategoryKey = String(item.fullCategoryKey || "").toLowerCase();
+    const kind = String(item.kind || item.type || "").toLowerCase();
+
+    if (filters.rootKey && filters.rootKey !== "all" && rootKey !== filters.rootKey) return false;
+    if (filters.moduleKey && moduleKey !== filters.moduleKey) return false;
+    if (filters.categoryKey && categoryKey !== filters.categoryKey) return false;
+    if (filters.fullCategoryKey && fullCategoryKey !== filters.fullCategoryKey) return false;
+    if (filters.kind && kind !== filters.kind) return false;
+    return true;
+  });
+}
+
+function localMediaContextCounts(items) {
+  return items.reduce((acc, item) => {
+    const rootKey = String(item && item.rootKey || "media").toLowerCase();
+    const moduleKey = String(item && item.moduleKey || "").toLowerCase();
+    const categoryKey = String(item && item.categoryKey || "").toLowerCase();
+    const kind = String(item && (item.kind || item.type) || "media").toLowerCase();
+    acc.roots[rootKey] = (acc.roots[rootKey] || 0) + 1;
+    if (moduleKey) acc.modules[moduleKey] = (acc.modules[moduleKey] || 0) + 1;
+    if (categoryKey) acc.categories[categoryKey] = (acc.categories[categoryKey] || 0) + 1;
+    if (kind) acc.kinds[kind] = (acc.kinds[kind] || 0) + 1;
+    acc.total += 1;
+    return acc;
+  }, { total: 0, roots: {}, modules: {}, categories: {}, kinds: {} });
+}
+
+function localMediaContextListPayload(req = null) {
+  const inventory = buildLocalMediaInventory({ query: { limit: MEDIA_SCAN_HARD_LIMIT } });
+  const filters = localMediaContextFilters(req);
+  const limit = readContextLimit(req);
+  const offset = readContextOffset(req);
+  const filtered = filterLocalMediaContextItems(Array.isArray(inventory.items) ? inventory.items : [], filters);
+  const total = filtered.length;
+  const pageItems = filtered.slice(offset, offset + limit);
+
+  return {
+    ok: true,
+    service: "remote-modboard",
+    module: "remote_media_readonly",
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    routeBuild: MODULE_BUILD,
+    statusApiVersion: "rdap_media_local_context_list_readonly_104.v1",
+    status: "local_media_context_list_available_readonly",
+    route: `${API_PREFIX}/media/index/context/list`,
+    generatedAt: nowIso(),
+    runtimeMode: "local",
+    localDashboard: true,
+    readOnly: true,
+    writeEnabled: false,
+    databaseWritesEnabled: false,
+    databaseWriteExecuted: false,
+    agentActionsEnabled: false,
+    fileActionsEnabled: false,
+    filters,
+    limit,
+    offset,
+    count: pageItems.length,
+    total,
+    hasMore: offset + pageItems.length < total,
+    items: pageItems,
+    counts: localMediaContextCounts(filtered),
+    source: {
+      type: "local_stream_pc_filesystem_readonly",
+      statusRoute: `${API_PREFIX}/media/status`,
+      absolutePathsReturned: false
+    },
+    safety: {
+      readOnly: true,
+      uploadEnabled: false,
+      editEnabled: false,
+      deleteEnabled: false,
+      fileWrite: false,
+      databaseWrite: false,
+      migrationEnabled: false,
+      shellOrProcessActions: false,
+      agentActionsEnabled: false,
+      freePathAccessEnabled: false,
+      absolutePathsReturned: false,
+      secretsExposed: false
+    },
+    note: "Lokale Context-Liste liest das bestehende lokale Media-Inventar read-only. Keine Uploads, keine Loeschungen, keine DB-Writes, keine Agent-Actions."
+  };
+}
+
 function localMediaStatusPayload(req = null) {
   const inventory = buildLocalMediaInventory(req);
   return {
     ok: true,
     service: "remote-modboard",
     module: "remote_media_readonly",
-    moduleVersion: "0.2.27B",
+    moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     routeBuild: MODULE_BUILD,
     statusApiVersion: "rdap_media_local_inventory_readonly_025.v1",
@@ -982,6 +1138,7 @@ module.exports.init = function init(ctx = {}) {
   app.get(`${API_PREFIX}/lock-audit/status`, (req, res) => res.json(lockAuditStatusPayload()));
   app.get(`${API_PREFIX}/lock-audit/schema-adapter/status`, (req, res) => res.json(schemaAdapterPayload()));
   app.get(`${API_PREFIX}/media/status`, (req, res) => res.json(localMediaStatusPayload(req)));
+  app.get(`${API_PREFIX}/media/index/context/list`, (req, res) => res.json(localMediaContextListPayload(req)));
 
   app.get(`${API_PREFIX}/local-dashboard/runtime-profile`, (req, res) => res.json(localArchitecturePayload(ctx)));
   app.get(`${API_PREFIX}/local-dashboard/architecture`, (req, res) => res.json(localArchitecturePayload(ctx)));
@@ -1015,7 +1172,7 @@ module.exports.init = function init(ctx = {}) {
       inventorySourceMode: INVENTORY_SOURCE_MODE
     },
     rightsSync: { prepared: true, active: false, status: "planned" },
-    mediaModule: { prepared: true, active: true, statusEndpoint: `${API_PREFIX}/media/status`, inventoryReadonlyPrepared: true }
+    mediaModule: { prepared: true, active: true, statusEndpoint: `${API_PREFIX}/media/status`, contextListEndpoint: `${API_PREFIX}/media/index/context/list`, inventoryReadonlyPrepared: true, contextListReadonlyPrepared: true }
   }));
 
   app.get(`${API_PREFIX}/auth/login/start`, (req, res) => {

@@ -1,6 +1,6 @@
 # TODO
 
-## RDAP Media Index / Media Picker aktueller Block nach 0.2.103
+## RDAP Media Index / Media Picker aktueller Block nach 0.2.104
 
 - [x] 0.2.79: Diff-Endpoint `moduleBuild`/`routeBuild` Anzeige-Polish bestaetigt.
 - [x] 0.2.83: FullSync Summary ueber komplette Listen bestaetigt.
@@ -23,7 +23,8 @@
 - [x] 0.2.101: Pagination and Dedup live ok.
 - [x] 0.2.102: Online Media-Picker Docs Handoff.
 - [x] 0.2.103: Local Media-Picker Alignment Plan.
-- [ ] 0.2.104: Local Media-Picker Readonly Alignment.
+- [x] 0.2.104: Local Media-Picker Readonly Alignment.
+- [ ] 0.2.105: Local Media-Picker Verify and Polish.
 - [ ] Spaeter: `MEDIA_INDEX_SCHEMA_WRITE_ENABLED=false` explizit in Env fuehren, damit Diagnose-Ausgaben vollstaendig sind.
 - [ ] Spaeter: FullSyncCompare persistenter/neu anforderbar machen, weil Runtime-Snapshot nach Service-Restart leer ist.
 - [ ] Spaeter: Gated Delta-Upsert separat planen, erst nach sauberer Read-only-Diagnose.
@@ -34,4 +35,4 @@
 - [x] CGN-Design beachten: dunkles Lila/Blau, Neon-Cyan/Violett, runde Panels, Glow/Chips.
 - [x] Keine weissen Browser-Standard-Dropdowns.
 - [x] Keine technischen Warnboxen ohne echten Fehler.
-- [ ] Lokale Media-Ansicht an Online-Media-Picker angleichen, ohne zweite UI-Logik.
+- [x] Lokale Media-Ansicht an Online-Media-Picker angleichen, ohne zweite UI-Logik.
