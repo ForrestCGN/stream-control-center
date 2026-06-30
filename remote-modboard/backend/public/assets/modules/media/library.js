@@ -5,7 +5,8 @@
   const PAGE_ID = 'media-library';
   const STATUS_URL = '/api/remote/media/status';
   const CONTEXT_URL = '/api/remote/media/index/context/list';
-  const PAGE_SIZE = 50;
+  const DEFAULT_PAGE_SIZE = 50;
+  const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
 
   const state = {
     loaded: false,
@@ -17,6 +18,7 @@
     sortKey: 'name',
     sortDir: 'asc',
     page: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
     detailItem: null,
     syncDialogOpen: false,
     contextLoading: false,
@@ -524,17 +526,24 @@
     return sorted;
   }
 
+  function currentPageSize() {
+    const size = Number(state.pageSize || DEFAULT_PAGE_SIZE);
+    return PAGE_SIZE_OPTIONS.includes(size) ? size : DEFAULT_PAGE_SIZE;
+  }
+
   function pagedInventoryItems(items) {
-    const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+    const pageSize = currentPageSize();
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
     const page = Math.min(Math.max(1, Number(state.page || 1)), totalPages);
     state.page = page;
-    const start = (page - 1) * PAGE_SIZE;
+    const start = (page - 1) * pageSize;
     return {
       page,
+      pageSize,
       totalPages,
       start,
-      end: Math.min(start + PAGE_SIZE, items.length),
-      items: items.slice(start, start + PAGE_SIZE)
+      end: Math.min(start + pageSize, items.length),
+      items: items.slice(start, start + pageSize)
     };
   }
 
@@ -811,7 +820,8 @@
     ];
     return `<input class="rdap-media-search" type="search" data-media-search="1" placeholder="Suche nach Datei, Bereich oder Typ" value="${escapeHtml(state.search)}">
       <select class="rdap-media-select" data-media-sort="1">${sortOptions.map(([key, label]) => `<option value="${escapeHtml(key)}" ${state.sortKey === key ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>
-      <button class="secondaryButton small" type="button" data-media-sort-dir="1">${state.sortDir === 'desc' ? 'Z-A' : 'A-Z'}</button>`;
+      <button class="secondaryButton small" type="button" data-media-sort-dir="1">${state.sortDir === 'desc' ? 'Z-A' : 'A-Z'}</button>
+      <select class="rdap-media-select" data-media-page-size="1" title="Eintraege pro Seite">${PAGE_SIZE_OPTIONS.map(size => `<option value="${escapeHtml(String(size))}" ${currentPageSize() === size ? 'selected' : ''}>${escapeHtml(String(size))} pro Seite</option>`).join('')}</select>`;
   }
 
   function renderDetailModal() {
@@ -936,6 +946,17 @@
       });
     }
 
+    const pageSizeSelect = panel.querySelector('[data-media-page-size]');
+    if (pageSizeSelect) {
+      pageSizeSelect.addEventListener('change', () => {
+        const nextSize = Number(pageSizeSelect.value || DEFAULT_PAGE_SIZE);
+        state.pageSize = PAGE_SIZE_OPTIONS.includes(nextSize) ? nextSize : DEFAULT_PAGE_SIZE;
+        resetListPage();
+        if (contextItemsActive()) loadContextItems();
+        else safeRender();
+      });
+    }
+
     panel.querySelectorAll('[data-media-page]').forEach((button) => {
       button.addEventListener('click', () => {
         const direction = button.getAttribute('data-media-page');
@@ -1013,7 +1034,7 @@
   function buildContextQuery() {
     const filters = safeObject(state.contextFilters);
     const params = new URLSearchParams();
-    params.set('limit', '50');
+    params.set('limit', String(currentPageSize()));
     if (filters.rootKey) params.set('root_key', filters.rootKey);
     if (filters.moduleKey) params.set('module_key', filters.moduleKey);
     if (filters.categoryKey) params.set('category_key', filters.categoryKey);
