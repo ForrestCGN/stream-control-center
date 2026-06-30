@@ -1,34 +1,27 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.110 - Admin Note Write Status Reconcile`
+Aktueller Stand: `0.2.111 - Admin Note Status Deploy Confirmed`
 
 ## Kurzfazit
 
-`/api/remote/routes` benennt den Admin-Note-Write-Status jetzt klarer.
-
-Neu:
+0.2.110 ist live bestaetigt.
 
 ```text
-adminNoteWriteLiveStatus
+adminNoteWriteLiveStatus sichtbar
+Status korrekt
 ```
 
-## Wichtig
-
-Keine Write-Logik wurde geaendert.
+## Aktiver Admin-Note-Status
 
 ```text
-Create/Update Backend bleibt bewusst restricted aktiv.
+Create/Update Backend-Writes sind bewusst aktiv und restricted.
 Write-Plan bleibt read-only.
-Update-UI bleibt aus.
 Deactivate/Delete bleiben aus.
 ```
 
-## Runtime-Aenderung
+## 0.2.111
 
-```text
-remote-modboard/backend/src/routes/routes.routes.js
-```
+Doku-only Abschluss.
 
-## Deploy
-
-Webserver-Deploy noetig, weil Runtime-Datei geaendert wurde.
+Keine Runtime-Aenderung.
+Kein weiterer Webserver-Deploy noetig.

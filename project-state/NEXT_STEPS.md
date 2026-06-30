@@ -2,20 +2,21 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.111_ADMIN_NOTE_STATUS_DEPLOY_VERIFY`
+`RDAP_0.2.112_ADMIN_NOTE_UI_STATUS_OR_ADMIN_USERS_READONLY_UI`
 
-## Ziel
-
-Nach Deploy live pruefen:
-
-```bash
-curl -fsS http://127.0.0.1:3010/api/remote/routes | jq '.adminNoteWritePlan.statusMeaning,.adminNoteWriteConfirmed.statusMeaning,.adminNoteWriteLiveStatus'
-```
-
-## Danach entscheiden
+## Entscheidung
 
 ```text
-A. Status nur dokumentieren.
-B. Admin-Note UI-Status modfreundlich anzeigen.
-C. Admin/User Read-only UI-Check fortsetzen.
+A. Admin-Note Status modfreundlich in UI anzeigen.
+B. Admin/User Read-only UI-Check fortsetzen.
+C. Admin/User Permission-Diagnose live mit Login pruefen.
+```
+
+## Regeln
+
+```text
+keine neuen Writes
+keine Gates aktivieren
+keine Login-/Session-Umstellung ohne eigenen Scope
+keine Agent-Actions
 ```
