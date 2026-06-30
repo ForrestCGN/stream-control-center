@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 0.2.105 - Local Media Picker Verify and Polish Docs
+
+- Lokale Browserpruefung nach 0.2.104 dokumentiert.
+- Forrest bestaetigt: Media-System funktioniert lokal wie im ModBoard.
+- Lokale API-Checks aus 0.2.104 als bestaetigter Stand festgehalten:
+  - Context-List `total=412`, `count=25`,
+  - `readOnly=True`,
+  - `writeEnabled=False`,
+  - `databaseWriteExecuted=False`.
+- Keine Runtime-Code-Dateien geaendert.
+- Kein Backend geaendert.
+- Kein Webserver-Deploy noetig.
+- Naechsten Entscheidungsblock `0.2.106 - Media Picker Next Scope Decision` vorbereitet.
+
 ## 0.2.104 - Local Media Picker Readonly Alignment
 
 - `backend/modules/local_remote_modboard_adapter.js` erweitert.

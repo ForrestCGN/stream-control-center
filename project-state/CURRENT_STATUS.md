@@ -1,8 +1,20 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.104 - Local Media Picker Readonly Alignment`
+Aktueller Stand: `0.2.105 - Local Media Picker Verify and Polish Docs`
 
 ## Kurzfazit
+
+Der lokale Media-Picker im Dashboard-v2 ist nach 0.2.104 im Browser bestaetigt.
+
+Forrest hat lokal geprueft:
+
+```text
+Es funktioniert wie im ModBoard
+```
+
+0.2.105 ist ein Verify-/Doku-Abschluss ohne Runtime-Code-Aenderung.
+
+## Bestaetigter Stand aus 0.2.104
 
 Der lokale Media-Picker im Dashboard-v2 ist an den bestaetigten Online-Media-Picker angeglichen.
 
@@ -16,7 +28,7 @@ Der lokale Media-Picker im Dashboard-v2 ist an den bestaetigten Online-Media-Pic
 - keine Agent-Actions,
 - kein Online->Agent Datei-Trigger.
 
-## Geaenderte Runtime-Dateien
+## Geaenderte Runtime-Dateien aus 0.2.104
 
 ```text
 backend/modules/local_remote_modboard_adapter.js
@@ -25,7 +37,7 @@ htdocs/dashboard-v2/assets/modules/media/library.js
 
 ## Lokale API
 
-Neue lokale Read-only-Route:
+Lokale Read-only-Route:
 
 ```text
 GET /api/remote/media/index/context/list
@@ -76,6 +88,56 @@ htdocs/assets/media
 
 Absolute Pfade werden nicht an die Mod-Hauptansicht ausgegeben.
 
+## Bestaetigte lokale Checks
+
+Forrest hat nach 0.2.104 lokal bestaetigt:
+
+```powershell
+node --check .\backend\modules\local_remote_modboard_adapter.js
+node --check .\htdocs\dashboard-v2\assets\modules\media\library.js
+```
+
+Beide Syntaxchecks liefen ohne Fehler.
+
+API-Check:
+
+```text
+GET http://127.0.0.1:8080/api/remote/media/index/context/list?root_key=media&limit=25&offset=0
+```
+
+Bestaetigtes Ergebnis:
+
+```text
+ok                    : True
+status                : local_media_context_list_available_readonly
+total                 : 412
+count                 : 25
+readOnly              : True
+writeEnabled          : False
+databaseWriteExecuted : False
+```
+
+Status-Check:
+
+```text
+GET http://127.0.0.1:8080/api/remote/media/status?limit=25
+```
+
+Bestaetigtes Ergebnis:
+
+```text
+ok       : True
+status   : local_media_inventory_available
+readOnly : True
+```
+
+Browser-Check nach 0.2.105:
+
+```text
+http://127.0.0.1:8080/dashboard-v2/
+Media-System funktioniert wie im ModBoard.
+```
+
 ## UI-Stand
 
 Lokale Datei:
@@ -84,7 +146,7 @@ Lokale Datei:
 htdocs/dashboard-v2/assets/modules/media/library.js
 ```
 
-wurde auf den Online-Picker-Stand angeglichen:
+ist auf den Online-Picker-Stand angeglichen:
 
 ```text
 remote-modboard/backend/public/assets/modules/media/library.js
@@ -131,33 +193,15 @@ keine Upload/Edit/Delete-Aktion
 keine Dateiaktion vom Webserver zum Stream-PC
 ```
 
-## Erwartete lokale Checks
-
-```powershell
-node --check .\backend\modules\local_remote_modboard_adapter.js
-node --check .\htdocs\dashboard-v2\assets\modules\media\library.js
-
-Invoke-RestMethod "http://127.0.0.1:8080/api/remote/media/index/context/list?root_key=media&limit=25&offset=0" | Select-Object ok,status,total,count,readOnly,writeEnabled,databaseWriteExecuted
-```
-
-Erwartung:
-
-```text
-ok = True
-status = local_media_context_list_available_readonly
-readOnly = True
-writeEnabled = False
-databaseWriteExecuted = False
-```
-
 ## Naechster sinnvoller Block
 
 ```text
-RDAP_0.2.105_LOCAL_MEDIA_PICKER_VERIFY_AND_POLISH
+RDAP_0.2.106_MEDIA_PICKER_NEXT_SCOPE_DECISION
 ```
 
 Ziel:
-- lokalen Picker im Browser pruefen,
-- Filter/Pagination gegen echte lokale Dateien bestaetigen,
-- nur falls noetig kleine UI-Polish-Korrektur,
-- keine Writes.
+- naechsten Media-Picker-/Media-System-Scope bewusst festlegen,
+- entweder lokalen/online Bestand weiter dokumentieren,
+- oder kleinen fachlichen UI-Polish planen,
+- oder einen separaten Backend-/Sync-/Permission-Scope vorbereiten,
+- keine Writes ohne eigenen Plan + Go.
