@@ -20,9 +20,9 @@ let obsSharedModule = null;
 try { obsSharedModule = require('./obs_shared'); } catch (err) { obsSharedModule = null; }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.1.8D';
-const MODULE_BUILD = 'RDAP_0.2.58K_MEDIA_INDEX_EXCLUDE_TTS_GENERATED_FROM_SYNC';
-const STATUS_API_VERSION = 'rdap_agent_media_inventory_exclude_tts_generated_058k.v1';
+const MODULE_VERSION = '0.1.8E';
+const MODULE_BUILD = 'RDAP_0.2.73_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_INLINE_WIRING';
+const STATUS_API_VERSION = 'rdap_agent_media_inventory_media_system_scan_073.v1';
 const HANDSHAKE_PROTOCOL_VERSION = 'rdap-agent-handshake.v1';
 const HEARTBEAT_PROTOCOL_VERSION = 'rdap-agent-heartbeat.v1';
 const COMPONENT_STATUS_PROTOCOL_VERSION = 'rdap-component-status.v1';
@@ -44,9 +44,10 @@ const MEDIA_WSS_TRANSPORT_LIMITS = Object.freeze([120, 80, 40, 20]);
 const MEDIA_FULL_SYNC_CHUNK_SIZE = 50;
 const MEDIA_INDEX_SYNC_FOUNDATION_BUILD = 'RDAP_0.2.53_MEDIA_SYNC_STATUS_AND_INDEX_FOUNDATION';
 const MEDIA_ROOTS = Object.freeze([
-  { key: 'sounds', label: 'Sounds', localPathHint: 'htdocs/assets/sounds', publicBasePath: '/assets/sounds', types: ['audio', 'video'] },
-  { key: 'videos', label: 'Videos', localPathHint: 'htdocs/assets/videos', publicBasePath: '/assets/videos', types: ['video'] },
-  { key: 'images', label: 'Bilder', localPathHint: 'htdocs/assets/images', publicBasePath: '/assets/images', types: ['image'] }
+  { key: 'sounds', label: 'Sounds', localPathHint: 'htdocs/assets/sounds', publicBasePath: '/assets/sounds', types: ['audio', 'video'], source: 'legacy_asset_root' },
+  { key: 'videos', label: 'Videos', localPathHint: 'htdocs/assets/videos', publicBasePath: '/assets/videos', types: ['video'], source: 'legacy_asset_root' },
+  { key: 'images', label: 'Bilder', localPathHint: 'htdocs/assets/images', publicBasePath: '/assets/images', types: ['image'], source: 'legacy_asset_root' },
+  { key: 'media', label: 'Media-System', localPathHint: 'htdocs/assets/media', publicBasePath: '/assets/media', types: ['audio', 'video', 'image', 'media'], source: 'media_system', mediaSystemRoot: true }
 ]);
 const MEDIA_SYNC_EXCLUDED_PATH_RULES = Object.freeze([
   {
@@ -648,7 +649,7 @@ function buildMediaSyncFoundationStatus(inventory = {}) {
       percent: totalSeen > 0 ? Math.min(100, Math.round((returned / totalSeen) * 100)) : 0,
       truncated
     },
-    note: '0.2.58K sendet TTS-generated temp files unter sounds/tts/generated/ nicht mehr im Media-Inventory/Full-Sync. Alles bleibt read-only; keine Dateiaktion, kein DB-Write.'
+    note: '0.2.73 scannt zusaetzlich das neue Media-System unter assets/media/<module>/<category> read-only. Legacy-Roots bleiben erhalten. TTS-generated temp files unter sounds/tts/generated/ bleiben ausgeschlossen. Keine Dateiaktion, kein DB-Write.'
   };
 }
 
@@ -861,10 +862,16 @@ function sanitizeMediaTransportItem(item) {
     id: safeMediaId(source.id || `${rootKey}:${relativePath}`),
     rootKey,
     rootLabel: safeText(source.rootLabel || rootKey, 80),
+    source: safeReason(source.source || (rootKey === 'media' ? 'media_system' : 'legacy_asset_root')),
+    moduleKey: safeMediaSegment(source.moduleKey || (rootKey === 'media' ? String(relativePath).split('/')[0] : rootKey), rootKey === 'media' ? 'uncategorized' : rootKey),
+    categoryKey: safeMediaSegment(source.categoryKey || (rootKey === 'media' ? String(relativePath).split('/')[1] : 'legacy'), rootKey === 'media' ? 'general' : 'legacy'),
+    fullCategoryKey: safeText(source.fullCategoryKey || `${safeMediaSegment(source.moduleKey || (rootKey === 'media' ? String(relativePath).split('/')[0] : rootKey), rootKey === 'media' ? 'uncategorized' : rootKey)}/${safeMediaSegment(source.categoryKey || (rootKey === 'media' ? String(relativePath).split('/')[1] : 'legacy'), rootKey === 'media' ? 'general' : 'legacy')}`, 180),
+    assetRelativePath: normalizeMediaRelativePath(source.assetRelativePath || relativePath),
+    webPath: safePublicMediaPath(source.webPath || source.publicPath || `/${rootKey}/${relativePath}`),
     kind,
     name,
     relativePath,
-    publicPath: safePublicMediaPath(source.publicPath || `/${rootKey}/${relativePath}`),
+    publicPath: safePublicMediaPath(source.publicPath || source.webPath || `/${rootKey}/${relativePath}`),
     extension,
     sizeBytes: safeNonNegativeNumber(source.sizeBytes),
     modifiedAt: safeIsoOrNull(source.modifiedAt),
@@ -877,7 +884,7 @@ function scanLocalMediaInventory(limit) {
   const safeLimit = Math.max(1, Math.min(Number(limit || MEDIA_SCAN_DEFAULT_LIMIT), MEDIA_SCAN_HARD_LIMIT));
   const items = [];
   const groups = emptyMediaGroups();
-  const counts = { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0, excludedFromSync: 0, ttsGeneratedExcludedFromSync: 0 };
+  const counts = { total: 0, sounds: 0, videos: 0, images: 0, media: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0, excludedFromSync: 0, ttsGeneratedExcludedFromSync: 0 };
   const errors = [];
   let truncated = false;
 
@@ -941,7 +948,8 @@ function emptyMediaGroups() {
   return {
     sounds: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
     videos: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
-    images: { prepared: true, exists: true, count: 0, items: [], emptyReason: null }
+    images: { prepared: true, exists: true, count: 0, items: [], emptyReason: null },
+    media: { prepared: true, exists: true, count: 0, items: [], emptyReason: null }
   };
 }
 
@@ -1000,14 +1008,21 @@ function walkMediaRoot({ root, absoluteRoot, currentDir, depth, limit, items, gr
     }
     let stat = null;
     try { stat = fs.statSync(absolutePath); } catch (err) { counts.skipped += 1; continue; }
+    const meta = buildMediaInventoryItemMeta(root, rel);
     const item = {
       id: `${root.key}:${rel}`,
       rootKey: root.key,
       rootLabel: root.label,
+      source: meta.source,
+      moduleKey: meta.moduleKey,
+      categoryKey: meta.categoryKey,
+      fullCategoryKey: meta.fullCategoryKey,
+      assetRelativePath: meta.assetRelativePath,
+      webPath: meta.webPath,
       kind,
       name: path.basename(rel),
       relativePath: rel,
-      publicPath: `${root.publicBasePath}/${rel}`,
+      publicPath: meta.publicPath,
       extension: ext,
       sizeBytes: stat.size,
       modifiedAt: stat.mtime ? stat.mtime.toISOString() : null,
@@ -1091,7 +1106,7 @@ function stripMediaGroupItems(groups) {
 }
 
 function buildMediaCountsFromItems(items, sourceCounts) {
-  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length, excludedFromSync: 0, ttsGeneratedExcludedFromSync: 0 };
+  const counts = { total: items.length, sounds: 0, videos: 0, images: 0, media: 0, audio: 0, video: 0, image: 0, returned: items.length, skipped: 0, totalSeen: items.length, excludedFromSync: 0, ttsGeneratedExcludedFromSync: 0 };
   if (sourceCounts && Number.isFinite(Number(sourceCounts.skipped))) counts.skipped = Math.max(0, Math.floor(Number(sourceCounts.skipped)));
   if (sourceCounts && Number.isFinite(Number(sourceCounts.excludedFromSync))) counts.excludedFromSync = Math.max(0, Math.floor(Number(sourceCounts.excludedFromSync)));
   if (sourceCounts && Number.isFinite(Number(sourceCounts.ttsGeneratedExcludedFromSync))) counts.ttsGeneratedExcludedFromSync = Math.max(0, Math.floor(Number(sourceCounts.ttsGeneratedExcludedFromSync)));
@@ -1106,7 +1121,7 @@ function buildMediaCountsFromItems(items, sourceCounts) {
 function buildMediaInventoryStatusResponse(req = null) {
   void req;
   const inventory = CONNECTION_STATE.mediaInventorySync || buildMediaInventoryTransportPayload(scanLocalMediaInventory(MEDIA_SCAN_DEFAULT_LIMIT));
-  const counts = inventory.counts || { total: 0, sounds: 0, videos: 0, images: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 };
+  const counts = inventory.counts || { total: 0, sounds: 0, videos: 0, images: 0, media: 0, audio: 0, video: 0, image: 0, returned: 0, skipped: 0, totalSeen: 0 };
   return buildBaseResponse({
     displayName: 'Media Inventar read-only',
     readOnly: true,
@@ -1147,6 +1162,43 @@ function normalizeMediaRelativePath(value) {
   return String(value || '').replace(/\\/g, '/').replace(/^\/+/g, '').replace(/[\u0000-\u001f<>:"|?*]/g, '').slice(0, 220);
 }
 
+function safeMediaSegment(value, fallback) {
+  const segment = safeReason(value || fallback || 'general')
+    .toLowerCase()
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80);
+  return segment || fallback || 'general';
+}
+
+function buildMediaInventoryItemMeta(root, relativePath) {
+  const rel = normalizeMediaRelativePath(relativePath);
+  const publicPath = safePublicMediaPath(`${root.publicBasePath}/${rel}`);
+  if (root && root.mediaSystemRoot === true) {
+    const parts = rel.split('/').filter(Boolean);
+    const moduleKey = safeMediaSegment(parts[0], 'uncategorized');
+    const categoryKey = safeMediaSegment(parts[1], 'general');
+    return {
+      source: 'media_system',
+      moduleKey,
+      categoryKey,
+      fullCategoryKey: `${moduleKey}/${categoryKey}`,
+      assetRelativePath: rel,
+      webPath: publicPath,
+      publicPath
+    };
+  }
+  const rootKey = safeMediaRootKey(root && root.key) || 'legacy';
+  return {
+    source: 'legacy_asset_root',
+    moduleKey: rootKey,
+    categoryKey: 'legacy',
+    fullCategoryKey: `legacy/${rootKey}`,
+    assetRelativePath: rel,
+    webPath: publicPath,
+    publicPath
+  };
+}
+
 function mediaKindForExtension(ext) {
   if (MEDIA_AUDIO_EXTENSIONS.has(ext)) return 'audio';
   if (MEDIA_VIDEO_EXTENSIONS.has(ext)) return 'video';
@@ -1156,7 +1208,7 @@ function mediaKindForExtension(ext) {
 
 function safeMediaRootKey(value) {
   const key = safeReason(value);
-  return ['sounds', 'videos', 'images'].includes(key) ? key : '';
+  return ['sounds', 'videos', 'images', 'media'].includes(key) ? key : '';
 }
 
 function safeMediaKind(value) {
@@ -1673,7 +1725,7 @@ function buildStatusResponse() {
     remoteTarget: { publicDashboardUrl: 'https://mods.forrestcgn.de', remoteWsUrl: state.remoteWsUrl, plannedTransport: state.remoteWsUrl.startsWith('wss://') ? 'wss' : 'ws', plannedWsPath: state.wsPath, streamPcPublicPortRequired: false, outgoingConnectionOnly: true },
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
-    warnings: ['Version 0.1.8D sendet schlanke Heartbeats plus separaten read-only OBS-Live-State, OBS-Inventory-Sync und Media-Slow-Sync ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS- und Media-Listen werden separat langsam als Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
+    warnings: ['Version 0.1.8E sendet schlanke Heartbeats plus separaten read-only OBS-Live-State, OBS-Inventory-Sync und Media-Slow-Sync inklusive assets/media-Scan ueber die bestehende Agent-WSS-Verbindung zum Webserver.', 'OBS- und Media-Listen werden separat langsam als Sync gesendet und nicht im Heartbeat transportiert.', 'Es werden keine Steuerbefehle angenommen oder ausgefuehrt.', 'OBS-Steuerung, Sounds, Overlays, Commands, Shell, Dateien, Prozesse und Datenbank-Writes bleiben deaktiviert.', 'OBS-Passwort und Verbindungsschluessel werden nie in Status, UI oder Logs ausgegeben.'],
     errors: state.lastError ? [{ at: state.lastErrorAt, message: state.lastError }] : []
   });
 }
