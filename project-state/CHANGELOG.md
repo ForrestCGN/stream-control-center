@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.2.58J - Media Index TTS Temp Missing Read-only Classification
+
+- `media-index-diff.routes.js` auf `RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION` aktualisiert.
+- Statusmarker `rdap_media_index_diff_tts_temp_missing_classification_058j.v1` ergaenzt.
+- Missing-Eintraege werden read-only klassifiziert.
+- TTS-generated-temp-Regel ergaenzt: `sounds:tts/generated/` plus Audio-Dateiendung.
+- Neue Diagnosefelder: `missingClassification`, `previews.ttsTempMissingCandidates`, `previews.tombstoneCandidatesDiagnostic`.
+- Neue Counts: `ttsTempMissingCandidateCount`, `tombstoneCandidateDiagnosticCount`.
+- `fullSyncCompare` liefert dieselbe Missing-Klassifizierung fuer den vollstaendigen In-Memory-Snapshot.
+- Tombstone-Kandidatur bleibt reine Diagnose; keine Writes, kein Upsert, kein Tombstone/Delete, kein Agent-Trigger.
+
 ## 0.2.58I Final - Full-Sync Compare bestaetigt
 
 - Webserver-Test fuer `RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT` dokumentiert.
@@ -21,9 +32,3 @@
 - Compact-Diff-Ausgabe bleibt kompatibel erhalten.
 - Missing/Tombstone bleibt Diagnose und wird nur bei vollstaendigem Full-Sync-Compare als reliable markiert.
 - Keine DB-Writes, kein Upsert, kein Tombstone/Delete, kein Agent-Trigger.
-
-## 0.2.58H - Media Index Diff Full-Sync Effective Compare Plan
-
-- Compact-Snapshot-/Full-Sync-Verhaeltnis dokumentiert.
-- `120/333` als erwartete Compact-Transportbegrenzung erklaert.
-- Read-only Full-Sync-Compare-Snapshot als naechsten Code-Step festgelegt.

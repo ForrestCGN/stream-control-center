@@ -1,19 +1,21 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.58I - Media Full-Sync Read-only Compare Snapshot bestaetigt`
+Aktueller Stand: `0.2.58J - Media Index TTS Temp Missing Read-only Classification vorbereitet`
 
 ## Ergebnis
 
-0.2.58I ist lokal eingespielt, getestet, auf GitHub/dev abgeschlossen und auf dem Webserver bestaetigt.
+0.2.58J ergaenzt die bestehende read-only Media-Index-Diff-Route um eine diagnostische Missing-Klassifizierung.
 
 Statusmarker:
 
 ```text
-rdap_media_index_diff_full_sync_compare_snapshot_058i.v1
-RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT
+rdap_media_index_diff_tts_temp_missing_classification_058j.v1
+RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION
 ```
 
-## Bestaetigter Webserver-Befund
+## Ausgangspunkt
+
+0.2.58I war bestaetigt:
 
 ```text
 fullSyncCompare.prepared = true
@@ -23,24 +25,13 @@ fullSyncCompare.complete = true
 fullSyncCompare.receivedItems = 332
 fullSyncCompare.totalItems = 332
 fullSyncCompare.missingOnAgentReliable = true
-```
-
-Counts:
-
-```text
 agentTotal = 332
 remoteDbTotal = 333
-matchedCount = 332
-newOnAgentCount = 0
+missingOnAgentCount = 1
 hardChangedOnAgentCount = 0
 effectiveChangedOnAgentCount = 0
-softModifiedAtOnlyCount = 332
-missingOnAgentCount = 1
-missingOnAgentReliable = true
 writesEnabled = false
 ```
-
-## Missing-Diagnose
 
 Bestaetigter Missing-Eintrag:
 
@@ -48,11 +39,27 @@ Bestaetigter Missing-Eintrag:
 sounds:tts/generated/tts_1782718008137_a1e4181f-388c-4914-a5e3-8de78dbfcc88.mp3
 ```
 
-Einordnung:
+## 0.2.58J Diagnose
 
-- TTS-Sprachdateien sind laut Nutzer eigentlich temporaer.
-- Der Eintrag liegt unter `sounds:tts/generated/...`.
-- Der Befund ist plausibel, aber weiterhin nur Diagnose.
+Neue read-only Felder:
+
+```text
+missingClassification
+previews.ttsTempMissingCandidates
+previews.tombstoneCandidatesDiagnostic
+counts.ttsTempMissingCandidateCount
+counts.tombstoneCandidateDiagnosticCount
+```
+
+Die gleichen Diagnosefelder werden auch im `fullSyncCompare`-Block ausgegeben.
+
+TTS-temp-Regel:
+
+```text
+rootKey = sounds
+relativePath beginnt mit tts/generated/
+extension ist Audio (.mp3/.wav/.ogg/.m4a)
+```
 
 ## Sicherheit
 

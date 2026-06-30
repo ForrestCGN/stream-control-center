@@ -9,10 +9,10 @@ const {
 const { withReadOnlyConnection, publicDbError } = require('../services/db.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_full_sync_compare_snapshot_058i.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_effective_change_counts_058g.v1';
-const BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
-const PREVIOUS_BUILD = 'RDAP_0.2.58G_MEDIA_INDEX_DIFF_EFFECTIVE_CHANGE_COUNTS';
+const STATUS_API_VERSION = 'rdap_media_index_diff_tts_temp_missing_classification_058j.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_full_sync_compare_snapshot_058i.v1';
+const BUILD = 'RDAP_0.2.58J_MEDIA_INDEX_TTS_TEMP_MISSING_READONLY_CLASSIFICATION';
+const PREVIOUS_BUILD = 'RDAP_0.2.58I_MEDIA_FULL_SYNC_READONLY_COMPARE_SNAPSHOT';
 const ROUTE = '/api/remote/media/index/diff/status';
 const PERSISTENT_INDEX_TABLE = 'remote_media_index';
 const DEFAULT_PREVIEW_LIMIT = 20;
@@ -26,7 +26,10 @@ const MODIFIED_AT_SOFT_OFFSET_BUCKETS = Object.freeze([
 ]);
 
 const MEDIA_ALLOWED_EXTENSIONS = Object.freeze(['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.mp4', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
+const MEDIA_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
 const MEDIA_ROOT_KEYS = new Set(['sounds', 'videos', 'images']);
+const TTS_TEMP_ROOT_KEY = 'sounds';
+const TTS_TEMP_PREFIX = 'tts/generated/';
 
 function registerMediaIndexDiffRoutes(app, context) {
   app.get(ROUTE, async (req, res) => {
@@ -51,12 +54,13 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
   } catch (err) {
     const code = publicDbError(err).code || 'media_index_diff_db_read_failed';
     const emptyCounts = buildEmptyCounts();
+    const emptyClassification = buildMissingClassification([]);
     return {
       ok: false,
       httpStatus: 200,
       service: 'remote-modboard',
       module: MODULE,
-      moduleVersion: context.appVersion || '0.2.58G',
+      moduleVersion: context.appVersion || '0.2.58J',
       moduleBuild: context.moduleBuild || BUILD,
       routeBuild: BUILD,
       previousRouteBuild: PREVIOUS_BUILD,
@@ -74,6 +78,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       fullSyncCompare: buildFullSyncCompareStatus({ snapshot: fullSyncCompareSnapshot, dbInventory: { items: [], total: 0, truncated: false }, previewLimit }),
       database: { table: PERSISTENT_INDEX_TABLE, readOnly: true, total: 0, active: false },
       counts: emptyCounts,
+      missingClassification: emptyClassification,
       previewLimit,
       previews: buildEmptyPreviews(),
       comparePolicy: buildComparePolicy(),
@@ -81,7 +86,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
         agentInventory,
         agentSnapshotDiagnostic,
         dbInventory: { truncated: false },
-        diff: { counts: emptyCounts }
+        diff: { counts: emptyCounts, missingClassification: emptyClassification }
       }),
       safety: buildSafetyBlock(),
       note: 'Diff-Diagnose konnte die Online-DB nicht read-only lesen. Es wurden keine Writes ausgefuehrt.'
@@ -104,7 +109,7 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     ok: true,
     service: 'remote-modboard',
     module: MODULE,
-    moduleVersion: context.appVersion || '0.2.58G',
+    moduleVersion: context.appVersion || '0.2.58J',
     moduleBuild: context.moduleBuild || BUILD,
     routeBuild: BUILD,
     previousRouteBuild: PREVIOUS_BUILD,
@@ -122,21 +127,22 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
     fullSyncCompare,
     database: { table: PERSISTENT_INDEX_TABLE, readOnly: true, total: dbInventory.total, returned: dbInventory.items.length, truncated: dbInventory.truncated, active: dbInventory.items.length > 0 },
     counts: diff.counts,
+    missingClassification: diff.missingClassification,
     previewLimit,
     previews: diff.previews,
     comparePolicy: buildComparePolicy(),
     reliability,
     safety: buildSafetyBlock(),
     nextSteps: [
-      'Full-Sync-Compare-Snapshot pruefen, bevor missingOnAgent als Loeschstatus bewertet wird.',
-      'Bei fullSyncCompare.available=true und fullSyncCompare.missingOnAgentReliable=true Diagnose bewerten.',
+      'TTS-generated-temp Missing-Kandidaten read-only pruefen.',
+      'Tombstone-Kandidatur bleibt reine Diagnose.',
       'Gated Delta-Upsert separat planen.',
       'Tombstone/deleted=1 nur spaeter mit eigenem Gate, Confirm, Audit/Lock und Readback planen.',
       'Upload/Edit/Delete bleibt aus.'
     ],
     note: agentSnapshotUnavailable
       ? 'Diese Route vergleicht read-only. Der Agent-Snapshot ist leer oder nicht verfuegbar; agentSnapshotDiagnostic zeigt die wahrscheinliche Ursache. Es wird kein belastbarer missingOnAgent-/Loeschstatus abgeleitet.'
-      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58I ergaenzt einen read-only Full-Sync-Compare-Snapshot. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
+      : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.58J klassifiziert Missing-Eintraege diagnostisch, darunter TTS generated temp files. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
 
@@ -256,7 +262,6 @@ function diagnosticNote(reason) {
   return 'Agent-Snapshot ist fuer Diff-Auswertung vorhanden.';
 }
 
-
 function buildFullSyncCompareStatus({ snapshot, dbInventory, previewLimit }) {
   const full = sanitizeFullSyncCompareSnapshot(snapshot);
   const db = dbInventory && typeof dbInventory === 'object' && !Array.isArray(dbInventory) ? dbInventory : { items: [], total: 0, truncated: false };
@@ -265,6 +270,7 @@ function buildFullSyncCompareStatus({ snapshot, dbInventory, previewLimit }) {
   const base = {
     prepared: true,
     build: BUILD,
+    previousBuild: PREVIOUS_BUILD,
     readOnly: true,
     inMemoryOnly: true,
     persistsToDatabase: false,
@@ -296,6 +302,7 @@ function buildFullSyncCompareStatus({ snapshot, dbInventory, previewLimit }) {
     return {
       ...base,
       counts: buildEmptyCounts(),
+      missingClassification: buildMissingClassification([]),
       previews: buildEmptyPreviews()
     };
   }
@@ -322,6 +329,7 @@ function buildFullSyncCompareStatus({ snapshot, dbInventory, previewLimit }) {
     databaseReturned: dbItems.length,
     databaseTruncated: db.truncated === true,
     counts: diff.counts,
+    missingClassification: diff.missingClassification,
     previews: diff.previews
   };
 }
@@ -375,11 +383,12 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
   const missingOnAgent = [];
   if (missingOnAgentReliable) {
     for (const dbItem of dbById.values()) {
-      if (!agentById.has(dbItem.id)) missingOnAgent.push(dbItem);
+      if (!agentById.has(dbItem.id)) missingOnAgent.push(classifyMissingItem(dbItem));
     }
   }
-
+  const missingClassification = buildMissingClassification(missingOnAgent);
   const matchedCount = unchanged.length + changedOnAgent.length;
+
   return {
     counts: {
       agentTotal: agentItems.length,
@@ -395,6 +404,8 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
       effectiveNoopChangedOnAgentCount: compareStats.softModifiedAtOnlyCount,
       missingOnAgentCount: missingOnAgentReliable ? missingOnAgent.length : null,
       missingOnAgentReliable,
+      ttsTempMissingCandidateCount: missingOnAgentReliable ? missingClassification.ttsGeneratedTempCandidateCount : null,
+      tombstoneCandidateDiagnosticCount: missingOnAgentReliable ? missingClassification.tombstoneCandidateDiagnosticCount : null,
       agentSnapshotUnavailable: agentSnapshotUnavailable === true,
       unchangedCount: unchanged.length,
       strictUnchangedCount: unchanged.length,
@@ -406,6 +417,7 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
       readOnly: true,
       writesEnabled: false
     },
+    missingClassification,
     previews: {
       newOnAgent: newOnAgent.slice(0, previewLimit).map(safePreviewItem),
       changedOnAgent: changedOnAgent.slice(0, previewLimit).map(safePreviewItem),
@@ -413,8 +425,65 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
       softChangedOnAgent: softChangedOnAgent.slice(0, previewLimit).map(safePreviewItem),
       effectiveChangedOnAgent: effectiveChangedOnAgent.slice(0, previewLimit).map(safePreviewItem),
       missingOnAgent: missingOnAgentReliable ? missingOnAgent.slice(0, previewLimit).map(safePreviewItem) : [],
+      ttsTempMissingCandidates: missingOnAgentReliable ? missingOnAgent.filter(item => item.ttsGeneratedTempCandidate === true).slice(0, previewLimit).map(safePreviewItem) : [],
+      tombstoneCandidatesDiagnostic: missingOnAgentReliable ? missingOnAgent.filter(item => item.tombstoneCandidateDiagnostic === true).slice(0, previewLimit).map(safePreviewItem) : [],
       unchanged: unchanged.slice(0, previewLimit).map(safePreviewItem)
     }
+  };
+}
+
+function classifyMissingItem(item) {
+  const safe = sanitizeMediaItem(item);
+  if (!safe) return null;
+  const relativePath = String(safe.relativePath || '').replace(/\\/g, '/').toLowerCase();
+  const isTtsGeneratedTempCandidate = safe.rootKey === TTS_TEMP_ROOT_KEY
+    && relativePath.startsWith(TTS_TEMP_PREFIX)
+    && MEDIA_AUDIO_EXTENSIONS.has(safe.extension);
+  const classification = isTtsGeneratedTempCandidate ? 'tts_generated_temp_missing_candidate' : 'persistent_media_missing_candidate';
+  return {
+    ...safe,
+    missingClassification: classification,
+    ttsGeneratedTempCandidate: isTtsGeneratedTempCandidate,
+    temporaryFileCandidate: isTtsGeneratedTempCandidate,
+    tombstoneCandidateDiagnostic: true,
+    tombstoneWriteAllowed: false,
+    deleteAllowed: false,
+    noDatabaseWrite: true,
+    noPhysicalDelete: true,
+    noOnlineToAgentAction: true
+  };
+}
+
+function buildMissingClassification(items) {
+  const list = (Array.isArray(items) ? items : []).filter(Boolean);
+  const ttsGeneratedTempCandidateCount = list.filter(item => item.ttsGeneratedTempCandidate === true).length;
+  const persistentMediaMissingCandidateCount = list.filter(item => item.ttsGeneratedTempCandidate !== true).length;
+  return {
+    prepared: true,
+    build: BUILD,
+    readOnly: true,
+    reliableInputRequired: true,
+    missingOnAgentItems: list.length,
+    ttsGeneratedTempCandidateCount,
+    persistentMediaMissingCandidateCount,
+    tombstoneCandidateDiagnosticCount: list.length,
+    tombstoneWritesEnabled: false,
+    deleteEnabled: false,
+    databaseWritesEnabled: false,
+    noOnlineToAgentAction: true,
+    rules: [
+      {
+        key: 'tts_generated_temp_missing_candidate',
+        rootKey: TTS_TEMP_ROOT_KEY,
+        relativePathPrefix: TTS_TEMP_PREFIX,
+        audioOnly: true,
+        meaning: 'DB kennt eine TTS-generated-Datei, die im vollstaendigen Agent-Snapshot nicht mehr vorhanden ist. Das ist nur ein temporaerer Missing-Kandidat.'
+      },
+      {
+        key: 'persistent_media_missing_candidate',
+        meaning: 'DB kennt einen Media-Eintrag, der im vollstaendigen Agent-Snapshot nicht vorhanden ist. Tombstone bleibt nur Diagnose.'
+      }
+    ]
   };
 }
 
@@ -424,7 +493,7 @@ function buildReliabilityBlock({ agentInventory, agentSnapshotDiagnostic, dbInve
   const metadataCompareWarnings = diff && diff.counts ? safeNonNegativeNumber(diff.counts.metadataCompareWarnings) : 0;
   const fullSyncMissingReliable = fullSyncCompare && fullSyncCompare.missingOnAgentReliable === true;
   const missingOnAgentReliable = fullSyncMissingReliable || (!agentSnapshotUnavailable && !(agentInventory && agentInventory.truncated === true) && !dbTruncated);
-  let note = fullSyncMissingReliable ? 'Full-Sync-Compare-Snapshot ist vollstaendig; Missing-Diagnose ist read-only belastbar.' : 'Agent- und DB-Snapshot sind nicht als gekuerzt gemeldet.';
+  let note = fullSyncMissingReliable ? 'Full-Sync-Compare-Snapshot ist vollstaendig; Missing-Diagnose und TTS-temp-Klassifizierung sind read-only belastbar.' : 'Agent- und DB-Snapshot sind nicht als gekuerzt gemeldet.';
   if (agentSnapshotUnavailable) {
     note = agentSnapshotDiagnostic && agentSnapshotDiagnostic.note
       ? agentSnapshotDiagnostic.note
@@ -445,6 +514,9 @@ function buildReliabilityBlock({ agentInventory, agentSnapshotDiagnostic, dbInve
     fullSyncCompareAvailable: fullSyncCompare && fullSyncCompare.available === true,
     fullSyncCompareComplete: fullSyncCompare && fullSyncCompare.complete === true,
     fullSyncCompareMissingOnAgentReliable: fullSyncMissingReliable,
+    missingClassificationReadOnly: true,
+    ttsTempClassificationEnabled: true,
+    tombstoneCandidateOnlyDiagnostic: true,
     metadataCompareWarnings,
     note
   };
@@ -585,7 +657,6 @@ function sanitizeMediaItem(item) {
   };
 }
 
-
 function sanitizeFullSyncCompareSnapshot(input) {
   const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const rawItems = Array.isArray(source.items) ? source.items : [];
@@ -651,11 +722,17 @@ function safePreviewItem(item) {
     sizeBytes: safeNonNegativeNumber(safe.sizeBytes),
     modifiedAt: safe.modifiedAt || null
   };
-  if (Array.isArray(item.changeReasons)) preview.changeReasons = item.changeReasons.filter(Boolean).slice(0, 5);
-  if (item.changeClass) preview.changeClass = safeStatus(item.changeClass);
-  if (item.modifiedAtOffsetBucket) preview.modifiedAtOffsetBucket = safeStatus(item.modifiedAtOffsetBucket);
-  if (Array.isArray(item.metadataWarnings)) preview.metadataWarnings = item.metadataWarnings.filter(Boolean).slice(0, 5);
-  if (item.compareDetails && item.compareDetails.modifiedAt) {
+  if (item && item.missingClassification) preview.missingClassification = safeStatus(item.missingClassification);
+  if (item && item.ttsGeneratedTempCandidate === true) preview.ttsGeneratedTempCandidate = true;
+  if (item && item.temporaryFileCandidate === true) preview.temporaryFileCandidate = true;
+  if (item && item.tombstoneCandidateDiagnostic === true) preview.tombstoneCandidateDiagnostic = true;
+  if (item && item.tombstoneWriteAllowed === false) preview.tombstoneWriteAllowed = false;
+  if (item && item.deleteAllowed === false) preview.deleteAllowed = false;
+  if (item && Array.isArray(item.changeReasons)) preview.changeReasons = item.changeReasons.filter(Boolean).slice(0, 5);
+  if (item && item.changeClass) preview.changeClass = safeStatus(item.changeClass);
+  if (item && item.modifiedAtOffsetBucket) preview.modifiedAtOffsetBucket = safeStatus(item.modifiedAtOffsetBucket);
+  if (item && Array.isArray(item.metadataWarnings)) preview.metadataWarnings = item.metadataWarnings.filter(Boolean).slice(0, 5);
+  if (item && item.compareDetails && item.compareDetails.modifiedAt) {
     preview.agentModifiedAt = item.compareDetails.modifiedAt.agentModifiedAt || null;
     preview.dbModifiedAt = item.compareDetails.modifiedAt.dbModifiedAt || null;
     preview.modifiedAtDeltaMs = Number.isFinite(item.compareDetails.modifiedAt.modifiedAtDeltaMs) ? item.compareDetails.modifiedAt.modifiedAtDeltaMs : null;
@@ -694,7 +771,6 @@ function modifiedAtSoftOffsetBucket(deltaMs) {
   return null;
 }
 
-
 function buildModifiedAtDeltaStats(deltas) {
   const values = (Array.isArray(deltas) ? deltas : []).filter(Number.isFinite);
   if (values.length <= 0) {
@@ -732,7 +808,6 @@ function buildModifiedAtDeltaStats(deltas) {
   };
 }
 
-
 function buildEmptyCounts() {
   return {
     agentTotal: 0,
@@ -748,6 +823,8 @@ function buildEmptyCounts() {
     effectiveNoopChangedOnAgentCount: 0,
     missingOnAgentCount: null,
     missingOnAgentReliable: false,
+    ttsTempMissingCandidateCount: null,
+    tombstoneCandidateDiagnosticCount: null,
     agentSnapshotUnavailable: true,
     unchangedCount: 0,
     strictUnchangedCount: 0,
@@ -762,7 +839,7 @@ function buildEmptyCounts() {
 }
 
 function buildEmptyPreviews() {
-  return { newOnAgent: [], changedOnAgent: [], strictChangedOnAgent: [], softChangedOnAgent: [], effectiveChangedOnAgent: [], missingOnAgent: [], unchanged: [] };
+  return { newOnAgent: [], changedOnAgent: [], strictChangedOnAgent: [], softChangedOnAgent: [], effectiveChangedOnAgent: [], missingOnAgent: [], ttsTempMissingCandidates: [], tombstoneCandidatesDiagnostic: [], unchanged: [] };
 }
 
 function buildComparePolicy() {
@@ -781,6 +858,9 @@ function buildComparePolicy() {
     fullSyncCompareSnapshotEnabled: true,
     fullSyncCompareSnapshotReadOnly: true,
     fullSyncCompareSnapshotInMemoryOnly: true,
+    ttsTempMissingClassificationEnabled: true,
+    ttsTempMissingClassificationRule: `${TTS_TEMP_ROOT_KEY}:${TTS_TEMP_PREFIX}*`,
+    tombstoneCandidateOnlyDiagnostic: true,
     changedOnAgentCountCompatibilityMode: 'strict_includes_soft_matches',
     modifiedAtSoftOffsetBuckets: MODIFIED_AT_SOFT_OFFSET_BUCKETS.map(bucket => ({ key: bucket.key, ms: bucket.ms })),
     modifiedAtSoftOffsetToleranceMs: MODIFIED_AT_SOFT_OFFSET_TOLERANCE_MS,
@@ -799,8 +879,12 @@ function buildSafetyBlock() {
     noFileContent: true,
     noAbsolutePaths: true,
     noOnlineToAgentActions: true,
+    noAgentTrigger: true,
+    noUpsert: true,
+    noTimestampWrites: true,
     noTombstoneWrites: true,
     noPhysicalDelete: true,
+    tombstoneCandidateOnlyDiagnostic: true,
     secretsExposed: false
   };
 }

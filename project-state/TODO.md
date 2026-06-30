@@ -20,8 +20,8 @@
 - [x] Full-Sync-/Compact-Snapshot-Verhaeltnis fuer Missing/Tombstone planen
 - [x] Full-Sync read-only Compare-Snapshot bauen
 - [x] 0.2.58I Webserver-Test dokumentieren
+- [x] TTS temp Missing read-only klassifizieren
 - [ ] Alert-System Arbeiten separat fortsetzen
-- [ ] TTS temp Missing read-only klassifizieren
+- [ ] Tombstone-Gate/Confirm/Audit/Lock/Readback read-only planen
 - [ ] Gated Delta-Upsert fuer echte Hard-Changes separat planen
-- [ ] Tombstone/Loeschstatus nur mit eigenem Gate/Confirm/Audit/Lock planen
 - [ ] Online->Agent Queue separat planen
