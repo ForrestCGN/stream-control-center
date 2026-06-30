@@ -99,6 +99,68 @@
     return 'Media';
   }
 
+  function mediaKindOptionLabel(kind) {
+    const value = String(kind || '').toLowerCase();
+    if (!value) return 'Alle Dateitypen';
+    if (value === 'audio') return 'Sounds';
+    if (value === 'image') return 'Bilder';
+    if (value === 'video') return 'Videos';
+    return 'Sonstige';
+  }
+
+  function friendlyContextLabel(value) {
+    const key = String(value || '').trim();
+    if (!key) return '';
+    return key
+      .replace(/[_-]+/g, ' ')
+      .replace(/\w/g, char => char.toUpperCase());
+  }
+
+  function contextModuleOptions() {
+    return [
+      ['', 'Alle Bereiche'],
+      ['alerts', 'Alerts'],
+      ['general', 'Allgemein'],
+      ['stream_events', 'Stream-Events'],
+      ['vip', 'VIP'],
+      ['commands', 'Commands'],
+      ['channelpoints', 'Kanalpunkte'],
+      ['birthday', 'Geburtstag'],
+      ['shot_alarm', 'Shot-Alarm'],
+      ['vip30', 'VIP30'],
+      ['audio', 'Audio'],
+      ['hypetrain', 'Hype-Train'],
+      ['twitch_events', 'Twitch-Events']
+    ];
+  }
+
+  function contextCategoryOptions(moduleKey) {
+    const key = String(moduleKey || '').trim().toLowerCase();
+    const map = {
+      alerts: [['bits', 'Bits'], ['donation', 'Donation'], ['follow', 'Follow'], ['kofi', 'Ko-fi'], ['raid', 'Raid'], ['sub', 'Sub'], ['tipeee', 'Tipeee']],
+      general: [['audio', 'Audio'], ['general', 'Allgemein'], ['images', 'Bilder'], ['intro', 'Intro'], ['outro', 'Outro'], ['test', 'Test'], ['transitions', 'Transitions'], ['video', 'Video']],
+      stream_events: [['1-jahres-event', '1-Jahres-Event']],
+      vip: [['general', 'Allgemein']],
+      commands: [['general', 'Allgemein'], ['roxxy', 'Roxxy']],
+      channelpoints: [['general', 'Allgemein']],
+      birthday: [['default-song', 'Default-Song'], ['general', 'Allgemein'], ['party-songs', 'Party-Songs'], ['user-songs', 'User-Songs']],
+      shot_alarm: [['shot-system', 'Shot-System']],
+      vip30: [['general', 'Allgemein']],
+      hypetrain: [['general', 'Allgemein']],
+      twitch_events: [['hypetrain', 'Hype-Train']]
+    };
+    return [['', key ? 'Alle Ordner' : 'Erst Bereich waehlen'], ...(map[key] || [])];
+  }
+
+  function selectedContextText() {
+    const filters = safeObject(state.contextFilters);
+    const parts = [];
+    if (filters.moduleKey) parts.push(friendlyContextLabel(filters.moduleKey));
+    if (filters.categoryKey) parts.push(friendlyContextLabel(filters.categoryKey));
+    if (filters.kind) parts.push(mediaKindOptionLabel(filters.kind));
+    return parts.join(' / ') || 'Alle Dateien';
+  }
+
   function mediaModifiedMs(item) {
     const value = safeObject(item).modifiedAt;
     const parsed = value ? Date.parse(value) : 0;
@@ -550,19 +612,11 @@
   function renderRootRows(data) {
     const context = contextSummary();
     if (context.active) {
-      const filters = context.filters;
-      const filterText = [
-        filters.rootKey || filters.root_key || state.contextFilters.rootKey || 'media',
-        filters.moduleKey || filters.module_key || state.contextFilters.moduleKey || '',
-        filters.categoryKey || filters.category_key || state.contextFilters.categoryKey || '',
-        filters.fullCategoryKey || filters.full_category_key || state.contextFilters.fullCategoryKey || '',
-        filters.kind || state.contextFilters.kind || ''
-      ].filter(Boolean).join(' / ');
       return `<div class="module-row">
-        <span class="module-icon cyan">CTX</span>
+        <span class="module-icon cyan">MED</span>
         <div>
-          <b>Kontext-API</b>
-          <small>${escapeHtml(String(context.count))} von ${escapeHtml(String(context.total))} Medien${filterText ? ` · ${escapeHtml(filterText)}` : ''}</small>
+          <b>Dateiauswahl</b>
+          <small>${escapeHtml(String(context.count))} von ${escapeHtml(String(context.total))} Dateien · ${escapeHtml(selectedContextText())}</small>
         </div>
       </div>`;
     }
@@ -673,21 +727,21 @@
     const status = syncStateLabel(progress.state);
     const context = contextSummary();
     const dbText = context.active
-      ? 'Kontext-API aktiv'
+      ? 'Auswahl aktiv'
       : (isOnline
         ? (dbReadActive ? 'Online-DB aktiv' : 'Online-DB vorbereitet')
         : 'Lokal liest direkt');
     const detail = context.active
-      ? `${progress.returned} von ${progress.totalSeen || progress.returned} Kontext-Medien aus dem Online-Index geladen. Diese Ansicht bleibt read-only und schreibt nichts.`
+      ? `${progress.returned} von ${progress.totalSeen || progress.returned} Dateien geladen. Diese Ansicht ist read-only.`
       : (dbReadActive
         ? `${progress.returned} Medien aus dem Online-Index geladen. DB-Read-Source ist read-only aktiv.`
         : (sync.currentLimitProblemVisible
           ? `Aktuell kommen ${progress.returned} von ${progress.totalSeen} Dateien online an. Full-Sync in Chunks ist als naechster DB-Schritt vorbereitet.`
           : (isOnline ? 'Online-Index und Sync-Fortschritt sind vorbereitet. Produktive DB-Writes folgen separat.' : 'Lokal ist der Stream-PC die Datei-Wahrheit.')));
     const chipKind = context.active ? 'info' : (progress.truncated ? 'warn' : 'info');
-    const footerLabel = context.active ? 'Context Read-only' : (dbReadActive ? 'DB Read-only' : 'Read-only Foundation');
+    const footerLabel = context.active ? 'Auswahl read-only' : (dbReadActive ? 'DB Read-only' : 'Read-only Foundation');
     return `<article class="cgn-card span2 rdap-media-sync-card">
-      <div class="card-head"><div><p class="cgn-eyebrow">${context.active ? 'Kontext-Status' : 'Sync-Status'}</p><h2>${context.active ? 'Media-Kontext' : 'Media-Synchronisierung'}</h2></div>${chip(status, chipKind)}</div>
+      <div class="card-head"><div><p class="cgn-eyebrow">${context.active ? 'Auswahl-Status' : 'Sync-Status'}</p><h2>${context.active ? 'Dateiauswahl' : 'Media-Synchronisierung'}</h2></div>${chip(status, chipKind)}</div>
       <div class="rdap-media-sync-progress">
         <div class="rdap-media-sync-meta"><strong>${escapeHtml(dbText)}</strong><span>${escapeHtml(detail)}</span></div>
         <div class="rdap-media-sync-bar" aria-label="Sync-Fortschritt"><i style="width:${escapeHtml(String(progress.percent))}%"></i></div>
@@ -766,7 +820,7 @@
     const from = pageData.start + 1;
     const to = pageData.end;
     const pager = `<div class="rdap-media-pager">
-      <span class="rdap-media-page-info">${escapeHtml(String(from))}-${escapeHtml(String(to))} von ${escapeHtml(String(contextItemsActive() ? (safeObject(state.contextData).total || items.length) : items.length))} Medien · Seite ${escapeHtml(String(pageData.page))}/${escapeHtml(String(pageData.totalPages))}${contextItemsActive() ? ' · Kontext-API' : ''}</span>
+      <span class="rdap-media-page-info">${escapeHtml(String(from))}-${escapeHtml(String(to))} von ${escapeHtml(String(contextItemsActive() ? (safeObject(state.contextData).total || items.length) : items.length))} Medien · Seite ${escapeHtml(String(pageData.page))}/${escapeHtml(String(pageData.totalPages))}${contextItemsActive() ? ' · Auswahl' : ''}</span>
       <span class="login-actions" style="justify-content:flex-end;flex-wrap:wrap">
         <button class="secondaryButton small" type="button" data-media-page="prev" ${pageData.page <= 1 ? 'disabled' : ''}>Zurueck</button>
         <button class="secondaryButton small" type="button" data-media-page="next" ${pageData.page >= pageData.totalPages ? 'disabled' : ''}>Weiter</button>
@@ -778,7 +832,7 @@
   function renderFilters(data) {
     const context = contextSummary();
     if (context.active) {
-      return `${chip(`Kontext-API ${context.count}/${context.total}`, 'info')} <button class="secondaryButton small" type="button" data-media-context-clear="1">Kontext zuruecksetzen</button>`;
+      return `${chip(`${context.count}/${context.total} Dateien`, 'info')} <button class="secondaryButton small" type="button" data-media-context-clear="1">Filter zuruecksetzen</button>`;
     }
 
     const inventory = safeObject(data && data.inventory);
@@ -792,24 +846,28 @@
     return filters.map(([key, label]) => `<button class="secondaryButton small ${state.filter === key ? 'is-active' : ''}" type="button" data-media-filter="${escapeHtml(key)}">${escapeHtml(label)}</button>`).join(' ');
   }
 
+
   function renderContextControls() {
     const filters = safeObject(state.contextFilters);
-    const context = safeObject(state.contextData);
+    const context = contextSummary();
     const status = state.contextLoading
-      ? 'Kontext wird geladen ...'
+      ? 'Dateien werden geladen ...'
       : (state.contextError
-        ? `Kontext-Fehler: ${state.contextError}`
-        : (contextItemsActive() ? `Kontext aktiv: ${contextSummary().count} von ${contextSummary().total}` : 'Kontext-API read-only vorbereitet'));
+        ? `Fehler: ${state.contextError}`
+        : (contextItemsActive() ? `${context.count} von ${context.total} Dateien angezeigt` : 'Filter waehlen und anzeigen'));
+    const moduleOptions = contextModuleOptions();
+    const categoryOptions = contextCategoryOptions(filters.moduleKey);
+    const kindOptions = [['', 'Alle Dateitypen'], ['audio', 'Sounds'], ['image', 'Bilder'], ['video', 'Videos']];
     return `<div class="rdap-media-context-controls">
-      <label class="rdap-media-context-field"><span>Root</span><select class="rdap-media-select" data-media-context-root="1">${['media', 'sounds', 'images', 'videos'].map(key => `<option value="${escapeHtml(key)}" ${filters.rootKey === key ? 'selected' : ''}>${escapeHtml(key)}</option>`).join('')}</select></label>
-      <label class="rdap-media-context-field"><span>Modul</span><input class="rdap-media-search" type="text" data-media-context-module="1" placeholder="z.B. alerts" value="${escapeHtml(filters.moduleKey)}"></label>
-      <label class="rdap-media-context-field"><span>Kategorie</span><input class="rdap-media-search" type="text" data-media-context-category="1" placeholder="z.B. follow" value="${escapeHtml(filters.categoryKey)}"></label>
-      <label class="rdap-media-context-field"><span>Full Category</span><input class="rdap-media-search" type="text" data-media-context-full="1" placeholder="z.B. alerts/follow" value="${escapeHtml(filters.fullCategoryKey)}"></label>
-      <label class="rdap-media-context-field"><span>Kind</span><select class="rdap-media-select" data-media-context-kind="1">${[['', 'alle'], ['audio', 'audio'], ['image', 'image'], ['video', 'video'], ['media', 'media']].map(([key, label]) => `<option value="${escapeHtml(key)}" ${filters.kind === key ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>
-      <button class="secondaryButton small" type="button" data-media-context-load="1" ${state.contextLoading ? 'disabled' : ''}>Kontext laden</button>
-      <div class="rdap-media-list-note">${escapeHtml(status)} · keine Writes</div>
+      <label class="rdap-media-context-field"><span>Bereich</span><select class="rdap-media-select" data-media-context-module="1">${moduleOptions.map(([key, label]) => `<option value="${escapeHtml(key)}" ${filters.moduleKey === key ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>
+      <label class="rdap-media-context-field"><span>Ordner</span><select class="rdap-media-select" data-media-context-category="1">${categoryOptions.map(([key, label]) => `<option value="${escapeHtml(key)}" ${filters.categoryKey === key ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>
+      <label class="rdap-media-context-field"><span>Dateityp</span><select class="rdap-media-select" data-media-context-kind="1">${kindOptions.map(([key, label]) => `<option value="${escapeHtml(key)}" ${filters.kind === key ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>
+      <label class="rdap-media-context-field"><span>Anzahl</span><select class="rdap-media-select" data-media-page-size="1" title="Dateien pro Seite">${PAGE_SIZE_OPTIONS.map(size => `<option value="${escapeHtml(String(size))}" ${currentPageSize() === size ? 'selected' : ''}>${escapeHtml(String(size))} pro Seite</option>`).join('')}</select></label>
+      <button class="secondaryButton small" type="button" data-media-context-load="1" ${state.contextLoading ? 'disabled' : ''}>Anzeigen</button>
+      <div class="rdap-media-list-note">${escapeHtml(status)} · read-only</div>
     </div>`;
   }
+
 
   function renderSortControls() {
     const sortOptions = [
@@ -820,8 +878,7 @@
     ];
     return `<input class="rdap-media-search" type="search" data-media-search="1" placeholder="Suche nach Datei, Bereich oder Typ" value="${escapeHtml(state.search)}">
       <select class="rdap-media-select" data-media-sort="1">${sortOptions.map(([key, label]) => `<option value="${escapeHtml(key)}" ${state.sortKey === key ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>
-      <button class="secondaryButton small" type="button" data-media-sort-dir="1">${state.sortDir === 'desc' ? 'Z-A' : 'A-Z'}</button>
-      <select class="rdap-media-select" data-media-page-size="1" title="Eintraege pro Seite">${PAGE_SIZE_OPTIONS.map(size => `<option value="${escapeHtml(String(size))}" ${currentPageSize() === size ? 'selected' : ''}>${escapeHtml(String(size))} pro Seite</option>`).join('')}</select>`;
+      <button class="secondaryButton small" type="button" data-media-sort-dir="1">${state.sortDir === 'desc' ? 'Z-A' : 'A-Z'}</button>`;
   }
 
   function renderDetailModal() {
@@ -834,11 +891,11 @@
       ['Pfad', item.relativePath || '—'],
       ['Groesse', formatBytes(item.sizeBytes)],
       ['Geaendert', formatDate(item.modifiedAt)],
-      ['Root-Key', item.rootKey || '—'],
-      ['Kind', item.kind || '—'],
-      ['Modul', item.moduleKey || '—'],
-      ['Kategorie', item.categoryKey || '—'],
-      ['Full Category', item.fullCategoryKey || '—'],
+      ['Quelle', item.rootKey || '—'],
+      ['Dateityp intern', item.kind || '—'],
+      ['Bereich', item.moduleKey || '—'],
+      ['Ordner', item.categoryKey || '—'],
+      ['Bereich/Ordner', item.fullCategoryKey || '—'],
       ['Web-Pfad', item.webPath || item.publicPath || '—']
     ];
     return `<div class="rdap-media-detail-backdrop" data-media-close-detail="1" role="presentation">
@@ -865,10 +922,10 @@
     const runtimeLabel = data.runtimeMode === 'local' || mode.local ? 'Lokal' : 'Online';
     const inventoryCount = counts.returned || counts.total || 0;
     const context = contextSummary();
-    const inventoryStatus = context.active ? `${context.total} Kontext-Medien` : (inventory.active ? `${inventoryCount} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt');
-    const statusText = state.error ? 'Fehler' : (state.loading || state.contextLoading ? 'Lade...' : (context.active ? 'Kontext-API aktiv · read-only' : (inventory.active ? 'Inventar aktiv · read-only' : 'Read-only vorbereitet')));
+    const inventoryStatus = context.active ? `${context.total} Dateien` : (inventory.active ? `${inventoryCount} Medien${inventory.truncated ? ' · gekuerzt' : ''}` : 'Inventar folgt');
+    const statusText = state.error ? 'Fehler' : (state.loading || state.contextLoading ? 'Lade...' : (context.active ? 'Dateiauswahl aktiv · read-only' : (inventory.active ? 'Inventar aktiv · read-only' : 'Read-only vorbereitet')));
     const truncatedNotice = context.active && context.truncated
-      ? `<div class="admin-lock-note"><i>!</i><div><strong>Kontextliste gekuerzt.</strong><span>Es werden ${escapeHtml(String(context.count))} von ${escapeHtml(String(context.total))} Kontext-Medien angezeigt. Es wird nichts geschrieben.</span></div></div>`
+      ? `<div class="admin-lock-note"><i>!</i><div><strong>Liste aufgeteilt.</strong><span>Es werden ${escapeHtml(String(context.count))} von ${escapeHtml(String(context.total))} Dateien angezeigt. Du kannst die Anzahl pro Seite aendern.</span></div></div>`
       : (!context.active && inventory.truncated ? `<div class="admin-lock-note"><i>!</i><div><strong>Liste gekuerzt.</strong><span>Es werden ${escapeHtml(String(inventoryCount || inventory.limit || 0))} Medien angezeigt.</span></div></div>` : '');
     const readOnlyNotice = '<div class="admin-lock-note"><i>i</i><div><strong>Diese Ansicht ist read-only.</strong><span>Dateien kommen vom Stream-PC/Agent. Upload, Bearbeiten und Loeschen sind deaktiviert.</span></div></div>';
 
@@ -880,7 +937,7 @@
 
         <section class="metric-grid">
           <article class="metric-card cgn-card"><span>Modus</span><strong>${escapeHtml(runtimeLabel)}</strong><small>Online/Lokal</small><div class="cgn-progress"><i style="width:70%"></i></div></article>
-          <article class="metric-card cgn-card"><span>Inventar</span><strong>${escapeHtml(inventoryStatus)}</strong><small>${escapeHtml(context.active ? 'Kontext aktiv' : (inventory.active ? 'aktiv' : 'wartet'))}</small><div class="cgn-progress ${inventory.active || context.active ? '' : 'cgn-progress--warn'}"><i style="width:${context.active ? escapeHtml(String(context.percent)) : (inventory.active ? '80' : '15')}%"></i></div></article>
+          <article class="metric-card cgn-card"><span>Inventar</span><strong>${escapeHtml(inventoryStatus)}</strong><small>${escapeHtml(context.active ? 'Auswahl aktiv' : (inventory.active ? 'aktiv' : 'wartet'))}</small><div class="cgn-progress ${inventory.active || context.active ? '' : 'cgn-progress--warn'}"><i style="width:${context.active ? escapeHtml(String(context.percent)) : (inventory.active ? '80' : '15')}%"></i></div></article>
           <article class="metric-card cgn-card"><span>Status</span><strong>Read-only</strong><small>keine Bearbeitung</small><div class="cgn-progress cgn-progress--warn"><i style="width:0%"></i></div></article>
         </section>
 
@@ -893,7 +950,7 @@
           ${renderSyncStatusCard()}
 
           <article class="cgn-card span2 rdap-media-inventory-card">
-            <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div>${chip(context.active ? 'Kontext aktiv' : (inventory.active ? 'Inventar aktiv' : 'wartet'), context.active || inventory.active ? 'ok' : 'warn')}</div>
+            <div class="card-head"><div><p class="cgn-eyebrow">Inventar</p><h2>Medienliste</h2></div>${chip(context.active ? 'Auswahl aktiv' : (inventory.active ? 'Inventar aktiv' : 'wartet'), context.active || inventory.active ? 'ok' : 'warn')}</div>
             <div class="rdap-media-toolbar">
               <div class="rdap-media-toolbar-row">${renderFilters(data)} <button class="secondaryButton small" type="button" data-media-refresh="1">Neu laden</button></div>
               <div class="rdap-media-toolbar-row">${renderSortControls()}</div>
@@ -1009,17 +1066,22 @@
       safeRender();
     });
 
-    const contextRoot = panel.querySelector('[data-media-context-root]');
-    if (contextRoot) contextRoot.addEventListener('change', () => { state.contextFilters.rootKey = contextRoot.value || 'media'; });
-
     const contextModule = panel.querySelector('[data-media-context-module]');
-    if (contextModule) contextModule.addEventListener('input', () => { state.contextFilters.moduleKey = contextModule.value || ''; });
+    if (contextModule) contextModule.addEventListener('change', () => {
+      state.contextFilters.moduleKey = contextModule.value || '';
+      state.contextFilters.categoryKey = '';
+      state.contextFilters.fullCategoryKey = '';
+      resetListPage();
+      safeRender();
+    });
 
     const contextCategory = panel.querySelector('[data-media-context-category]');
-    if (contextCategory) contextCategory.addEventListener('input', () => { state.contextFilters.categoryKey = contextCategory.value || ''; });
-
-    const contextFull = panel.querySelector('[data-media-context-full]');
-    if (contextFull) contextFull.addEventListener('input', () => { state.contextFilters.fullCategoryKey = contextFull.value || ''; });
+    if (contextCategory) contextCategory.addEventListener('change', () => {
+      state.contextFilters.categoryKey = contextCategory.value || '';
+      state.contextFilters.fullCategoryKey = '';
+      resetListPage();
+      safeRender();
+    });
 
     const contextKind = panel.querySelector('[data-media-context-kind]');
     if (contextKind) contextKind.addEventListener('change', () => { state.contextFilters.kind = contextKind.value || ''; });
@@ -1035,10 +1097,9 @@
     const filters = safeObject(state.contextFilters);
     const params = new URLSearchParams();
     params.set('limit', String(currentPageSize()));
-    if (filters.rootKey) params.set('root_key', filters.rootKey);
+    params.set('root_key', filters.rootKey || 'media');
     if (filters.moduleKey) params.set('module_key', filters.moduleKey);
     if (filters.categoryKey) params.set('category_key', filters.categoryKey);
-    if (filters.fullCategoryKey) params.set('full_category_key', filters.fullCategoryKey);
     if (filters.kind) params.set('kind', filters.kind);
     return params.toString();
   }
