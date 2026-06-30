@@ -1,22 +1,23 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.113 - Audit Log Readonly API`
+Aktueller Stand: `0.2.114 - Audit Log Readonly API Deploy Confirmed`
 
 ## Kurzfazit
 
-Audit-/Aktivitaets-Log hat jetzt eine read-only API.
+Audit-/Aktivitaets-Log API ist live bestaetigt.
 
 ```text
 GET /api/remote/admin/audit/log
 ```
 
-## Zweck
+## Live bestaetigt
 
 ```text
-wer
-wann
-was gemacht hat
-Status/Ergebnis
+ok = true
+count = 5
+items[0] vorhanden
+/api/remote/routes zeigt adminAuditLogReadonly.route
+adminAuditLogReadonly.readOnly = true
 ```
 
 ## Wichtig
@@ -24,19 +25,21 @@ Status/Ergebnis
 ```text
 keine Writes
 keine Migration
-keine UI
+keine UI in 0.2.114
 keine Agent-Actions
 Admin-Notizen bleiben geparkt
 ```
 
-## Runtime-Aenderung
+## Deploy-Muster
 
-```text
-remote-modboard/backend/src/services/audit-read.service.js
-remote-modboard/backend/src/routes/lock-audit-diagnostic.routes.js
-remote-modboard/backend/src/routes/routes.routes.js
+Verbindlich fuer Webserver-Deploys:
+
+```bash
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh <STEP_NAME> dev
 ```
 
-## Deploy
+## Naechster Step
 
-Webserver-Deploy noetig, weil Runtime-Dateien geaendert wurden.
+```text
+RDAP_0.2.115_AUDIT_LOG_UI_READONLY
+```

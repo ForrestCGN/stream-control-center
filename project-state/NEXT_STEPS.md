@@ -2,24 +2,27 @@
 
 ## Naechster RDAP-Block
 
-`RDAP_0.2.114_AUDIT_LOG_READONLY_API_DEPLOY_VERIFY`
+`RDAP_0.2.115_AUDIT_LOG_UI_READONLY`
 
 ## Ziel
 
-Nach Deploy live pruefen:
+Read-only Modboard-Ansicht fuer Aktivitaets-Log.
 
-```bash
-curl -fsS "http://127.0.0.1:3010/api/remote/admin/audit/log?limit=5" | jq '.ok,.count,.items[0]'
-curl -fsS "http://127.0.0.1:3010/api/remote/routes" | jq '.adminAuditLogReadonly'
-```
-
-## Danach
+Anzeige:
 
 ```text
-RDAP_0.2.115_AUDIT_LOG_UI_READONLY
+wann
+wer
+was
+Ziel/Ressource
+Status
 ```
 
-Read-only Modboard-Ansicht fuer Aktivitaets-Log.
+## Datenquelle
+
+```text
+GET /api/remote/admin/audit/log
+```
 
 ## Regeln
 
@@ -29,4 +32,11 @@ keine Writes
 keine Migration
 keine Gates aktivieren
 keine Agent-Actions
+keine Buttons fuer Aktionen
+```
+
+## Deploy-Regel
+
+```bash
+bash /opt/stream-control-center/tools/server/remote-modboard-deploy-step.sh <STEP_NAME> dev
 ```
