@@ -11,11 +11,12 @@ const { withReadOnlyConnection, withWriteConnection, publicDbError } = require('
 const { requireAdminConfirmWrite } = require('../services/admin-confirm-write.service');
 
 const MODULE = 'remote_media_index_diff_readonly';
-const STATUS_API_VERSION = 'rdap_media_index_diff_fullsync_summary_083.v1';
-const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_route_build_polish_079.v1';
-const BUILD = 'RDAP_0.2.83_MEDIA_INDEX_DIFF_FULLSYNC_SUMMARY_READONLY';
-const PREVIOUS_BUILD = 'RDAP_0.2.79_MEDIA_INDEX_DIFF_ROUTE_BUILD_POLISH_READONLY';
+const STATUS_API_VERSION = 'rdap_media_index_upsert_preview_readonly_085.v1';
+const PREVIOUS_STATUS_API_VERSION = 'rdap_media_index_diff_fullsync_summary_083.v1';
+const BUILD = 'RDAP_0.2.85_MEDIA_INDEX_UPSERT_PREVIEW_READONLY';
+const PREVIOUS_BUILD = 'RDAP_0.2.83_MEDIA_INDEX_DIFF_FULLSYNC_SUMMARY_READONLY';
 const ROUTE = '/api/remote/media/index/diff/status';
+const UPSERT_PREVIEW_ROUTE = '/api/remote/media/index/upsert/preview';
 const PERSISTENT_TOMBSTONE_PREVIEW_ROUTE = '/api/remote/media/index/tombstone/persistent/preview';
 const PERSISTENT_TOMBSTONE_EXECUTE_ROUTE = '/api/remote/media/index/tombstone/persistent/execute';
 const AUDIT_TABLE = 'dashboard_audit_log';
@@ -41,6 +42,11 @@ const TTS_EXCLUDED_LEGACY_CLASSIFICATION = 'tts_generated_excluded_from_sync_leg
 function registerMediaIndexDiffRoutes(app, context) {
   app.get(ROUTE, async (req, res) => {
     const result = await buildMediaIndexDiffStatus(context, req);
+    res.status(result.httpStatus || 200).json(result.body || result);
+  });
+
+  app.get(UPSERT_PREVIEW_ROUTE, async (req, res) => {
+    const result = await buildMediaIndexUpsertPreviewStatus(context, req);
     res.status(result.httpStatus || 200).json(result.body || result);
   });
 
@@ -166,6 +172,178 @@ async function buildMediaIndexDiffStatus(context = {}, req = null) {
       : 'Diese Route vergleicht read-only Agent-Snapshot und remote_media_index. 0.2.77 akzeptiert zusaetzlich den Media-System-Root media und erhaelt Kontextfelder fuer Diff-/Preview-Diagnose. Sie schreibt nichts und fuehrt keine Dateiaktion aus.'
   };
 }
+
+
+async function buildMediaIndexUpsertPreviewStatus(context = {}, req = null) {
+  const generatedAt = new Date().toISOString();
+  const previewLimit = readPreviewLimit(req);
+  const fullSyncCompareSnapshot = safeBuildFullSyncCompareSnapshotStatus();
+  const full = sanitizeFullSyncCompareSnapshot(fullSyncCompareSnapshot);
+  const complete = full.complete === true && full.available === true && full.items.length > 0;
+
+  let dbInventory;
+  try {
+    dbInventory = await readPersistentIndexItems(context.config || {});
+  } catch (err) {
+    const code = publicDbError(err).code || 'media_index_upsert_preview_db_read_failed';
+    return {
+      ok: false,
+      httpStatus: 200,
+      service: 'remote-modboard',
+      module: 'remote_media_index_upsert_preview_readonly',
+      moduleVersion: context.appVersion || '0.2.59',
+      moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
+      routeBuild: BUILD,
+      previousRouteBuild: PREVIOUS_BUILD,
+      statusApiVersion: STATUS_API_VERSION,
+      previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
+      route: UPSERT_PREVIEW_ROUTE,
+      diffRoute: ROUTE,
+      generatedAt,
+      readOnly: true,
+      writeEnabled: false,
+      databaseWritesEnabled: false,
+      databaseWriteExecuted: false,
+      active: false,
+      status: code,
+      error: code,
+      table: PERSISTENT_INDEX_TABLE,
+      candidateCount: null,
+      byRoot: {},
+      byKind: {},
+      previewLimit,
+      preview: [],
+      safety: buildUpsertPreviewSafety(),
+      note: 'Upsert-Preview konnte die Online-DB nicht read-only lesen. Es wurden keine Writes ausgefuehrt.'
+    };
+  }
+
+  if (!complete) {
+    return {
+      ok: false,
+      httpStatus: 200,
+      service: 'remote-modboard',
+      module: 'remote_media_index_upsert_preview_readonly',
+      moduleVersion: context.appVersion || '0.2.59',
+      moduleBuild: BUILD,
+      appModuleBuild: context.moduleBuild || null,
+      routeBuild: BUILD,
+      previousRouteBuild: PREVIOUS_BUILD,
+      statusApiVersion: STATUS_API_VERSION,
+      previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
+      route: UPSERT_PREVIEW_ROUTE,
+      diffRoute: ROUTE,
+      generatedAt,
+      readOnly: true,
+      writeEnabled: false,
+      databaseWritesEnabled: false,
+      databaseWriteExecuted: false,
+      active: false,
+      status: 'full_sync_compare_snapshot_unavailable_or_incomplete',
+      fullSyncCompare: {
+        prepared: full.prepared === true,
+        available: full.available === true,
+        complete: full.complete === true,
+        syncId: full.syncId || null,
+        receivedChunks: full.receivedChunks,
+        totalChunks: full.totalChunks,
+        receivedItems: full.receivedItems,
+        totalItems: full.totalItems,
+        itemCount: full.items.length,
+        completedAt: full.completedAt
+      },
+      table: PERSISTENT_INDEX_TABLE,
+      candidateCount: null,
+      byRoot: {},
+      byKind: {},
+      previewLimit,
+      preview: [],
+      safety: buildUpsertPreviewSafety(),
+      note: 'Upsert-Preview braucht einen vollstaendigen Full-Sync-Compare-Snapshot. Es wurden keine Writes ausgefuehrt.'
+    };
+  }
+
+  const candidates = buildUpsertPreviewCandidates({ agentItems: full.items, dbItems: dbInventory.items });
+  return {
+    ok: true,
+    service: 'remote-modboard',
+    module: 'remote_media_index_upsert_preview_readonly',
+    moduleVersion: context.appVersion || '0.2.59',
+    moduleBuild: BUILD,
+    appModuleBuild: context.moduleBuild || null,
+    routeBuild: BUILD,
+    previousRouteBuild: PREVIOUS_BUILD,
+    statusApiVersion: STATUS_API_VERSION,
+    previousStatusApiVersion: PREVIOUS_STATUS_API_VERSION,
+    route: UPSERT_PREVIEW_ROUTE,
+    diffRoute: ROUTE,
+    generatedAt,
+    readOnly: true,
+    writeEnabled: false,
+    databaseWritesEnabled: false,
+    databaseWriteExecuted: false,
+    active: true,
+    status: 'media_index_upsert_preview_available_readonly',
+    source: 'agent_full_sync_new_on_agent_vs_remote_media_index_readonly',
+    table: PERSISTENT_INDEX_TABLE,
+    database: {
+      table: PERSISTENT_INDEX_TABLE,
+      readOnly: true,
+      total: dbInventory.total,
+      returned: dbInventory.items.length,
+      truncated: dbInventory.truncated === true,
+      active: dbInventory.items.length > 0
+    },
+    fullSyncCompare: {
+      prepared: full.prepared === true,
+      available: full.available === true,
+      complete: full.complete === true,
+      syncId: full.syncId || null,
+      receivedChunks: full.receivedChunks,
+      totalChunks: full.totalChunks,
+      receivedItems: full.receivedItems,
+      totalItems: full.totalItems,
+      itemCount: full.items.length,
+      completedAt: full.completedAt
+    },
+    candidateCount: candidates.length,
+    byRoot: buildCountByField(candidates, 'rootKey'),
+    byKind: buildCountByField(candidates, 'kind'),
+    previewLimit,
+    preview: candidates.slice(0, previewLimit).map(buildUpsertPreviewItem),
+    payloadColumns: [
+      'id',
+      'root_key',
+      'kind',
+      'relative_path',
+      'name',
+      'extension',
+      'size_bytes',
+      'modified_at',
+      'last_seen_at',
+      'source'
+    ],
+    futureWritePolicy: {
+      preparedOnly: true,
+      readOnly: true,
+      requiresSeparateExecuteStep: true,
+      requiresLocalRequest: true,
+      requiresConfirmWrite: true,
+      requiresExpectedCandidateCount: true,
+      requiresMediaIndexWriteGates: true,
+      requiresAudit: true,
+      requiresReadback: true,
+      upsertOnly: true,
+      noHardDelete: true,
+      noPhysicalDelete: true,
+      noOnlineToAgentAction: true
+    },
+    safety: buildUpsertPreviewSafety(),
+    note: 'Upsert-Preview zeigt nur neue Full-Sync-Agent-Items, die in remote_media_index fehlen. Es wird nichts geschrieben.'
+  };
+}
+
 
 async function buildPersistentTombstonePreviewStatus(context = {}, req = null) {
   const diffStatus = await buildMediaIndexDiffStatus(context, req);
@@ -971,6 +1149,75 @@ function buildDiff({ agentItems, dbItems, previewLimit, agentTruncated, agentSna
   };
 }
 
+
+function buildUpsertPreviewCandidates({ agentItems, dbItems }) {
+  const dbById = indexById(dbItems);
+  const candidates = [];
+  for (const item of Array.isArray(agentItems) ? agentItems : []) {
+    const safe = sanitizeMediaItem(item);
+    if (!safe || dbById.has(safe.id)) continue;
+    candidates.push(safe);
+  }
+  return candidates;
+}
+
+function buildUpsertPreviewItem(item) {
+  const safe = sanitizeMediaItem(item);
+  if (!safe) return null;
+  return {
+    id: safe.id,
+    rootKey: safe.rootKey,
+    kind: safe.kind,
+    relativePath: safe.relativePath,
+    name: safe.name,
+    extension: safe.extension,
+    sizeBytes: safe.sizeBytes,
+    modifiedAt: safe.modifiedAt,
+    lastSeenAt: safe.lastSeenAt,
+    source: safe.source || null,
+    moduleKey: safe.moduleKey || null,
+    categoryKey: safe.categoryKey || null,
+    fullCategoryKey: safe.fullCategoryKey || null,
+    assetRelativePath: safe.assetRelativePath || null,
+    webPath: safe.webPath || null,
+    publicPath: safe.publicPath || null,
+    dbPayload: {
+      id: safe.id,
+      root_key: safe.rootKey,
+      kind: safe.kind,
+      relative_path: safe.relativePath,
+      name: safe.name,
+      extension: safe.extension,
+      size_bytes: safe.sizeBytes,
+      modified_at: safe.modifiedAt,
+      last_seen_at: safe.lastSeenAt,
+      source: safe.source || 'agent_full_sync_upsert_preview'
+    },
+    writeEnabled: false,
+    databaseWriteExecuted: false
+  };
+}
+
+function buildUpsertPreviewSafety() {
+  return {
+    readOnly: true,
+    writesEnabled: false,
+    databaseWritesEnabled: false,
+    databaseWriteExecuted: false,
+    noInsert: true,
+    noUpdate: true,
+    noDelete: true,
+    noHardDelete: true,
+    noPhysicalDelete: true,
+    noOnlineToAgentAction: true,
+    noAgentTrigger: true,
+    noFileContent: true,
+    noAbsolutePaths: true,
+    previewOnly: true
+  };
+}
+
+
 function classifyMissingItem(item) {
   const safe = sanitizeMediaItem(item);
   if (!safe) return null;
@@ -1574,4 +1821,4 @@ function dateMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-module.exports = { registerMediaIndexDiffRoutes, buildMediaIndexDiffStatus, buildPersistentTombstonePreviewStatus, executePersistentTombstoneFoundation };
+module.exports = { registerMediaIndexDiffRoutes, buildMediaIndexDiffStatus, buildMediaIndexUpsertPreviewStatus, buildPersistentTombstonePreviewStatus, executePersistentTombstoneFoundation };
