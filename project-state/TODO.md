@@ -1,7 +1,5 @@
 # TODO
 
-- [ ] 0.2.72: `remote_agent.js` minimal auf `helper_media_inventory_roots.js` verdrahten.
-- [ ] Media-System Root `assets/media/<module>/<category>` read-only mitscannen.
-- [ ] Legacy-Roots weiter read-only mitscannen.
-- [ ] Sortierfelder im Inventory transportieren.
-- [ ] Danach erst Testdatei-Step planen.
+- [ ] 0.2.73: `backend/modules/remote_agent.js` inline fuer Media-System-Scan erweitern.
+- [ ] Danach lokal Syntax pruefen.
+- [ ] Danach erst spaeter Testdatei-/Full-Sync-/Preview-Flow planen.

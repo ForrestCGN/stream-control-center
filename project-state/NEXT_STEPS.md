@@ -1,13 +1,12 @@
 # NEXT_STEPS
 
-## Naechster RDAP-Block nach 0.2.71
+## Naechster RDAP-Block nach 0.2.72
 
-`RDAP_0.2.72_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_WIRING`
+`RDAP_0.2.73_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_INLINE_WIRING`
 
 ## Ziel
 
-- `backend/modules/remote_agent.js` minimal verdrahten.
-- Helper `backend/modules/helpers/helper_media_inventory_roots.js` verwenden.
+- `backend/modules/remote_agent.js` direkt erweitern.
 - Neues Media-System `assets/media/<module>/<category>` in den Remote-Agent-Media-Scan aufnehmen.
 - Legacy-Roots `assets/sounds`, `assets/videos`, `assets/images` weiter read-only erhalten.
 - Inventory-Items um sortierbare Dashboard-Felder ergaenzen:

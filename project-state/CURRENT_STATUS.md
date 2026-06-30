@@ -1,66 +1,45 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.71 - Media Index Remote-Agent Media-System Scan Code Prep`
+Aktueller Stand: `0.2.72 - Media Index Remote-Agent Inline Wiring Handoff`
 
 ## Ergebnis
 
-0.2.71 fuegt einen kleinen, side-effect-free Source-Helper fuer die spaetere Remote-Agent-Media-System-Scan-Verdrahtung hinzu.
+0.2.72 haelt den korrigierten Zwischenstand nach Variante B fest.
 
-## Source-Aenderung
+Der vorherige Helper wurde wieder entfernt:
 
 ```text
 backend/modules/helpers/helper_media_inventory_roots.js
 ```
 
-Der Helper beschreibt:
+`backend/modules/remote_agent.js` ist noch nicht inline erweitert.
+
+## Live-Hinweis
+
+GitHub/dev ist die Quelle fuer den naechsten Deploy. Die Helper-Datei ist in GitHub/dev entfernt.
+
+Auf Live unter `/opt/stream-control-center` ist die Datei erst nach einem Webserver-Deploy aus frischem GitHub/dev-Clone sicher entfernt. Da der Helper nie von `remote_agent.js` verwendet wurde, hatte er keine Runtime-Wirkung.
+
+## Naechster Source-Step
 
 ```text
-Neues Media-System:
-D:\Streaming\stramAssets\htdocs\assets\media\<module>\<category>\...
-
-Legacy:
-D:\Streaming\stramAssets\htdocs\assets\sounds
-D:\Streaming\stramAssets\htdocs\assets\videos
-D:\Streaming\stramAssets\htdocs\assets\images
+RDAP_0.2.73_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_INLINE_WIRING
 ```
 
-## Entscheidung
-
-Neue Media-System-Dateien sollen spaeter fuer den RDAP-/Remote-Index sichtbar werden und Dashboard/Remote-Modboard-Sortierung nach diesen Feldern erlauben:
+Ziel:
 
 ```text
-source
-rootKey
-moduleKey
-categoryKey
-fullCategoryKey
-assetRelativePath
-relativePath
-webPath/publicPath
-kind/mediaType
+backend/modules/remote_agent.js direkt erweitern, assets/media/<module>/<category> zusaetzlich read-only scannen, Legacy behalten, Kategorie-/Sortierfelder transportieren.
 ```
 
 ## Sicherheit
 
 ```text
-remote_agent.js Runtime-Wiring noch nicht geaendert
 keine Testdatei
 keine lokale Dateiaktion
 keine DB-Aenderung
 keine Migration
 keine Gates
 kein Execute
-kein Webserver-Deploy
-```
-
-## Naechster Block
-
-```text
-RDAP_0.2.72_MEDIA_INDEX_REMOTE_AGENT_MEDIA_SYSTEM_SCAN_WIRING
-```
-
-Ziel:
-
-```text
-backend/modules/remote_agent.js minimal auf den Helper verdrahten und assets/media/<module>/<category> zusaetzlich read-only scannen.
+kein Webserver-Deploy in diesem Doku-Handoff
 ```
