@@ -1,12 +1,12 @@
 # CURRENT_STATUS
 
-Aktueller Stand: `0.2.91 - Media Index Upsert Candidates Field Fix gated + produktiver Context-Upsert bestaetigt`
+Aktueller Stand: `0.2.93 - Media Index Post-Upsert Verify readonly bestaetigt`
 
 ## Kurzfazit
 
-Der Media-System-Index ist jetzt vollstaendig in `remote_media_index` vorhanden.
+Der Media-System-Index ist vollstaendig in `remote_media_index` vorhanden und der Post-Upsert-Verify nach dem produktiven Context-Upsert ist read-only bestaetigt.
 
-Bestaetigt auf dem Webserver:
+Bestaetigt auf dem Webserver am 2026-06-30:
 
 ```text
 remote_media_index aktiv:
@@ -17,7 +17,64 @@ videos = 10
 gesamt = 744
 ```
 
-Die neuen Media-System-Kontextspalten wurden angelegt und fuer `root_key = media` befuellt:
+Post-Upsert-Verify 0.2.93:
+
+```text
+Diff:
+moduleBuild = RDAP_0.2.91_MEDIA_INDEX_UPSERT_CANDIDATES_FIELD_FIX_GATED
+statusApiVersion = rdap_media_index_upsert_candidates_field_fix_gated_091.v1
+fullSync = full_sync_compare_available_missing_reliable
+fullItems = 744
+dbTotal = 744
+newOnAgent = 0
+missingReliable = true
+
+Upsert Preview:
+ok = true
+status = media_index_upsert_preview_available_readonly
+candidateCount = 0
+byRoot = {}
+byKind = {}
+```
+
+Audit-Readback bestaetigt:
+
+```text
+2026-06-30 12:04:41 | remote-modboard/rdap089 | media_index.upsert.with_context                  | remote_media_index | success
+2026-06-30 11:41:03 | remote-modboard/rdap088 | media_index.schema_extension.add_context_columns | remote_media_index | success
+```
+
+## Gates / Sicherheit
+
+Runtime/Env-Check nach produktivem Execute:
+
+```text
+MEDIA_INDEX_WRITE_ENABLED=false
+MEDIA_INDEX_DATA_WRITE_ENABLED=false
+MEDIA_INDEX_UPSERT_WRITE_ENABLED=false
+MEDIA_INDEX_PERSISTENT_TOMBSTONE_WRITE_ENABLED=false
+```
+
+Hinweis:
+`MEDIA_INDEX_SCHEMA_WRITE_ENABLED` war in der Env-Ausgabe nicht explizit vorhanden. Das ist praktisch blockierend/sicher, weil der Code bei fehlender Variable auf `false` faellt. Fuer bessere Diagnostik soll die Variable spaeter explizit als `false` in der Env stehen, aber das ist kein funktionaler Blocker.
+
+Weiterhin verboten ohne separaten Plan + Go:
+
+```text
+kein Gate aktivieren
+keine DB-Zeilen veraendern
+keine Migration
+kein Tombstone-Execute
+kein Hard-Delete
+kein physisches Loeschen
+kein Online->Agent-Trigger
+keine Upload/Edit/Delete-Aktion
+keine Dateiaktion vom Webserver zum Stream-PC
+```
+
+## Kontextspalten
+
+Die neuen Media-System-Kontextspalten sind vorhanden und fuer `root_key = media` befuellt:
 
 ```text
 module_key
@@ -26,20 +83,6 @@ full_category_key
 asset_relative_path
 web_path
 public_path
-```
-
-Produktiver Upsert wurde bestaetigt:
-
-```text
-status = media_index_upsert_with_context_execute_success
-candidateCount = 412
-affectedRows = 412
-presentAfterCount = 412
-missingAfterCount = 0
-databaseWriteExecuted = true
-upsertExecuted = true
-auditWritten = true
-readBackPerformed = true
 ```
 
 ## Bestaetigte Module/Kategorien im DB-Readback
@@ -62,21 +105,36 @@ twitch_events 1
 Beispiele fuer `full_category_key` aus dem Readback:
 
 ```text
-alerts/bits
-alerts/donation
-alerts/follow
-alerts/raid
-alerts/sub
-birthday/general
-channelpoints/general
-commands/general
-general/audio
-general/intro
-general/images
-general/transitions
-stream_events/1-jahres-event
-vip/general
-vip30/general
+general/audio                66
+alerts/follow                53
+alerts/bits                  49
+general/intro                43
+stream_events/1-jahres-event 35
+vip/general                  31
+channelpoints/general        25
+commands/general             25
+alerts/sub                   22
+general/images               13
+general/video                7
+shot_alarm/shot-system       6
+vip30/general                6
+alerts/donation              4
+birthday/general             4
+birthday/party-songs         3
+general/general              3
+general/transitions          3
+alerts/raid                  2
+hypetrain/general            2
+alerts/kofi                  1
+alerts/tipeee                1
+audio/roxxyfoxxy_cgn_2.mp3   1
+audio/udos_skatebord.mp3     1
+birthday/default-song        1
+birthday/user-songs          1
+commands/roxxy               1
+general/outro                1
+general/test                 1
+twitch_events/hypetrain      1
 ```
 
 ## Was bei neuen lokalen Kategorien/Modulen passiert
@@ -202,39 +260,14 @@ auditWritten = true
 - Gate-false Test erfolgreich blockiert.
 - Danach produktiver Upsert mit Gates true erfolgreich ausgefuehrt.
 
-## Sicherheit / Gates
+### 0.2.93 - Post-Upsert Verify readonly
 
-Schema- und Data-Writes waren nur mit expliziten Gates moeglich.
-
-Verwendete Gates:
-
-```text
-MEDIA_INDEX_WRITE_ENABLED
-MEDIA_INDEX_SCHEMA_WRITE_ENABLED
-MEDIA_INDEX_DATA_WRITE_ENABLED
-MEDIA_INDEX_UPSERT_WRITE_ENABLED
-```
-
-Nach produktiven Executes muessen Gates wieder geschlossen bleiben:
-
-```text
-MEDIA_INDEX_WRITE_ENABLED=false
-MEDIA_INDEX_SCHEMA_WRITE_ENABLED=false
-MEDIA_INDEX_DATA_WRITE_ENABLED=false
-MEDIA_INDEX_UPSERT_WRITE_ENABLED=false
-```
-
-Weiterhin verboten ohne separaten Plan + Go:
-
-```text
-kein Hard-Delete
-kein physisches Loeschen
-kein Online->Agent-Trigger
-keine Dateiaktion
-keine Upload/Edit/Delete-Aktion
-keine Blind-Migration
-keine Gates dauerhaft offen lassen
-```
+- Gates nach produktivem Execute read-only geprueft.
+- FullSyncCompare zeigt `fullItems=744`, `dbTotal=744`, `newOnAgent=0`.
+- Upsert-Preview zeigt `candidateCount=0`.
+- SQL-Readback bestaetigt 744 aktive DB-Eintraege.
+- Audit-Readback bestaetigt Schema-Extension und Upsert jeweils `success`.
+- Keine Code-Aenderung, keine DB-Writes, kein Deploy.
 
 ## Wichtige Eigenheit
 
@@ -252,15 +285,14 @@ Nur wenn `ok=true` und `candidateCount` plausibel ist, Execute planen.
 ## Aktuell naechster sinnvoller Block
 
 ```text
-RDAP_0.2.93_MEDIA_INDEX_POST_UPSERT_VERIFY_READONLY
+RDAP_0.2.94_MEDIA_INDEX_DB_CONTEXT_READ_API_READONLY
 ```
 
 Ziel:
 
 ```text
-- Gates geschlossen verifizieren.
-- Upsert-Preview nach FullSync soll candidateCount=0 zeigen.
-- Diff/FullSyncCompare soll total 744 und DB total 744 zeigen.
-- Kontextfelder stichprobenartig per read-only SQL/API pruefen.
-- Keine Code-Aenderung, keine Writes.
+- Read-only API fuer Media-Index-Kontextlisten planen und bauen.
+- Filter nach module_key/category_key/full_category_key/kind.
+- Grundlage fuer spaetere UI-Auswahl und Modul-Media-Picker.
+- Keine Writes.
 ```

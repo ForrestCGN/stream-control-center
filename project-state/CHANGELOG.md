@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.2.93 - Media Index Post-Upsert Verify readonly
+
+- Post-Upsert-Verifikation nach produktivem Context-Upsert read-only ausgefuehrt.
+- Bestaetigt: FullSyncCompare `fullItems=744`, DB `dbTotal=744`, `newOnAgent=0`.
+- Bestaetigt: Upsert Preview `ok=true`, `candidateCount=0`, `byRoot={}`, `byKind={}`.
+- Bestaetigt: DB-Readback `images=46`, `media=412`, `sounds=276`, `videos=10`, gesamt `744` aktive Eintraege.
+- Bestaetigt: Audit-Eintraege fuer `media_index.schema_extension.add_context_columns` und `media_index.upsert.with_context` jeweils `success`.
+- Bestaetigt: Media-Index-Gates bleiben geschlossen. `MEDIA_INDEX_SCHEMA_WRITE_ENABLED` war nicht explizit gesetzt, faellt im Code aber sicher auf `false`.
+- Naechsten read-only API-Block 0.2.94 vorbereitet.
+- Keine Runtime-Code-Dateien geaendert.
+- Kein Webserver-Deploy noetig.
+
 ## 0.2.92 - Media Index DB Upsert Docs Handoff
 
 - Doku nach erfolgreichem Schema- und Data-Upsert aktualisiert.
